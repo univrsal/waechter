@@ -1,0 +1,10 @@
+build/
+.vscode/
+.cache/
+
+# eBPF build artifacts
+/ebpf/*.o
+*.user
+build-*/
+cmake-*/
+.idea/
