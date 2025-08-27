@@ -4,7 +4,7 @@
 #include <bpf/bpf_helpers.h>
 
 SEC("xdp")
-int xdp_rate_limit(struct xdp_md* ctx)
+int xdp_waechter(struct xdp_md* ctx)
 {
 	return XDP_PASS;
 }
