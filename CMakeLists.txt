@@ -40,9 +40,7 @@ add_custom_command(
 
 add_custom_target(bpfobj ALL DEPENDS ${BPF_OBJ})
 
-add_executable(${PROJECT_NAME}
-    Source/main.cpp
-)
+add_subdirectory(Source)
 
 add_dependencies(${PROJECT_NAME} bpfobj)
 
