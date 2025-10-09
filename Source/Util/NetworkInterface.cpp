@@ -2,16 +2,14 @@
 // Created by usr on 08/10/2025.
 //
 
-#include "NetworkInterface.h"
+#include "NetworkInterface.hpp"
 
 #include <ifaddrs.h>
-#include <net/if.h>
-#include <sys/types.h>
 #include <unordered_set>
 #include <vector>
 #include <string>
 
-std::vector<std::string> NetworkInterface::list()
+std::vector<std::string> WNetworkInterface::list()
 {
 	std::vector<std::string> result;
 	std::unordered_set<std::string> seen;
