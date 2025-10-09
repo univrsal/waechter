@@ -11,6 +11,7 @@
 struct WDaemonConfig : public TSingleton<WDaemonConfig>
 {
 	std::string NetworkInterfaceName{};
+	std::string CGroupPath{"/sys/fs/cgroup"};
 
 	WDaemonConfig();
 
@@ -18,4 +19,5 @@ struct WDaemonConfig : public TSingleton<WDaemonConfig>
 private:
 	void Load(std::string const& Path);
 	void SetDefaults();
+	void BumpMemlockRlimit();
 };

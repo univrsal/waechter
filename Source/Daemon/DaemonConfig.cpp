@@ -4,11 +4,12 @@
 
 #include "DaemonConfig.hpp"
 
-#include "Filesystem.hpp"
-#include "NetworkInterface.hpp"
-
+#include <sys/resource.h>
 #include <INIReader.h>
 #include <spdlog/spdlog.h>
+
+#include "Filesystem.hpp"
+#include "NetworkInterface.hpp"
 
 WDaemonConfig::WDaemonConfig()
 {
@@ -25,16 +26,25 @@ WDaemonConfig::WDaemonConfig()
 	{
 		spdlog::info("no configuration file found, using defaults");
 	}
+	BumpMemlockRlimit();
 }
 
 void WDaemonConfig::LogConfig()
 {
 	spdlog::info("network interface={}", NetworkInterfaceName);
+	spdlog::info("cgroup path={}", CGroupPath);
 }
 
 void WDaemonConfig::Load(std::string const& Path)
 {
 	INIReader Reader(Path);
+
+	auto SafeGet = [&](std::string const& Section, std::string const& Name, std::string& OutVal) {
+		if (Reader.HasValue(Section, Name))
+		{
+			OutVal = Reader.Get(Section, Name, OutVal);
+		}
+	};
 
 	if (Reader.ParseError() < 0)
 	{
@@ -44,10 +54,8 @@ void WDaemonConfig::Load(std::string const& Path)
 
 	if (Reader.HasSection("network"))
 	{
-		if (Reader.HasValue("network", "interface"))
-		{
-			NetworkInterfaceName = Reader.Get("network", "interface", NetworkInterfaceName);
-		}
+		SafeGet("network", "interface", NetworkInterfaceName);
+		SafeGet("network", "cgroup_path", CGroupPath);
 	}
 }
 
@@ -66,4 +74,11 @@ void WDaemonConfig::SetDefaults()
 	{
 		NetworkInterfaceName = "eth0";
 	}
+}
+
+void WDaemonConfig::BumpMemlockRlimit()
+{
+	spdlog::info("bumping memlock rlimit");
+	rlimit r = { RLIM_INFINITY, RLIM_INFINITY };
+	setrlimit(RLIMIT_MEMLOCK, &r);
 }
