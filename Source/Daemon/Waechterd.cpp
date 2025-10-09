@@ -7,12 +7,15 @@
 #include <spdlog/spdlog.h>
 
 #include "SignalHandler.hpp"
+#include "DaemonConfig.hpp"
 
 int main()
 {
 	WSignalHandler& SignalHandler = WSignalHandler::GetInstance();
 
 	spdlog::info("Waechter daemon starting");
+
+	WDaemonConfig::GetInstance().LogConfig();
 
 	while (!SignalHandler.bStop)
 	{

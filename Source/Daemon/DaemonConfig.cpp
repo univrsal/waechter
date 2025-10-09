@@ -29,7 +29,7 @@ WDaemonConfig::WDaemonConfig()
 
 void WDaemonConfig::LogConfig()
 {
-	spdlog::debug("network interface={}", NetworkInterfaceName);
+	spdlog::info("network interface={}", NetworkInterfaceName);
 }
 
 void WDaemonConfig::Load(std::string const& Path)
@@ -54,8 +54,16 @@ void WDaemonConfig::Load(std::string const& Path)
 void WDaemonConfig::SetDefaults()
 {
 	auto Ifaces = WNetworkInterface::list();
-	if (Ifaces.size() > 0)
+	if (Ifaces.size() > 1)
+	{
+		NetworkInterfaceName = Ifaces[1];
+	}
+	else if (Ifaces.size() == 1)
 	{
 		NetworkInterfaceName = Ifaces[0];
+	}
+	else
+	{
+		NetworkInterfaceName = "eth0";
 	}
 }
