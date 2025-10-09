@@ -1,6 +1,7 @@
 add_library(util STATIC
     NetworkInterface.cpp
     SignalHandler.cpp
+        Filesystem.hpp
 )
 
 target_include_directories(util PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

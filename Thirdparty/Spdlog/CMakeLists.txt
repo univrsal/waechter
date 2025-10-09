@@ -178,7 +178,7 @@ else ()
 endif ()
 
 add_library(spdlog::spdlog ALIAS spdlog)
-add_library(Thirdparty::Spdlog ALIAS spdlog)
+add_library(thirdparty::Spdlog ALIAS spdlog)
 
 set(SPDLOG_INCLUDES_LEVEL "")
 if (SPDLOG_SYSTEM_INCLUDES)
