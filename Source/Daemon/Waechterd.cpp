@@ -10,30 +10,37 @@
 
 #include "SignalHandler.hpp"
 #include "DaemonConfig.hpp"
+#include "EbpfData.hpp"
 #include "WaechterEbpf.hpp"
 
 int Run()
 {
 	WSignalHandler& SignalHandler = WSignalHandler::GetInstance();
 
-	spdlog::info("Waechter daemon starting");
 
 	libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
 
 	WDaemonConfig::GetInstance().LogConfig();
 
-	WWaechterEbpf EbpfObj;
+	WWaechterEbpf* EbpfObj = new WWaechterEbpf;
 
-	if (auto Result = EbpfObj.Init() != EEbpfInitResult::SUCCESS)
+	spdlog::info("Waechter daemon starting");
+
+	if (auto Result = EbpfObj->Init() != EEbpfInitResult::SUCCESS)
 	{
 		spdlog::error("EbpfObj.Init() failed: {}", Result);
 		return -1;
 	}
 
+	spdlog::info("Ebpf programs loaded and attached");
+
 	while (!SignalHandler.bStop)
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		EbpfObj->PrintStats();
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	}
+
+	delete EbpfObj;
 	return 0;
 }
 
@@ -42,7 +49,7 @@ int main()
 	if (geteuid() != 0)
 	{
 		spdlog::critical("Waechter daemon requires root");
-		return -1;
+		// return -1;
 	}
 
 	auto Ret = Run();

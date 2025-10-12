@@ -5,6 +5,7 @@
 #include "EbpfObj.hpp"
 #include "DaemonConfig.hpp"
 #include "ErrnoUtil.hpp"
+#include "Filesystem.hpp"
 
 #include <spdlog/spdlog.h>
 #include <fcntl.h>
@@ -24,7 +25,9 @@ WEbpfObj::WEbpfObj(std::string ProgramObectFilePath)
 		}
 		CGroupFd.reset(new int(CGroupFdRaw));
 	}
+
 	Obj = bpf_object__open_file(ProgramObectFilePath.c_str(), nullptr);
+	errno = 0;
 }
 
 WEbpfObj::~WEbpfObj()

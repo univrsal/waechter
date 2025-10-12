@@ -33,4 +33,7 @@ public:
 
 	EEbpfInitResult Init();
 
+	std::shared_ptr<WEbpfData> GetData() { return Data; }
+
+	void PrintStats();
 };

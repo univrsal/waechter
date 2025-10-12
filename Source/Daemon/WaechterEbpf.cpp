@@ -31,6 +31,7 @@ EEbpfInitResult WWaechterEbpf::Init()
 		return EEbpfInitResult::OPEN_FAILED;
 	}
 
+	spdlog::error("{} ",  WErrnoUtil::StrError());
 	if (!this->Load())
 	{
 		spdlog::critical("Failed to load BPF file");
@@ -64,4 +65,18 @@ EEbpfInitResult WWaechterEbpf::Init()
 	}
 
 	return EEbpfInitResult::SUCCESS;
+}
+
+void WWaechterEbpf::PrintStats()
+{
+	// Data->UpdateData();
+
+	WFlowStats fs{};
+	uint32_t   gk = 0;
+	auto Map = Data->GetGlobalStats();
+
+	if (Map.Lookup(fs, gk	))
+	{
+		spdlog::info("{}|Global: {} bytes, {} pkts", gk, fs.Bytes, fs.Packets);
+	}
 }

@@ -60,9 +60,9 @@ static void print_stats(const MapFds& mfds)
 	uint32_t   gk = 0;
 	if (mfds.global_stats >= 0 && bpf_map_lookup_elem(mfds.global_stats, &gk, &fs) == 0)
 	{
-		std::cout << "Global: " << fs.bytes << " bytes, " << fs.packets << " pkts\n";
+		std::cout << gk << "|Global: " << fs.bytes << " bytes, " << fs.packets << " pkts\n";
 	}
-
+	return;
 	// Print top few PIDs (simple linear scan with get_next_key)
 	if (mfds.pid_stats >= 0)
 	{
@@ -148,9 +148,12 @@ int main(int argc, char** argv)
 		perror("if_nametoindex");
 		return 1;
 	}
+	std::cout << "Using interface " << iface << " (index " << ifindex << ")\n";
 
 	bpf_object* obj = nullptr;
+	std::cout << strerror(errno) << std::endl;
 	obj = bpf_object__open_file(BPF_OBJECT_PATH, nullptr);
+	std::cout << strerror(errno) << std::endl;
 	if (!obj)
 	{
 		std::cerr << "Failed to open BPF object: " << BPF_OBJECT_PATH << std::endl;

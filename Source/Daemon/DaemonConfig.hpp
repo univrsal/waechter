@@ -12,12 +12,13 @@ struct WDaemonConfig : public TSingleton<WDaemonConfig>
 {
 	std::string NetworkInterfaceName{};
 	std::string CGroupPath{"/sys/fs/cgroup"};
-
+	std::string DaemonUser{"nobody"};
 	WDaemonConfig();
 
 	void LogConfig();
 private:
 	void Load(std::string const& Path);
 	void SetDefaults();
-	void BumpMemlockRlimit();
+
+	static void BumpMemlockRlimit();
 };

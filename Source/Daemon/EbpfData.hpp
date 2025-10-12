@@ -35,5 +35,20 @@ public:
 		return GlobalStats.IsValid() && PidStats.IsValid() && CgroupStats.IsValid() && ConnStats.IsValid() && CookieProcMap.IsValid();
 	}
 
+	void UpdateData()
+	{
+		GlobalStats.Update();
+		PidStats.Update();
+		CgroupStats.Update();
+		ConnStats.Update();
+		CookieProcMap.Update();
+	}
+
 	explicit WEbpfData(WWaechterEbpf const& EbpfObj);
+
+	WEbpfMap<WFlowStats>& GetGlobalStats() { return GlobalStats; }
+	WEbpfMap<WFlowStats>& GetPidStats() { return PidStats; }
+	WEbpfMap<WFlowStats>& GetCgroupStats() { return CgroupStats; }
+	WEbpfMap<WFlowStats>& GetConnStats() { return ConnStats; }
+	WEbpfMap<WProcMeta>& GetCookieProcMap() { return CookieProcMap; }
 };

@@ -7,6 +7,9 @@
 #include <unordered_map>
 #include <bpf/bpf.h>
 #include <cstdint>
+#include <spdlog/spdlog.h>
+
+#include "ErrnoUtil.hpp"
 
 template<typename T>
 class WEbpfMap
@@ -21,54 +24,27 @@ public:
 	{
 	}
 
+	std::unordered_map<uint32_t, T> const & GetMap() const { return Elements; }
+
 	bool IsValid() const
 	{
 		return MapFd >= 0;
 	}
 
-	// Get the first element, fetch from the bpf map if not in the local cache
-	T const* First()
+	bool Lookup(T& OutValue, uint32_t& Key)
 	{
-		if (!Elements.empty())
+		if (bpf_map_lookup_elem(MapFd, &Key, &OutValue) == 0)
 		{
-			return &Elements.begin()->second;
+			return true;
 		}
 
-		T Value{};
-		uint32_t Key;
-
-		if (bpf_map_lookup_elem(MapFd, &Key, &Value) == 0)
-		{
-			Elements[Key] = Value;
-			return &Elements[Key];
-		}
-
-		return nullptr;
-
-	}
-
-	// Lookup an element by key, fetch from the bpf map if not in the local cache
-	T const* Lookup(uint32_t Key = 0)
-	{
-		auto It = Elements.find(Key);
-		if (It != Elements.end())
-		{
-			return &It->second;
-		}
-
-		T Value{};
-		if (bpf_map_lookup_elem(MapFd, &Key, &Value) == 0)
-		{
-			Elements[Key] = Value;
-			return &Elements[Key];
-		}
-
-		return nullptr;
+		return false;
 	}
 
 	// Fetch all elements from the bpf map into the local cache
 	void Update()
 	{
+		Elements.clear();
 		uint32_t Key = 0;
 		int      Ret = bpf_map_get_next_key(MapFd, nullptr, &Key);
 		while (Ret == 0)
@@ -82,4 +58,6 @@ public:
 			Ret = bpf_map_get_next_key(MapFd, &Prev, &Key);
 		}
 	}
+
+	int GetFd() const { return MapFd; }
 };

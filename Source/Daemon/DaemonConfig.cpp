@@ -56,6 +56,8 @@ void WDaemonConfig::Load(std::string const& Path)
 	{
 		SafeGet("network", "interface", NetworkInterfaceName);
 		SafeGet("network", "cgroup_path", CGroupPath);
+
+		SafeGet("daemon", "user", DaemonUser);
 	}
 }
 
