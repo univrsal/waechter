@@ -16,8 +16,8 @@ endif()
 find_program(CLANG_EXECUTABLE NAMES clang REQUIRED)
 
 # Build eBPF object
-set(BPF_SRC ${CMAKE_CURRENT_SOURCE_DIR}/ebpf/waechter_bpf.c)
-set(BPF_OBJ ${CMAKE_CURRENT_BINARY_DIR}/ebpf/waechter_bpf.o)
+set(BPF_SRC ${CMAKE_CURRENT_SOURCE_DIR}/WaechterEBPF.c)
+set(BPF_OBJ ${CMAKE_CURRENT_BINARY_DIR}/ebpf/WaechterEBPF.o)
 
 add_custom_command(
     OUTPUT ${BPF_OBJ}
@@ -32,4 +32,5 @@ add_custom_command(
 
 add_custom_target(bpfobj ALL DEPENDS ${BPF_OBJ})
 add_dependencies(waechterd bpfobj)
-
+message(STATUS "eBPF object will be built at: ${BPF_OBJ}")
+target_compile_definitions(waechterd PUBLIC BPF_OBJECT_PATH="${BPF_OBJ}")

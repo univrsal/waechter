@@ -29,7 +29,7 @@ class WWaechterEbpf : public WEbpfObj
 	std::shared_ptr<WEbpfData> Data{};
 public:
 
-	explicit WWaechterEbpf(int InterfaceIndex = -1, std::string const& ProgramObectFilePath = "ebpf/waechter_bpf.o");
+	explicit WWaechterEbpf(int InterfaceIndex = -1, std::string const& ProgramObectFilePath = BPF_OBJECT_PATH);
 
 	EEbpfInitResult Init();
 

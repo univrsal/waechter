@@ -6,12 +6,13 @@
 
 #include <spdlog/spdlog.h>
 #include <bpf/libbpf.h>
+#include <unistd.h>
 
 #include "SignalHandler.hpp"
 #include "DaemonConfig.hpp"
 #include "WaechterEbpf.hpp"
 
-int main()
+int Run()
 {
 	WSignalHandler& SignalHandler = WSignalHandler::GetInstance();
 
@@ -33,7 +34,18 @@ int main()
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
-
-	spdlog::info("Waechter daemon stopped");
 	return 0;
+}
+
+int main()
+{
+	if (geteuid() != 0)
+	{
+		spdlog::critical("Waechter daemon requires root");
+		return -1;
+	}
+
+	auto Ret = Run();
+	spdlog::info("Waechter daemon stopped");
+	return Ret;
 }
