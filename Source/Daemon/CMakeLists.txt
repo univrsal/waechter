@@ -4,6 +4,8 @@ add_executable(waechterd
         DaemonConfig.hpp
         EbpfObj.cpp
         EbpfObj.hpp
+        WaechterEpf.cpp
+        WaechterEpf.hpp
 )
 
 target_compile_options(waechterd PRIVATE -Wall -Wextra -Wpedantic)
