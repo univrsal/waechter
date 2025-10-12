@@ -45,5 +45,7 @@ public:
 
 	bool FindAndAttachXdpProgram(const std::string& ProgName, int IfIndex, int Flags = 0);
 
+	[[nodiscard]] int FindMapFd(std::string const& MapFdPath) const;
+
 	operator bpf_object *() const { return Obj; }
 };

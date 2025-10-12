@@ -113,3 +113,8 @@ bool WEbpfObj::FindAndAttachXdpProgram(const std::string& ProgName, int IfIndex,
 	XdpIfIndex = IfIndex;
 	return Result;
 }
+
+int WEbpfObj::FindMapFd(std::string const& MapFdPath) const
+{
+	return bpf_object__find_map_fd_by_name(this->Obj, MapFdPath.c_str());
+}

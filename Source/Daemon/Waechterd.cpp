@@ -9,7 +9,7 @@
 
 #include "SignalHandler.hpp"
 #include "DaemonConfig.hpp"
-#include "WaechterEpf.hpp"
+#include "WaechterEbpf.hpp"
 
 int main()
 {
@@ -21,7 +21,7 @@ int main()
 
 	WDaemonConfig::GetInstance().LogConfig();
 
-	WWaechterEpf EbpfObj;
+	WWaechterEbpf EbpfObj;
 
 	if (auto Result = EbpfObj.Init() != EEbpfInitResult::SUCCESS)
 	{

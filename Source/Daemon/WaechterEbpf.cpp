@@ -3,21 +3,22 @@
 // Created by usr on 12/10/2025.
 //
 
-#include "WaechterEpf.hpp"
+#include "WaechterEbpf.hpp"
 
-#include <bpf/libbpf_legacy.h>
+#include <bpf/bpf.h>
 #include <linux/if_link.h>
 #include <net/if.h>
 #include <spdlog/spdlog.h>
 
 #include "DaemonConfig.hpp"
+#include "EbpfData.hpp"
 
-WWaechterEpf::WWaechterEpf(int InterfaceIndex, std::string const& ProgramObectFilePath)
+WWaechterEbpf::WWaechterEbpf(int InterfaceIndex, std::string const& ProgramObectFilePath)
 	: WEbpfObj(ProgramObectFilePath), InterfaceIndex(InterfaceIndex)
 {
 }
 
-EEbpfInitResult WWaechterEpf::Init()
+EEbpfInitResult WWaechterEbpf::Init()
 {
 	if (this->InterfaceIndex < 0)
 	{
@@ -52,6 +53,14 @@ EEbpfInitResult WWaechterEpf::Init()
 	{
 		spdlog::critical("Failed to find and attach ingress");
 		return EEbpfInitResult::CG_EGRESS_ATTACH_FAILED;
+	}
+
+	Data = std::make_shared<WEbpfData>(*this);
+
+	if (!Data->IsValid())
+	{
+		spdlog::critical("Failed to find one or more maps");
+		return EEbpfInitResult::MAPS_NOT_FOUND;
 	}
 
 	return EEbpfInitResult::SUCCESS;
