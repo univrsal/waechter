@@ -4,9 +4,12 @@
 
 #include "DaemonConfig.hpp"
 
+#include "ErrnoUtil.hpp"
+
 #include <sys/resource.h>
 #include <INIReader.h>
 #include <spdlog/spdlog.h>
+#include <pwd.h>
 
 #include "Filesystem.hpp"
 #include "NetworkInterface.hpp"
@@ -83,4 +86,20 @@ void WDaemonConfig::BumpMemlockRlimit()
 	spdlog::info("bumping memlock rlimit");
 	rlimit r = { RLIM_INFINITY, RLIM_INFINITY };
 	setrlimit(RLIMIT_MEMLOCK, &r);
+}
+
+bool WDaemonConfig::DropPrivileges()
+{
+	passwd* PW = getpwnam(DaemonUser.c_str());
+	if (!PW) {
+		spdlog::critical("User {} not found", DaemonUser);
+		return false;
+	}
+
+	if (setgid(PW->pw_gid) != 0 || setuid(PW->pw_uid) != 0) {
+		spdlog::critical("Failed to drop privileges: {}", WErrnoUtil::StrError());
+		return false;
+	}
+
+	return true;
 }

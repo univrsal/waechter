@@ -82,6 +82,7 @@ bool WEbpfObj::FindAndAttachProgram(const std::string& ProgName, bpf_attach_type
 		return false;
 	}
 
+	bpf_prog_detach2(ProgFd, *CGroupFd, AttachType);
 	auto Result = bpf_prog_attach(bpf_program__fd(Prog), *CGroupFd, AttachType, Flags) == 0;
 	if (Result)
 	{
@@ -108,13 +109,16 @@ bool WEbpfObj::FindAndAttachXdpProgram(const std::string& ProgName, int IfIndex,
 		return false;
 	}
 
-	auto Result = bpf_xdp_attach(IfIndex, ProgFd, Flags, nullptr) == 0;
+	bpf_xdp_detach(IfIndex, Flags, nullptr);
+	auto Result = bpf_xdp_attach(IfIndex, ProgFd, Flags, nullptr);
+
 	if (Result)
 	{
-		Programs.emplace_back(std::tuple { Prog, BPF_XDP });
+		Programs.emplace_back( Prog, BPF_XDP );
 	}
+
 	XdpIfIndex = IfIndex;
-	return Result;
+	return Result == 0;
 }
 
 int WEbpfObj::FindMapFd(std::string const& MapFdPath) const

@@ -7,6 +7,7 @@
 #include <spdlog/spdlog.h>
 #include <bpf/libbpf.h>
 #include <unistd.h>
+#include <pwd.h>
 
 #include "SignalHandler.hpp"
 #include "DaemonConfig.hpp"
@@ -32,7 +33,14 @@ int Run()
 		return -1;
 	}
 
+	if (!WDaemonConfig::GetInstance().DropPrivileges())
+	{
+		spdlog::error("Failed to drop privileges");
+		return -1;
+	}
+
 	spdlog::info("Ebpf programs loaded and attached");
+
 
 	while (!SignalHandler.bStop)
 	{

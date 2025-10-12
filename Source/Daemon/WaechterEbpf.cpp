@@ -31,7 +31,6 @@ EEbpfInitResult WWaechterEbpf::Init()
 		return EEbpfInitResult::OPEN_FAILED;
 	}
 
-	spdlog::error("{} ",  WErrnoUtil::StrError());
 	if (!this->Load())
 	{
 		spdlog::critical("Failed to load BPF file");
