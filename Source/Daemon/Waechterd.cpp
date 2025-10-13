@@ -5,9 +5,7 @@
 #include <thread>
 
 #include <spdlog/spdlog.h>
-#include <bpf/libbpf.h>
 #include <unistd.h>
-#include <pwd.h>
 
 #include "SignalHandler.hpp"
 #include "DaemonConfig.hpp"
@@ -23,11 +21,11 @@ int Run()
 
 	WDaemonConfig::GetInstance().LogConfig();
 
-	WWaechterEbpf* EbpfObj = new WWaechterEbpf;
+	WWaechterEbpf EbpfObj{};
 
 	spdlog::info("Waechter daemon starting");
 
-	if (auto Result = EbpfObj->Init() != EEbpfInitResult::SUCCESS)
+	if (auto Result = EbpfObj.Init() != EEbpfInitResult::SUCCESS)
 	{
 		spdlog::error("EbpfObj.Init() failed: {}", Result);
 		return -1;
@@ -41,14 +39,20 @@ int Run()
 
 	spdlog::info("Ebpf programs loaded and attached");
 
+	// Poll ring buffers and periodically print aggregate stats
+	auto LastPrint = std::chrono::steady_clock::now();
 
 	while (!SignalHandler.bStop)
 	{
-		EbpfObj->PrintStats();
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		EbpfObj.PollRingBuffers(200);
+		auto now = std::chrono::steady_clock::now();
+		if (now - LastPrint >= std::chrono::seconds(1))
+		{
+			EbpfObj.PrintStats();
+			LastPrint = now;
+		}
 	}
 
-	delete EbpfObj;
 	return 0;
 }
 

@@ -62,7 +62,6 @@ static void print_stats(const MapFds& mfds)
 	{
 		std::cout << gk << "|Global: " << fs.bytes << " bytes, " << fs.packets << " pkts\n";
 	}
-	return;
 	// Print top few PIDs (simple linear scan with get_next_key)
 	if (mfds.pid_stats >= 0)
 	{
