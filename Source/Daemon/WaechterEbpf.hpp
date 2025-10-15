@@ -67,12 +67,6 @@ class WWaechterEbpf : public WEbpfObj
 	int InterfaceIndex{-1};
 
 	std::shared_ptr<WEbpfData> Data{};
-
-	// Ring buffer
-	ring_buffer* RingBuf{nullptr};
-	static int OnIpEvent(void* ctx, void* data, size_t size);
-	static int OnAcctEvent(void* ctx, void* data, size_t size);
-	static int OnRlEvent(void* ctx, void* data, size_t size);
 public:
 
 	explicit WWaechterEbpf(int InterfaceIndex = -1, std::string const& ProgramObectFilePath = BPF_OBJECT_PATH);
