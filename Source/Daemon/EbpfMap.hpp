@@ -22,6 +22,7 @@ public:
 	explicit WEbpfMap(int MapFd)
 		: MapFd(MapFd)
 	{
+		spdlog::info("{}", MapFd);
 	}
 
 	std::unordered_map<uint32_t, T> const & GetMap() const { return Elements; }

@@ -7,31 +7,26 @@
 #include "EbpfMap.hpp"
 #include "WaechterEbpf.hpp"
 
-struct WFlowStats
-{
-	unsigned long long Bytes;
-	unsigned long long Packets;
-};
 
-struct WProcMeta
+struct WPacketData
 {
-	unsigned long long PidTgId;
-	unsigned long long CgroupId;
-	char               Comm[16];
+	uint8_t RawData[256];
 };
 
 class WEbpfData
 {
 
 public:
+	WEbpfMap<WPacketData> PacketStatsMap {-1};
 
 	bool IsValid() const
 	{
-		return true;
+		return PacketStatsMap.IsValid();
 	}
 
 	void UpdateData()
 	{
+		PacketStatsMap.Update();
 	}
 
 	explicit WEbpfData(WWaechterEbpf const& EbpfObj);

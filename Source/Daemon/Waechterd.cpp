@@ -61,7 +61,7 @@ int main()
 	if (geteuid() != 0)
 	{
 		spdlog::critical("Waechter daemon requires root");
-		// return -1;
+		return -1;
 	}
 
 	auto Ret = Run();

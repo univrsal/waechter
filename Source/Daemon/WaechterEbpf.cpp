@@ -11,6 +11,7 @@
 
 #include "DaemonConfig.hpp"
 #include "EbpfData.hpp"
+#include "Net/PacketParser.hpp"
 
 WWaechterEbpf::WWaechterEbpf(int InterfaceIndex, std::string const& ProgramObectFilePath)
 	: WEbpfObj(ProgramObectFilePath), InterfaceIndex(InterfaceIndex)
@@ -72,6 +73,36 @@ EEbpfInitResult WWaechterEbpf::Init()
 
 void WWaechterEbpf::PrintStats()
 {
+	WPacketData PacketData{};
+	uint32_t Key = 0;
+	if (Data->PacketStatsMap.Lookup(PacketData, Key))
+	{
+		// Print out the entire packet data as hex
+		std::string HexData;
+		for (size_t i = 0; i < sizeof(PacketData.RawData); ++i)
+		{
+			char buf[3];
+			snprintf(buf, sizeof(buf), "%02x", PacketData.RawData[i]);
+			HexData += buf;
+		}
+		PacketKey ParsedPacket{};
+		if (parse_packet_l3(PacketData.RawData, sizeof(PacketData.RawData), ParsedPacket))
+		{
+			spdlog::info("Packet Parsed (Key={}): Family={}, L4Proto={}, {}_{}, {}_{}",
+			             Key,
+			             ParsedPacket.family == EIPFamily::IPv4 ? "IPv4" : "IPv6",
+			             static_cast<int>(ParsedPacket.l4_proto),
+			             ParsedPacket.src_to_string(),
+			             ParsedPacket.src_port,
+			             ParsedPacket.dst_to_string(),
+			             ParsedPacket.dst_port);
+		}
+		else
+		{
+			spdlog::info("Packet Parsing Failed (Key={})", Key);
+		}
+		// spdlog::info("Packet Data (Key={}): {}", Key, HexData);
+	}
 }
 
 int WWaechterEbpf::PollRingBuffers(int)

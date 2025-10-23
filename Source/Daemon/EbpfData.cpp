@@ -6,4 +6,5 @@
 
 WEbpfData::WEbpfData(WWaechterEbpf const& EbpfObj)
 {
+	PacketStatsMap = WEbpfMap<WPacketData>(EbpfObj.FindMapFd("packet_stats"));
 }
