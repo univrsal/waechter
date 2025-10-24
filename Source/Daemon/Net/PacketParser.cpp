@@ -7,18 +7,18 @@ namespace EIPv6ExtensionHeaders
 {
 	enum Type : uint8_t
 	{
-		HOP_BY_HOP        = 0,
-		ROUTING           = 43,
-		FRAGMENT         = 44,
-		ESP               = 50,
-		AH                = 51,
-		DESTINATION_OPTS  = 60,
-		MOBILITY          = 135,
-		HOST_IDENTITY     = 139,
-		SHIM6             = 140,
-		NO_NEXT_HEADER    = 59
+		HOP_BY_HOP = 0,
+		ROUTING = 43,
+		FRAGMENT = 44,
+		ESP = 50,
+		AH = 51,
+		DESTINATION_OPTS = 60,
+		MOBILITY = 135,
+		HOST_IDENTITY = 139,
+		SHIM6 = 140,
+		NO_NEXT_HEADER = 59
 	};
-}
+} // namespace EIPv6ExtensionHeaders
 
 static uint16_t Read16(const uint8_t* Buffer)
 {
