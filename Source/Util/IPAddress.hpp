@@ -34,7 +34,7 @@ struct WIPAddress
 	std::array<uint8_t, 16> Bytes;
 	EIPFamily::Type Family;
 
-	std::string to_string() const
+	[[nodiscard]] std::string to_string() const
 	{
 		if (Family == EIPFamily::IPv4)
 		{
@@ -55,10 +55,10 @@ struct WIPAddress
 				 (Bytes[10] << 8) | Bytes[11],
 				 (Bytes[12] << 8) | Bytes[13],
 				 (Bytes[14] << 8) | Bytes[15]);
-		return std::string(buffer);
+		return { buffer };
 	}
 
-	bool is_localhost() const
+	[[nodiscard]] bool is_localhost() const
 	{
 		if (Family == EIPFamily::IPv4)
 		{
@@ -83,9 +83,9 @@ struct WIPAddress
 struct WEndpoint
 {
 	WIPAddress Address{};
-	uint16_t    Port; // host byte order
+	uint16_t    Port{}; // host byte order
 
-	std::string to_string() const
+	[[nodiscard]] std::string to_string() const
 	{
 		if (Address.Family == EIPFamily::IPv6)
 		{
