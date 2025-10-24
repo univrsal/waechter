@@ -67,48 +67,37 @@ EEbpfInitResult WWaechterEbpf::Init()
 		return EEbpfInitResult::MAPS_NOT_FOUND;
 	}
 
-
 	return EEbpfInitResult::SUCCESS;
 }
 
 void WWaechterEbpf::PrintStats()
 {
-	WPacketData PacketData{};
-	uint32_t Key = 0;
-	if (Data->PacketStatsMap.Lookup(PacketData, Key))
-	{
-		// Print out the entire packet data as hex
-		std::string HexData;
-		for (size_t i = 0; i < sizeof(PacketData.RawData); ++i)
-		{
-			char buf[3];
-			snprintf(buf, sizeof(buf), "%02x", PacketData.RawData[i]);
-			HexData += buf;
-		}
-		WPacketHeader ParsedPacket{};
-		if (WPacketHeader::ParsePacketHeader(PacketData.RawData, sizeof(PacketData.RawData), ParsedPacket))
-		{
-			if (ParsedPacket.Dst.Address.is_localhost())
-			{
-				// skip localhost packets
-				return;
-			}
+	std::lock_guard Lock(Data->PacketData->GetDataMutex());
+	auto&           PacketDataQueue = Data->PacketData->GetData();
 
-			spdlog::info("{} -> {} | Proto: {} | Key={}",
-						 ParsedPacket.Src.to_string(),
-						 ParsedPacket.Dst.to_string(),
-						 static_cast<int>(ParsedPacket.L4Proto),
-						 Key);
-		}
-		else
-		{
-			spdlog::info("Packet Parsing Failed (Key={})", Key);
-		}
-		// spdlog::info("Packet Data (Key={}): {}", Key, HexData);
+	// Empty the deque
+	while (!PacketDataQueue.empty())
+	{
+		auto& PacketData = PacketDataQueue.front();
+
+		WPacketHeaderParser Parser;
+		Parser.ParsePacket(PacketData.RawData, PACKET_HEADER_SIZE);
+
+		spdlog::info("Packet: cookie={} pid_tg_id={} cgroup_id={} direction={} bytes={} ts={} src={} dst={}",
+			PacketData.Cookie,
+			PacketData.PidTgId,
+			PacketData.CGroupId,
+			static_cast<int>(PacketData.Direction),
+			PacketData.Bytes,
+			PacketData.Timestamp,
+			Parser.Src.to_string(),
+			Parser.Dst.to_string());
+
+		PacketDataQueue.pop_front();
 	}
 }
 
-int WWaechterEbpf::PollRingBuffers(int)
+void WWaechterEbpf::UpdateData()
 {
-	return 0;
+	Data->UpdateData();
 }

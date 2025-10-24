@@ -4,37 +4,40 @@
 
 #pragma once
 
-#include "EbpfMap.hpp"
+#include <memory>
+
+#include "EbpfRingBuffer.hpp"
 #include "WaechterEbpf.hpp"
 
 #ifndef PACKET_HEADER_SIZE
-#define PACKET_HEADER_SIZE 128
+	#define PACKET_HEADER_SIZE 128
 #endif
 
 struct WPacketData
 {
-	uint8_t RawData[PACKET_HEADER_SIZE];
-	uint64_t cookie;
-	uint64_t pid_tgid;
-	uint64_t cgroup_id;
-	uint64_t bytes;
-	uint8_t direction;
+	uint8_t  RawData[PACKET_HEADER_SIZE];
+	uint64_t Cookie;
+	uint64_t PidTgId;
+	uint64_t CGroupId;
+	uint64_t Bytes;
+	uint64_t Timestamp;
+	uint8_t  Direction;
 };
 
 class WEbpfData
 {
 
 public:
-	WEbpfMap<WPacketData> PacketStatsMap {-1};
+	std::unique_ptr<WEbpfRingBuffer<WPacketData>> PacketData;
 
-	bool IsValid() const
+	[[nodiscard]] bool IsValid() const
 	{
-		return PacketStatsMap.IsValid();
+		return PacketData->IsValid();
 	}
 
-	void UpdateData()
+	void UpdateData() const
 	{
-		PacketStatsMap.Update();
+		PacketData->Poll(1);
 	}
 
 	explicit WEbpfData(WWaechterEbpf const& EbpfObj);

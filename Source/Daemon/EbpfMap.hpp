@@ -9,8 +9,6 @@
 #include <cstdint>
 #include <spdlog/spdlog.h>
 
-#include "ErrnoUtil.hpp"
-
 template<typename T>
 class WEbpfMap
 {
@@ -22,7 +20,6 @@ public:
 	explicit WEbpfMap(int MapFd)
 		: MapFd(MapFd)
 	{
-		spdlog::info("{}", MapFd);
 	}
 
 	std::unordered_map<uint32_t, T> const & GetMap() const { return Elements; }

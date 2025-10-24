@@ -6,12 +6,14 @@
 
 #include "IPAddress.hpp"
 
-struct WPacketHeader
+struct WPacketHeaderParser
 {
-	uint8_t   L4Proto{ 0 };
+	uint8_t L4Proto{ 0 };
 
 	WEndpoint Src;
 	WEndpoint Dst;
 
-	static bool ParsePacketHeader(uint8_t* Data, std::size_t Length, WPacketHeader& OutHeader);
+	static bool ParsePacketHeader(uint8_t* Data, std::size_t Length, WPacketHeaderParser& OutHeader);
+
+	bool ParsePacket(uint8_t* Data, std::size_t Length);
 };

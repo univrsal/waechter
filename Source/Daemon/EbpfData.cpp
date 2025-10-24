@@ -6,5 +6,5 @@
 
 WEbpfData::WEbpfData(WWaechterEbpf const& EbpfObj)
 {
-	PacketStatsMap = WEbpfMap<WPacketData>(EbpfObj.FindMapFd("packet_stats"));
+	PacketData = std::make_unique<WEbpfRingBuffer<WPacketData>>(EbpfObj.FindMapFd("packet_ring"));
 }

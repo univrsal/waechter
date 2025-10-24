@@ -16,7 +16,6 @@ int Run()
 {
 	WSignalHandler& SignalHandler = WSignalHandler::GetInstance();
 
-
 	libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
 
 	WDaemonConfig::GetInstance().LogConfig();
@@ -44,13 +43,14 @@ int Run()
 
 	while (!SignalHandler.bStop)
 	{
-		EbpfObj.PollRingBuffers(200);
+		EbpfObj.UpdateData();
 		auto now = std::chrono::steady_clock::now();
 		if (now - LastPrint >= std::chrono::milliseconds(300))
 		{
 			EbpfObj.PrintStats();
 			LastPrint = now;
 		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(5));
 	}
 
 	return 0;
