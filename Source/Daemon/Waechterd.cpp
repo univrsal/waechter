@@ -46,7 +46,7 @@ int Run()
 	{
 		EbpfObj.PollRingBuffers(200);
 		auto now = std::chrono::steady_clock::now();
-		if (now - LastPrint >= std::chrono::seconds(1))
+		if (now - LastPrint >= std::chrono::milliseconds(300))
 		{
 			EbpfObj.PrintStats();
 			LastPrint = now;

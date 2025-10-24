@@ -85,17 +85,20 @@ void WWaechterEbpf::PrintStats()
 			snprintf(buf, sizeof(buf), "%02x", PacketData.RawData[i]);
 			HexData += buf;
 		}
-		PacketKey ParsedPacket{};
-		if (parse_packet_l3(PacketData.RawData, sizeof(PacketData.RawData), ParsedPacket))
+		WPacketHeader ParsedPacket{};
+		if (WPacketHeader::ParsePacketHeader(PacketData.RawData, sizeof(PacketData.RawData), ParsedPacket))
 		{
-			spdlog::info("Packet Parsed (Key={}): Family={}, L4Proto={}, {}_{}, {}_{}",
-			             Key,
-			             ParsedPacket.family == EIPFamily::IPv4 ? "IPv4" : "IPv6",
-			             static_cast<int>(ParsedPacket.l4_proto),
-			             ParsedPacket.src_to_string(),
-			             ParsedPacket.src_port,
-			             ParsedPacket.dst_to_string(),
-			             ParsedPacket.dst_port);
+			if (ParsedPacket.Dst.Address.is_localhost())
+			{
+				// skip localhost packets
+				return;
+			}
+
+			spdlog::info("{} -> {} | Proto: {} | Key={}",
+						 ParsedPacket.Src.to_string(),
+						 ParsedPacket.Dst.to_string(),
+						 static_cast<int>(ParsedPacket.L4Proto),
+						 Key);
 		}
 		else
 		{

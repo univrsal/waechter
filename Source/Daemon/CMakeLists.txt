@@ -30,3 +30,4 @@ target_link_libraries(old-waechterd PRIVATE ${LIBBPF_LIBRARIES}
 )
 
 add_subdirectory(EBPF)
+add_subdirectory(Net)
