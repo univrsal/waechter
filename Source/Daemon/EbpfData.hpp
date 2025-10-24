@@ -14,6 +14,11 @@
 struct WPacketData
 {
 	uint8_t RawData[PACKET_HEADER_SIZE];
+	uint64_t cookie;
+	uint64_t pid_tgid;
+	uint64_t cgroup_id;
+	uint64_t bytes;
+	uint8_t direction;
 };
 
 class WEbpfData

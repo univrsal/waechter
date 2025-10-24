@@ -9,6 +9,11 @@
 struct packet_data
 {
 	__u8 raw_data[PACKET_HEADER_SIZE];
+	__u64 cookie;
+	__u64 pid_tgid;
+	__u64 cgroup_id;
+	__u64 bytes;
+	__u8 direction;
 };
 
 // Global stats (index 0)
@@ -37,6 +42,12 @@ int cgskb_egress(struct __sk_buff* skb)
 	{
 		/* zero the destination buffer (CAPTURE_LEN is a compile-time constant) */
 		__builtin_memset(pd->raw_data, 0, PACKET_HEADER_SIZE);
+
+		pd->cookie = bpf_get_socket_cookie(skb);
+		pd->pid_tgid = bpf_get_current_pid_tgid();
+		pd->cgroup_id = bpf_get_current_cgroup_id();
+		pd->direction = 1; // egress
+		pd->bytes = (__u64)skb->len;
 
 		// Bound copy length and avoid zero-sized read per verifier requirements
 		__u32 slen = skb->len;
