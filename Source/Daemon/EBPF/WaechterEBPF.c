@@ -2,10 +2,13 @@
 #include <bpf/bpf_helpers.h>
 #include <linux/bpf.h>
 
-#define CAPTURE_LEN 256
+#ifndef PACKET_HEADER_SIZE
+#define PACKET_HEADER_SIZE 128
+#endif
+
 struct packet_data
 {
-	__u8 raw_data[256];
+	__u8 raw_data[PACKET_HEADER_SIZE];
 };
 
 // Global stats (index 0)
@@ -33,12 +36,12 @@ int cgskb_egress(struct __sk_buff* skb)
 	if (pd)
 	{
 		/* zero the destination buffer (CAPTURE_LEN is a compile-time constant) */
-		__builtin_memset(pd->raw_data, 0, CAPTURE_LEN);
+		__builtin_memset(pd->raw_data, 0, PACKET_HEADER_SIZE);
 
 		// Bound copy length and avoid zero-sized read per verifier requirements
 		__u32 slen = skb->len;
-		__u32 len  = CAPTURE_LEN;
-		if (slen < CAPTURE_LEN)
+		__u32 len  = PACKET_HEADER_SIZE;
+		if (slen < PACKET_HEADER_SIZE)
 			len = slen;
 		if (len > 0)
 			bpf_skb_load_bytes(skb, 0, pd->raw_data, len);

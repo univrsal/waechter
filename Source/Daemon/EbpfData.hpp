@@ -7,10 +7,13 @@
 #include "EbpfMap.hpp"
 #include "WaechterEbpf.hpp"
 
+#ifndef PACKET_HEADER_SIZE
+#define PACKET_HEADER_SIZE 128
+#endif
 
 struct WPacketData
 {
-	uint8_t RawData[256];
+	uint8_t RawData[PACKET_HEADER_SIZE];
 };
 
 class WEbpfData

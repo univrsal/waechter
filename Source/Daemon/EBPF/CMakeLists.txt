@@ -22,7 +22,7 @@ set(BPF_OBJ ${CMAKE_CURRENT_BINARY_DIR}/ebpf/WaechterEBPF.o)
 add_custom_command(
     OUTPUT ${BPF_OBJ}
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/ebpf
-    COMMAND ${CLANG_EXECUTABLE} -O2 -g -target bpf -D__TARGET_ARCH_${BPF_TARGET_ARCH} -Wall -Wno-unused-value -Wno-pointer-sign -Wno-compare-distinct-pointer-types -Werror
+    COMMAND ${CLANG_EXECUTABLE} -O2 -g -target bpf -D__TARGET_ARCH_${BPF_TARGET_ARCH} -DPACKET_HEADER_SIZE=${PACKET_HEADER_SIZE} -Wall -Wno-unused-value -Wno-pointer-sign -Wno-compare-distinct-pointer-types -Werror
     -I/usr/include -I/usr/include/bpf
     -c ${BPF_SRC} -o ${BPF_OBJ}
     DEPENDS ${BPF_SRC}
