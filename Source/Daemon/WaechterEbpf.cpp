@@ -83,6 +83,18 @@ void WWaechterEbpf::PrintStats()
 
 		WPacketHeaderParser Parser;
 		Parser.ParsePacket(PacketData.RawData, PACKET_HEADER_SIZE);
+		if (!Parser.Dst.Address.IsLocalhost())
+		{
+			spdlog::info("Packet: cookie={} pid_tg_id={} cgroup_id={} direction={} bytes={} ts={} src={} dst={}",
+				PacketData.Cookie,
+				PacketData.PidTgId,
+				PacketData.CGroupId,
+				static_cast<int>(PacketData.Direction),
+				PacketData.Bytes,
+				PacketData.Timestamp,
+				Parser.Src.to_string(),
+				Parser.Dst.to_string());
+		}
 		PacketDataQueue.pop_front();
 	}
 }
