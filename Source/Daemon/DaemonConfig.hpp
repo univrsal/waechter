@@ -11,8 +11,8 @@
 struct WDaemonConfig : public TSingleton<WDaemonConfig>
 {
 	std::string NetworkInterfaceName{};
-	std::string CGroupPath{"/sys/fs/cgroup"};
-	std::string DaemonUser{"nobody"};
+	std::string CGroupPath{ "/sys/fs/cgroup" };
+	std::string DaemonUser{ "nobody" };
 	WDaemonConfig();
 
 	void LogConfig();

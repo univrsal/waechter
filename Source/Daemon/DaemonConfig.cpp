@@ -104,12 +104,14 @@ void WDaemonConfig::BTFTest()
 bool WDaemonConfig::DropPrivileges()
 {
 	passwd* PW = getpwnam(DaemonUser.c_str());
-	if (!PW) {
+	if (!PW)
+	{
 		spdlog::critical("User {} not found", DaemonUser);
 		return false;
 	}
 
-	if (setgid(PW->pw_gid) != 0 || setuid(PW->pw_uid) != 0) {
+	if (setgid(PW->pw_gid) != 0 || setuid(PW->pw_uid) != 0)
+	{
 		spdlog::critical("Failed to drop privileges: {}", WErrnoUtil::StrError());
 		return false;
 	}
