@@ -1,11 +1,31 @@
-#include <linux/types.h>
-#include <bpf/bpf_helpers.h>
-#include <linux/bpf.h>
+// If CO-RE/BTF is available, prefer vmlinux.h over UAPI headers to avoid redefinitions.
+#if __has_include("vmlinux.h")
+	#include "vmlinux.h"
+	#include <bpf/bpf_helpers.h>
+	#include <bpf/bpf_tracing.h>
+	#include <bpf/bpf_core_read.h>
+	#include <bpf/bpf_endian.h>
+	#define HAVE_VMLINUX 1
+#else
+	#include <linux/types.h>
+	#include <linux/bpf.h>
+	#include <bpf/bpf_helpers.h>
+	#include <bpf/bpf_endian.h>
+#endif
+
 #include "EBPFCommon.h"
 
 #ifndef PACKET_RING_SIZE
 	// Default ring buffer capacity in bytes (1 MiB). Can be overridden via compile-time define.
 	#define PACKET_RING_SIZE (1 << 20)
+#endif
+
+// Fallbacks for return codes when linux/bpf.h is not included
+#ifndef SK_PASS
+	#define SK_PASS 1
+#endif
+#ifndef XDP_PASS
+	#define XDP_PASS 2
 #endif
 
 struct packet_data
@@ -19,6 +39,20 @@ struct packet_data
 	__u8  direction;
 };
 
+struct socket_identity
+{
+	__u64 pid_tgid;
+	__u64 cgroup_id;
+};
+
+struct
+{
+	__uint(type, BPF_MAP_TYPE_LRU_HASH);
+	__uint(max_entries, 65536);
+	__type(key, __u64); // socket cookie
+	__type(value, struct socket_identity);
+} socket_identity_map SEC(".maps");
+
 // Replace the array map (single element) with a ring buffer for events.
 // The ring buffer stores raw packet_data entries for userspace to consume.
 struct
@@ -26,6 +60,62 @@ struct
 	__uint(type, BPF_MAP_TYPE_RINGBUF);
 	__uint(max_entries, PACKET_RING_SIZE);
 } packet_ring SEC(".maps");
+
+// Helper to upsert identity for a socket cookie.
+static __always_inline void set_sock_identity(__u64 cookie)
+{
+	if (!cookie)
+		return;
+
+	struct socket_identity id = {
+		.pid_tgid = bpf_get_current_pid_tgid(),
+		.cgroup_id = bpf_get_current_cgroup_id(),
+	};
+	bpf_map_update_elem(&socket_identity_map, &cookie, &id, BPF_ANY);
+}
+
+// 1) Runs on socket() creation; tags the new socket with current PID/TGID.
+SEC("cgroup/sock_create")
+int on_sock_create(struct bpf_sock* sk)
+{
+	__u64 cookie = bpf_get_socket_cookie(sk);
+	set_sock_identity(cookie);
+	return 1; // allow
+}
+
+// 2) Runs on connect(); tags client sockets with current PID/TGID.
+SEC("cgroup/connect4")
+int on_connect4(struct bpf_sock_addr* ctx)
+{
+	__u64 cookie = bpf_get_socket_cookie(ctx);
+	set_sock_identity(cookie);
+	return 1; // allow
+}
+
+SEC("cgroup/connect6")
+int on_connect6(struct bpf_sock_addr* ctx)
+{
+	__u64 cookie = bpf_get_socket_cookie(ctx);
+	set_sock_identity(cookie);
+	return 1; // allow
+}
+
+// 3) Runs in the accept() caller’s context; tags accepted server sockets.
+#ifdef HAVE_VMLINUX
+SEC("lsm/socket_accept")
+int BPF_PROG(socket_accept, struct socket* sock, struct socket* newsock)
+{
+	struct sock* sk = newsock->sk; // preserve trusted pointer type
+	if (!sk)
+		return 0;
+
+	__u64 cookie = bpf_get_socket_cookie(sk);
+	set_sock_identity(cookie);
+	return 0; // allow
+}
+#else
+	#error "LSM socket_accept hook requires CO-RE support with vmlinux.h"
+#endif
 
 SEC("xdp")
 int xdp_waechter(struct xdp_md* ctx)
@@ -99,4 +189,4 @@ int cgskb_ingress(struct __sk_buff* skb)
 	return SK_PASS;
 }
 
-char LICENSE[] SEC("license") = "Proprietary";
+char LICENSE[] SEC("license") = "Dual BSD/GPL";
