@@ -4,13 +4,13 @@
 
 #include "DaemonConfig.hpp"
 
-#include "ErrnoUtil.hpp"
-
 #include <sys/resource.h>
 #include <INIReader.h>
 #include <spdlog/spdlog.h>
 #include <pwd.h>
+#include <fcntl.h>
 
+#include "ErrnoUtil.hpp"
 #include "Filesystem.hpp"
 #include "NetworkInterface.hpp"
 
@@ -86,6 +86,19 @@ void WDaemonConfig::BumpMemlockRlimit()
 	spdlog::info("bumping memlock rlimit");
 	rlimit r = { RLIM_INFINITY, RLIM_INFINITY };
 	setrlimit(RLIMIT_MEMLOCK, &r);
+}
+
+void WDaemonConfig::BTFTest()
+{
+	int Fd = open("/sys/kernel/btf/vmlinux", O_RDONLY | O_CLOEXEC);
+	if (Fd < 0)
+	{
+		spdlog::critical("Your kernel does not seem to support BTF, which is required for the EBPF program to work: failed to open /sys/kernel/btf/vmlinux: {}", WErrnoUtil::StrError());
+	}
+	else
+	{
+		spdlog::info("BTF is supported by the kernel");
+	}
 }
 
 bool WDaemonConfig::DropPrivileges()

@@ -18,6 +18,9 @@ struct WDaemonConfig : public TSingleton<WDaemonConfig>
 	void LogConfig();
 
 	bool DropPrivileges();
+
+	static void BTFTest();
+
 private:
 	void Load(std::string const& Path);
 	void SetDefaults();
