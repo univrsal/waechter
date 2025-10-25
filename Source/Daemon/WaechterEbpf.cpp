@@ -12,6 +12,7 @@
 #include "DaemonConfig.hpp"
 #include "EbpfData.hpp"
 #include "Net/PacketParser.hpp"
+#include "EBPFCommon.h"
 
 WWaechterEbpf::WWaechterEbpf(int InterfaceIndex, std::string const& ProgramObectFilePath)
 	: WEbpfObj(ProgramObectFilePath), InterfaceIndex(InterfaceIndex)

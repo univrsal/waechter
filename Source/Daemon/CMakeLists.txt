@@ -30,8 +30,5 @@ target_link_libraries(old-waechterd PRIVATE ${LIBBPF_LIBRARIES}
         waechter::util thirdparty::spdlog thirdparty::inih
 )
 
-set(PACKET_HEADER_SIZE 128)
-target_compile_definitions(waechterd PUBLIC PACKET_HEADER_SIZE=${PACKET_HEADER_SIZE})
-
 add_subdirectory(EBPF)
 add_subdirectory(Net)
