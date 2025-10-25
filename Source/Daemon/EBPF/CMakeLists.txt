@@ -15,6 +15,31 @@ endif ()
 
 find_program(CLANG_EXECUTABLE NAMES clang REQUIRED)
 
+find_program(BPFTTOOL_EXECUTABLE bpftool)
+
+if (BPFTTOOL_EXECUTABLE)
+    message(STATUS "Found bpftool: ${BPFTTOOL_EXECUTABLE}")
+
+    set(VMLINUX_SRC "/sys/kernel/btf/vmlinux")
+    set(VMLINUX_OUT "${CMAKE_CURRENT_SOURCE_DIR}/vmlinux.h")
+
+    if (EXISTS ${VMLINUX_SRC})
+        add_custom_command(
+                OUTPUT ${VMLINUX_OUT}
+                COMMAND /bin/sh -c "${BPFTTOOL_EXECUTABLE} btf dump file ${VMLINUX_SRC} format c > ${VMLINUX_OUT}"
+                DEPENDS ${BPFTTOOL_EXECUTABLE}
+                COMMENT "Generating ${VMLINUX_OUT} from ${VMLINUX_SRC}"
+                VERBATIM
+        )
+
+        add_custom_target(generate_vmlinux_h ALL DEPENDS ${VMLINUX_OUT})
+    else ()
+        message(WARNING "BTF not found at ${VMLINUX_SRC}; skipping generation of `vmlinux.h`")
+    endif ()
+else ()
+    message(FATAL_ERROR "bpftool not found; skipping generation of `vmlinux.h`")
+endif ()
+
 # Build eBPF object
 set(BPF_SRC ${CMAKE_CURRENT_SOURCE_DIR}/WaechterEBPF.c)
 set(BPF_OBJ ${CMAKE_CURRENT_BINARY_DIR}/ebpf/WaechterEBPF.o)
@@ -32,6 +57,7 @@ add_custom_command(
 )
 
 add_custom_target(bpfobj ALL DEPENDS ${BPF_OBJ})
+add_dependencies(bpfobj generate_vmlinux_h)
 add_dependencies(waechterd bpfobj)
 add_dependencies(old-waechterd bpfobj)
 target_compile_definitions(old-waechterd PUBLIC BPF_OBJECT_PATH="${BPF_OBJ}")
