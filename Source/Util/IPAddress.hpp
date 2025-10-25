@@ -58,7 +58,7 @@ struct WIPAddress
 		return { buffer };
 	}
 
-	[[nodiscard]] bool is_localhost() const
+	[[nodiscard]] bool IsLocalhost() const
 	{
 		if (Family == EIPFamily::IPv4)
 		{
