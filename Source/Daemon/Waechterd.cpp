@@ -19,6 +19,7 @@ int Run()
 	libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
 
 	WDaemonConfig::GetInstance().LogConfig();
+	WDaemonConfig::BTFTest();
 
 	WWaechterEbpf EbpfObj{};
 
