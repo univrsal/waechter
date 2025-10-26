@@ -6,26 +6,23 @@
 
 #include <string>
 #include <memory>
-#include <bpf/libbpf.h>
 
 #include "EbpfObj.hpp"
 
 class WEbpfData;
 
-// Add back init result enum
-
 enum class EEbpfInitResult
 {
-	OPEN_FAILED,
-	LOAD_FAILED,
-	XDP_ATTACH_FAILED,
-	CG_INGRESS_ATTACH_FAILED,
-	CG_EGRESS_ATTACH_FAILED,
-	INET_SOCKET_CREATE_FAILED,
-	INET4_SOCKET_CONNECT_FAILED,
-	INET6_SOCKET_CONNECT_FAILED,
-	RING_BUFFERS_NOT_FOUND,
-	SUCCESS = 0,
+	Open_Failed,
+	Load_Failed,
+	Xdp_Attach_Failed,
+	Cg_Ingress_Attach_Failed,
+	CG_Egress_Attach_Failed,
+	Inet_Socket_Create_Failed,
+	Inet4_Socket_Connect_Failed,
+	Inet6_Socket_Connect_Failed,
+	Ring_Buffers_Not_Found,
+	Success = 0,
 };
 
 class WWaechterEbpf : public WEbpfObj

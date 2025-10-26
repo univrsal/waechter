@@ -33,49 +33,49 @@ EEbpfInitResult WWaechterEbpf::Init()
 	if (!this->Obj)
 	{
 		spdlog::critical("Failed to open BPF object file");
-		return EEbpfInitResult::OPEN_FAILED;
+		return EEbpfInitResult::Open_Failed;
 	}
 
 	if (!this->Load())
 	{
 		spdlog::critical("Failed to load BPF file");
-		return EEbpfInitResult::LOAD_FAILED;
+		return EEbpfInitResult::Load_Failed;
 	}
 
 	if (!this->FindAndAttachXdpProgram("xdp_waechter", this->InterfaceIndex, XDP_FLAGS_UPDATE_IF_NOEXIST | XDP_FLAGS_SKB_MODE))
 	{
 		spdlog::critical("Failed to find and attach xdp_program");
-		return EEbpfInitResult::XDP_ATTACH_FAILED;
+		return EEbpfInitResult::Xdp_Attach_Failed;
 	}
 
 	if (!this->FindAndAttachProgram("cgskb_ingress", BPF_CGROUP_INET_INGRESS))
 	{
 		spdlog::critical("Failed to find and attach ingress");
-		return EEbpfInitResult::CG_INGRESS_ATTACH_FAILED;
+		return EEbpfInitResult::Cg_Ingress_Attach_Failed;
 	}
 
 	if (!this->FindAndAttachProgram("cgskb_egress", BPF_CGROUP_INET_EGRESS))
 	{
 		spdlog::critical("Failed to find and attach ingress");
-		return EEbpfInitResult::CG_EGRESS_ATTACH_FAILED;
+		return EEbpfInitResult::CG_Egress_Attach_Failed;
 	}
 
 	if (!this->FindAndAttachProgram("on_sock_create", BPF_CGROUP_INET_SOCK_CREATE))
 	{
 		spdlog::critical("Failed to attach on_sock_create (BPF_CGROUP_INET_SOCK_CREATE).");
-		return EEbpfInitResult::INET_SOCKET_CREATE_FAILED;
+		return EEbpfInitResult::Inet_Socket_Create_Failed;
 	}
 
 	if (!this->FindAndAttachProgram("on_connect4", BPF_CGROUP_INET4_CONNECT))
 	{
 		spdlog::critical("Failed to attach on_connect4 (BPF_CGROUP_INET4_CONNECT).");
-		return EEbpfInitResult::INET4_SOCKET_CONNECT_FAILED;
+		return EEbpfInitResult::Inet4_Socket_Connect_Failed;
 	}
 
 	if (!this->FindAndAttachProgram("on_connect6", BPF_CGROUP_INET6_CONNECT))
 	{
 		spdlog::critical("Failed to attach on_connect6 (BPF_CGROUP_INET6_CONNECT).");
-		return EEbpfInitResult::INET6_SOCKET_CONNECT_FAILED;
+		return EEbpfInitResult::Inet6_Socket_Connect_Failed;
 	}
 
 	Data = std::make_shared<WEbpfData>(*this);
@@ -83,10 +83,10 @@ EEbpfInitResult WWaechterEbpf::Init()
 	if (!Data->IsValid())
 	{
 		spdlog::critical("Failed to find one or more maps");
-		return EEbpfInitResult::RING_BUFFERS_NOT_FOUND;
+		return EEbpfInitResult::Ring_Buffers_Not_Found;
 	}
 
-	return EEbpfInitResult::SUCCESS;
+	return EEbpfInitResult::Success;
 }
 
 void WWaechterEbpf::PrintStats()
