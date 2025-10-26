@@ -91,3 +91,10 @@ struct WEndpoint
 		return Address.to_string() + ":" + std::to_string(Port);
 	}
 };
+
+struct WSocketTuple
+{
+	WEndpoint       LocalEndpoint{};
+	WEndpoint       RemoteEndpoint{};
+	EProtocol::Type Protocol{ EProtocol::TCP };
+};
