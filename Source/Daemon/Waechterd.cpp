@@ -25,9 +25,10 @@ int Run()
 
 	spdlog::info("Waechter daemon starting");
 
-	if (auto Result = EbpfObj.Init() != EEbpfInitResult::SUCCESS)
+	auto Result = EbpfObj.Init();
+	if (Result != EEbpfInitResult::SUCCESS)
 	{
-		spdlog::error("EbpfObj.Init() failed: {}", Result);
+		spdlog::error("EbpfObj.Init() failed: {}", static_cast<int>(Result));
 		return -1;
 	}
 
