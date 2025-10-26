@@ -24,7 +24,37 @@ enum ENetEventType
 	NE_SocketCreate,
 	NE_SocketConnect_4,
 	NE_SocketConnect_6,
-	NE_SocketAccept
+	NE_SocketAccept,
+	NE_Traffic
+};
+
+struct WSocketConnectEventData
+{
+	__u32 UserFamily;
+	__u32 Protocol;
+	__u32 UserPort;
+	union
+	{
+		__u32 Addr4;
+		__u32 Addr6[4];
+	};
+};
+
+struct WSocketTrafficEventData
+{
+	__u8  RawData[PACKET_HEADER_SIZE];
+	__u64 Bytes;
+	__u64 Timestamp; // kernel timestamp (ns)
+	__u8  Direction;
+};
+
+struct WSocketEventData
+{
+	union
+	{
+		struct WSocketConnectEventData ConnectEventData;
+		struct WSocketTrafficEventData TrafficEventData;
+	};
 };
 
 struct WSocketEvent
@@ -33,15 +63,6 @@ struct WSocketEvent
 	__u64 Cookie;
 	__u64 PidTgId;
 	__u64 CgroupId;
-};
 
-struct WPacketData
-{
-	__u8  RawData[PACKET_HEADER_SIZE];
-	__u64 Cookie;
-	__u64 PidTgId;
-	__u64 CgroupId;
-	__u64 Bytes;
-	__u64 Timestamp; // kernel timestamp (ns)
-	__u8  Direction;
+	struct WSocketEventData Data;
 };

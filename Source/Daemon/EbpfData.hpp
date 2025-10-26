@@ -15,21 +15,15 @@ class WEbpfData
 {
 
 public:
-	std::unique_ptr<TEbpfRingBuffer<WPacketData>>  PacketData;
 	std::unique_ptr<TEbpfRingBuffer<WSocketEvent>> SocketEvents;
 
 	[[nodiscard]] bool IsValid() const
 	{
-		return PacketData && PacketData->IsValid() && SocketEvents && SocketEvents->IsValid();
+		return SocketEvents && SocketEvents->IsValid();
 	}
 
 	void UpdateData() const
 	{
-		// Poll both ring buffers so callbacks deliver data into the in-memory queues.
-		if (PacketData && PacketData->IsValid())
-		{
-			PacketData->Poll(1);
-		}
 		if (SocketEvents && SocketEvents->IsValid())
 		{
 			SocketEvents->Poll(1);

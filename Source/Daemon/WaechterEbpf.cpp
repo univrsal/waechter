@@ -11,8 +11,11 @@
 
 #include "DaemonConfig.hpp"
 #include "EbpfData.hpp"
-#include "Net/PacketParser.hpp"
 #include "EBPFCommon.h"
+#include "Types.hpp"
+#include "Net/PacketParser.hpp"
+#include "Data/SystemMap.hpp"
+#include "Data/SocketInfo.hpp"
 
 WWaechterEbpf::WWaechterEbpf(int InterfaceIndex, std::string const& ProgramObectFilePath)
 	: WEbpfObj(ProgramObectFilePath), InterfaceIndex(InterfaceIndex)
@@ -91,41 +94,45 @@ EEbpfInitResult WWaechterEbpf::Init()
 
 void WWaechterEbpf::PrintStats()
 {
-	std::lock_guard Lock(Data->PacketData->GetDataMutex());
-	auto&           PacketDataQueue = Data->PacketData->GetData();
-	auto&           SocketEventQueue = Data->SocketEvents->GetData();
-
-	// Empty the deque
-	while (!PacketDataQueue.empty())
-	{
-		auto& PacketData = PacketDataQueue.front();
-
-		WPacketHeaderParser Parser;
-		Parser.ParsePacket(PacketData.RawData, PACKET_HEADER_SIZE);
-		if (!Parser.Dst.Address.IsLocalhost())
-		{
-			spdlog::info("Packet: cookie={} pid_tg_id={} cgroup_id={} direction={} bytes={} ts={} src={} dst={}",
-				PacketData.Cookie,
-				PacketData.PidTgId,
-				PacketData.CgroupId,
-				static_cast<int>(PacketData.Direction),
-				PacketData.Bytes,
-				PacketData.Timestamp,
-				Parser.Src.to_string(),
-				Parser.Dst.to_string());
-		}
-		PacketDataQueue.pop_front();
-	}
-
-	while (!SocketEventQueue.empty())
-	{
-		auto& SocketEvent = SocketEventQueue.front();
-		spdlog::info("Socket event {} // {}", SocketEvent.EventType, SocketEvent.Cookie);
-		SocketEventQueue.pop_front();
-	}
 }
 
 void WWaechterEbpf::UpdateData()
 {
 	Data->UpdateData();
+	std::lock_guard Lock(Data->SocketEvents->GetDataMutex());
+	auto&           SocketEventQueue = Data->SocketEvents->GetData();
+	while (!SocketEventQueue.empty())
+	{
+		auto& SocketEvent = SocketEventQueue.front();
+
+		// extract the PID
+		uint64_t Raw = SocketEvent.PidTgId;
+		auto     Tgid = static_cast<WProcessId>(Raw >> 32);
+
+		/*
+		 This will also create the application/process/socket entries as needed
+		 NE_Traffic usually has PID set to 0, so for those to be properly associated with a process,
+		 the daemon has to first capture the socket creation and connection events for that socket cookie.
+		 So for traffic events we fail silently if no matching socket is found because it usually just means
+		 we weren't around to capture the socket creation/connection.
+		*/
+		auto SocketInfo = WSystemMap::GetInstance().MapSocket(SocketEvent.Cookie, Tgid, SocketEvent.EventType == NE_Traffic);
+
+		if (SocketInfo)
+		{
+			switch (SocketEvent.EventType)
+			{
+				case NE_SocketCreate:
+					SocketInfo->SocketState = ESocketState::Created;
+					break;
+				case NE_SocketConnect_4:
+				case NE_SocketConnect_6:
+					SocketInfo->ProcessSocketEvent(SocketEvent);
+					break;
+				case NE_Traffic:
+					break;
+			}
+		}
+		SocketEventQueue.pop_front();
+	}
 }
