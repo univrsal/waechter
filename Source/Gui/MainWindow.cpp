@@ -7,6 +7,7 @@
 #include "imgui_internal.h"
 
 #include <imgui.h>
+#include <incbin.h>
 
 void WMainWindow::Draw()
 {

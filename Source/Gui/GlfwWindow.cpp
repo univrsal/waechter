@@ -3,14 +3,26 @@
 //
 
 #include "GlfwWindow.hpp"
+#define STB_IMAGE_IMPLEMENTATION
 
 #include <spdlog/spdlog.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+#include <stb_image.h>
+#include <incbin.h>
+
+INCBIN(Icon, ICON_PATH);
 
 static void GlfwErrorCallback(int error, const char* description)
 {
-	spdlog::error("GLFW Error %d: %s\n", error, description);
+	spdlog::error("GLFW Error {}: {}", error, description);
+}
+
+bool WGlfwWindow::IsRunningWayland() const
+{
+	std::string Xdg = std::getenv("XDG_SESSION_TYPE") ? std::getenv("XDG_SESSION_TYPE") : "";
+	std::string Wayland = std::getenv("WAYLAND_DISPLAY") ? std::getenv("WAYLAND_DISPLAY") : "";
+	return (Xdg == "wayland" || !Wayland.empty());
 }
 
 bool WGlfwWindow::Init()
@@ -42,6 +54,21 @@ bool WGlfwWindow::Init()
 		glfwTerminate();
 		spdlog::critical("Failed to initialize GLAD!");
 		return false;
+	}
+
+	if (!IsRunningWayland())
+	{
+		int            Width, Height, Channels;
+		unsigned char* Pixels = stbi_load_from_memory(gIconData, gIconSize, &Width, &Height, &Channels, 4);
+		if (Pixels)
+		{
+			GLFWimage Image{};
+			Image.width = Width;
+			Image.height = Height;
+			Image.pixels = Pixels;
+			glfwSetWindowIcon(Window, 1, &Image);
+			stbi_image_free(Pixels);
+		}
 	}
 
 	IMGUI_CHECKVERSION();
