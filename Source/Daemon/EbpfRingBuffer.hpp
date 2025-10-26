@@ -10,7 +10,7 @@
 #include <functional>
 
 template <typename T>
-class WEbpfRingBuffer
+class TEbpfRingBuffer
 {
 	struct ring_buffer* RingBufferPtr{ nullptr };
 
@@ -21,7 +21,7 @@ class WEbpfRingBuffer
 	{
 		if (Context && Data && DataSize == sizeof(T))
 		{
-			auto RB = static_cast<WEbpfRingBuffer*>(Context);
+			auto RB = static_cast<TEbpfRingBuffer*>(Context);
 			T*   OutData = static_cast<T*>(Data);
 			RB->PushData(*OutData);
 		}
@@ -29,7 +29,7 @@ class WEbpfRingBuffer
 	}
 
 public:
-	explicit WEbpfRingBuffer(int MapFd)
+	explicit TEbpfRingBuffer(int MapFd)
 	{
 		if (MapFd < 0)
 		{
@@ -45,7 +45,7 @@ public:
 		}
 	}
 
-	~WEbpfRingBuffer()
+	~TEbpfRingBuffer()
 	{
 		if (RingBufferPtr)
 		{

@@ -15,8 +15,8 @@ class WEbpfData
 {
 
 public:
-	std::unique_ptr<WEbpfRingBuffer<WPacketData>>  PacketData;
-	std::unique_ptr<WEbpfRingBuffer<WSocketEvent>> SocketEvents;
+	std::unique_ptr<TEbpfRingBuffer<WPacketData>>  PacketData;
+	std::unique_ptr<TEbpfRingBuffer<WSocketEvent>> SocketEvents;
 
 	[[nodiscard]] bool IsValid() const
 	{

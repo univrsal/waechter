@@ -9,20 +9,20 @@
 #include <cstdint>
 #include <spdlog/spdlog.h>
 
-template<typename T>
-class WEbpfMap
+template <typename T>
+class TEbpfMap
 {
-	int MapFd{-1};
+	int MapFd{ -1 };
 
 	std::unordered_map<uint32_t, T> Elements{};
-public:
 
-	explicit WEbpfMap(int MapFd)
+public:
+	explicit TEbpfMap(int MapFd)
 		: MapFd(MapFd)
 	{
 	}
 
-	std::unordered_map<uint32_t, T> const & GetMap() const { return Elements; }
+	std::unordered_map<uint32_t, T> const& GetMap() const { return Elements; }
 
 	bool IsValid() const
 	{
