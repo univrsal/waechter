@@ -3,6 +3,7 @@ Ebpf:
 - [x] Re-add fetching of socket cookie
 - [x] Re-add fetching of PID
 - [x] Switch map to ring buffer
+- [ ] Move struct types to shared header between eBPF and user space
 
 Daemon:
 
