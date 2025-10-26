@@ -5,6 +5,16 @@
 #include "ProcessMap.hpp"
 #include "SocketInfo.hpp"
 
+void WProcessMap::RefreshAllTrafficCounters()
+{
+	TrafficCounter.Refresh();
+
+	for (auto& [Cookie, SocketInfo] : Sockets)
+	{
+		SocketInfo->TrafficCounter.Refresh();
+	}
+}
+
 std::shared_ptr<WSocketInfo> WProcessMap::FindOrMapSocket(WSocketCookie Cookie)
 {
 	auto It = Sockets.find(Cookie);
@@ -14,6 +24,7 @@ std::shared_ptr<WSocketInfo> WProcessMap::FindOrMapSocket(WSocketCookie Cookie)
 	}
 
 	auto SocketInfo = std::make_shared<WSocketInfo>();
+	SocketInfo->ParentProcess = this;
 	Sockets.emplace(Cookie, SocketInfo);
 	return SocketInfo;
 }

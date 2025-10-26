@@ -29,5 +29,7 @@ public:
 	{
 	}
 
+	void RefreshAllTrafficCounters();
+
 	std::shared_ptr<WProcessMap> FindOrMapChildProcess(WProcessId PID, std::string const& CmdLine);
 };

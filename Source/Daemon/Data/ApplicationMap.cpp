@@ -7,6 +7,16 @@
 #include "ProcessMap.hpp"
 #include "spdlog/spdlog.h"
 
+void WApplicationMap::RefreshAllTrafficCounters()
+{
+	TrafficCounter.Refresh();
+
+	for (auto& [PID, ProcessInfo] : ChildProcesses)
+	{
+		ProcessInfo->RefreshAllTrafficCounters();
+	}
+}
+
 std::shared_ptr<WProcessMap> WApplicationMap::FindOrMapChildProcess(WProcessId PID, std::string const& CmdLine)
 {
 	auto It = ChildProcesses.find(PID);

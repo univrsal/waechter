@@ -11,6 +11,7 @@
 
 #include "ApplicationMap.hpp"
 #include "ProcessMap.hpp"
+#include "SocketInfo.hpp"
 
 static std::string ReadProc(std::string const& Path)
 {
@@ -74,4 +75,51 @@ std::shared_ptr<WApplicationMap> WSystemMap::FindOrMapApplication(std::string co
 	auto AppMap = std::make_shared<WApplicationMap>(AppName, AppName);
 	Applications.emplace(AppName, AppMap);
 	return AppMap;
+}
+
+void WSystemMap::RefreshAllTrafficCounters()
+{
+	TrafficCounter.Refresh();
+	for (auto& [AppName, AppMap] : Applications)
+	{
+		AppMap->RefreshAllTrafficCounters();
+	}
+}
+
+void WSystemMap::PushIncomingTraffic(WBytes Bytes, WSocketCookie SocketCookie)
+{
+	TrafficCounter.PushIncomingTraffic(Bytes);
+
+	if (auto It = Sockets.find(SocketCookie); It != Sockets.end())
+	{
+		auto Socket = It->second;
+		Socket->TrafficCounter.PushIncomingTraffic(Bytes);
+		if (Socket->ParentProcess)
+		{
+			Socket->ParentProcess->TrafficCounter.PushIncomingTraffic(Bytes);
+			if (Socket->ParentProcess->GetParentApplicationMap())
+			{
+				Socket->ParentProcess->GetParentApplicationMap()->TrafficCounter.PushIncomingTraffic(Bytes);
+			}
+		}
+	}
+}
+
+void WSystemMap::PushOutgoingTraffic(WBytes Bytes, WSocketCookie SocketCookie)
+{
+	TrafficCounter.PushOutgoingTraffic(Bytes);
+
+	if (auto It = Sockets.find(SocketCookie); It != Sockets.end())
+	{
+		auto Socket = It->second;
+		Socket->TrafficCounter.PushOutgoingTraffic(Bytes);
+		if (Socket->ParentProcess)
+		{
+			Socket->ParentProcess->TrafficCounter.PushOutgoingTraffic(Bytes);
+			if (Socket->ParentProcess->GetParentApplicationMap())
+			{
+				Socket->ParentProcess->GetParentApplicationMap()->TrafficCounter.PushOutgoingTraffic(Bytes);
+			}
+		}
+	}
 }

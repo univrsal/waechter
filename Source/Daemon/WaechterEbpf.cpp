@@ -94,6 +94,12 @@ EEbpfInitResult WWaechterEbpf::Init()
 
 void WWaechterEbpf::PrintStats()
 {
+	// Print a tree of the system, the applications, their processes and sockets with traffic stats
+	WSystemMap::GetInstance().RefreshAllTrafficCounters();
+
+	spdlog::info("System Traffic: Download Speed: {:.2f} B/s, Upload Speed: {:.2f} B/s",
+		WSystemMap::GetInstance().TrafficCounter.GetDownloadSpeed(),
+		WSystemMap::GetInstance().TrafficCounter.GetUploadSpeed());
 }
 
 void WWaechterEbpf::UpdateData()
@@ -130,6 +136,14 @@ void WWaechterEbpf::UpdateData()
 					SocketInfo->ProcessSocketEvent(SocketEvent);
 					break;
 				case NE_Traffic:
+					if (SocketEvent.Data.TrafficEventData.Direction == PD_Incoming)
+					{
+						WSystemMap::GetInstance().PushIncomingTraffic(SocketEvent.Data.TrafficEventData.Bytes, SocketEvent.Cookie);
+					}
+					else if (SocketEvent.Data.TrafficEventData.Direction == PD_Outgoing)
+					{
+						WSystemMap::GetInstance().PushOutgoingTraffic(SocketEvent.Data.TrafficEventData.Bytes, SocketEvent.Cookie);
+					}
 					break;
 			}
 		}

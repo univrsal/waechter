@@ -33,5 +33,12 @@ public:
 	{
 	}
 
+	WApplicationMap* GetParentApplicationMap() const
+	{
+		return ParentAppMap;
+	}
+
+	void RefreshAllTrafficCounters();
+
 	std::shared_ptr<WSocketInfo> FindOrMapSocket(WSocketCookie Cookie);
 };
