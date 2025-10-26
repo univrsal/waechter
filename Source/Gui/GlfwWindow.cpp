@@ -5,14 +5,27 @@
 #include "GlfwWindow.hpp"
 
 #include <spdlog/spdlog.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
+
+static void GlfwErrorCallback(int error, const char* description)
+{
+	spdlog::error("GLFW Error %d: %s\n", error, description);
+}
 
 bool WGlfwWindow::Init()
 {
+	glfwSetErrorCallback(GlfwErrorCallback);
+
 	if (!glfwInit())
 	{
 		spdlog::critical("GLFW initialization failed!");
 		return false;
 	}
+	const char* glsl_version = "#version 130";
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+	MainScale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor()); // Valid on GLFW 3.3+ only
 
 	Window = glfwCreateWindow(640, 480, "Wächter", nullptr, nullptr);
 	if (!Window)
@@ -30,16 +43,56 @@ bool WGlfwWindow::Init()
 		spdlog::critical("Failed to initialize GLAD!");
 		return false;
 	}
+
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+
+	// Setup Dear ImGui style
+	ImGui::StyleColorsLight();
+	ImGuiStyle& style = ImGui::GetStyle();
+	style.ScaleAllSizes(MainScale);
+	style.FontScaleDpi = MainScale;
+
+	ImGui_ImplGlfw_InitForOpenGL(Window, true);
+	ImGui_ImplOpenGL3_Init(glsl_version);
 	return true;
 }
 
 void WGlfwWindow::RunLoop()
 {
+	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
+	bool     show_demo_window = true;
+	ImGuiIO& io = ImGui::GetIO();
 	while (!glfwWindowShouldClose(Window))
 	{
-		glClear(GL_COLOR_BUFFER_BIT);
-		glfwSwapBuffers(Window);
 		glfwPollEvents();
+
+		if (glfwGetWindowAttrib(Window, GLFW_ICONIFIED) != 0)
+		{
+			ImGui_ImplGlfw_Sleep(10);
+			continue;
+		}
+
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		MainWindow.Draw();
+
+		// Rendering
+		ImGui::Render();
+		int display_w, display_h;
+		glfwGetFramebufferSize(Window, &display_w, &display_h);
+		glViewport(0, 0, display_w, display_h);
+		glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
+		glClear(GL_COLOR_BUFFER_BIT);
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+		glfwSwapBuffers(Window);
 	}
 }
 
