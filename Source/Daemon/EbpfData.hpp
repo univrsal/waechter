@@ -9,9 +9,7 @@
 #include "EbpfRingBuffer.hpp"
 #include "WaechterEbpf.hpp"
 
-#ifndef PACKET_HEADER_SIZE
-	#define PACKET_HEADER_SIZE 128
-#endif
+#include "EBPFCommon.h"
 
 struct WPacketData
 {
