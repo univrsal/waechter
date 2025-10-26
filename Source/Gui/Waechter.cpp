@@ -2,8 +2,6 @@
 // Created by usr on 12/10/2025.
 //
 
-#include <spdlog/spdlog.h>
-
 #include "GlfwWindow.hpp"
 
 int main()
