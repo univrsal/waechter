@@ -1,0 +1,13 @@
+target_sources(waechterd
+        PRIVATE
+        ApplicationMap.cpp
+        ApplicationMap.hpp
+        ProcessMap.cpp
+        ProcessMap.hpp
+        SocketInfo.cpp
+        SocketInfo.hpp
+        SystemMap.cpp
+        SystemMap.hpp
+        TrafficCounter.cpp
+        TrafficCounter.hpp
+)
