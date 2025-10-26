@@ -1,0 +1,16 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Type=Application
+Name=Waechter
+Comment=Monitor and control network traffic
+Exec=waechter %U
+Icon=waechter.png
+Terminal=false
+StartupNotify=true
+StartupWMClass=Waechter
+Categories=Network;Utility;
+MimeType=
+# If you want the desktop file to be usable on Wayland, ensure the Icon above
+# is installed in the system icon path or supply an application .desktop id
+# and install the file to ~/.local/share/applications/ or /usr/share/applications/.
+
