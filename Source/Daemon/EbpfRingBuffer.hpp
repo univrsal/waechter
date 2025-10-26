@@ -31,7 +31,18 @@ class WEbpfRingBuffer
 public:
 	explicit WEbpfRingBuffer(int MapFd)
 	{
+		if (MapFd < 0)
+		{
+			spdlog::error("WEbpfRingBuffer: invalid MapFd {} provided; map not found or not loaded", MapFd);
+			RingBufferPtr = nullptr;
+			return;
+		}
+
 		RingBufferPtr = ring_buffer__new(MapFd, RingBufferCallback, this, nullptr);
+		if (!RingBufferPtr)
+		{
+			spdlog::error("WEbpfRingBuffer: ring_buffer__new failed for MapFd {}", MapFd);
+		}
 	}
 
 	~WEbpfRingBuffer()
