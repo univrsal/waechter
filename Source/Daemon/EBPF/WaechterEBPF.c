@@ -1,25 +1,6 @@
 #include "EBPFInternal.h"
 #include "EBPFCommon.h"
 
-struct WPacketData
-{
-	__u8  RawData[PACKET_HEADER_SIZE];
-	__u64 Cookie;
-	__u64 PidTgId;
-	__u64 CgroupId;
-	__u64 Bytes;
-	__u64 Timestamp; // kernel timestamp (ns) to help detect drops or ordering in userspace
-	__u8  Direction;
-};
-
-struct WSocketEvent
-{
-	__u8  EventType; // enum ENetEventType
-	__u64 Cookie;
-	__u64 PidTgId;
-	__u64 CgroupId;
-};
-
 // stores socket identity (PID/TGID + cgroup) per socket cookie
 struct
 {

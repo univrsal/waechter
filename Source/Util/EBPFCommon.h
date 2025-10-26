@@ -6,6 +6,13 @@
 
 #define PACKET_HEADER_SIZE 128
 
+#define WUNUSED(x) (void)(x)
+#define WLSM_ALLOW 0
+#define WLSM_DENY_ERRNO(err) (-(err))
+
+#define WCG_ALLOW 1
+#define WCG_DENY 0
+
 enum EPacketDirection
 {
 	PD_Outgoing,
@@ -20,9 +27,21 @@ enum ENetEventType
 	NE_SocketAccept
 };
 
-#define WUNUSED(x) (void)(x)
-#define WLSM_ALLOW 0
-#define WLSM_DENY_ERRNO(err) (-(err))
+struct WSocketEvent
+{
+	__u8  EventType; // enum ENetEventType
+	__u64 Cookie;
+	__u64 PidTgId;
+	__u64 CgroupId;
+};
 
-#define WCG_ALLOW 1
-#define WCG_DENY 0
+struct WPacketData
+{
+	__u8  RawData[PACKET_HEADER_SIZE];
+	__u64 Cookie;
+	__u64 PidTgId;
+	__u64 CgroupId;
+	__u64 Bytes;
+	__u64 Timestamp; // kernel timestamp (ns)
+	__u8  Direction;
+};

@@ -107,7 +107,7 @@ void WWaechterEbpf::PrintStats()
 			spdlog::info("Packet: cookie={} pid_tg_id={} cgroup_id={} direction={} bytes={} ts={} src={} dst={}",
 				PacketData.Cookie,
 				PacketData.PidTgId,
-				PacketData.CGroupId,
+				PacketData.CgroupId,
 				static_cast<int>(PacketData.Direction),
 				PacketData.Bytes,
 				PacketData.Timestamp,

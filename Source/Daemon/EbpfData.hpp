@@ -11,25 +11,6 @@
 
 #include "EBPFCommon.h"
 
-struct WPacketData
-{
-	uint8_t  RawData[PACKET_HEADER_SIZE];
-	uint64_t Cookie;
-	uint64_t PidTgId;
-	uint64_t CGroupId;
-	uint64_t Bytes;
-	uint64_t Timestamp;
-	uint8_t  Direction;
-};
-
-struct WSocketEvent
-{
-	uint8_t  EventType; // enum ENetEventType
-	uint64_t Cookie;
-	uint64_t PidTgId;
-	uint64_t CgroupId;
-};
-
 class WEbpfData
 {
 
