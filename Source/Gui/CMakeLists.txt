@@ -14,5 +14,11 @@ target_link_libraries(waechter PRIVATE
         thirdparty::glfw
         thirdparty::glad
         thirdparty::imgui
+        thirdparty::incbin
+        thirdparty::stb
         waechter::util
+)
+
+target_compile_definitions(
+        waechter PRIVATE ICON_PATH="${CMAKE_SOURCE_DIR}/Meta/Icon.png"
 )
