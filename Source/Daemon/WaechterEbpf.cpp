@@ -83,7 +83,7 @@ EEbpfInitResult WWaechterEbpf::Init()
 	if (!Data->IsValid())
 	{
 		spdlog::critical("Failed to find one or more maps");
-		return EEbpfInitResult::MAPS_NOT_FOUND;
+		return EEbpfInitResult::RING_BUFFERS_NOT_FOUND;
 	}
 
 	return EEbpfInitResult::SUCCESS;
