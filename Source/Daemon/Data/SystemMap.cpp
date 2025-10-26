@@ -52,6 +52,12 @@ std::shared_ptr<WSocketInfo> WSystemMap::MapSocket(WSocketCookie SocketCookie, W
 	auto        CmdLine = ReadProc(CmdLinePath);
 	auto        Comm = ReadProc(CommPath);
 
+	// Remove trailing newline from Comm if present
+	if (!Comm.empty() && Comm.back() == '\n')
+	{
+		Comm.pop_back();
+	}
+
 	auto App = FindOrMapApplication(Comm);
 	auto Process = App->FindOrMapChildProcess(PID, CmdLine);
 	return Process->FindOrMapSocket(SocketCookie);
