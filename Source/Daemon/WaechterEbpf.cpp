@@ -93,6 +93,7 @@ void WWaechterEbpf::PrintStats()
 {
 	std::lock_guard Lock(Data->PacketData->GetDataMutex());
 	auto&           PacketDataQueue = Data->PacketData->GetData();
+	auto&           SocketEventQueue = Data->SocketEvents->GetData();
 
 	// Empty the deque
 	while (!PacketDataQueue.empty())
@@ -114,6 +115,13 @@ void WWaechterEbpf::PrintStats()
 				Parser.Dst.to_string());
 		}
 		PacketDataQueue.pop_front();
+	}
+
+	while (!SocketEventQueue.empty())
+	{
+		auto& SocketEvent = SocketEventQueue.front();
+		spdlog::info("Socket event {} // {}", SocketEvent.EventType, SocketEvent.Cookie);
+		SocketEventQueue.pop_front();
 	}
 }
 
