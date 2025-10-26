@@ -14,10 +14,10 @@ add_executable(waechterd
 
 
 target_compile_options(waechterd PRIVATE -Wall -Wextra -Wpedantic)
-target_include_directories(waechterd PRIVATE ${LIBBPF_INCLUDE_DIRS})
+target_include_directories(waechterd PRIVATE ${LIBBPF_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(waechterd PRIVATE ${LIBBPF_LIBRARIES}
-        waechter::util thirdparty::spdlog thirdparty::inih
+        waechter::util thirdparty::spdlog thirdparty::inih thirdparty::json11
 )
 
 add_executable(old-waechterd
@@ -33,3 +33,4 @@ target_link_libraries(old-waechterd PRIVATE ${LIBBPF_LIBRARIES}
 add_subdirectory(EBPF)
 add_subdirectory(Net)
 add_subdirectory(Data)
+add_subdirectory(Communication)

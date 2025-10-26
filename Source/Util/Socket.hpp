@@ -1,0 +1,163 @@
+#pragma once
+
+#include <poll.h>
+#include <string>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
+#include <iostream>
+#include <memory>
+#include <cassert>
+#include <utility>
+
+#include "Buffer.hpp"
+#include "Types.hpp"
+
+class WSocket
+{
+protected:
+	int         SocketFd{ -1 };
+	std::string SocketPath{};
+
+	explicit WSocket(int SocketFd)
+		: SocketFd(SocketFd)
+	{
+	}
+
+public:
+	explicit WSocket(std::string SocketPath)
+		: SocketPath(std::move(SocketPath))
+	{
+	}
+
+	[[nodiscard]] int GetFd() const
+	{
+		return SocketFd;
+	}
+};
+
+enum ESocketState
+{
+	ES_Initial,
+	ES_Opened,
+	ES_Connected,
+	ES_ConnectedButCantSend
+};
+
+class WClientSocket : public WSocket
+{
+	ESocketState State{};
+
+public:
+	explicit WClientSocket(int SocketFd)
+		: WSocket(SocketFd)
+	{
+		assert(SocketFd > 0);
+	}
+
+	explicit WClientSocket(std::string const& SocketPath)
+		: WSocket(SocketPath)
+	{
+	}
+
+	~WClientSocket()
+	{
+		Close();
+	}
+
+	void Close();
+
+	bool Open();
+
+	bool Connect();
+
+	ssize_t Send(WBuffer const& Buf);
+
+	bool Receive(WBuffer& Buf);
+
+	[[nodiscard]] ESocketState GetState() const
+	{
+		return State;
+	}
+
+	void SetState(ESocketState NewState)
+	{
+		State = NewState;
+	}
+};
+
+class WServerSocket : public WSocket
+{
+public:
+	explicit WServerSocket(std::string const& SocketPath)
+		: WSocket(SocketPath)
+	{
+	}
+
+	~WServerSocket()
+	{
+		Close();
+	}
+
+	void Close()
+	{
+		if (SocketFd < 0)
+		{
+			return;
+		}
+
+		close(SocketFd);
+		unlink(SocketPath.c_str());
+		SocketFd = -1;
+	}
+
+	bool BindAndListen()
+	{
+		SocketFd = socket(AF_UNIX, SOCK_STREAM, 0);
+		if (SocketFd < 0)
+		{
+			return false;
+		}
+
+		sockaddr_un Addr{};
+		Addr.sun_family = AF_UNIX;
+		strncpy(Addr.sun_path, SocketPath.c_str(), sizeof(Addr.sun_path) - 1);
+
+		if (bind(SocketFd, (sockaddr*)&Addr, sizeof(Addr)) < 0)
+		{
+			return false;
+		}
+
+		if (listen(SocketFd, 5) < 0)
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	std::shared_ptr<WClientSocket> Accept(int TimeoutMs = -1, bool* bTimedOut = nullptr) const
+	{
+		pollfd pfd{};
+		pfd.fd = SocketFd;
+		pfd.events = POLLIN;
+
+		if (int const Ret = poll(&pfd, 1, TimeoutMs); Ret > 0)
+		{
+			if (pfd.revents & POLLIN)
+			{
+				int ClientFd = accept(SocketFd, nullptr, nullptr);
+				if (ClientFd < 0)
+				{
+					return nullptr;
+				}
+				return std::make_shared<WClientSocket>(ClientFd);
+			}
+		}
+		else if (Ret == 0 && bTimedOut)
+		{
+			*bTimedOut = true;
+		}
+		return nullptr;
+	}
+};

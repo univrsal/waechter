@@ -4,6 +4,8 @@ add_library(util STATIC
         Filesystem.hpp
         ErrnoUtil.hpp
         Types.hpp
+        Socket.hpp
+        ClientSocket.cpp
 )
 
 target_include_directories(util PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
