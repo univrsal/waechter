@@ -60,6 +60,24 @@ EEbpfInitResult WWaechterEbpf::Init()
 		return EEbpfInitResult::CG_EGRESS_ATTACH_FAILED;
 	}
 
+	if (!this->FindAndAttachProgram("on_sock_create", BPF_CGROUP_INET_SOCK_CREATE))
+	{
+		spdlog::critical("Failed to attach on_sock_create (BPF_CGROUP_INET_SOCK_CREATE).");
+		return EEbpfInitResult::INET_SOCKET_CREATE_FAILED;
+	}
+
+	if (!this->FindAndAttachProgram("on_connect4", BPF_CGROUP_INET4_CONNECT))
+	{
+		spdlog::critical("Failed to attach on_connect4 (BPF_CGROUP_INET4_CONNECT).");
+		return EEbpfInitResult::INET4_SOCKET_CONNECT_FAILED;
+	}
+
+	if (!this->FindAndAttachProgram("on_connect6", BPF_CGROUP_INET6_CONNECT))
+	{
+		spdlog::critical("Failed to attach on_connect6 (BPF_CGROUP_INET6_CONNECT).");
+		return EEbpfInitResult::INET6_SOCKET_CONNECT_FAILED;
+	}
+
 	Data = std::make_shared<WEbpfData>(*this);
 
 	if (!Data->IsValid())

@@ -39,39 +39,52 @@ struct packet_data
 	__u8  direction;
 };
 
-struct socket_identity
+struct socket_event
 {
+	__u8  event_type; // enum ENetEventType
+	__u64 cookie;
 	__u64 pid_tgid;
 	__u64 cgroup_id;
 };
 
+// stores socket identity (PID/TGID + cgroup) per socket cookie
 struct
 {
-	__uint(type, BPF_MAP_TYPE_LRU_HASH);
-	__uint(max_entries, 65536);
-	__type(key, __u64); // socket cookie
-	__type(value, struct socket_identity);
-} socket_identity_map SEC(".maps");
+	__uint(type, BPF_MAP_TYPE_RINGBUF);
+	__uint(max_entries, PACKET_RING_SIZE);
+} socket_event_ring SEC(".maps");
 
-// Replace the array map (single element) with a ring buffer for events.
-// The ring buffer stores raw packet_data entries for userspace to consume.
+// stores raw packet_data entries for userspace to consume.
 struct
 {
 	__uint(type, BPF_MAP_TYPE_RINGBUF);
 	__uint(max_entries, PACKET_RING_SIZE);
 } packet_ring SEC(".maps");
 
-// Helper to upsert identity for a socket cookie.
-static __always_inline void set_sock_identity(__u64 cookie)
+static __always_inline void push_socket_event(__u64 cookie, __u8 event_type)
 {
-	if (!cookie)
+	if (cookie == 0)
+	{
+		// No point in processing this as we want to map cookie <-> pid/tgid
 		return;
+	}
 
-	struct socket_identity id = {
-		.pid_tgid = bpf_get_current_pid_tgid(),
-		.cgroup_id = bpf_get_current_cgroup_id(),
-	};
-	bpf_map_update_elem(&socket_identity_map, &cookie, &id, BPF_ANY);
+	struct socket_event* se = (struct socket_event*)bpf_ringbuf_reserve(&socket_event_ring, sizeof(struct socket_event), 0);
+	if (!se)
+	{
+		bpf_printk("push_socket_event: reserve NULL cookie=%llu event=%u\n", cookie, event_type);
+		return;
+	}
+
+	se->cgroup_id = bpf_get_current_cgroup_id();
+	se->pid_tgid = bpf_get_current_pid_tgid();
+	se->cookie = cookie;
+	se->event_type = event_type;
+
+	bpf_printk("push_socket_event: cookie=%llu event=%u pid_tgid=%llu cgroup=%llu\n",
+		se->cookie, se->event_type, se->pid_tgid, se->cgroup_id);
+
+	bpf_ringbuf_submit(se, 0);
 }
 
 // 1) Runs on socket() creation; tags the new socket with current PID/TGID.
@@ -79,7 +92,8 @@ SEC("cgroup/sock_create")
 int on_sock_create(struct bpf_sock* sk)
 {
 	__u64 cookie = bpf_get_socket_cookie(sk);
-	set_sock_identity(cookie);
+	bpf_printk("on_sock_create: cookie=%llu\n", cookie);
+	push_socket_event(cookie, NE_SocketCreate);
 	return 1; // allow
 }
 
@@ -88,15 +102,18 @@ SEC("cgroup/connect4")
 int on_connect4(struct bpf_sock_addr* ctx)
 {
 	__u64 cookie = bpf_get_socket_cookie(ctx);
-	set_sock_identity(cookie);
+	bpf_printk("on_connect4: cookie=%llu\n", cookie);
+	push_socket_event(cookie, NE_SocketConnect_4);
 	return 1; // allow
 }
 
 SEC("cgroup/connect6")
 int on_connect6(struct bpf_sock_addr* ctx)
 {
+	bpf_printk("on_connect6: entered\n");
 	__u64 cookie = bpf_get_socket_cookie(ctx);
-	set_sock_identity(cookie);
+	bpf_printk("on_connect6: cookie=%llu\n", cookie);
+	push_socket_event(cookie, NE_SocketConnect_6);
 	return 1; // allow
 }
 
@@ -110,7 +127,8 @@ int BPF_PROG(socket_accept, struct socket* sock, struct socket* newsock)
 		return 0;
 
 	__u64 cookie = bpf_get_socket_cookie(sk);
-	set_sock_identity(cookie);
+	bpf_printk("socket_accept: cookie=%llu\n", cookie);
+	push_socket_event(cookie, NE_SocketAccept);
 	return 0; // allow
 }
 #else
