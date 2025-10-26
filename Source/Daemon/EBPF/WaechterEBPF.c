@@ -28,23 +28,23 @@
 	#define XDP_PASS 2
 #endif
 
-struct packet_data
+struct WPacketData
 {
-	__u8  raw_data[PACKET_HEADER_SIZE];
-	__u64 cookie;
-	__u64 pid_tgid;
-	__u64 cgroup_id;
-	__u64 bytes;
-	__u64 ts; // kernel timestamp (ns) to help detect drops or ordering in userspace
-	__u8  direction;
+	__u8  RawData[PACKET_HEADER_SIZE];
+	__u64 Cookie;
+	__u64 PidTgId;
+	__u64 CgroupId;
+	__u64 Bytes;
+	__u64 Timestamp; // kernel timestamp (ns) to help detect drops or ordering in userspace
+	__u8  Direction;
 };
 
-struct socket_event
+struct WSocketEvent
 {
-	__u8  event_type; // enum ENetEventType
-	__u64 cookie;
-	__u64 pid_tgid;
-	__u64 cgroup_id;
+	__u8  EventType; // enum ENetEventType
+	__u64 Cookie;
+	__u64 PidTgId;
+	__u64 CgroupId;
 };
 
 // stores socket identity (PID/TGID + cgroup) per socket cookie
@@ -61,149 +61,156 @@ struct
 	__uint(max_entries, PACKET_RING_SIZE);
 } packet_ring SEC(".maps");
 
-static __always_inline void push_socket_event(__u64 cookie, __u8 event_type)
+static __always_inline void PushSocketEvent(__u64 Cookie, __u8 EventType)
 {
-	if (cookie == 0)
+	if (Cookie == 0)
 	{
 		// No point in processing this as we want to map cookie <-> pid/tgid
 		return;
 	}
 
-	struct socket_event* se = (struct socket_event*)bpf_ringbuf_reserve(&socket_event_ring, sizeof(struct socket_event), 0);
-	if (!se)
+	struct WSocketEvent* SocketEvent = (struct WSocketEvent*)bpf_ringbuf_reserve(&socket_event_ring, sizeof(struct WSocketEvent), 0);
+	if (!SocketEvent)
 	{
-		bpf_printk("push_socket_event: reserve NULL cookie=%llu event=%u\n", cookie, event_type);
+		bpf_printk("push_socket_event: reserve NULL cookie=%llu event=%u\n", Cookie, EventType);
 		return;
 	}
 
-	se->cgroup_id = bpf_get_current_cgroup_id();
-	se->pid_tgid = bpf_get_current_pid_tgid();
-	se->cookie = cookie;
-	se->event_type = event_type;
+	SocketEvent->CgroupId = bpf_get_current_cgroup_id();
+	SocketEvent->PidTgId = bpf_get_current_pid_tgid();
+	SocketEvent->Cookie = Cookie;
+	SocketEvent->EventType = EventType;
 
-	bpf_printk("push_socket_event: cookie=%llu event=%u pid_tgid=%llu cgroup=%llu\n",
-		se->cookie, se->event_type, se->pid_tgid, se->cgroup_id);
+	bpf_printk("PushSocketEvent: Cookie=%llu Event=%u PidTgId=%llu cgroup=%llu\n",
+		SocketEvent->Cookie, SocketEvent->EventType, SocketEvent->PidTgId, SocketEvent->CgroupId);
 
-	bpf_ringbuf_submit(se, 0);
+	bpf_ringbuf_submit(SocketEvent, 0);
 }
 
-// 1) Runs on socket() creation; tags the new socket with current PID/TGID.
 SEC("cgroup/sock_create")
-int on_sock_create(struct bpf_sock* sk)
+int on_sock_create(struct bpf_sock* Socket)
 {
-	__u64 cookie = bpf_get_socket_cookie(sk);
-	bpf_printk("on_sock_create: cookie=%llu\n", cookie);
-	push_socket_event(cookie, NE_SocketCreate);
-	return 1; // allow
+	__u64 Cookie = bpf_get_socket_cookie(Socket);
+	bpf_printk("OnSocketCreate: Cookie=%llu\n", Cookie);
+	PushSocketEvent(Cookie, NE_SocketCreate);
+	return WCG_ALLOW;
 }
 
-// 2) Runs on connect(); tags client sockets with current PID/TGID.
 SEC("cgroup/connect4")
-int on_connect4(struct bpf_sock_addr* ctx)
+int on_connect4(struct bpf_sock_addr* Ctx)
 {
-	__u64 cookie = bpf_get_socket_cookie(ctx);
-	bpf_printk("on_connect4: cookie=%llu\n", cookie);
-	push_socket_event(cookie, NE_SocketConnect_4);
-	return 1; // allow
+	__u64 Cookie = bpf_get_socket_cookie(Ctx);
+	bpf_printk("OnConnect4: Cookie=%llu\n", Cookie);
+	PushSocketEvent(Cookie, NE_SocketConnect_4);
+	return WCG_ALLOW;
 }
 
 SEC("cgroup/connect6")
-int on_connect6(struct bpf_sock_addr* ctx)
+int on_connect6(struct bpf_sock_addr* Ctx)
 {
-	bpf_printk("on_connect6: entered\n");
-	__u64 cookie = bpf_get_socket_cookie(ctx);
-	bpf_printk("on_connect6: cookie=%llu\n", cookie);
-	push_socket_event(cookie, NE_SocketConnect_6);
-	return 1; // allow
+	__u64 Cookie = bpf_get_socket_cookie(Ctx);
+	bpf_printk("on_connect6: cookie=%llu\n", Cookie);
+	PushSocketEvent(Cookie, NE_SocketConnect_6);
+	return WCG_ALLOW;
 }
 
-// 3) Runs in the accept() caller’s context; tags accepted server sockets.
 #ifdef HAVE_VMLINUX
 SEC("lsm/socket_accept")
-int BPF_PROG(socket_accept, struct socket* sock, struct socket* newsock)
+int BPF_PROG(socket_accept, struct socket* Sock, struct socket* NewSock)
 {
-	struct sock* sk = newsock->sk; // preserve trusted pointer type
-	if (!sk)
-		return 0;
+	struct sock* Socket = NewSock->sk; // preserve trusted pointer type
+	if (!Socket)
+	{
+		bpf_printk("SocketAccept: Invalid new socket\n");
+		return WLSM_ALLOW;
+	}
 
-	__u64 cookie = bpf_get_socket_cookie(sk);
-	bpf_printk("socket_accept: cookie=%llu\n", cookie);
-	push_socket_event(cookie, NE_SocketAccept);
-	return 0; // allow
+	__u64 Cookie = bpf_get_socket_cookie(Socket);
+	bpf_printk("SocketAccept: Cookie=%llu\n", Cookie);
+	PushSocketEvent(Cookie, NE_SocketAccept);
+	return WLSM_ALLOW;
 }
 #else
 	#error "LSM socket_accept hook requires CO-RE support with vmlinux.h"
 #endif
 
 SEC("xdp")
-int xdp_waechter(struct xdp_md* ctx)
+int xdp_waechter(struct xdp_md* Ctx)
 {
-	(void)ctx;
+	WUNUSED(Ctx);
 	return XDP_PASS;
 }
 
-// cgroup_skb egress: capture PID and cgroup for socket cookie
+// cgroup_skb egress: capture outgoing packet information
 SEC("cgroup_skb/egress")
-int cgskb_egress(struct __sk_buff* skb)
+int cgskb_egress(struct __sk_buff* Skb)
 {
-	// Reserve space in the ring buffer for a packet_data entry
-	struct packet_data* pd = (struct packet_data*)bpf_ringbuf_reserve(&packet_ring, sizeof(struct packet_data), 0);
-	if (pd)
+	struct WPacketData* PacketData = (struct WPacketData*)bpf_ringbuf_reserve(&packet_ring, sizeof(struct WPacketData), 0);
+
+	if (PacketData)
 	{
-		/* zero the entire destination buffer/struct */
-		__builtin_memset(pd, 0, sizeof(*pd));
+		__builtin_memset(PacketData, 0, sizeof(*PacketData));
 
-		pd->cookie = bpf_get_socket_cookie(skb);
-		pd->pid_tgid = bpf_get_current_pid_tgid();
-		pd->cgroup_id = bpf_get_current_cgroup_id();
-		pd->direction = PD_Outgoing;
-		pd->bytes = (__u64)skb->len;
-		pd->ts = bpf_ktime_get_ns();
+		PacketData->Cookie = bpf_get_socket_cookie(Skb);
+		PacketData->PidTgId = bpf_get_current_pid_tgid();
+		PacketData->CgroupId = bpf_get_current_cgroup_id();
+		PacketData->Direction = PD_Outgoing;
+		PacketData->Bytes = (__u64)Skb->len;
+		PacketData->Timestamp = bpf_ktime_get_ns();
 
-		// Bound copy length and avoid zero-sized read per verifier requirements
-		__u32 slen = skb->len;
-		__u32 len = PACKET_HEADER_SIZE;
-		if (slen < PACKET_HEADER_SIZE)
-			len = slen;
-		if (len > 0)
-			bpf_skb_load_bytes(skb, 0, pd->raw_data, len);
+		__u32 Slen = Skb->len;
+		__u32 Len = PACKET_HEADER_SIZE;
 
-		// Submit the filled entry to the ring buffer. If the ring is full, reserve would have returned NULL.
-		bpf_ringbuf_submit(pd, 0);
+		if (Slen < PACKET_HEADER_SIZE)
+		{
+			Len = Slen;
+		}
+
+		if (Len > 0)
+		{
+			bpf_skb_load_bytes(Skb, 0, PacketData->RawData, Len);
+		}
+
+		bpf_ringbuf_submit(PacketData, 0);
 	}
 
 	return SK_PASS;
 }
 
-// cgroup_skb ingress: account and optionally enforce for traffic delivered to the process
+// cgroup_skb ingress: capture incoming packet information
 SEC("cgroup_skb/ingress")
-int cgskb_ingress(struct __sk_buff* skb)
+int cgskb_ingress(struct __sk_buff* Skb)
 {
-	// Reserve space in the ring buffer for a packet_data entry
-	struct packet_data* pd = (struct packet_data*)bpf_ringbuf_reserve(&packet_ring, sizeof(struct packet_data), 0);
-	if (pd)
+	struct WPacketData* PacketData = (struct WPacketData*)bpf_ringbuf_reserve(&packet_ring, sizeof(struct WPacketData), 0);
+
+	if (PacketData)
 	{
-		/* zero the entire destination buffer/struct */
-		__builtin_memset(pd, 0, sizeof(*pd));
+		__builtin_memset(PacketData, 0, sizeof(*PacketData));
 
-		pd->cookie = bpf_get_socket_cookie(skb);
-		pd->pid_tgid = bpf_get_current_pid_tgid();
-		pd->cgroup_id = bpf_get_current_cgroup_id();
-		pd->direction = PD_Incoming;
-		pd->bytes = (__u64)skb->len;
-		pd->ts = bpf_ktime_get_ns();
+		PacketData->Cookie = bpf_get_socket_cookie(Skb);
+		PacketData->PidTgId = bpf_get_current_pid_tgid();
+		PacketData->CgroupId = bpf_get_current_cgroup_id();
+		PacketData->Direction = PD_Incoming;
+		PacketData->Bytes = (__u64)Skb->len;
+		PacketData->Timestamp = bpf_ktime_get_ns();
 
-		// Bound copy length and avoid zero-sized read per verifier requirements
-		__u32 slen = skb->len;
-		__u32 len = PACKET_HEADER_SIZE;
-		if (slen < PACKET_HEADER_SIZE)
-			len = slen;
-		if (len > 0)
-			bpf_skb_load_bytes(skb, 0, pd->raw_data, len);
+		__u32 Slen = Skb->len;
+		__u32 Len = PACKET_HEADER_SIZE;
+
+		if (Slen < PACKET_HEADER_SIZE)
+		{
+			Len = Slen;
+		}
+
+		if (Len > 0)
+		{
+			bpf_skb_load_bytes(Skb, 0, PacketData->RawData, Len);
+		}
 
 		// Submit the filled entry to the ring buffer. If the ring is full, reserve would have returned NULL.
-		bpf_ringbuf_submit(pd, 0);
+		bpf_ringbuf_submit(PacketData, 0);
 	}
+
 	return SK_PASS;
 }
 
