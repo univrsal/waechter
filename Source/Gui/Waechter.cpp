@@ -12,9 +12,6 @@ int main()
 	{
 		return -1;
 	}
-
 	WGlfwWindow::GetInstance().RunLoop();
-
-	spdlog::info("Shutting down...");
 	return 0;
 }
