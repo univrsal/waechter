@@ -11,6 +11,7 @@
 #include "DaemonConfig.hpp"
 #include "EbpfData.hpp"
 #include "WaechterEbpf.hpp"
+#include "Communication/DaemonSocket.hpp"
 
 int Run()
 {
@@ -22,6 +23,7 @@ int Run()
 	WDaemonConfig::BTFTest();
 
 	WWaechterEbpf EbpfObj{};
+	WDaemonSocket DaemonSocket(WDaemonConfig::GetInstance().DaemonSocketPath);
 
 	spdlog::info("Waechter daemon starting");
 
@@ -37,6 +39,7 @@ int Run()
 		spdlog::error("Failed to drop privileges");
 		return -1;
 	}
+	DaemonSocket.StartListenThread();
 
 	spdlog::info("Ebpf programs loaded and attached");
 

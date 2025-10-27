@@ -36,6 +36,7 @@ void WDaemonConfig::LogConfig()
 {
 	spdlog::info("network interface={}", NetworkInterfaceName);
 	spdlog::info("cgroup path={}", CGroupPath);
+	spdlog::info("socket path={}", DaemonSocketPath);
 }
 
 void WDaemonConfig::Load(std::string const& Path)
@@ -61,6 +62,7 @@ void WDaemonConfig::Load(std::string const& Path)
 		SafeGet("network", "cgroup_path", CGroupPath);
 
 		SafeGet("daemon", "user", DaemonUser);
+		SafeGet("daemon", "socket_path", DaemonSocketPath);
 	}
 }
 

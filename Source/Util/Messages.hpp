@@ -128,7 +128,7 @@ public:
 	void Serialize(WBuffer& Buf) const override
 	{
 		WMessage::Serialize(Buf);
-		Buf.Write(TrafficTreeJson.length();
+		Buf.Write(TrafficTreeJson.length());
 		Buf.Write(TrafficTreeJson.c_str(), TrafficTreeJson.size());
 	}
 

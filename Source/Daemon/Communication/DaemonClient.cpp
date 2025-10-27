@@ -7,7 +7,6 @@
 
 void WDaemonClient::ListenThreadFunction()
 {
-	bool    bHaveSentLimit{ false };
 	WBuffer Buf{};
 	Buf.Resize(1024);
 	while (Running)
@@ -26,21 +25,11 @@ void WDaemonClient::ListenThreadFunction()
 
 		switch (Msg->GetType())
 		{
-			case MT_Traffic:
+			case MT_SetTcpLimit:
 			{
-				if (auto const TCPMsg = std::static_pointer_cast<WMessageTraffic>(Msg))
+				if (auto const TCPMsg = std::static_pointer_cast<WMessageSetTCPLimit>(Msg))
 				{
-					// FIXME: Remove
-					if (!bHaveSentLimit)
-					{
-						bHaveSentLimit = true;
-						// Send<Common::WMessageSetTCPLimit>(TCPMsg->SocketFd, 1 WMiB, Common::TD_Incoming);
-					}
-
-					if (ClientPid == 0)
-					{
-						ClientPid = TCPMsg->Pid;
-					}
+					// TODO: Implement
 				}
 				break;
 			}
