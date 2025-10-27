@@ -2,6 +2,7 @@
 
 #include <unistd.h>
 #include <memory>
+#include <utility>
 
 #include "IPAddress.hpp"
 #include "Buffer.hpp"
@@ -14,6 +15,7 @@
 enum EMessageType : uint8_t
 {
 	MT_Traffic,
+	MT_TrafficTree,
 	MT_SetTcpLimit,
 };
 
@@ -46,19 +48,17 @@ public:
 class WMessageTraffic : public WMessage
 {
 public:
-	WSocketTuple Connection{};
-	size_t       Length{};
-	WProcessId   Pid{};
+	size_t        Length{};
+	WSocketCookie SocketCookie{};
 
 	EPacketDirection Direction{};
 
 	WMESSAGE(WMessageTraffic, MT_Traffic)
 
-	WMessageTraffic(WSocketTuple const& Pair, size_t Len, EPacketDirection Dir)
+	WMessageTraffic(WSocketCookie Cookie, size_t Len, EPacketDirection Dir)
 		: WMessage(MT_Traffic)
-		, Connection(Pair)
 		, Length(Len)
-		, Pid(getpid())
+		, SocketCookie(Cookie)
 		, Direction(Dir)
 	{
 	}
@@ -66,24 +66,21 @@ public:
 	void Serialize(WBuffer& Buf) const override
 	{
 		WMessage::Serialize(Buf);
-		Buf.Write(Connection);
+		Buf.Write(SocketCookie);
 		Buf.Write(Length);
-		Buf.Write(Pid);
 		Buf.Write(Direction);
 	}
 
 	void Deserialize(WBuffer& Buf) override
 	{
-		Buf.Read(Connection);
+		Buf.Read(SocketCookie);
 		Buf.Read(Length);
-		Buf.Read(Pid);
 		Buf.Read(Direction);
 	}
 };
 
 class WMessageSetTCPLimit : public WMessage
 {
-
 public:
 	WSocketCookie    SocketCookie{};
 	WBytesPerSecond  Limit{};
@@ -115,6 +112,35 @@ public:
 	}
 };
 
+class WTrafficTree : public WMessage
+{
+public:
+	std::string TrafficTreeJson{};
+
+	WMESSAGE(WTrafficTree, MT_TrafficTree)
+
+	WTrafficTree(std::string TreeJson)
+		: WMessage(MT_TrafficTree)
+		, TrafficTreeJson(std::move(TreeJson))
+	{
+	}
+
+	void Serialize(WBuffer& Buf) const override
+	{
+		WMessage::Serialize(Buf);
+		Buf.Write(TrafficTreeJson.length();
+		Buf.Write(TrafficTreeJson.c_str(), TrafficTreeJson.size());
+	}
+
+	void Deserialize(WBuffer& Buf) override
+	{
+		auto Length = size_t{};
+		Buf.Read(Length);
+		TrafficTreeJson.resize(Length);
+		Buf.Read(&TrafficTreeJson[0], Length);
+	}
+};
+
 static std::shared_ptr<WMessage> ReadFromBuffer(WBuffer& Buf)
 {
 	EMessageType Type;
@@ -132,6 +158,10 @@ static std::shared_ptr<WMessage> ReadFromBuffer(WBuffer& Buf)
 			break;
 		case MT_SetTcpLimit:
 			Msg = std::make_shared<WMessageSetTCPLimit>();
+			Msg->Deserialize(Buf);
+			break;
+		case MT_TrafficTree:
+			Msg = std::make_shared<WTrafficTree>();
 			Msg->Deserialize(Buf);
 			break;
 	}
