@@ -18,13 +18,6 @@ static void GlfwErrorCallback(int error, const char* description)
 	spdlog::error("GLFW Error {}: {}", error, description);
 }
 
-bool WGlfwWindow::IsRunningWayland() const
-{
-	std::string Xdg = std::getenv("XDG_SESSION_TYPE") ? std::getenv("XDG_SESSION_TYPE") : "";
-	std::string Wayland = std::getenv("WAYLAND_DISPLAY") ? std::getenv("WAYLAND_DISPLAY") : "";
-	return (Xdg == "wayland" || !Wayland.empty());
-}
-
 bool WGlfwWindow::Init()
 {
 	glfwSetErrorCallback(GlfwErrorCallback);

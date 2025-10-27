@@ -1,6 +1,3 @@
-
-The "inih" library is distributed under the New BSD license:
-
 Copyright (c) 2009, Ben Hoyt
 All rights reserved.
 

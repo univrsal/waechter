@@ -17,12 +17,10 @@ class WGlfwWindow : public TSingleton<WGlfwWindow>
 
 	WMainWindow MainWindow;
 
-	bool IsRunningWayland() const;
-
 public:
 	bool Init();
 
 	void RunLoop();
 
-	~WGlfwWindow();
+	~WGlfwWindow() override;
 };
