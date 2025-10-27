@@ -57,6 +57,7 @@ int Run()
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(5));
 	}
+	DaemonSocket.Stop();
 
 	return 0;
 }

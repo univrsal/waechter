@@ -98,7 +98,7 @@ bool WClientSocket::Receive(WBuffer& Buf)
 			return;
 		}
 		// Other errors: mark as can't send/receive
-		State = ES_ConnectedButCantSend;
+		State = ES_Initial;
 	};
 
 	Buf.Reset();
@@ -122,7 +122,6 @@ bool WClientSocket::Receive(WBuffer& Buf)
 		if (Result == 0)
 		{
 			// orderly shutdown / EOF
-			State = ES_Initial;
 			return false;
 		}
 		if (Result < 0)
@@ -153,7 +152,6 @@ bool WClientSocket::Receive(WBuffer& Buf)
 	if (Got == 0)
 	{
 		// Peer performed orderly shutdown
-		State = ES_Initial;
 		return false;
 	}
 

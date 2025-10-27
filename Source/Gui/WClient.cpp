@@ -39,7 +39,7 @@ void WClient::ConnectionThreadFunction()
 			{
 				if (auto const TrafficMsg = std::static_pointer_cast<WMessageTrafficTree>(Msg))
 				{
-					spdlog::info("Received traffic tree: {}", TrafficMsg->TrafficTreeJson);
+					// TODO: Parse tree
 				}
 				break;
 			}

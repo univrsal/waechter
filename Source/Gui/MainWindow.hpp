@@ -11,6 +11,8 @@ class WMainWindow
 	WAboutDialog AboutDialog{};
 	WClient      Client{};
 
+	void DrawConnectionIndicator();
+
 public:
 	void Draw();
 };

@@ -9,6 +9,7 @@
 #include <memory>
 #include <cassert>
 #include <utility>
+#include <atomic>
 
 #include "Buffer.hpp"
 #include "Types.hpp"
@@ -48,8 +49,8 @@ enum ESocketState
 
 class WClientSocket : public WSocket
 {
-	ESocketState State{};
-	bool         bBlocking{ true };
+	std::atomic<ESocketState> State{};
+	bool                      bBlocking{ true };
 
 public:
 	explicit WClientSocket(int SocketFd)
@@ -80,12 +81,12 @@ public:
 
 	[[nodiscard]] ESocketState GetState() const
 	{
-		return State;
+		return State.load(std::memory_order_acquire);
 	}
 
 	void SetState(ESocketState NewState)
 	{
-		State = NewState;
+		State.store(NewState, std::memory_order_release);
 	}
 
 	void SetNonBlocking(bool bNonBlocking)

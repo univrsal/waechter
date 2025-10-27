@@ -40,7 +40,7 @@ public:
 		}
 	}
 
-	~WDaemonSocket()
+	void Stop()
 	{
 		Running = false;
 		Socket.Close();
@@ -48,6 +48,11 @@ public:
 		{
 			ListenThread.join();
 		}
+	}
+
+	~WDaemonSocket()
+	{
+		Stop();
 	}
 
 	bool StartListenThread();

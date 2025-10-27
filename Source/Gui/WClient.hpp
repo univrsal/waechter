@@ -14,9 +14,9 @@ class WClient
 {
 	std::unique_ptr<WClientSocket> Socket;
 
-	std::thread       ConnectionThread;
-	std::mutex        SocketMutex;
-	std::atomic<bool> Running{ true };
+	std::thread        ConnectionThread;
+	mutable std::mutex SocketMutex;
+	std::atomic<bool>  Running{ true };
 
 	void ConnectionThreadFunction();
 
@@ -34,4 +34,11 @@ public:
 	}
 	WClient();
 	~WClient() { Stop(); }
+
+	// Return whether client socket is currently connected
+	[[nodiscard]] bool IsConnected() const
+	{
+		std::lock_guard<std::mutex> lk(SocketMutex);
+		return Socket && Socket->GetState() == ES_Connected;
+	}
 };
