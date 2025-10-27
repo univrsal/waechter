@@ -3,9 +3,12 @@
 //
 
 #pragma once
+#include "AboutDialog.hpp"
 
 class WMainWindow
 {
+	WAboutDialog AboutDialog{};
+
 public:
 	void Draw();
 };

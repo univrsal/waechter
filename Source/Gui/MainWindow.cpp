@@ -19,11 +19,27 @@ void WMainWindow::Draw()
 
 	// Optional: remove window decorations and background if you want a full overlay
 	ImGuiWindowFlags window_flags =
-		ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoDecoration;
+		ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoDecoration;
 
-	ImGui::Begin("MainWindow", nullptr, window_flags);
+	if (ImGui::Begin("MainWindow", nullptr, window_flags))
+	{
 
-	ImGui::Text("Hello, fullscreen window!");
+		if (ImGui::BeginMenuBar())
+		{
+			if (ImGui::BeginMenu("Help"))
+			{
+				if (ImGui::MenuItem("About"))
+				{
+					AboutDialog.Show();
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::EndMenuBar();
+		}
+		ImGui::Text("Hello, fullscreen window!");
 
-	ImGui::End();
+		ImGui::End();
+	}
+
+	AboutDialog.Draw();
 }

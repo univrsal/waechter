@@ -2,7 +2,9 @@ add_executable(waechter
         GlfwWindow.cpp
         GlfwWindow.hpp
         MainWindow.cpp
-        MainWindow.hpp)
+        MainWindow.hpp
+        AboutDialog.cpp
+        AboutDialog.hpp)
 
 target_sources(waechter PRIVATE
         Waechter.cpp
