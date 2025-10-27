@@ -11,6 +11,7 @@
 
 #include "TrafficCounter.hpp"
 #include "Types.hpp"
+#include "Json.hpp"
 
 class WApplicationMap;
 class WSocketInfo;
@@ -41,4 +42,6 @@ public:
 	void RefreshAllTrafficCounters();
 
 	std::shared_ptr<WSocketInfo> FindOrMapSocket(WSocketCookie Cookie);
+
+	void ToJson(WJson::object& Json);
 };

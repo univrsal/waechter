@@ -9,6 +9,7 @@
 #include "EBPFCommon.h"
 #include "IPAddress.hpp"
 #include "TrafficCounter.hpp"
+#include "Json.hpp"
 
 namespace ESocketState
 {
@@ -32,4 +33,6 @@ struct WSocketInfo
 	WTrafficCounter    TrafficCounter{};
 
 	void ProcessSocketEvent(WSocketEvent const& Event);
+
+	void ToJson(WJson::object& Json);
 };

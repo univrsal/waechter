@@ -4,7 +4,9 @@ add_executable(waechter
         MainWindow.cpp
         MainWindow.hpp
         AboutDialog.cpp
-        AboutDialog.hpp)
+        AboutDialog.hpp
+        WClient.cpp
+        WClient.hpp)
 
 target_sources(waechter PRIVATE
         Waechter.cpp

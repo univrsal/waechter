@@ -4,12 +4,34 @@
 #include <cstring>
 #include <vector>
 #include <cassert>
+#include <algorithm>
+#include <limits>
 
 class WBuffer
 {
 	std::vector<char> Data{};
 	std::size_t       ReadPos{};
 	std::size_t       WritePos{};
+
+	void EnsureCapacity(std::size_t Needed)
+	{
+		// grow to at least 'needed' bytes
+		if (Needed <= Data.size())
+			return;
+
+		std::size_t NewCap = !Data.empty() ? Data.size() : static_cast<std::size_t>(1024);
+		// grow geometrically to avoid frequent reallocations
+		while (NewCap < Needed)
+		{
+			if (NewCap > (std::numeric_limits<std::size_t>::max)() / 2)
+			{
+				NewCap = Needed; // last jump to exactly needed to avoid overflow
+				break;
+			}
+			NewCap *= 2;
+		}
+		Data.resize(NewCap);
+	}
 
 public:
 	explicit WBuffer(std::size_t Size = 1024)
@@ -19,60 +41,57 @@ public:
 
 	~WBuffer() = default;
 
-	[[nodiscard]] std::size_t GetSize() const
-	{
-		return Data.size();
-	}
-
-	[[nodiscard]] std::size_t GetReadPos() const
-	{
-		return ReadPos;
-	}
+	[[nodiscard]] std::size_t GetSize() const { return Data.size(); }
+	[[nodiscard]] std::size_t GetReadPos() const { return ReadPos; }
+	[[nodiscard]] std::size_t GetWritePos() const { return WritePos; }
+	[[nodiscard]] bool        HasDataToRead() const { return ReadPos < WritePos; }
 
 	void SetWritingPos(std::size_t Pos)
 	{
+		// allow moving within current size, grow if needed
+		if (Pos > Data.size())
+			EnsureCapacity(Pos);
 		WritePos = Pos;
+		if (ReadPos > WritePos)
+			ReadPos = WritePos;
 	}
 
-	[[nodiscard]] std::size_t GetWritePos() const
+	std::size_t Read(char* Buf, std::size_t Len)
 	{
-		return WritePos;
+		if (Buf == nullptr || Len == 0)
+			return 0;
+
+		if (ReadPos > WritePos) // invariant guard
+			ReadPos = WritePos;
+
+		const std::size_t Available = WritePos - ReadPos;
+		const std::size_t N = std::min(Len, Available);
+
+		if (N > 0)
+		{
+			std::memcpy(Buf, Data.data() + ReadPos, N);
+			ReadPos += N;
+		}
+		return N;
 	}
 
-	[[nodiscard]] bool HasDataToRead() const
+	void Write(const char* Buf, std::size_t BytesToWrite)
 	{
-		return ReadPos < WritePos;
-	}
+		if (Buf == nullptr || BytesToWrite == 0)
+			return;
 
-	std::size_t Read(char* Buf, size_t Len)
-	{
-		size_t BytesToRead = Len;
-		if (ReadPos + Len >= Data.size())
+		// overflow guard on addition
+		if (BytesToWrite > (std::numeric_limits<std::size_t>::max)() - WritePos)
 		{
-			BytesToRead = Data.size() - ReadPos;
+			assert(false && "WBuffer::Write overflow");
+			return;
 		}
 
-		if (BytesToRead > 0)
-		{
-			memcpy(Buf, Data.data() + ReadPos, BytesToRead);
-			ReadPos += BytesToRead;
-		}
+		const std::size_t Needed = WritePos + BytesToWrite;
+		EnsureCapacity(Needed);
 
-		return BytesToRead;
-	}
-
-	void Write(const char* Buf, size_t BytesToWrite)
-	{
-		if (WritePos + BytesToWrite > GetSize())
-		{
-			Resize(GetSize() * 2);
-		}
-
-		if (BytesToWrite > 0)
-		{
-			memcpy(Data.data() + WritePos, Buf, BytesToWrite);
-			WritePos += BytesToWrite;
-		}
+		std::memcpy(Data.data() + WritePos, Buf, BytesToWrite);
+		WritePos += BytesToWrite;
 	}
 
 	void Reset()
@@ -83,43 +102,34 @@ public:
 
 	void Clear()
 	{
+		// optional zeroing (not required for correctness)
+		std::memset(Data.data(), 0, Data.size());
 		Reset();
-		memset(Data.data(), 0, GetSize());
 	}
 
-	void Resize(size_t NewSize)
+	void Resize(std::size_t NewSize)
 	{
-		assert(NewSize < 0xffff); // arbitrary but just to catch wrap arounds
 		Data.resize(NewSize);
+		if (WritePos > NewSize)
+			WritePos = NewSize;
+		if (ReadPos > WritePos)
+			ReadPos = WritePos;
 	}
 
-	char* GetData()
-	{
-		return Data.data();
-	}
-
-	[[nodiscard]] char const* GetData() const
-	{
-		return Data.data();
-	}
+	char*                     GetData() { return Data.data(); }
+	[[nodiscard]] const char* GetData() const { return Data.data(); }
 
 	template <typename T>
 	void Write(T const& Value)
 	{
+		static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
 		Write(reinterpret_cast<char const*>(&Value), sizeof(T));
 	}
 
 	template <typename T>
 	bool Read(T& Value)
 	{
+		static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
 		return Read(reinterpret_cast<char*>(&Value), sizeof(T)) == sizeof(T);
-	}
-
-	template <typename T>
-	T* Read()
-	{
-		T* Value = reinterpret_cast<T*>(Data.data() + ReadPos);
-		ReadPos += sizeof(T);
-		return Value;
 	}
 };

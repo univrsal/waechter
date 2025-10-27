@@ -98,8 +98,8 @@ void WWaechterEbpf::PrintStats()
 	WSystemMap::GetInstance().RefreshAllTrafficCounters();
 
 	spdlog::info("System Traffic: Download Speed: {:.2f} B/s, Upload Speed: {:.2f} B/s",
-		WSystemMap::GetInstance().TrafficCounter.GetDownloadSpeed(),
-		WSystemMap::GetInstance().TrafficCounter.GetUploadSpeed());
+		WSystemMap::GetInstance().GetDownloadSpeed(),
+		WSystemMap::GetInstance().GetUploadSpeed());
 }
 
 void WWaechterEbpf::UpdateData()

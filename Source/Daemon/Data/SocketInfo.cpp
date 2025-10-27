@@ -32,3 +32,9 @@ void WSocketInfo::ProcessSocketEvent(WSocketEvent const& Event)
 		}
 	}
 }
+
+void WSocketInfo::ToJson(WJson::object& Json)
+{
+	Json[JSON_KEY_DOWNLOAD] = TrafficCounter.GetDownloadSpeed();
+	Json[JSON_KEY_UPLOAD] = TrafficCounter.GetUploadSpeed();
+}

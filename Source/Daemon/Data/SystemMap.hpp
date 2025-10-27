@@ -5,6 +5,7 @@
 #pragma once
 #include <memory>
 #include <unordered_map>
+#include <mutex>
 
 #include "Types.hpp"
 #include "Singleton.hpp"
@@ -17,11 +18,12 @@ class WSystemMap : public TSingleton<WSystemMap>
 {
 	// binary path -> application map
 	std::unordered_map<std::string, std::shared_ptr<WApplicationMap>> Applications;
+	std::unordered_map<WSocketCookie, std::shared_ptr<WSocketInfo>>   Sockets;
 
-	std::unordered_map<WSocketCookie, std::shared_ptr<WSocketInfo>> Sockets;
+	WTrafficCounter TrafficCounter{};
 
 public:
-	WTrafficCounter TrafficCounter{};
+	std::mutex DataMutex;
 
 	std::shared_ptr<WSocketInfo> MapSocket(WSocketCookie SocketCookie, WProcessId PID, bool bSilentFail = false);
 
@@ -32,4 +34,16 @@ public:
 	void PushIncomingTraffic(WBytes Bytes, WSocketCookie SocketCookie);
 
 	void PushOutgoingTraffic(WBytes Bytes, WSocketCookie SocketCookie);
+
+	std::string ToJson();
+
+	double GetDownloadSpeed() const
+	{
+		return TrafficCounter.GetDownloadSpeed();
+	}
+
+	double GetUploadSpeed() const
+	{
+		return TrafficCounter.GetUploadSpeed();
+	}
 };

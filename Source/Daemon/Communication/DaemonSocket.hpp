@@ -67,6 +67,4 @@ public:
 			Clients.end());
 		ClientsMutex.unlock();
 	}
-
-	std::string ToJson() const;
 };

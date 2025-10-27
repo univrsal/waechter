@@ -10,6 +10,7 @@
 
 #include "TrafficCounter.hpp"
 #include "Types.hpp"
+#include "Json.hpp"
 
 class WProcessMap;
 
@@ -32,4 +33,6 @@ public:
 	void RefreshAllTrafficCounters();
 
 	std::shared_ptr<WProcessMap> FindOrMapChildProcess(WProcessId PID, std::string const& CmdLine);
+
+	void ToJson(WJson::object& Json);
 };

@@ -112,30 +112,39 @@ public:
 	}
 };
 
-class WTrafficTree : public WMessage
+class WMessageTrafficTree : public WMessage
 {
 public:
 	std::string TrafficTreeJson{};
 
-	WMESSAGE(WTrafficTree, MT_TrafficTree)
+	WMESSAGE(WMessageTrafficTree, MT_TrafficTree)
 
-	WTrafficTree(std::string TreeJson)
+	explicit WMessageTrafficTree(std::string TreeJson)
 		: WMessage(MT_TrafficTree)
 		, TrafficTreeJson(std::move(TreeJson))
 	{
 	}
 
+	~WMessageTrafficTree() = default;
+
 	void Serialize(WBuffer& Buf) const override
 	{
 		WMessage::Serialize(Buf);
-		Buf.Write(TrafficTreeJson.length());
+		Buf.Write<std::size_t>(TrafficTreeJson.length());
+		if (TrafficTreeJson.empty())
+			return;
 		Buf.Write(TrafficTreeJson.c_str(), TrafficTreeJson.size());
 	}
 
 	void Deserialize(WBuffer& Buf) override
 	{
-		auto Length = size_t{};
+		auto Length = std::size_t{};
 		Buf.Read(Length);
+		if (Length == 0)
+		{
+			TrafficTreeJson.clear();
+			return;
+		}
 		TrafficTreeJson.resize(Length);
 		Buf.Read(&TrafficTreeJson[0], Length);
 	}
@@ -161,7 +170,7 @@ static std::shared_ptr<WMessage> ReadFromBuffer(WBuffer& Buf)
 			Msg->Deserialize(Buf);
 			break;
 		case MT_TrafficTree:
-			Msg = std::make_shared<WTrafficTree>();
+			Msg = std::make_shared<WMessageTrafficTree>();
 			Msg->Deserialize(Buf);
 			break;
 	}

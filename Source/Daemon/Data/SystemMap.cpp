@@ -8,6 +8,7 @@
 #include <fstream>
 #include <ranges>
 #include <algorithm>
+#include <json11.hpp>
 
 #include "ApplicationMap.hpp"
 #include "ProcessMap.hpp"
@@ -71,7 +72,7 @@ std::shared_ptr<WApplicationMap> WSystemMap::FindOrMapApplication(std::string co
 	{
 		return It->second;
 	}
-	spdlog::info("Mapped new application: {}", AppName);
+	spdlog::debug("Mapped new application: {}", AppName);
 	auto AppMap = std::make_shared<WApplicationMap>(AppName, AppName);
 	Applications.emplace(AppName, AppMap);
 	return AppMap;
@@ -79,6 +80,7 @@ std::shared_ptr<WApplicationMap> WSystemMap::FindOrMapApplication(std::string co
 
 void WSystemMap::RefreshAllTrafficCounters()
 {
+	std::lock_guard Lock(DataMutex);
 	TrafficCounter.Refresh();
 	for (auto& [AppName, AppMap] : Applications)
 	{
@@ -88,6 +90,7 @@ void WSystemMap::RefreshAllTrafficCounters()
 
 void WSystemMap::PushIncomingTraffic(WBytes Bytes, WSocketCookie SocketCookie)
 {
+	std::lock_guard Lock(DataMutex);
 	TrafficCounter.PushIncomingTraffic(Bytes);
 
 	if (auto It = Sockets.find(SocketCookie); It != Sockets.end())
@@ -107,6 +110,7 @@ void WSystemMap::PushIncomingTraffic(WBytes Bytes, WSocketCookie SocketCookie)
 
 void WSystemMap::PushOutgoingTraffic(WBytes Bytes, WSocketCookie SocketCookie)
 {
+	std::lock_guard Lock(DataMutex);
 	TrafficCounter.PushOutgoingTraffic(Bytes);
 
 	if (auto It = Sockets.find(SocketCookie); It != Sockets.end())
@@ -122,4 +126,25 @@ void WSystemMap::PushOutgoingTraffic(WBytes Bytes, WSocketCookie SocketCookie)
 			}
 		}
 	}
+}
+
+std::string WSystemMap::ToJson()
+{
+	std::lock_guard Lock(DataMutex);
+	WJson::object   SystemTrafficTree;
+
+	SystemTrafficTree[JSON_KEY_DOWNLOAD] = TrafficCounter.GetDownloadSpeed();
+	SystemTrafficTree[JSON_KEY_UPLOAD] = TrafficCounter.GetUploadSpeed();
+
+	WJson::array ApplicationsArray;
+
+	for (auto& [AppName, AppMap] : Applications)
+	{
+		WJson::object AppJson;
+		AppMap->ToJson(AppJson);
+		ApplicationsArray.emplace_back(AppJson);
+	}
+	SystemTrafficTree[JSON_KEY_APPS] = ApplicationsArray;
+
+	return WJson(SystemTrafficTree).dump();
 }

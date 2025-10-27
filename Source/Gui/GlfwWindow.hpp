@@ -6,6 +6,7 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <memory>
 
 #include "Singleton.hpp"
 #include "MainWindow.hpp"
@@ -15,7 +16,7 @@ class WGlfwWindow : public TSingleton<WGlfwWindow>
 	GLFWwindow* Window{};
 	float       MainScale{ 1.0f };
 
-	WMainWindow MainWindow;
+	std::unique_ptr<WMainWindow> MainWindow{};
 
 public:
 	bool Init();

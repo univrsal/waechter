@@ -21,6 +21,7 @@ static void GlfwErrorCallback(int error, const char* description)
 bool WGlfwWindow::Init()
 {
 	glfwSetErrorCallback(GlfwErrorCallback);
+	MainWindow = std::make_unique<WMainWindow>();
 
 	if (!glfwInit())
 	{
@@ -82,7 +83,6 @@ void WGlfwWindow::RunLoop()
 {
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
-	bool     show_demo_window = true;
 	ImGuiIO& io = ImGui::GetIO();
 	while (!glfwWindowShouldClose(Window))
 	{
@@ -98,7 +98,7 @@ void WGlfwWindow::RunLoop()
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
-		MainWindow.Draw();
+		MainWindow->Draw();
 
 		// Rendering
 		ImGui::Render();
@@ -111,6 +111,7 @@ void WGlfwWindow::RunLoop()
 
 		glfwSwapBuffers(Window);
 	}
+	MainWindow = nullptr;
 }
 
 WGlfwWindow::~WGlfwWindow()

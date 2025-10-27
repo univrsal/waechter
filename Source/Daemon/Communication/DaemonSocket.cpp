@@ -2,7 +2,10 @@
 
 #include <filesystem>
 #include <spdlog/spdlog.h>
-#include <json11.hpp>
+
+#include "Json.hpp"
+#include "Messages.hpp"
+#include "Data/SystemMap.hpp"
 
 void WDaemonSocket::ListenThreadFunction()
 {
@@ -14,6 +17,12 @@ void WDaemonSocket::ListenThreadFunction()
 			spdlog::info("Client connected");
 			auto NewClient = std::make_shared<WDaemonClient>(ClientSocket, this);
 			NewClient->StartListenThread();
+
+			auto TrafficJson = WSystemMap::GetInstance().ToJson();
+			spdlog::info("{}, tree: {}", TrafficJson.length(), TrafficJson);
+
+			NewClient->Send<WMessageTrafficTree>(TrafficJson);
+
 			ClientsMutex.lock();
 			Clients.push_back(NewClient);
 			ClientsMutex.unlock();
@@ -42,19 +51,4 @@ bool WDaemonSocket::StartListenThread()
 	Running = true;
 	ListenThread = std::thread(&WDaemonSocket::ListenThreadFunction, this);
 	return true;
-}
-
-std::string WDaemonSocket::ToJson() const
-{
-	json11::Json::object TotalTraffic;
-	json11::Json         Applications;
-
-	json11::Json Data = json11::Json::object{
-		{ "total", TotalTraffic },
-		{ "applications", Applications },
-		{ "type", "traffic" },
-		{ "hostname", Hostname },
-	};
-
-	return std::move(Data.dump());
 }

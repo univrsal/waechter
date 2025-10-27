@@ -50,7 +50,7 @@ int Run()
 	{
 		EbpfObj.UpdateData();
 		auto now = std::chrono::steady_clock::now();
-		if (now - LastPrint >= std::chrono::milliseconds(1000))
+		if (now - LastPrint >= std::chrono::milliseconds(5000))
 		{
 			EbpfObj.PrintStats();
 			LastPrint = now;

@@ -13,6 +13,8 @@
 #include "Buffer.hpp"
 #include "Types.hpp"
 
+#include <fcntl.h>
+
 class WSocket
 {
 protected:
@@ -47,6 +49,7 @@ enum ESocketState
 class WClientSocket : public WSocket
 {
 	ESocketState State{};
+	bool         bBlocking{ true };
 
 public:
 	explicit WClientSocket(int SocketFd)
@@ -83,6 +86,21 @@ public:
 	void SetState(ESocketState NewState)
 	{
 		State = NewState;
+	}
+
+	void SetNonBlocking(bool bNonBlocking)
+	{
+		int Flags = fcntl(SocketFd, F_GETFL, 0);
+		if (bNonBlocking)
+		{
+			Flags |= O_NONBLOCK;
+		}
+		else
+		{
+			Flags &= ~O_NONBLOCK;
+		}
+		fcntl(SocketFd, F_SETFL, Flags);
+		bBlocking = !bNonBlocking;
 	}
 };
 
