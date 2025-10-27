@@ -56,19 +56,16 @@ bool WGlfwWindow::Init()
 		return false;
 	}
 
-	if (!IsRunningWayland())
+	int            Width, Height, Channels;
+	unsigned char* Pixels = stbi_load_from_memory(gIconData, gIconSize, &Width, &Height, &Channels, 4);
+	if (Pixels)
 	{
-		int            Width, Height, Channels;
-		unsigned char* Pixels = stbi_load_from_memory(gIconData, gIconSize, &Width, &Height, &Channels, 4);
-		if (Pixels)
-		{
-			GLFWimage Image{};
-			Image.width = Width;
-			Image.height = Height;
-			Image.pixels = Pixels;
-			glfwSetWindowIcon(Window, 1, &Image);
-			stbi_image_free(Pixels);
-		}
+		GLFWimage Image{};
+		Image.width = Width;
+		Image.height = Height;
+		Image.pixels = Pixels;
+		glfwSetWindowIcon(Window, 1, &Image);
+		stbi_image_free(Pixels);
 	}
 
 	IMGUI_CHECKVERSION();
