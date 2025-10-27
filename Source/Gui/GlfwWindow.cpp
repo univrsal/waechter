@@ -32,7 +32,7 @@ bool WGlfwWindow::Init()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 	MainScale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor()); // Valid on GLFW 3.3+ only
 
-	Window = glfwCreateWindow(640, 480, "Wächter", nullptr, nullptr);
+	Window = glfwCreateWindow(900, 700, "Wächter", nullptr, nullptr);
 	if (!Window)
 	{
 		spdlog::critical("GLFW window creation failed!");
