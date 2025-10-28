@@ -16,6 +16,7 @@ enum EMessageType : uint8_t
 {
 	MT_Traffic,
 	MT_TrafficTree,
+	MT_TrafficUpdate,
 	MT_SetTcpLimit,
 };
 
@@ -116,28 +117,32 @@ public:
 	}
 };
 
-class WMessageTrafficTree : public WMessage
+template <EMessageType T>
+class WMessageJsonBase : public WMessage
 {
 public:
-	std::string TrafficTreeJson{};
+	std::string Json{};
 
-	WMESSAGE(WMessageTrafficTree, MT_TrafficTree)
-
-	explicit WMessageTrafficTree(std::string TreeJson)
-		: WMessage(MT_TrafficTree)
-		, TrafficTreeJson(std::move(TreeJson))
+	WMessageJsonBase()
+		: WMessage(T)
 	{
 	}
 
-	~WMessageTrafficTree() override = default;
+	explicit WMessageJsonBase(std::string Json_)
+		: WMessage(T)
+		, Json(std::move(Json_))
+	{
+	}
+
+	~WMessageJsonBase() override = default;
 
 	void Serialize(WBuffer& Buf) const override
 	{
 		WMessage::Serialize(Buf);
-		Buf.Write<std::size_t>(TrafficTreeJson.length());
-		if (TrafficTreeJson.empty())
+		Buf.Write<std::size_t>(Json.length());
+		if (Json.empty())
 			return;
-		Buf.Write(TrafficTreeJson.c_str(), TrafficTreeJson.size());
+		Buf.Write(Json.c_str(), Json.size());
 	}
 
 	void Deserialize(WBuffer& Buf) override
@@ -146,13 +151,16 @@ public:
 		Buf.Read(Length);
 		if (Length == 0)
 		{
-			TrafficTreeJson.clear();
+			Json.clear();
 			return;
 		}
-		TrafficTreeJson.resize(Length);
-		Buf.Read(&TrafficTreeJson[0], Length);
+		Json.resize(Length);
+		Buf.Read(&Json[0], Length);
 	}
 };
+
+using WMessageTrafficTree = WMessageJsonBase<MT_TrafficTree>;
+using WMessageTrafficUpdate = WMessageJsonBase<MT_TrafficUpdate>;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
@@ -178,6 +186,10 @@ static std::shared_ptr<WMessage> ReadFromBuffer(WBuffer& Buf)
 			break;
 		case MT_TrafficTree:
 			Msg = std::make_shared<WMessageTrafficTree>();
+			Msg->Deserialize(Buf);
+			break;
+		case MT_TrafficUpdate:
+			Msg = std::make_shared<WMessageTrafficUpdate>();
 			Msg->Deserialize(Buf);
 			break;
 	}
