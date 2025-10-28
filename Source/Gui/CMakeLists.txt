@@ -23,10 +23,6 @@ target_link_libraries(waechter PRIVATE
         waechter::util
 )
 
-target_compile_definitions(
-        waechter PRIVATE ICON_PATH="${CMAKE_SOURCE_DIR}/Meta/Icon.png"
-)
-
 file(GLOB thirdparty_dirs RELATIVE "${CMAKE_SOURCE_DIR}/Thirdparty" "${CMAKE_SOURCE_DIR}/Thirdparty/*")
 
 set(_license_defs)
@@ -73,4 +69,6 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
         GIT_COMMIT_HASH="${GIT_COMMIT_HASH}"
         WAECHTER_VERSION="${CMAKE_PROJECT_VERSION}"
         BUILD_TIME="${TODAY}"
+        ICON_PATH="${CMAKE_SOURCE_DIR}/Meta/Icon.png"
+        FONT_PATH="${CMAKE_SOURCE_DIR}/Thirdparty/jetbrains-mono/JetBrainsMono-Regular.ttf"
 )

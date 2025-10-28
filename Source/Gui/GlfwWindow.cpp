@@ -12,6 +12,7 @@
 #include <incbin.h>
 
 INCBIN(Icon, ICON_PATH);
+INCBIN(Font, FONT_PATH);
 
 static void GlfwErrorCallback(int error, const char* description)
 {
@@ -68,6 +69,8 @@ bool WGlfwWindow::Init()
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 
+	auto* FontData = io.Fonts->AddFontFromMemoryTTF((void*)gFontData, gFontSize, 16.0f * MainScale);
+	io.FontDefault = FontData;
 	// Setup Dear ImGui style
 	ImGui::StyleColorsLight();
 	ImGuiStyle& style = ImGui::GetStyle();
