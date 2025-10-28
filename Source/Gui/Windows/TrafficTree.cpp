@@ -61,16 +61,16 @@ void WTrafficTree::LoadFromJson(std::string const& Json)
 				SocketNode->Upload = Sock[JSON_KEY_UPLOAD].number_value();
 				SocketNode->Download = Sock[JSON_KEY_DOWNLOAD].number_value();
 				ProcNode->Children.emplace_back(SocketNode);
-				Nodes.emplace(ID, SocketNode);
+				Nodes[ID] = SocketNode;
 			}
 			AppNode->Children.emplace_back(ProcNode);
 			auto ID = static_cast<uint64_t>(Proc[JSON_KEY_ID].number_value());
-			Nodes.emplace(ID, ProcNode);
+			Nodes[ID] = ProcNode;
 		}
 
 		Root.Children.emplace_back(AppNode);
 		auto ID = static_cast<uint64_t>(App[JSON_KEY_ID].number_value());
-		Nodes.emplace(ID, AppNode);
+		Nodes[ID] = AppNode;
 	}
 }
 
