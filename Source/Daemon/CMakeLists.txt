@@ -32,16 +32,6 @@ target_link_libraries(waechterd PRIVATE ${LIBBPF_LIBRARIES}
         waechter::util thirdparty::spdlog thirdparty::inih thirdparty::json11 thirdparty::deps_includes
 )
 
-add_executable(old-waechterd
-        old-main.cpp
-)
-target_compile_options(old-waechterd PRIVATE -Wall -Wextra -Wpedantic)
-target_include_directories(old-waechterd PRIVATE ${LIBBPF_INCLUDE_DIRS})
-
-target_link_libraries(old-waechterd PRIVATE ${LIBBPF_LIBRARIES}
-        waechter::util thirdparty::spdlog thirdparty::inih
-)
-
 add_subdirectory(EBPF)
 add_subdirectory(Net)
 add_subdirectory(Data)
