@@ -28,10 +28,8 @@ jobs:
             libbpf-dev \
             libelf-dev \
             zlib1g-dev \
-            # X11/OpenGL deps for static GLFW/imgui backends
             libx11-dev libxrandr-dev libxi-dev libxinerama-dev libxcursor-dev libxxf86vm-dev \
             libgl1-mesa-dev \
-            # Wayland deps (GLFW may use these at build/link time)
             libwayland-dev wayland-protocols libxkbcommon-dev
 
       - name: Configure (CMake + Ninja)
@@ -42,13 +40,11 @@ jobs:
         run: |
           cmake --build build --config Release -- -k 0
 
-      - name: Package (optional)
-        if: always()
+      - name: Package
         run: |
           cmake --install build --prefix "$GITHUB_WORKSPACE/artifacts" || true
 
-      - name: Upload Artifacts (optional)
-        if: always()
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: waechter-build
