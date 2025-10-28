@@ -51,8 +51,9 @@ void WAboutDialog::Draw()
 		ImGui::Text("Wächter");
 		ImGui::PopFont();
 
+		ImGuiStyle& style = ImGui::GetStyle();
 		ImGui::Spacing();
-		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.2, 0.2, 0.2, 1));
+		ImGui::PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_TextDisabled]);
 		ImGui::Text("%s", VersionString.c_str());
 		ImGui::PopStyleColor();
 
