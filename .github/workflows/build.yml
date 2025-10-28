@@ -34,7 +34,7 @@ jobs:
 
       - name: Configure (CMake + Ninja)
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/artifacts"
 
       - name: Build
         run: |
@@ -42,7 +42,7 @@ jobs:
 
       - name: Package
         run: |
-          cmake --install build --prefix "$GITHUB_WORKSPACE/artifacts" || true
+          cmake --install build || true
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
