@@ -52,4 +52,8 @@ public:
 	{
 		return GetTrafficCounter().GetUploadSpeed();
 	}
+
+	std::string UpdateJson();
+
+	void ClearDirtyFlags();
 };

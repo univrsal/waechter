@@ -166,6 +166,78 @@ std::string WSystemMap::ToJson()
 	return WJson(SystemTrafficTree).dump();
 }
 
+std::string WSystemMap::UpdateJson()
+{
+	std::lock_guard Lock(DataMutex);
+	WJson::array    UpdateItems;
+
+	auto MakeUpdateItem = [&](ITrafficItem const& Item, WJson::object& OutJson) {
+		OutJson[JSON_KEY_TYPE] = MT_TrafficData;
+		OutJson[JSON_KEY_ID] = static_cast<double>(Item.GetItemId());
+		OutJson[JSON_KEY_DOWNLOAD] = Item.GetTrafficCounter().GetDownloadSpeed();
+		OutJson[JSON_KEY_UPLOAD] = Item.GetTrafficCounter().GetUploadSpeed();
+	};
+
+	WJson::object SystemUpdate;
+	SystemUpdate[JSON_KEY_TYPE] = MT_TrafficData;
+	SystemUpdate[JSON_KEY_DOWNLOAD] = GetTrafficCounter().GetDownloadSpeed();
+	SystemUpdate[JSON_KEY_UPLOAD] = GetTrafficCounter().GetUploadSpeed();
+	SystemUpdate[JSON_KEY_ID] = 0; // system/root node ID is 0
+	UpdateItems.emplace_back(SystemUpdate);
+
+	for (auto& AppMap : Applications | std::views::values)
+	{
+		if (!AppMap->HasNewData())
+		{
+			continue;
+		}
+
+		WJson::object AppJson;
+		MakeUpdateItem(*AppMap, AppJson);
+		UpdateItems.emplace_back(AppJson);
+		for (auto& ProcessMap : AppMap->GetChildProcesses() | std::views::values)
+		{
+			if (!ProcessMap->HasNewData())
+			{
+				continue;
+			}
+			WJson::object ProcJson;
+			MakeUpdateItem(*ProcessMap, ProcJson);
+			UpdateItems.emplace_back(ProcJson);
+			for (auto& SocketInfo : ProcessMap->GetSockets() | std::views::values)
+			{
+				if (!SocketInfo->HasNewData())
+				{
+					continue;
+				}
+				WJson::object SockJson;
+				MakeUpdateItem(*SocketInfo, SockJson);
+				UpdateItems.emplace_back(SockJson);
+			}
+		}
+	}
+	spdlog::info("System Map Updated with {} items", UpdateItems.size());
+	return WJson(UpdateItems).dump();
+}
+
+void WSystemMap::ClearDirtyFlags()
+{
+	std::lock_guard Lock(DataMutex);
+	ResetNewDataFlag();
+	for (auto& [AppName, AppMap] : Applications)
+	{
+		AppMap->ResetNewDataFlag();
+		for (auto& [PID, ProcessMap] : AppMap->GetChildProcesses())
+		{
+			ProcessMap->ResetNewDataFlag();
+			for (auto& [SocketCookie, SocketInfo] : ProcessMap->GetSockets())
+			{
+				SocketInfo->ResetNewDataFlag();
+			}
+		}
+	}
+}
+
 void WSystemMap::Cleanup()
 {
 	for (auto& [AppName, AppMap] : Applications)
