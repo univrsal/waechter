@@ -1,0 +1,57 @@
+name: Build (Ubuntu)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (APT)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            ninja-build \
+            pkg-config \
+            clang llvm \
+            bpftool \
+            libbpf-dev \
+            libelf-dev \
+            zlib1g-dev \
+            # X11/OpenGL deps for static GLFW/imgui backends
+            libx11-dev libxrandr-dev libxi-dev libxinerama-dev libxcursor-dev libxxf86vm-dev \
+            libgl1-mesa-dev \
+            # Wayland deps (GLFW may use these at build/link time)
+            libwayland-dev wayland-protocols libxkbcommon-dev
+
+      - name: Configure (CMake + Ninja)
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: |
+          cmake --build build --config Release -- -k 0
+
+      - name: Package (optional)
+        if: always()
+        run: |
+          cmake --install build --prefix "$GITHUB_WORKSPACE/artifacts" || true
+
+      - name: Upload Artifacts (optional)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: waechter-build
+          path: artifacts
+          if-no-files-found: ignore
+
