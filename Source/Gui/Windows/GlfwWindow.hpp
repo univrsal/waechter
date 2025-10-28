@@ -4,6 +4,7 @@
 
 #pragma once
 
+// ReSharper disable once CppUnusedIncludeDirective
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <memory>
