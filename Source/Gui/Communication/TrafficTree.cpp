@@ -66,28 +66,62 @@ void WTrafficTree::LoadFromJson(std::string const& Json)
 void WTrafficTree::Draw()
 {
 	if (Root.Name.empty())
+		return;
+
+	// 5 columns: Name | upload | download | upload limit | download limit
+	if (!ImGui::BeginTable("TrafficTable", 5,
+			ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV))
 	{
 		return;
 	}
 
-	if (ImGui::TreeNodeEx(Root.Name.c_str(), ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_DrawLinesToNodes))
-	{
-		ImGui::Text("Upload: %.2f B/s", Root.Upload);
-		ImGui::Text("Download: %.2f B/s", Root.Download);
+	ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch);
+	ImGui::TableSetupColumn("Ul.", ImGuiTableColumnFlags_WidthFixed, 100.0f);
+	ImGui::TableSetupColumn("Dl.", ImGuiTableColumnFlags_WidthFixed, 100.0f);
+	ImGui::TableSetupColumn("Ul. limit", ImGuiTableColumnFlags_WidthFixed, 100.0f);
+	ImGui::TableSetupColumn("Dl. limit", ImGuiTableColumnFlags_WidthFixed, 100.0f);
+	ImGui::TableHeadersRow();
 
-		for (auto& AppNode : Root.Children)
+	// recursive drawer for a node
+	std::function<void(WTrafficTreeNode*)> draw_node;
+	draw_node = [&](WTrafficTreeNode* node) {
+		ImGui::TableNextRow();
+		ImGui::TableSetColumnIndex(0);
+
+		ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_SpanFullWidth;
+		if (node->Children.empty())
+			node_flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+
+		// use the node pointer as ID so labels can repeat safely
+		bool opened = ImGui::TreeNodeEx((void*)node, node_flags, "%s", node->Name.c_str());
+
+		// other columns
+		ImGui::TableSetColumnIndex(1);
+		ImGui::Text("%.2f B/s", node->Upload);
+
+		ImGui::TableSetColumnIndex(2);
+		ImGui::Text("%.2f B/s", node->Download);
+
+		ImGui::TableSetColumnIndex(3);
+		// placeholder: add a UploadLimit field to WTrafficTreeNode to show real values
+		ImGui::TextDisabled("-");
+
+		ImGui::TableSetColumnIndex(4);
+		// placeholder: add a DownloadLimit field to WTrafficTreeNode to show real values
+		ImGui::TextDisabled("-");
+
+		if (!(node_flags & ImGuiTreeNodeFlags_NoTreePushOnOpen))
 		{
-			if (ImGui::TreeNodeEx(AppNode->Name.c_str(), ImGuiTreeNodeFlags_DrawLinesToNodes))
+			if (opened)
 			{
-				if (!AppNode->Tooltip.empty())
-				{
-					ImGui::TextDisabled("( %s )", AppNode->Tooltip.c_str());
-				}
-				ImGui::Text("Upload: %.2f B/s", AppNode->Upload);
-				ImGui::Text("Download: %.2f B/s", AppNode->Download);
+				for (auto& child : node->Children)
+					draw_node(child.get());
 				ImGui::TreePop();
 			}
 		}
-		ImGui::TreePop();
-	}
+	};
+
+	// draw root and its children
+	draw_node(&Root);
+	ImGui::EndTable();
 }
