@@ -145,6 +145,7 @@ void WWaechterEbpf::UpdateData()
 						WSystemMap::GetInstance().PushOutgoingTraffic(SocketEvent.Data.TrafficEventData.Bytes, SocketEvent.Cookie);
 					}
 					break;
+				default:;
 			}
 		}
 		SocketEventQueue.pop_front();
