@@ -22,6 +22,10 @@ target_compile_options(waechterd PRIVATE
         -Werror
 )
 
+include(FindPkgConfig)
+pkg_check_modules(LIBBPF REQUIRED libbpf)
+
+
 target_include_directories(waechterd PRIVATE ${LIBBPF_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(waechterd PRIVATE ${LIBBPF_LIBRARIES}
@@ -42,3 +46,6 @@ add_subdirectory(EBPF)
 add_subdirectory(Net)
 add_subdirectory(Data)
 add_subdirectory(Communication)
+
+install(TARGETS waechterd
+        RUNTIME DESTINATION bin)

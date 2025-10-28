@@ -1,6 +1,3 @@
-include(FindPkgConfig)
-pkg_check_modules(LIBBPF REQUIRED libbpf)
-
 # Detect BPF target arch from host
 set(BPF_TARGET_ARCH x86)
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64")

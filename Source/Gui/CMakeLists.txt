@@ -78,3 +78,6 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
         ICON_PATH="${CMAKE_SOURCE_DIR}/Meta/Icon.png"
         FONT_PATH="${CMAKE_SOURCE_DIR}/Thirdparty/jetbrains-mono/JetBrainsMono-Regular.ttf"
 )
+
+install(TARGETS waechter
+        RUNTIME DESTINATION bin)
