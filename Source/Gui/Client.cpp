@@ -25,7 +25,10 @@ void WClient::ConnectionThreadFunction()
 		if (!Socket->Receive(Buf, &bDataToRead))
 		{
 			Socket->Close();
-			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+			for (int i = 0; i < 20 && Running; ++i)
+			{
+				std::this_thread::sleep_for(std::chrono::milliseconds(50));
+			}
 			continue;
 		}
 
