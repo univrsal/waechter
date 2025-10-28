@@ -6,8 +6,7 @@
 #include <memory>
 #include <algorithm>
 
-#include <Socket.hpp>
-
+#include "Socket.hpp"
 #include "DaemonClient.hpp"
 
 class WDaemonSocket
