@@ -50,7 +50,7 @@ foreach (dir IN LISTS thirdparty_dirs)
 endforeach ()
 
 if (_license_defs)
-    message(STATUS " Added licenses for ${_thirdparty_libs}")
+    message(STATUS "Added licenses for ${_thirdparty_libs}")
     target_compile_definitions(waechter PRIVATE ${_license_defs})
 endif ()
 
