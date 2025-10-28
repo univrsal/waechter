@@ -4,6 +4,8 @@
 
 #include "TrafficTree.hpp"
 
+#include "Format.hpp"
+
 #include <spdlog/spdlog.h>
 #include <imgui.h>
 
@@ -14,6 +16,9 @@ void WTrafficTree::LoadFromJson(std::string const& Json)
 	std::string Err;
 	WJson       TreeJson = WJson::parse(Json, Err);
 
+	Root.Name = "System";
+	Root.Upload = 0;
+	Root.Download = 0;
 	if (!Err.empty())
 	{
 		spdlog::error("Failed to parse traffic tree json: {}", Err);
@@ -65,8 +70,45 @@ void WTrafficTree::LoadFromJson(std::string const& Json)
 
 void WTrafficTree::Draw()
 {
-	if (Root.Name.empty())
-		return;
+	auto UnitText = [this] {
+		switch (Unit)
+		{
+			case TU_Bps:
+				return "B/s";
+			case TU_KiBps:
+				return "KiB/s";
+			case TU_MiBps:
+				return "MiB/s";
+			case TU_GiBps:
+				return "GiB/s";
+			case TU_Auto:
+				return "Auto";
+			default:
+				return "B/s";
+		}
+	};
+
+	// Toolbar
+	if (ImGui::BeginCombo("Unit", UnitText(), ImGuiComboFlags_WidthFitPreview))
+	{
+		if (ImGui::Selectable("B/s", Unit == TU_Bps))
+		{
+			Unit = TU_Bps;
+		}
+		if (ImGui::Selectable("KiB/s", Unit == TU_KiBps))
+		{
+			Unit = TU_KiBps;
+		}
+		if (ImGui::Selectable("MiB/s", Unit == TU_MiBps))
+		{
+			Unit = TU_MiBps;
+		}
+		if (ImGui::Selectable("GiB/s", Unit == TU_GiBps))
+		{
+			Unit = TU_GiBps;
+		}
+		ImGui::EndCombo();
+	}
 
 	// 5 columns: Name | upload | download | upload limit | download limit
 	if (!ImGui::BeginTable("TrafficTable", 5,
@@ -76,10 +118,10 @@ void WTrafficTree::Draw()
 	}
 
 	ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch);
-	ImGui::TableSetupColumn("Ul.", ImGuiTableColumnFlags_WidthFixed, 100.0f);
 	ImGui::TableSetupColumn("Dl.", ImGuiTableColumnFlags_WidthFixed, 100.0f);
-	ImGui::TableSetupColumn("Ul. limit", ImGuiTableColumnFlags_WidthFixed, 100.0f);
+	ImGui::TableSetupColumn("Ul.", ImGuiTableColumnFlags_WidthFixed, 100.0f);
 	ImGui::TableSetupColumn("Dl. limit", ImGuiTableColumnFlags_WidthFixed, 100.0f);
+	ImGui::TableSetupColumn("Ul. limit", ImGuiTableColumnFlags_WidthFixed, 100.0f);
 	ImGui::TableHeadersRow();
 
 	// recursive drawer for a node
@@ -101,19 +143,25 @@ void WTrafficTree::Draw()
 		// use the node pointer as ID so labels can repeat safely
 		bool Opened = ImGui::TreeNodeEx((void*)Node, NodeFlags, "%s", Node->Name.c_str());
 
-		// other columns
-		ImGui::TableSetColumnIndex(1);
-		ImGui::Text("%.2f B/s", Node->Upload);
+		if (Node->Download > 0)
+		{
 
-		ImGui::TableSetColumnIndex(2);
-		ImGui::Text("%.2f B/s", Node->Download);
+			ImGui::TableSetColumnIndex(2);
+			ImGui::Text("%s", WTrafficFormat::Format(Node->Download, Unit).c_str());
+		}
 
-		ImGui::TableSetColumnIndex(3);
-		// placeholder: add a UploadLimit field to WTrafficTreeNode to show real values
-		ImGui::TextDisabled("-");
+		if (Node->Upload > 0)
+		{
+			ImGui::TableSetColumnIndex(1);
+			ImGui::Text("%s", WTrafficFormat::Format(Node->Upload, Unit).c_str());
+		}
 
 		ImGui::TableSetColumnIndex(4);
 		// placeholder: add a DownloadLimit field to WTrafficTreeNode to show real values
+		ImGui::TextDisabled("-");
+
+		ImGui::TableSetColumnIndex(3);
+		// placeholder: add a UploadLimit field to WTrafficTreeNode to show real values
 		ImGui::TextDisabled("-");
 
 		if (!(NodeFlags & ImGuiTreeNodeFlags_NoTreePushOnOpen))

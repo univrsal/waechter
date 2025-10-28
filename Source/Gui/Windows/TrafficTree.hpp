@@ -3,6 +3,8 @@
 //
 
 #pragma once
+#include "Format.hpp"
+
 #include <string>
 #include <vector>
 #include <memory>
@@ -24,6 +26,8 @@ struct WTrafficTreeNode
 class WTrafficTree
 {
 	WTrafficTreeNode Root{};
+
+	ETrafficUnit Unit = TU_MiBps;
 
 public:
 	WTrafficTree() = default;
