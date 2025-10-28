@@ -39,11 +39,10 @@ endif ()
 
 # Build eBPF object
 set(BPF_SRC ${CMAKE_CURRENT_SOURCE_DIR}/WaechterEBPF.c)
-set(BPF_OBJ ${CMAKE_CURRENT_BINARY_DIR}/ebpf/WaechterEBPF.o)
+set(BPF_OBJ ${CMAKE_CURRENT_BINARY_DIR}/waechter-ebpf.o)
 
 add_custom_command(
         OUTPUT ${BPF_OBJ}
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/ebpf
         COMMAND ${CLANG_EXECUTABLE} -O2 -g -target bpf -D__TARGET_ARCH_${BPF_TARGET_ARCH} -Wall -Wno-unused-value -Wno-pointer-sign -Wno-compare-distinct-pointer-types -Werror
         -I/usr/include -I/usr/include/bpf
         -I${CMAKE_SOURCE_DIR}/Source/Util

@@ -63,6 +63,7 @@ void WDaemonConfig::Load(std::string const& Path)
 
 		SafeGet("daemon", "user", DaemonUser);
 		SafeGet("daemon", "socket_path", DaemonSocketPath);
+		SafeGet("daemon", "ebpf_program_object_path", EbpfProgramObjectPath);
 	}
 }
 

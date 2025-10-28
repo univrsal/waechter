@@ -14,6 +14,7 @@ struct WDaemonConfig : public TSingleton<WDaemonConfig>
 	std::string CGroupPath{ "/sys/fs/cgroup" };
 	std::string DaemonUser{ "nobody" };
 	std::string DaemonSocketPath{ "/var/run/waechterd.sock" };
+	std::string EbpfProgramObjectPath{ "./waechter-ebpf.o" };
 
 	WDaemonConfig();
 

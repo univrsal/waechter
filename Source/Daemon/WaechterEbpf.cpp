@@ -17,8 +17,8 @@
 #include "Data/SystemMap.hpp"
 #include "Data/SocketInfo.hpp"
 
-WWaechterEbpf::WWaechterEbpf(int InterfaceIndex_, std::string const& ProgramObectFilePath_)
-	: WEbpfObj(ProgramObectFilePath_), InterfaceIndex(InterfaceIndex_)
+WWaechterEbpf::WWaechterEbpf(std::string const& ProgramObectFilePath_)
+	: WEbpfObj(ProgramObectFilePath_)
 {
 }
 
