@@ -63,7 +63,6 @@ void WDaemonSocket::BroadcastTrafficUpdate()
 	auto Json = SystemMap.UpdateJson();
 	for (auto& Client : Clients)
 	{
-		spdlog::info("Sending update");
 		Client->Send<WMessageTrafficUpdate>(Json);
 	}
 	SystemMap.ClearDirtyFlags();
