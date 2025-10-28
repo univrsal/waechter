@@ -58,6 +58,11 @@ std::shared_ptr<WSocketInfo> WSystemMap::MapSocket(WSocketCookie SocketCookie, W
 		return {};
 	}
 
+	if (auto It = Sockets.find(SocketCookie); It != Sockets.end())
+	{
+		return It->second;
+	}
+
 	// Read the command line from /proc/[pid]/cmdline
 	std::string CmdLinePath = "/proc/" + std::to_string(PID) + "/cmdline";
 	std::string CommPath = "/proc/" + std::to_string(PID) + "/comm";
@@ -72,7 +77,13 @@ std::shared_ptr<WSocketInfo> WSystemMap::MapSocket(WSocketCookie SocketCookie, W
 
 	auto App = FindOrMapApplication(Comm);
 	auto Process = App->FindOrMapChildProcess(PID, CmdLine);
-	return Process->FindOrMapSocket(SocketCookie);
+	auto SocketInfo = Process->FindOrMapSocket(SocketCookie);
+
+	if (SocketInfo)
+	{
+		Sockets[SocketCookie] = SocketInfo;
+	}
+	return SocketInfo;
 }
 
 std::shared_ptr<WApplicationMap> WSystemMap::FindOrMapApplication(std::string const& AppName)
@@ -191,7 +202,6 @@ std::string WSystemMap::UpdateJson()
 		{
 			continue;
 		}
-
 		WJson::object AppJson;
 		MakeUpdateItem(*AppMap, AppJson);
 		UpdateItems.emplace_back(AppJson);
