@@ -4,6 +4,9 @@
 
 #include "Types.hpp"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+
 namespace WTime
 {
 	static WMsec GetEpochMs()
