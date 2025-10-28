@@ -69,7 +69,13 @@ bool WGlfwWindow::Init()
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 
-	auto* FontData = io.Fonts->AddFontFromMemoryTTF((void*)gFontData, gFontSize, 16.0f * MainScale);
+	ImFontConfig cfg;
+	cfg.OversampleH = 2;
+	cfg.OversampleV = 2;
+	cfg.PixelSnapH = true;
+
+	auto  fontSize = std::round(16.0f * MainScale);
+	auto* FontData = io.Fonts->AddFontFromMemoryTTF((void*)gFontData, gFontSize, fontSize, &cfg);
 	io.FontDefault = FontData;
 	// Setup Dear ImGui style
 	ImGui::StyleColorsLight();
