@@ -23,3 +23,12 @@ wJC JSON_KEY_SOCKETS = "socks";
 wJC JSON_KEY_PROCESSES = "procs";
 wJC JSON_KEY_APPS = "apps";
 wJC JSON_KEY_HOSTNAME = "host";
+wJC JSON_KEY_ID = "id";
+wJC JSON_KEY_TYPE = "type";
+
+enum EJsonMsgType
+{
+	MT_TrafficData,
+	MT_NodeRemoved,
+	MT_NodeAdded
+};
