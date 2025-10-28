@@ -7,9 +7,11 @@
 #include "ProcessMap.hpp"
 #include "spdlog/spdlog.h"
 
+#include <ranges>
+
 void WApplicationMap::RefreshAllTrafficCounters()
 {
-	TrafficCounter.Refresh();
+	RefreshTrafficCounter();
 
 	for (auto& [PID, ProcessInfo] : ChildProcesses)
 	{
@@ -35,12 +37,12 @@ void WApplicationMap::ToJson(WJson::object& Json)
 {
 	Json[JSON_KEY_BINARY_PATH] = BinaryPath;
 	Json[JSON_KEY_BINARY_NAME] = BinaryName;
-	Json[JSON_KEY_UPLOAD] = TrafficCounter.GetUploadSpeed();
-	Json[JSON_KEY_DOWNLOAD] = TrafficCounter.GetDownloadSpeed();
+	Json[JSON_KEY_UPLOAD] = GetTrafficCounter().GetUploadSpeed();
+	Json[JSON_KEY_DOWNLOAD] = GetTrafficCounter().GetDownloadSpeed();
 
 	WJson::array ProcessArray;
 
-	for (auto& [PID, ProcessInfo] : ChildProcesses)
+	for (auto& ProcessInfo : ChildProcesses | std::views::values)
 	{
 		WJson::object ProcessJson;
 		ProcessInfo->ToJson(ProcessJson);

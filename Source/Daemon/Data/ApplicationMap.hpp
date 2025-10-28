@@ -23,8 +23,6 @@ class WApplicationMap : public ITrafficItem
 	std::unordered_map<WProcessId, std::shared_ptr<WProcessMap>> ChildProcesses;
 
 public:
-	WTrafficCounter TrafficCounter{};
-
 	WApplicationMap(std::string BinaryPath_, std::string BinaryName_)
 		: BinaryPath(std::move(BinaryPath_))
 		, BinaryName(std::move(BinaryName_))
