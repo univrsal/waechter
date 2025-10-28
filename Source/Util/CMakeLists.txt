@@ -7,6 +7,7 @@ add_library(util STATIC
         Socket.hpp
         ClientSocket.cpp
         Json.hpp
+        Format.hpp
 )
 
 target_include_directories(util PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
