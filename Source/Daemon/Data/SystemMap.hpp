@@ -54,6 +54,4 @@ public:
 	}
 
 	std::string UpdateJson();
-
-	void ClearDirtyFlags();
 };

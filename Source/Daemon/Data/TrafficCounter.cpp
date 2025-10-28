@@ -38,22 +38,15 @@ void WTrafficCounter::Refresh()
 
 		if (State != CS_PendingRemoval)
 		{
-			if (DownloadSpeed == 0 && UploadSpeed == 0)
+			if (DownloadSpeed < 1)
 			{
 				State = CS_Inactive;
-			}
-			else
-			{
-				State = CS_Active;
-			}
-
-			if (DownloadSpeed < 0.01)
-			{
 				DownloadSpeed = 0;
 			}
 
-			if (UploadSpeed < 0.01)
+			if (UploadSpeed < 1)
 			{
+				State = CS_Inactive;
 				UploadSpeed = 0;
 			}
 		}

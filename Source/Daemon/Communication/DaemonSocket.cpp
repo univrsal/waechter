@@ -65,5 +65,4 @@ void WDaemonSocket::BroadcastTrafficUpdate()
 	{
 		Client->Send<WMessageTrafficUpdate>(Json);
 	}
-	SystemMap.ClearDirtyFlags();
 }

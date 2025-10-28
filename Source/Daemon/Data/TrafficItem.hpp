@@ -12,7 +12,6 @@ class ITrafficItem
 
 protected:
 	uint64_t ItemId{};
-	bool     bHasNewData{};
 
 public:
 	ITrafficItem()
@@ -25,13 +24,7 @@ public:
 
 	void RefreshTrafficCounter()
 	{
-		auto OldDownloadSpeed = TrafficCounter.GetDownloadSpeed();
-		auto OldUploadSpeed = TrafficCounter.GetUploadSpeed();
 		TrafficCounter.Refresh();
-		if (std::abs(OldDownloadSpeed - TrafficCounter.GetDownloadSpeed()) > 0.01 || std::abs(OldUploadSpeed - TrafficCounter.GetUploadSpeed()) > 0.01)
-		{
-			bHasNewData = true;
-		}
 	}
 
 	void MarkForRemoval()
@@ -42,23 +35,16 @@ public:
 	void CountIncomingTraffic(WBytes Bytes)
 	{
 		TrafficCounter.PushIncomingTraffic(Bytes);
-		bHasNewData = true;
 	}
 
 	void CountOutgoingTraffic(WBytes Bytes)
 	{
 		TrafficCounter.PushOutgoingTraffic(Bytes);
-		bHasNewData = true;
-	}
-
-	void ResetNewDataFlag()
-	{
-		bHasNewData = false;
 	}
 
 	bool HasNewData() const
 	{
-		return bHasNewData;
+		return TrafficCounter.GetState() == CS_Active;
 	}
 
 	uint64_t GetItemId() const { return ItemId; }

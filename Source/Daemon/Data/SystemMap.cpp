@@ -229,24 +229,6 @@ std::string WSystemMap::UpdateJson()
 	return WJson(UpdateItems).dump();
 }
 
-void WSystemMap::ClearDirtyFlags()
-{
-	std::lock_guard Lock(DataMutex);
-	ResetNewDataFlag();
-	for (auto& [AppName, AppMap] : Applications)
-	{
-		AppMap->ResetNewDataFlag();
-		for (auto& [PID, ProcessMap] : AppMap->GetChildProcesses())
-		{
-			ProcessMap->ResetNewDataFlag();
-			for (auto& [SocketCookie, SocketInfo] : ProcessMap->GetSockets())
-			{
-				SocketInfo->ResetNewDataFlag();
-			}
-		}
-	}
-}
-
 void WSystemMap::Cleanup()
 {
 	for (auto& [AppName, AppMap] : Applications)
