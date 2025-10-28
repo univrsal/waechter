@@ -42,20 +42,20 @@ bool IsProcessRunning(pid_t pid)
 
 void WProcessMap::RefreshAllTrafficCounters()
 {
-	TrafficCounter.Refresh();
+	RefreshTrafficCounter();
 
 	for (auto& [Cookie, SocketInfo] : Sockets)
 	{
-		SocketInfo->TrafficCounter.Refresh();
+		SocketInfo->RefreshTrafficCounter();
 	}
 
 	// Check if the process with this PID still exists
-	if (TrafficCounter.GetState() != CS_PendingRemoval)
+	if (GetTrafficCounter().GetState() != CS_PendingRemoval)
 	{
 		if (!IsProcessRunning(PID))
 		{
 			spdlog::info("Process {} has exited, marking for removal", PID);
-			TrafficCounter.MarkForRemoval();
+			MarkForRemoval();
 		}
 	}
 }

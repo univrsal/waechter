@@ -92,7 +92,7 @@ void WSystemMap::RefreshAllTrafficCounters()
 {
 	std::lock_guard Lock(DataMutex);
 	Cleanup();
-	TrafficCounter.Refresh();
+	RefreshTrafficCounter();
 	for (auto& [AppName, AppMap] : Applications)
 	{
 		AppMap->RefreshAllTrafficCounters();
@@ -102,18 +102,18 @@ void WSystemMap::RefreshAllTrafficCounters()
 void WSystemMap::PushIncomingTraffic(WBytes Bytes, WSocketCookie SocketCookie)
 {
 	std::lock_guard Lock(DataMutex);
-	TrafficCounter.PushIncomingTraffic(Bytes);
+	CountIncomingTraffic(Bytes);
 
 	if (auto It = Sockets.find(SocketCookie); It != Sockets.end())
 	{
 		auto Socket = It->second;
-		Socket->TrafficCounter.PushIncomingTraffic(Bytes);
+		Socket->CountIncomingTraffic(Bytes);
 		if (Socket->ParentProcess)
 		{
-			Socket->ParentProcess->TrafficCounter.PushIncomingTraffic(Bytes);
+			Socket->ParentProcess->CountIncomingTraffic(Bytes);
 			if (Socket->ParentProcess->GetParentApplicationMap())
 			{
-				Socket->ParentProcess->GetParentApplicationMap()->TrafficCounter.PushIncomingTraffic(Bytes);
+				Socket->ParentProcess->GetParentApplicationMap()->CountIncomingTraffic(Bytes);
 			}
 		}
 	}
@@ -122,18 +122,18 @@ void WSystemMap::PushIncomingTraffic(WBytes Bytes, WSocketCookie SocketCookie)
 void WSystemMap::PushOutgoingTraffic(WBytes Bytes, WSocketCookie SocketCookie)
 {
 	std::lock_guard Lock(DataMutex);
-	TrafficCounter.PushOutgoingTraffic(Bytes);
+	CountOutgoingTraffic(Bytes);
 
 	if (auto It = Sockets.find(SocketCookie); It != Sockets.end())
 	{
 		auto Socket = It->second;
-		Socket->TrafficCounter.PushOutgoingTraffic(Bytes);
+		Socket->CountOutgoingTraffic(Bytes);
 		if (Socket->ParentProcess)
 		{
-			Socket->ParentProcess->TrafficCounter.PushOutgoingTraffic(Bytes);
+			Socket->ParentProcess->CountOutgoingTraffic(Bytes);
 			if (Socket->ParentProcess->GetParentApplicationMap())
 			{
-				Socket->ParentProcess->GetParentApplicationMap()->TrafficCounter.PushOutgoingTraffic(Bytes);
+				Socket->ParentProcess->GetParentApplicationMap()->CountOutgoingTraffic(Bytes);
 			}
 		}
 	}
@@ -144,8 +144,8 @@ std::string WSystemMap::ToJson()
 	std::lock_guard Lock(DataMutex);
 	WJson::object   SystemTrafficTree;
 
-	SystemTrafficTree[JSON_KEY_DOWNLOAD] = TrafficCounter.GetDownloadSpeed();
-	SystemTrafficTree[JSON_KEY_UPLOAD] = TrafficCounter.GetUploadSpeed();
+	SystemTrafficTree[JSON_KEY_DOWNLOAD] = GetTrafficCounter().GetDownloadSpeed();
+	SystemTrafficTree[JSON_KEY_UPLOAD] = GetTrafficCounter().GetUploadSpeed();
 	SystemTrafficTree[JSON_KEY_HOSTNAME] = HostName;
 
 	WJson::array ApplicationsArray;
@@ -175,7 +175,7 @@ void WSystemMap::Cleanup()
 		{
 			auto& ProcessMap = It->second;
 
-			if (ProcessMap->TrafficCounter.GetState() == CS_PendingRemoval)
+			if (ProcessMap->GetTrafficCounter().GetState() == CS_PendingRemoval)
 			{
 				spdlog::info("Removing process {} from application {}", ProcessMap->GetPID(), AppName);
 				// Remove sockets from system map

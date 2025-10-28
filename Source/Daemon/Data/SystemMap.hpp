@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <mutex>
 
+#include "TrafficItem.hpp"
 #include "Types.hpp"
 #include "Singleton.hpp"
 #include "TrafficCounter.hpp"
@@ -14,13 +15,11 @@
 class WSocketInfo;
 class WApplicationMap;
 
-class WSystemMap : public TSingleton<WSystemMap>
+class WSystemMap : public TSingleton<WSystemMap>, public ITrafficItem
 {
 	// binary path -> application map
 	std::unordered_map<std::string, std::shared_ptr<WApplicationMap>> Applications;
 	std::unordered_map<WSocketCookie, std::shared_ptr<WSocketInfo>>   Sockets;
-
-	WTrafficCounter TrafficCounter{};
 
 	std::string HostName{ "System" };
 	// Remove exited processes and their sockets from the system map
@@ -46,11 +45,11 @@ public:
 
 	double GetDownloadSpeed() const
 	{
-		return TrafficCounter.GetDownloadSpeed();
+		return GetTrafficCounter().GetDownloadSpeed();
 	}
 
 	double GetUploadSpeed() const
 	{
-		return TrafficCounter.GetUploadSpeed();
+		return GetTrafficCounter().GetUploadSpeed();
 	}
 };

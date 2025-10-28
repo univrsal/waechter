@@ -10,6 +10,7 @@
 #include "IPAddress.hpp"
 #include "TrafficCounter.hpp"
 #include "Json.hpp"
+#include "TrafficItem.hpp"
 
 namespace ESocketState
 {
@@ -25,12 +26,12 @@ namespace ESocketState
 
 class WProcessMap;
 
-struct WSocketInfo
+class WSocketInfo : public ITrafficItem
 {
+public:
 	ESocketState::Type SocketState{};
 	WProcessMap*       ParentProcess{};
 	WSocketTuple       SocketTuple{};
-	WTrafficCounter    TrafficCounter{};
 
 	void ProcessSocketEvent(WSocketEvent const& Event);
 

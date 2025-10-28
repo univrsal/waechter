@@ -9,6 +9,7 @@
 #include <memory>
 #include <utility>
 
+#include "TrafficItem.hpp"
 #include "TrafficCounter.hpp"
 #include "Types.hpp"
 #include "Json.hpp"
@@ -16,7 +17,7 @@
 class WApplicationMap;
 class WSocketInfo;
 
-class WProcessMap
+class WProcessMap : public ITrafficItem
 {
 	WProcessId       PID{};
 	std::string      CmdLine{}; // full command line with args
@@ -25,8 +26,6 @@ class WProcessMap
 	std::unordered_map<WSocketCookie, std::shared_ptr<WSocketInfo>> Sockets{};
 
 public:
-	WTrafficCounter TrafficCounter{};
-
 	WProcessMap(WProcessId PID_, std::string CmdLine_, WApplicationMap* ParentAppMap_)
 		: PID(PID_)
 		, CmdLine(std::move(CmdLine_))

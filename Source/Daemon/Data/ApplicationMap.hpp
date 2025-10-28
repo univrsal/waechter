@@ -11,10 +11,11 @@
 #include "TrafficCounter.hpp"
 #include "Types.hpp"
 #include "Json.hpp"
+#include "TrafficItem.hpp"
 
 class WProcessMap;
 
-class WApplicationMap
+class WApplicationMap : public ITrafficItem
 {
 	std::string BinaryPath; // i.e. /usr/bin/myapp
 	std::string BinaryName; // i.e. myapp

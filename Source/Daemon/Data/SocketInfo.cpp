@@ -35,6 +35,7 @@ void WSocketInfo::ProcessSocketEvent(WSocketEvent const& Event)
 
 void WSocketInfo::ToJson(WJson::object& Json)
 {
-	Json[JSON_KEY_DOWNLOAD] = TrafficCounter.GetDownloadSpeed();
-	Json[JSON_KEY_UPLOAD] = TrafficCounter.GetUploadSpeed();
+	Json[JSON_KEY_DOWNLOAD] = GetTrafficCounter().GetDownloadSpeed();
+	Json[JSON_KEY_UPLOAD] = GetTrafficCounter().GetUploadSpeed();
+	Json[JSON_KEY_ID] = static_cast<double>(ItemId);
 }
