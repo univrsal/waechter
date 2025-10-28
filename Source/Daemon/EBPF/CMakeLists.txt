@@ -55,8 +55,5 @@ add_custom_command(
 add_custom_target(bpfobj ALL DEPENDS ${BPF_OBJ})
 add_dependencies(bpfobj generate_vmlinux_h)
 add_dependencies(waechterd bpfobj)
-add_dependencies(old-waechterd bpfobj)
-target_compile_definitions(old-waechterd PUBLIC BPF_OBJECT_PATH="${BPF_OBJ}")
-target_compile_definitions(waechterd PUBLIC BPF_OBJECT_PATH="${BPF_OBJ}")
 
 message(STATUS "EBPF object is build to " ${BPF_OBJ})
