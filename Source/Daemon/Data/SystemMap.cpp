@@ -37,6 +37,16 @@ static std::string ReadProc(std::string const& Path)
 	return Content;
 }
 
+WSystemMap::WSystemMap()
+{
+	// Get hostname
+	HostName = ReadProc("/proc/sys/kernel/hostname");
+	if (HostName.empty())
+	{
+		HostName = "System";
+	}
+}
+
 std::shared_ptr<WSocketInfo> WSystemMap::MapSocket(WSocketCookie SocketCookie, WProcessId PID, bool bSilentFail)
 {
 	if (PID == 0)
@@ -135,6 +145,7 @@ std::string WSystemMap::ToJson()
 
 	SystemTrafficTree[JSON_KEY_DOWNLOAD] = TrafficCounter.GetDownloadSpeed();
 	SystemTrafficTree[JSON_KEY_UPLOAD] = TrafficCounter.GetUploadSpeed();
+	SystemTrafficTree[JSON_KEY_HOSTNAME] = HostName;
 
 	WJson::array ApplicationsArray;
 

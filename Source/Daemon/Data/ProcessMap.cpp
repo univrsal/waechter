@@ -40,7 +40,7 @@ void WProcessMap::ToJson(WJson::object& Json)
 	{
 		WJson::object SocketJson;
 		SocketInfo->ToJson(SocketJson);
-		SocketJson[JSON_KEY_PID] = static_cast<double>(Cookie);
+		SocketJson[JSON_KEY_SOCKET_COOKIE] = static_cast<double>(Cookie);
 		SocketsArray.emplace_back(SocketJson);
 	}
 

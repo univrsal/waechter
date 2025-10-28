@@ -22,7 +22,12 @@ class WSystemMap : public TSingleton<WSystemMap>
 
 	WTrafficCounter TrafficCounter{};
 
+	std::string HostName{ "System" };
+
 public:
+	WSystemMap();
+	~WSystemMap() = default;
+
 	std::mutex DataMutex;
 
 	std::shared_ptr<WSocketInfo> MapSocket(WSocketCookie SocketCookie, WProcessId PID, bool bSilentFail = false);

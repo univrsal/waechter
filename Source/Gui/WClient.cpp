@@ -42,7 +42,7 @@ void WClient::ConnectionThreadFunction()
 			{
 				if (auto const TrafficMsg = std::static_pointer_cast<WMessageTrafficTree>(Msg))
 				{
-					// TODO: Parse tree
+					TrafficTree.LoadFromJson(TrafficMsg->TrafficTreeJson);
 				}
 				break;
 			}

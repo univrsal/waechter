@@ -9,6 +9,7 @@
 #include <atomic>
 
 #include "Socket.hpp"
+#include "Communication/TrafficTree.hpp"
 
 class WClient
 {
@@ -17,6 +18,7 @@ class WClient
 	std::thread        ConnectionThread;
 	mutable std::mutex SocketMutex;
 	std::atomic<bool>  Running{ true };
+	WTrafficTree       TrafficTree{};
 
 	void ConnectionThreadFunction();
 
@@ -40,5 +42,10 @@ public:
 	{
 		std::lock_guard<std::mutex> lk(SocketMutex);
 		return Socket && Socket->GetState() == ES_Connected;
+	}
+
+	WTrafficTree& GetTrafficTree()
+	{
+		return TrafficTree;
 	}
 };

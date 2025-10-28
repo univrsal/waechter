@@ -68,6 +68,7 @@ bool WGlfwWindow::Init()
 	ImGuiIO& io = ImGui::GetIO();
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
 
 	ImFontConfig cfg;
 	cfg.OversampleH = 2;

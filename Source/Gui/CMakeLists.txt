@@ -1,16 +1,11 @@
 add_executable(waechter
-        Windows/GlfwWindow.cpp
-        Windows/GlfwWindow.hpp
-        Windows/MainWindow.cpp
-        Windows/MainWindow.hpp
-        Windows/AboutDialog.cpp
-        Windows/AboutDialog.hpp
         WClient.cpp
-        WClient.hpp)
-
-target_sources(waechter PRIVATE
+        WClient.hpp
         Waechter.cpp
 )
+
+add_subdirectory(Windows)
+add_subdirectory(Communication)
 
 target_link_libraries(waechter PRIVATE
         thirdparty::spdlog
@@ -21,8 +16,11 @@ target_link_libraries(waechter PRIVATE
         thirdparty::incbin
         thirdparty::stb
         thirdparty::deps_includes
+        thirdparty::json11
         waechter::util
 )
+
+target_include_directories(waechter PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_compile_options(waechter PRIVATE
         -Wall -Wextra -Wpedantic

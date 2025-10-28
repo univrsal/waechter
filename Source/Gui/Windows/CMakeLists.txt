@@ -1,0 +1,9 @@
+target_sources(waechter
+        PRIVATE
+        GlfwWindow.cpp
+        GlfwWindow.hpp
+        MainWindow.cpp
+        MainWindow.hpp
+        AboutDialog.cpp
+        AboutDialog.hpp
+)

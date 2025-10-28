@@ -22,3 +22,4 @@ wJC JSON_KEY_SOCKET_COOKIE = "sc";
 wJC JSON_KEY_SOCKETS = "socks";
 wJC JSON_KEY_PROCESSES = "procs";
 wJC JSON_KEY_APPS = "apps";
+wJC JSON_KEY_HOSTNAME = "host";

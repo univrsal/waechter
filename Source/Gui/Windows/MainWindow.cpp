@@ -51,28 +51,29 @@ void WMainWindow::Draw()
 	ImGui::SetNextWindowSize(display_size);
 
 	// Optional: remove window decorations and background if you want a full overlay
-	ImGuiWindowFlags window_flags =
-		ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoDecoration;
+	// ImGuiWindowFlags window_flags =
+	// ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoDecoration;
+	auto Main = ImGui::DockSpaceOverViewport();
 
-	if (ImGui::Begin("MainWindow", nullptr, window_flags))
+	if (ImGui::BeginMainMenuBar())
 	{
-
-		if (ImGui::BeginMenuBar())
+		// First draw menu items normally (left side)
+		if (ImGui::BeginMenu("Help"))
 		{
-			// First draw menu items normally (left side)
-			if (ImGui::BeginMenu("Help"))
+			if (ImGui::MenuItem("About"))
 			{
-				if (ImGui::MenuItem("About"))
-				{
-					AboutDialog.Show();
-				}
-				ImGui::EndMenu();
+				AboutDialog.Show();
 			}
-			DrawConnectionIndicator();
-			ImGui::EndMenuBar();
+			ImGui::EndMenu();
 		}
-		ImGui::Text("Hello, fullscreen window!");
+		DrawConnectionIndicator();
+		ImGui::EndMainMenuBar();
+	}
 
+	ImGui::SetNextWindowDockID(Main, ImGuiCond_FirstUseEver);
+	if (ImGui::Begin("Traffic Tree", nullptr, ImGuiWindowFlags_None))
+	{
+		Client.GetTrafficTree().Draw();
 		ImGui::End();
 	}
 
