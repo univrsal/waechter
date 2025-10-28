@@ -21,14 +21,8 @@ void WTrafficCounter::PushOutgoingTraffic(WBytes Bytes)
 
 void WTrafficCounter::Refresh()
 {
-	if (State == CS_Removed)
+	if (State == CS_PendingRemoval)
 	{
-		return;
-	}
-
-	if (State == CS_PendingRemoval && WTime::GetEpochMs() >= RemovalTime)
-	{
-		State = CS_Removed;
 		DownloadSpeed = 0;
 		UploadSpeed = 0;
 		return;

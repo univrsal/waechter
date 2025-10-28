@@ -34,5 +34,10 @@ public:
 
 	std::shared_ptr<WProcessMap> FindOrMapChildProcess(WProcessId PID, std::string const& CmdLine);
 
+	std::unordered_map<WProcessId, std::shared_ptr<WProcessMap>>& GetChildProcesses()
+	{
+		return ChildProcesses;
+	}
+
 	void ToJson(WJson::object& Json);
 };

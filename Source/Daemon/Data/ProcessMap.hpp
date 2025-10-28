@@ -34,6 +34,8 @@ public:
 	{
 	}
 
+	WProcessId GetPID() const { return PID; }
+
 	WApplicationMap* GetParentApplicationMap() const
 	{
 		return ParentAppMap;
@@ -42,6 +44,11 @@ public:
 	void RefreshAllTrafficCounters();
 
 	std::shared_ptr<WSocketInfo> FindOrMapSocket(WSocketCookie Cookie);
+
+	std::unordered_map<WSocketCookie, std::shared_ptr<WSocketInfo>>& GetSockets()
+	{
+		return Sockets;
+	}
 
 	void ToJson(WJson::object& Json);
 };

@@ -91,6 +91,7 @@ std::shared_ptr<WApplicationMap> WSystemMap::FindOrMapApplication(std::string co
 void WSystemMap::RefreshAllTrafficCounters()
 {
 	std::lock_guard Lock(DataMutex);
+	Cleanup();
 	TrafficCounter.Refresh();
 	for (auto& [AppName, AppMap] : Applications)
 	{
@@ -151,6 +152,11 @@ std::string WSystemMap::ToJson()
 
 	for (auto& [AppName, AppMap] : Applications)
 	{
+
+		if (AppMap->GetChildProcesses().empty())
+		{
+			continue;
+		}
 		WJson::object AppJson;
 		AppMap->ToJson(AppJson);
 		ApplicationsArray.emplace_back(AppJson);
@@ -158,4 +164,31 @@ std::string WSystemMap::ToJson()
 	SystemTrafficTree[JSON_KEY_APPS] = ApplicationsArray;
 
 	return WJson(SystemTrafficTree).dump();
+}
+
+void WSystemMap::Cleanup()
+{
+	for (auto& [AppName, AppMap] : Applications)
+	{
+		auto& ChildProcesses = AppMap->GetChildProcesses();
+		for (auto It = ChildProcesses.begin(); It != ChildProcesses.end();)
+		{
+			auto& ProcessMap = It->second;
+
+			if (ProcessMap->TrafficCounter.GetState() == CS_PendingRemoval)
+			{
+				spdlog::info("Removing process {} from application {}", ProcessMap->GetPID(), AppName);
+				// Remove sockets from system map
+				for (auto& [SocketCookie, SocketInfo] : ProcessMap->GetSockets())
+				{
+					Sockets.erase(SocketCookie);
+				}
+				It = ChildProcesses.erase(It);
+			}
+			else
+			{
+				++It;
+			}
+		}
+	}
 }

@@ -8,7 +8,6 @@ enum ECounterState
 	CS_Inactive,       // No traffic activity during the last time window
 	CS_Active,         // Traffic activity during the last time window
 	CS_PendingRemoval, // Process has quit
-	CS_Removed         // Process has been removed
 };
 
 class WTrafficCounter final
@@ -18,7 +17,6 @@ protected:
 	WBytes RecentDownload{};
 
 	WMsec TimeWindowStart{};
-	WMsec RemovalTime{};
 
 	WBytesPerSecond DownloadSpeed{};
 	WBytesPerSecond UploadSpeed{};
@@ -54,10 +52,6 @@ public:
 
 	void MarkForRemoval()
 	{
-		if (State == CS_Inactive)
-		{
-			State = CS_PendingRemoval;
-			RemovalTime = WTime::GetEpochMs() + RemovalTimeWindow;
-		}
+		State = CS_PendingRemoval;
 	}
 };

@@ -23,10 +23,12 @@ class WSystemMap : public TSingleton<WSystemMap>
 	WTrafficCounter TrafficCounter{};
 
 	std::string HostName{ "System" };
+	// Remove exited processes and their sockets from the system map
+	void Cleanup();
 
 public:
 	WSystemMap();
-	~WSystemMap() = default;
+	~WSystemMap() override = default;
 
 	std::mutex DataMutex;
 

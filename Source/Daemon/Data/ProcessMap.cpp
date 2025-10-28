@@ -4,6 +4,41 @@
 
 #include "ProcessMap.hpp"
 #include "SocketInfo.hpp"
+#include "spdlog/spdlog.h"
+
+#include <signal.h>
+
+bool IsProcessRunningByKill(pid_t pid)
+{
+	if (pid <= 0)
+		return false;
+
+	if (kill(pid, 0) == 0)
+		return true; // process exists and we have permission
+
+	if (errno == EPERM)
+		return true; // process exists but we don't have permission
+
+	// errno == ESRCH (no such process) or other errors -> treat as not running
+	return false;
+}
+
+bool IsProcessRunningByProc(pid_t pid)
+{
+	if (pid <= 0)
+		return false;
+
+	std::string procPath = "/proc/" + std::to_string(pid);
+	return (access(procPath.c_str(), F_OK) == 0);
+}
+
+// Convenience wrapper: try kill(0) first, fall back to /proc check
+bool IsProcessRunning(pid_t pid)
+{
+	if (IsProcessRunningByKill(pid))
+		return true;
+	return IsProcessRunningByProc(pid);
+}
 
 void WProcessMap::RefreshAllTrafficCounters()
 {
@@ -12,6 +47,16 @@ void WProcessMap::RefreshAllTrafficCounters()
 	for (auto& [Cookie, SocketInfo] : Sockets)
 	{
 		SocketInfo->TrafficCounter.Refresh();
+	}
+
+	// Check if the process with this PID still exists
+	if (TrafficCounter.GetState() != CS_PendingRemoval)
+	{
+		if (!IsProcessRunning(PID))
+		{
+			spdlog::info("Process {} has exited, marking for removal", PID);
+			TrafficCounter.MarkForRemoval();
+		}
 	}
 }
 
