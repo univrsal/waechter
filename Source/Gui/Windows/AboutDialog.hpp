@@ -17,10 +17,10 @@ class WAboutDialog
 		std::string Url;
 		std::string LicenseText;
 
-		WThirdPartyLibrary(std::string Name, std::string Url, const unsigned char LicenseText[], unsigned int LicenseTextLength)
-			: Name(std::move(Name))
-			, Url(std::move(Url))
-			, LicenseText(std::string(reinterpret_cast<const char*>(LicenseText), LicenseTextLength))
+		WThirdPartyLibrary(std::string Name_, std::string Url_, const unsigned char LicenseText_[], unsigned int LicenseTextLength_)
+			: Name(std::move(Name_))
+			, Url(std::move(Url_))
+			, LicenseText(std::string(reinterpret_cast<const char*>(LicenseText_), LicenseTextLength_))
 		{
 		}
 	};

@@ -65,7 +65,7 @@ struct WIPAddress
 		if (Family == EIPFamily::IPv6)
 		{
 			// ::1
-			for (int i = 0; i < 15; ++i)
+			for (unsigned long i = 0; i < 15; ++i)
 			{
 				if (Bytes[i] != 0)
 					return false;

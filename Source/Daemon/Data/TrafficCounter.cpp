@@ -36,9 +36,9 @@ void WTrafficCounter::Refresh()
 
 	if (auto const TimeStampMS = WTime::GetEpochMs(); TimeStampMS - TimeWindowStart >= RecentTrafficTimeWindow)
 	{
-		DownloadSpeed = RecentDownload / (RecentTrafficTimeWindow / 1000.f);
+		DownloadSpeed = static_cast<double>(RecentDownload) / (static_cast<double>(RecentTrafficTimeWindow) / 1000.0);
 		RecentDownload = 0;
-		UploadSpeed = RecentUpload / (RecentTrafficTimeWindow / 1000.f);
+		UploadSpeed = static_cast<double>(RecentUpload) / (RecentTrafficTimeWindow / 1000.0);
 		RecentUpload = 0;
 		TimeWindowStart = TimeStampMS;
 

@@ -22,7 +22,7 @@ namespace EIPv6ExtensionHeaders
 
 static uint16_t Read16(const uint8_t* Buffer)
 {
-	return static_cast<uint16_t>(Buffer[0]) << 8 | static_cast<uint16_t>(Buffer[1]);
+	return static_cast<uint16_t>(static_cast<uint16_t>(Buffer[0]) << 8 | static_cast<uint16_t>(Buffer[1]));
 }
 
 static bool ParseIPv4(const uint8_t* Buffer, std::size_t Length, WPacketHeaderParser& Out, std::size_t& L4Offset)
@@ -49,7 +49,7 @@ static bool ParseIPv4(const uint8_t* Buffer, std::size_t Length, WPacketHeaderPa
 	Out.L4Proto = Buffer[9];
 
 	// src/dst
-	for (int i = 0; i < 4; ++i)
+	for (unsigned long i = 0; i < 4; ++i)
 	{
 		Out.Src.Address.Bytes[i] = Buffer[12 + i];
 		Out.Dst.Address.Bytes[i] = Buffer[16 + i];
@@ -96,7 +96,7 @@ static bool ParseIPv6(const uint8_t* Buffer, std::size_t Length, WPacketHeaderPa
 	Out.Dst.Address.Family = EIPFamily::IPv6;
 
 	// src/dst
-	for (int i = 0; i < 16; ++i)
+	for (unsigned long i = 0; i < 16; ++i)
 	{
 		Out.Src.Address.Bytes[i] = Buffer[8 + i];
 		Out.Dst.Address.Bytes[i] = Buffer[24 + i];

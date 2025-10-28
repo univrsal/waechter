@@ -67,11 +67,13 @@ bool WClient::EnsureConnected()
 			{
 				return false;
 			}
+			// Fallthrough
 		case ES_Opened:
 			if (!Socket->Connect())
 			{
 				return false;
 			}
+			// Fallthrough
 		case ES_ConnectedButCantSend:
 			Socket->SetState(ES_Connected);
 		default:;

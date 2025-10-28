@@ -32,9 +32,9 @@ WEbpfObj::WEbpfObj(std::string ProgramObectFilePath)
 
 WEbpfObj::~WEbpfObj()
 {
-	for (auto const& Program: Programs)
+	for (auto const& Program : Programs)
 	{
-		int ProgFd = bpf_program__fd(std::get<0>(Program));
+		int  ProgFd = bpf_program__fd(std::get<0>(Program));
 		auto Type = std::get<1>(Program);
 		if (ProgFd >= 0 && CGroupFd)
 		{
@@ -64,7 +64,7 @@ bool WEbpfObj::Load()
 	return bpf_object__load(Obj) == 0;
 }
 
-bool WEbpfObj::FindAndAttachProgram(const std::string& ProgName, bpf_attach_type AttachType, int Flags)
+bool WEbpfObj::FindAndAttachProgram(const std::string& ProgName, bpf_attach_type AttachType, unsigned int Flags)
 {
 	auto* Prog = bpf_object__find_program_by_name(Obj, ProgName.c_str());
 
@@ -86,12 +86,12 @@ bool WEbpfObj::FindAndAttachProgram(const std::string& ProgName, bpf_attach_type
 	auto Result = bpf_prog_attach(bpf_program__fd(Prog), *CGroupFd, AttachType, Flags) == 0;
 	if (Result)
 	{
-		Programs.emplace_back(std::tuple {Prog, AttachType});
+		Programs.emplace_back(Prog, AttachType);
 	}
 	return Result;
 }
 
-bool WEbpfObj::FindAndAttachXdpProgram(const std::string& ProgName, int IfIndex, int Flags)
+bool WEbpfObj::FindAndAttachXdpProgram(const std::string& ProgName, int IfIndex, unsigned int Flags)
 {
 	auto* Prog = bpf_object__find_program_by_name(Obj, ProgName.c_str());
 
@@ -114,7 +114,7 @@ bool WEbpfObj::FindAndAttachXdpProgram(const std::string& ProgName, int IfIndex,
 
 	if (Result)
 	{
-		Programs.emplace_back( Prog, BPF_XDP );
+		Programs.emplace_back(Prog, BPF_XDP);
 	}
 
 	XdpIfIndex = IfIndex;

@@ -13,11 +13,18 @@ add_executable(waechterd
 )
 
 
-target_compile_options(waechterd PRIVATE -Wall -Wextra -Wpedantic)
+target_compile_options(waechterd PRIVATE
+        -Wall -Wextra -Wpedantic
+        -Wshadow -Wformat=2 -Wconversion -Wsign-conversion
+        -Wnull-dereference -Wdouble-promotion -Wcast-align
+        -Wduplicated-cond -Wredundant-decls -Wpointer-arith
+        -Werror
+)
+
 target_include_directories(waechterd PRIVATE ${LIBBPF_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(waechterd PRIVATE ${LIBBPF_LIBRARIES}
-        waechter::util thirdparty::spdlog thirdparty::inih thirdparty::json11
+        waechter::util thirdparty::spdlog thirdparty::inih thirdparty::json11 thirdparty::deps_includes
 )
 
 add_executable(old-waechterd

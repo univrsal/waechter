@@ -9,3 +9,9 @@ Daemon:
 
 - [x] Read pid/cookie/packet header/total packet length from ring buffer
 - [ ] Track traffic statistics per binary/pid/src-dst pair
+- [ ] Remove closed processes from tracking map
+- [ ] (maybe) compress messages
+
+Gui:
+
+- [ ] Decode traffic tree

@@ -30,22 +30,22 @@ class WEbpfObj
 {
 protected:
 	std::vector<std::tuple<bpf_program*, bpf_attach_type>> Programs{}; // attached programs
-	bpf_object* Obj {};
-	std::unique_ptr<int, WFdCloser> CGroupFd {};
-	int XdpIfIndex{};
-public:
+	bpf_object*                                            Obj{};
+	std::unique_ptr<int, WFdCloser>                        CGroupFd{};
+	int                                                    XdpIfIndex{};
 
+public:
 	explicit WEbpfObj(std::string ProgramObectFilePath);
 
 	~WEbpfObj();
 
 	bool Load();
 
-	bool FindAndAttachProgram(const std::string& ProgName, bpf_attach_type AttachType, int Flags = 0);
+	bool FindAndAttachProgram(const std::string& ProgName, bpf_attach_type AttachType, unsigned int Flags = 0);
 
-	bool FindAndAttachXdpProgram(const std::string& ProgName, int IfIndex, int Flags = 0);
+	bool FindAndAttachXdpProgram(const std::string& ProgName, int IfIndex, unsigned int Flags = 0);
 
 	[[nodiscard]] int FindMapFd(std::string const& MapFdPath) const;
 
-	operator bpf_object *() const { return Obj; }
+	operator bpf_object*() const { return Obj; }
 };

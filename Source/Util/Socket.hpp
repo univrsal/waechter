@@ -22,14 +22,14 @@ protected:
 	int         SocketFd{ -1 };
 	std::string SocketPath{};
 
-	explicit WSocket(int SocketFd)
-		: SocketFd(SocketFd)
+	explicit WSocket(int SocketFd_)
+		: SocketFd(SocketFd_)
 	{
 	}
 
 public:
-	explicit WSocket(std::string SocketPath)
-		: SocketPath(std::move(SocketPath))
+	explicit WSocket(std::string SocketPath_)
+		: SocketPath(std::move(SocketPath_))
 	{
 	}
 
@@ -53,14 +53,14 @@ class WClientSocket : public WSocket
 	bool                      bBlocking{ true };
 
 public:
-	explicit WClientSocket(int SocketFd)
-		: WSocket(SocketFd)
+	explicit WClientSocket(int SocketFd_)
+		: WSocket(SocketFd_)
 	{
-		assert(SocketFd > 0);
+		assert(SocketFd_ > 0);
 	}
 
-	explicit WClientSocket(std::string const& SocketPath)
-		: WSocket(SocketPath)
+	explicit WClientSocket(std::string const& SocketPath_)
+		: WSocket(SocketPath_)
 	{
 	}
 
@@ -108,8 +108,8 @@ public:
 class WServerSocket : public WSocket
 {
 public:
-	explicit WServerSocket(std::string const& SocketPath)
-		: WSocket(SocketPath)
+	explicit WServerSocket(std::string const& SocketPath_)
+		: WSocket(SocketPath_)
 	{
 	}
 

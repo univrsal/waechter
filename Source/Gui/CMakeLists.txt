@@ -20,7 +20,16 @@ target_link_libraries(waechter PRIVATE
         thirdparty::imgui
         thirdparty::incbin
         thirdparty::stb
+        thirdparty::deps_includes
         waechter::util
+)
+
+target_compile_options(waechter PRIVATE
+        -Wall -Wextra -Wpedantic
+        -Wshadow -Wformat=2 -Wconversion -Wsign-conversion
+        -Wnull-dereference -Wdouble-promotion -Wcast-align
+        -Wduplicated-cond -Wredundant-decls -Wpointer-arith
+        -Werror
 )
 
 file(GLOB thirdparty_dirs RELATIVE "${CMAKE_SOURCE_DIR}/Thirdparty" "${CMAKE_SOURCE_DIR}/Thirdparty/*")

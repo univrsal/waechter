@@ -52,7 +52,7 @@ bool WGlfwWindow::Init()
 	}
 
 	int            Width, Height, Channels;
-	unsigned char* Pixels = stbi_load_from_memory(gIconData, gIconSize, &Width, &Height, &Channels, 4);
+	unsigned char* Pixels = stbi_load_from_memory(gIconData, static_cast<int>(gIconSize), &Width, &Height, &Channels, 4);
 	if (Pixels)
 	{
 		GLFWimage Image{};
@@ -75,7 +75,7 @@ bool WGlfwWindow::Init()
 	cfg.PixelSnapH = true;
 
 	auto  fontSize = std::round(16.0f * MainScale);
-	auto* FontData = io.Fonts->AddFontFromMemoryTTF((void*)gFontData, gFontSize, fontSize, &cfg);
+	auto* FontData = io.Fonts->AddFontFromMemoryTTF((void*)gFontData, static_cast<int>(gFontSize), fontSize, &cfg);
 	io.FontDefault = FontData;
 	// Setup Dear ImGui style
 	ImGui::StyleColorsLight();
@@ -92,7 +92,6 @@ void WGlfwWindow::RunLoop()
 {
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
-	ImGuiIO& io = ImGui::GetIO();
 	while (!glfwWindowShouldClose(Window))
 	{
 		glfwPollEvents();

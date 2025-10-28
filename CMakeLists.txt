@@ -8,3 +8,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_subdirectory(Thirdparty)
 add_subdirectory(Source)
+
+set(WAECHTER_COMPILE_OPTIONS
+        -Wall -Wextra -Wpedantic
+        -Wshadow -Wformat=2 -Wconversion -Wsign-conversion
+        -Wnull-dereference -Wdouble-promotion -Wcast-align
+        -Wduplicated-cond -Wredundant-decls -Wpointer-arith
+        -Werror
+)

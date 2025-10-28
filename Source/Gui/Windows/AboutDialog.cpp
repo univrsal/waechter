@@ -49,7 +49,7 @@ void WAboutDialog::Draw()
 	if (ImGui::Begin("About", &bVisible, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize))
 	{
 		auto Style = ImGui::GetStyle();
-		ImGui::PushFont(nullptr, Style.FontSizeBase * 1.4);
+		ImGui::PushFont(nullptr, Style.FontSizeBase * 1.4f);
 		ImGui::Text("Wächter");
 		ImGui::PopFont();
 
@@ -67,7 +67,7 @@ void WAboutDialog::Draw()
 		{
 			ImGui::Separator();
 			ImGui::Spacing();
-			ImGui::PushFont(nullptr, Style.FontSizeBase * 1.2);
+			ImGui::PushFont(nullptr, Style.FontSizeBase * 1.2f);
 			ImGui::Text("%s", Library.Name.c_str());
 			ImGui::PopFont();
 			ImGui::Spacing();

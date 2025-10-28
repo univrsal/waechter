@@ -10,25 +10,25 @@ void WSocketInfo::ProcessSocketEvent(WSocketEvent const& Event)
 	{
 		SocketState = ESocketState::Connecting;
 		SocketTuple.Protocol = static_cast<EProtocol::Type>(Event.Data.ConnectEventData.Protocol);
-		SocketTuple.RemoteEndpoint.Port = Event.Data.ConnectEventData.UserPort;
+		SocketTuple.RemoteEndpoint.Port = static_cast<uint16_t>(Event.Data.ConnectEventData.UserPort);
 		SocketTuple.RemoteEndpoint.Address.Family = EIPFamily::IPv4;
-		SocketTuple.RemoteEndpoint.Address.Bytes[0] = (Event.Data.ConnectEventData.Addr4 >> 24) & 0xFF;
-		SocketTuple.RemoteEndpoint.Address.Bytes[1] = (Event.Data.ConnectEventData.Addr4 >> 16) & 0xFF;
-		SocketTuple.RemoteEndpoint.Address.Bytes[2] = (Event.Data.ConnectEventData.Addr4 >> 8) & 0xFF;
-		SocketTuple.RemoteEndpoint.Address.Bytes[3] = (Event.Data.ConnectEventData.Addr4) & 0xFF;
+		SocketTuple.RemoteEndpoint.Address.Bytes[0] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr4 >> 24 & 0xFF);
+		SocketTuple.RemoteEndpoint.Address.Bytes[1] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr4 >> 16 & 0xFF);
+		SocketTuple.RemoteEndpoint.Address.Bytes[2] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr4 >> 8 & 0xFF);
+		SocketTuple.RemoteEndpoint.Address.Bytes[3] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr4 & 0xFF);
 	}
 	else if (Event.EventType == NE_SocketConnect_6)
 	{
 		SocketState = ESocketState::Connecting;
 		SocketTuple.Protocol = static_cast<EProtocol::Type>(Event.Data.ConnectEventData.Protocol);
-		SocketTuple.RemoteEndpoint.Port = Event.Data.ConnectEventData.UserPort;
+		SocketTuple.RemoteEndpoint.Port = static_cast<uint16_t>(Event.Data.ConnectEventData.UserPort);
 		SocketTuple.RemoteEndpoint.Address.Family = EIPFamily::IPv6;
-		for (int i = 0; i < 4; i++)
+		for (unsigned long i = 0; i < 4; i++)
 		{
-			SocketTuple.RemoteEndpoint.Address.Bytes[i * 4 + 0] = (Event.Data.ConnectEventData.Addr6[i] >> 24) & 0xFF;
-			SocketTuple.RemoteEndpoint.Address.Bytes[i * 4 + 1] = (Event.Data.ConnectEventData.Addr6[i] >> 16) & 0xFF;
-			SocketTuple.RemoteEndpoint.Address.Bytes[i * 4 + 2] = (Event.Data.ConnectEventData.Addr6[i] >> 8) & 0xFF;
-			SocketTuple.RemoteEndpoint.Address.Bytes[i * 4 + 3] = (Event.Data.ConnectEventData.Addr6[i]) & 0xFF;
+			SocketTuple.RemoteEndpoint.Address.Bytes[i * 4 + 0] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr6[i] >> 24 & 0xFF);
+			SocketTuple.RemoteEndpoint.Address.Bytes[i * 4 + 1] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr6[i] >> 16 & 0xFF);
+			SocketTuple.RemoteEndpoint.Address.Bytes[i * 4 + 2] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr6[i] >> 8 & 0xFF);
+			SocketTuple.RemoteEndpoint.Address.Bytes[i * 4 + 3] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr6[i] & 0xFF);
 		}
 	}
 }

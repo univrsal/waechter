@@ -24,9 +24,9 @@ class WApplicationMap
 public:
 	WTrafficCounter TrafficCounter{};
 
-	WApplicationMap(std::string BinaryPath, std::string BinaryName)
-		: BinaryPath(std::move(BinaryPath))
-		, BinaryName(std::move(BinaryName))
+	WApplicationMap(std::string BinaryPath_, std::string BinaryName_)
+		: BinaryPath(std::move(BinaryPath_))
+		, BinaryName(std::move(BinaryName_))
 	{
 	}
 

@@ -27,10 +27,10 @@ class WProcessMap
 public:
 	WTrafficCounter TrafficCounter{};
 
-	WProcessMap(WProcessId PID, std::string CmdLine, WApplicationMap* ParentAppMap)
-		: PID(PID)
-		, CmdLine(std::move(CmdLine))
-		, ParentAppMap(ParentAppMap)
+	WProcessMap(WProcessId PID_, std::string CmdLine_, WApplicationMap* ParentAppMap_)
+		: PID(PID_)
+		, CmdLine(std::move(CmdLine_))
+		, ParentAppMap(ParentAppMap_)
 	{
 	}
 

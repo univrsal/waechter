@@ -53,6 +53,8 @@ public:
 
 	EPacketDirection Direction{};
 
+	~WMessageTraffic() override = default;
+
 	WMESSAGE(WMessageTraffic, MT_Traffic)
 
 	WMessageTraffic(WSocketCookie Cookie, size_t Len, EPacketDirection Dir)
@@ -86,13 +88,15 @@ public:
 	WBytesPerSecond  Limit{};
 	EPacketDirection Direction{};
 
+	~WMessageSetTCPLimit() override = default;
+
 	WMESSAGE(WMessageSetTCPLimit, MT_SetTcpLimit)
 
-	WMessageSetTCPLimit(WSocketCookie SocketCookie, WBytesPerSecond Limit, EPacketDirection Direction)
+	WMessageSetTCPLimit(WSocketCookie SocketCookie_, WBytesPerSecond Limit_, EPacketDirection Direction_)
 		: WMessage(MT_SetTcpLimit)
-		, SocketCookie(SocketCookie)
-		, Limit(Limit)
-		, Direction(Direction)
+		, SocketCookie(SocketCookie_)
+		, Limit(Limit_)
+		, Direction(Direction_)
 	{
 	}
 
@@ -125,7 +129,7 @@ public:
 	{
 	}
 
-	~WMessageTrafficTree() = default;
+	~WMessageTrafficTree() override = default;
 
 	void Serialize(WBuffer& Buf) const override
 	{
@@ -149,6 +153,9 @@ public:
 		Buf.Read(&TrafficTreeJson[0], Length);
 	}
 };
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 
 static std::shared_ptr<WMessage> ReadFromBuffer(WBuffer& Buf)
 {
