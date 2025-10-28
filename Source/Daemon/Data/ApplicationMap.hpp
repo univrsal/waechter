@@ -41,4 +41,9 @@ public:
 	}
 
 	void ToJson(WJson::object& Json);
+
+	std::string const& GetBinaryName() const
+	{
+		return BinaryName;
+	}
 };
