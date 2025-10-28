@@ -49,3 +49,22 @@ bool WDaemonSocket::StartListenThread()
 	ListenThread = std::thread(&WDaemonSocket::ListenThreadFunction, this);
 	return true;
 }
+
+void WDaemonSocket::BroadcastTrafficUpdate()
+{
+	auto&           SystemMap = WSystemMap::GetInstance();
+	std::lock_guard Lock(ClientsMutex);
+
+	if (!SystemMap.HasNewData() || Clients.empty())
+	{
+		return;
+	}
+
+	auto Json = SystemMap.UpdateJson();
+	for (auto& Client : Clients)
+	{
+		spdlog::info("Sending update");
+		Client->Send<WMessageTrafficUpdate>(Json);
+	}
+	SystemMap.ClearDirtyFlags();
+}

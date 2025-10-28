@@ -20,10 +20,18 @@ void WClient::ConnectionThreadFunction()
 				std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			}
 		}
-
-		if (!Socket->Receive(Buf))
+		Buf.Reset();
+		bool bDataToRead{};
+		if (!Socket->Receive(Buf, &bDataToRead))
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			Socket->Close();
+			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+			continue;
+		}
+
+		if (!bDataToRead)
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(250));
 			continue;
 		}
 
@@ -42,7 +50,15 @@ void WClient::ConnectionThreadFunction()
 			{
 				if (auto const TrafficMsg = std::static_pointer_cast<WMessageTrafficTree>(Msg))
 				{
-					TrafficTree.LoadFromJson(TrafficMsg->TrafficTreeJson);
+					TrafficTree.LoadFromJson(TrafficMsg->Json);
+				}
+				break;
+			}
+			case MT_TrafficUpdate:
+			{
+				if (auto const TrafficMsg = std::static_pointer_cast<WMessageTrafficUpdate>(Msg))
+				{
+					TrafficTree.UpdateFromJson(TrafficMsg->Json);
 				}
 				break;
 			}

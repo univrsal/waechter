@@ -71,4 +71,6 @@ public:
 			Clients.end());
 		ClientsMutex.unlock();
 	}
+
+	void BroadcastTrafficUpdate();
 };

@@ -94,9 +94,6 @@ EEbpfInitResult WWaechterEbpf::Init()
 
 void WWaechterEbpf::PrintStats()
 {
-	// Print a tree of the system, the applications, their processes and sockets with traffic stats
-	WSystemMap::GetInstance().RefreshAllTrafficCounters();
-
 	spdlog::info("System Traffic: Download Speed: {}, Upload Speed: {}",
 		WTrafficFormat::AutoFormat(WSystemMap::GetInstance().GetDownloadSpeed()),
 		WTrafficFormat::AutoFormat(WSystemMap::GetInstance().GetUploadSpeed()));

@@ -12,6 +12,7 @@
 #include "EbpfData.hpp"
 #include "WaechterEbpf.hpp"
 #include "Communication/DaemonSocket.hpp"
+#include "Data/SystemMap.hpp"
 
 int Run()
 {
@@ -45,6 +46,7 @@ int Run()
 
 	// Poll ring buffers and periodically print aggregate stats
 	auto LastPrint = std::chrono::steady_clock::now();
+	auto LastTrafficUpdate = std::chrono::steady_clock::now();
 
 	while (!SignalHandler.bStop)
 	{
@@ -54,6 +56,13 @@ int Run()
 		{
 			EbpfObj.PrintStats();
 			LastPrint = now;
+		}
+
+		if (now - LastTrafficUpdate >= std::chrono::milliseconds(1000))
+		{
+			WSystemMap::GetInstance().RefreshAllTrafficCounters();
+			DaemonSocket.BroadcastTrafficUpdate();
+			LastTrafficUpdate = now;
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(5));
 	}
