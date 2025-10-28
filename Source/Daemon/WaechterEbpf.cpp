@@ -13,7 +13,7 @@
 #include "EbpfData.hpp"
 #include "EBPFCommon.h"
 #include "Types.hpp"
-#include "Net/PacketParser.hpp"
+#include "Format.hpp"
 #include "Data/SystemMap.hpp"
 #include "Data/SocketInfo.hpp"
 
@@ -97,9 +97,9 @@ void WWaechterEbpf::PrintStats()
 	// Print a tree of the system, the applications, their processes and sockets with traffic stats
 	WSystemMap::GetInstance().RefreshAllTrafficCounters();
 
-	spdlog::info("System Traffic: Download Speed: {:.2f} B/s, Upload Speed: {:.2f} B/s",
-		WSystemMap::GetInstance().GetDownloadSpeed(),
-		WSystemMap::GetInstance().GetUploadSpeed());
+	spdlog::info("System Traffic: Download Speed: {}, Upload Speed: {}",
+		WTrafficFormat::AutoFormat(WSystemMap::GetInstance().GetDownloadSpeed()),
+		WTrafficFormat::AutoFormat(WSystemMap::GetInstance().GetUploadSpeed()));
 }
 
 void WWaechterEbpf::UpdateData()
