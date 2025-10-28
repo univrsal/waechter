@@ -78,6 +78,7 @@ void WProcessMap::ToJson(WJson::object& Json)
 {
 	Json[JSON_KEY_PID] = PID;
 	Json[JSON_KEY_CMDLINE] = CmdLine;
+	Json[JSON_KEY_ID] = static_cast<double>(GetItemId());
 
 	WJson::array SocketsArray;
 

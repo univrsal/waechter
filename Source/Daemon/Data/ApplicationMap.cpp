@@ -39,6 +39,7 @@ void WApplicationMap::ToJson(WJson::object& Json)
 	Json[JSON_KEY_BINARY_NAME] = BinaryName;
 	Json[JSON_KEY_UPLOAD] = GetTrafficCounter().GetUploadSpeed();
 	Json[JSON_KEY_DOWNLOAD] = GetTrafficCounter().GetDownloadSpeed();
+	Json[JSON_KEY_ID] = static_cast<double>(GetItemId());
 
 	WJson::array ProcessArray;
 
