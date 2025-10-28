@@ -77,7 +77,7 @@ public:
 
 	ssize_t Send(WBuffer const& Buf);
 
-	bool Receive(WBuffer& Buf);
+	bool Receive(WBuffer& Buf, bool* bDataToRead = nullptr);
 
 	[[nodiscard]] ESocketState GetState() const
 	{

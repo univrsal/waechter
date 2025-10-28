@@ -70,35 +70,24 @@ ssize_t WClientSocket::Send(WBuffer const& Buf)
 
 	auto Result = send(SocketFd, Buf.GetData(), Buf.GetWritePos(), 0);
 	Check(Result);
-
-	spdlog::info("state: {}, sent {} bytes", static_cast<int>(State), Result);
-
 	return Result;
 }
 
-bool WClientSocket::Receive(WBuffer& Buf)
+bool WClientSocket::Receive(WBuffer& Buf, bool* bDataToRead)
 {
+	if (bDataToRead)
+	{
+		*bDataToRead = false;
+	}
 	// Validate socket
 	if (SocketFd < 0)
 	{
-		return false;
+		return false; // socket not open -> treat as ended
 	}
 
-	auto HandleErrorState = [&](int SavedErrno) -> void {
-		// No data available right now
-		if (SavedErrno == EAGAIN)
-			return;
-#if defined(EWOULDBLOCK) && (EWOULDBLOCK != EAGAIN)
-		if (SavedErrno == EWOULDBLOCK)
-			return;
-#endif
-		if (SavedErrno == EBADF || SavedErrno == ECONNRESET)
-		{
-			State = ES_Initial;
-			return;
-		}
-		// Other errors: mark as can't send/receive
-		State = ES_Initial;
+	// Helper predicates
+	auto IsConnEndedErr = [](int e) -> bool {
+		return e == EBADF || e == ECONNRESET || e == ENOTCONN || e == EPIPE || e == ESHUTDOWN;
 	};
 
 	Buf.Reset();
@@ -107,8 +96,13 @@ bool WClientSocket::Receive(WBuffer& Buf)
 	if (ioctl(SocketFd, FIONREAD, &Available) < 0)
 	{
 		int e = errno;
-		HandleErrorState(e);
-		return false;
+		if (IsConnEndedErr(e))
+		{
+			State = ES_Initial;
+			return false; // connection ended
+		}
+		// transient error or would block -> no data now, but connection still alive
+		return true;
 	}
 
 	ssize_t AvailableSize = Available;
@@ -116,29 +110,38 @@ bool WClientSocket::Receive(WBuffer& Buf)
 	if (AvailableSize == 0)
 	{
 		// Nothing to read right now. Could be EOF on some socket types; try a non-consuming recv to detect EOF.
-		// Use peek with 1 byte to detect EOF (recv returns 0) or no-data (would block / return -1 with EAGAIN).
 		char    PeekBuf;
 		ssize_t Result = recv(SocketFd, &PeekBuf, 1, MSG_PEEK | MSG_DONTWAIT);
 		if (Result == 0)
 		{
 			// orderly shutdown / EOF
+			State = ES_Initial;
 			return false;
 		}
 		if (Result < 0)
 		{
 			int e = errno;
-			// EAGAIN/EWOULDBLOCK: no data right now
-			HandleErrorState(e);
-			// If the error was EAGAIN/EWOULDBLOCK, handler returns without changing state; still return false.
-			return false;
+			if (IsConnEndedErr(e))
+			{
+				State = ES_Initial;
+				return false; // connection ended
+			}
+			// No data (would block) or transient error -> still report success but no data
+			return true;
 		}
-		// If we peeked data, set available to at least 1 and fall through to actual read
+		// If we peeked data, set available to the peeked amount and fall through to actual read
 		AvailableSize = Result;
 	}
 
 	if (AvailableSize <= 0)
 	{
-		return false;
+		// Nothing to do, connection is still considered alive
+		return true;
+	}
+
+	if (bDataToRead)
+	{
+		*bDataToRead = false;
 	}
 
 	Buf.Resize(static_cast<size_t>(AvailableSize));
@@ -146,15 +149,25 @@ bool WClientSocket::Receive(WBuffer& Buf)
 	if (Got < 0)
 	{
 		int e = errno;
-		HandleErrorState(e);
-		return false;
+		if (IsConnEndedErr(e))
+		{
+			State = ES_Initial;
+			return false; // connection ended
+		}
+		// would block or transient error -> keep connection alive
+		return true;
 	}
 	if (Got == 0)
 	{
 		// Peer performed orderly shutdown
+		State = ES_Initial;
 		return false;
 	}
 
 	Buf.SetWritingPos(static_cast<size_t>(Got));
+	if (bDataToRead)
+	{
+		*bDataToRead = true;
+	}
 	return true;
 }
