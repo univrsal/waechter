@@ -9,7 +9,7 @@
 #include <atomic>
 
 #include "Socket.hpp"
-#include "Communication/TrafficTree.hpp"
+#include "Windows/TrafficTree.hpp"
 
 class WClient
 {

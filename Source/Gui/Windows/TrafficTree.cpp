@@ -83,24 +83,30 @@ void WTrafficTree::Draw()
 	ImGui::TableHeadersRow();
 
 	// recursive drawer for a node
-	std::function<void(WTrafficTreeNode*)> draw_node;
-	draw_node = [&](WTrafficTreeNode* node) {
+	std::function<void(WTrafficTreeNode*, int)> DrawNode = [&](WTrafficTreeNode* Node, int Level) {
 		ImGui::TableNextRow();
 		ImGui::TableSetColumnIndex(0);
 
-		ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_SpanFullWidth;
-		if (node->Children.empty())
-			node_flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+		ImGuiTreeNodeFlags NodeFlags = ImGuiTreeNodeFlags_SpanFullWidth;
+		if (Node->Children.empty())
+		{
+			NodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+		}
+
+		if (Level < 1)
+		{
+			NodeFlags |= ImGuiTreeNodeFlags_DefaultOpen;
+		}
 
 		// use the node pointer as ID so labels can repeat safely
-		bool opened = ImGui::TreeNodeEx((void*)node, node_flags, "%s", node->Name.c_str());
+		bool Opened = ImGui::TreeNodeEx((void*)Node, NodeFlags, "%s", Node->Name.c_str());
 
 		// other columns
 		ImGui::TableSetColumnIndex(1);
-		ImGui::Text("%.2f B/s", node->Upload);
+		ImGui::Text("%.2f B/s", Node->Upload);
 
 		ImGui::TableSetColumnIndex(2);
-		ImGui::Text("%.2f B/s", node->Download);
+		ImGui::Text("%.2f B/s", Node->Download);
 
 		ImGui::TableSetColumnIndex(3);
 		// placeholder: add a UploadLimit field to WTrafficTreeNode to show real values
@@ -110,18 +116,20 @@ void WTrafficTree::Draw()
 		// placeholder: add a DownloadLimit field to WTrafficTreeNode to show real values
 		ImGui::TextDisabled("-");
 
-		if (!(node_flags & ImGuiTreeNodeFlags_NoTreePushOnOpen))
+		if (!(NodeFlags & ImGuiTreeNodeFlags_NoTreePushOnOpen))
 		{
-			if (opened)
+			if (Opened)
 			{
-				for (auto& child : node->Children)
-					draw_node(child.get());
+				for (auto& Child : Node->Children)
+				{
+					DrawNode(Child.get(), Level + 1);
+				}
 				ImGui::TreePop();
 			}
 		}
 	};
 
 	// draw root and its children
-	draw_node(&Root);
+	DrawNode(&Root, 0);
 	ImGui::EndTable();
 }

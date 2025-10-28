@@ -5,7 +5,6 @@ add_executable(waechter
 )
 
 add_subdirectory(Windows)
-add_subdirectory(Communication)
 
 target_link_libraries(waechter PRIVATE
         thirdparty::spdlog
