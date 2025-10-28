@@ -1,6 +1,6 @@
 add_executable(waechter
-        WClient.cpp
-        WClient.hpp
+        Client.cpp
+        Client.hpp
         Waechter.cpp
 )
 

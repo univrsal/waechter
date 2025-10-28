@@ -4,7 +4,7 @@
 
 #pragma once
 #include "AboutDialog.hpp"
-#include "WClient.hpp"
+#include "Client.hpp"
 
 class WMainWindow
 {

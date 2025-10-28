@@ -2,7 +2,7 @@
 // Created by usr on 27/10/2025.
 //
 
-#include "WClient.hpp"
+#include "Client.hpp"
 
 #include <spdlog/spdlog.h>
 
