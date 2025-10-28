@@ -3,6 +3,9 @@
 //
 
 #pragma once
+#ifndef EBPF_COMMON
+	#include <linux/types.h>
+#endif
 
 #define PACKET_HEADER_SIZE 128
 

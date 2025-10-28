@@ -1,4 +1,5 @@
 #include "EBPFInternal.h"
+#define EBPF_COMMON
 #include "EBPFCommon.h"
 
 // stores socket identity (PID/TGID + cgroup) per socket cookie
