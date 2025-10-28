@@ -24,7 +24,7 @@ jobs:
             ninja-build \
             pkg-config \
             clang llvm \
-            bpftool \
+            linux-tools-common \
             libbpf-dev \
             libelf-dev \
             zlib1g-dev \
