@@ -2,7 +2,7 @@
 // Created by usr on 12/10/2025.
 //
 
-#include "GlfwWindow.hpp"
+#include "Windows/GlfwWindow.hpp"
 
 int main()
 {

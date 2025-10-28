@@ -1,10 +1,10 @@
 add_executable(waechter
-        GlfwWindow.cpp
-        GlfwWindow.hpp
-        MainWindow.cpp
-        MainWindow.hpp
-        AboutDialog.cpp
-        AboutDialog.hpp
+        Windows/GlfwWindow.cpp
+        Windows/GlfwWindow.hpp
+        Windows/MainWindow.cpp
+        Windows/MainWindow.hpp
+        Windows/AboutDialog.cpp
+        Windows/AboutDialog.hpp
         WClient.cpp
         WClient.hpp)
 
