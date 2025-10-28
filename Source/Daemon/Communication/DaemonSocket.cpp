@@ -19,8 +19,6 @@ void WDaemonSocket::ListenThreadFunction()
 			NewClient->StartListenThread();
 
 			auto TrafficJson = WSystemMap::GetInstance().ToJson();
-			spdlog::info("{}, tree: {}", TrafficJson.length(), TrafficJson);
-
 			NewClient->Send<WMessageTrafficTree>(TrafficJson);
 
 			ClientsMutex.lock();
@@ -32,7 +30,6 @@ void WDaemonSocket::ListenThreadFunction()
 			// if the socket is not valid and the server is still running, print an error message
 			spdlog::error("Error accepting client connection: {} ({})", strerror(errno), errno);
 		}
-
 		RemoveInactiveClients();
 	}
 }
