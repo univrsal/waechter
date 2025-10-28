@@ -37,10 +37,8 @@ void WDaemonClient::ListenThreadFunction()
 				break;
 		}
 	}
-
-	Running = false;
-	// ParentSocket->GetTrafficMeter()->MarkProcessForRemoval(ClientPid);
-	spdlog::info("Client disconnected");
+	ClientSocket->Close();
+	spdlog::info("Client exited loop");
 }
 
 void WDaemonClient::StartListenThread()
