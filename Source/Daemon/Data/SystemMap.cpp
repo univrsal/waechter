@@ -226,7 +226,6 @@ std::string WSystemMap::UpdateJson()
 			}
 		}
 	}
-	spdlog::info("System Map Updated with {} items", UpdateItems.size());
 	return WJson(UpdateItems).dump();
 }
 
