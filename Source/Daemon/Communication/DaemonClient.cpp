@@ -8,7 +8,6 @@
 void WDaemonClient::ListenThreadFunction()
 {
 	WBuffer Buf{};
-	Buf.Resize(1024);
 	while (Running)
 	{
 		if (!ClientSocket->Receive(Buf))

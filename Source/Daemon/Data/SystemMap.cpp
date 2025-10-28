@@ -20,12 +20,12 @@ static std::string ReadProc(std::string const& Path)
 	if (!FileStream)
 		return {};
 
-	// read entire file
-	std::string Content((std::istreambuf_iterator<char>(FileStream)), std::istreambuf_iterator<char>());
+	std::ostringstream ss;
+	ss << FileStream.rdbuf();
+	std::string Content = ss.str();
+
 	if (Content.empty())
-	{
 		return "";
-	}
 
 	// replace NUL separators with spaces
 	std::ranges::replace(Content, '\0', ' ');
