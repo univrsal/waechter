@@ -46,6 +46,16 @@ void WTrafficCounter::Refresh()
 			{
 				State = CS_Active;
 			}
+
+			if (DownloadSpeed < 0.01)
+			{
+				DownloadSpeed = 0;
+			}
+
+			if (UploadSpeed < 0.01)
+			{
+				UploadSpeed = 0;
+			}
 		}
 	}
 }
