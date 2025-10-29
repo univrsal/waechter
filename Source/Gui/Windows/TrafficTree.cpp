@@ -165,6 +165,10 @@ void WTrafficTree::Draw()
 		{
 			Unit = TU_GiBps;
 		}
+		if (ImGui::Selectable("Auto", Unit == TU_Auto))
+		{
+			Unit = TU_Auto;
+		}
 		ImGui::EndCombo();
 	}
 
