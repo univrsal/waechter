@@ -102,7 +102,7 @@ bool WClient::EnsureConnected()
 
 WClient::WClient()
 {
-	Socket = std::make_unique<WClientSocket>("/home/usr/docs/git/cpp/waechter/cmake-build-debug/Source/waechterd.sock");
+	Socket = std::make_unique<WClientSocket>("/var/run/waechterd.sock");
 	Running = true;
 	ConnectionThread = std::thread(&WClient::ConnectionThreadFunction, this);
 }
