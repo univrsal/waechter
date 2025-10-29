@@ -6,7 +6,7 @@
 
 #include "Types.hpp"
 
-#include <fmt/format.h>
+#include <spdlog/fmt/fmt.h>
 
 enum ETrafficUnit
 {
