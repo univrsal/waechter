@@ -57,3 +57,5 @@ add_dependencies(bpfobj generate_vmlinux_h)
 add_dependencies(waechterd bpfobj)
 
 message(STATUS "EBPF object is build to " ${BPF_OBJ})
+
+install(FILES ${BPF_OBJ} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
