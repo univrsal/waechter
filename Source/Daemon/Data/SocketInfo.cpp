@@ -8,7 +8,7 @@ void WSocketInfo::ProcessSocketEvent(WSocketEvent const& Event)
 {
 	if (Event.EventType == NE_SocketConnect_4)
 	{
-		SocketState = ESocketState::Connecting;
+		SocketState = ESocketConnectionState::Connecting;
 		SocketTuple.Protocol = static_cast<EProtocol::Type>(Event.Data.ConnectEventData.Protocol);
 		SocketTuple.RemoteEndpoint.Port = static_cast<uint16_t>(Event.Data.ConnectEventData.UserPort);
 		SocketTuple.RemoteEndpoint.Address.Family = EIPFamily::IPv4;
@@ -19,7 +19,7 @@ void WSocketInfo::ProcessSocketEvent(WSocketEvent const& Event)
 	}
 	else if (Event.EventType == NE_SocketConnect_6)
 	{
-		SocketState = ESocketState::Connecting;
+		SocketState = ESocketConnectionState::Connecting;
 		SocketTuple.Protocol = static_cast<EProtocol::Type>(Event.Data.ConnectEventData.Protocol);
 		SocketTuple.RemoteEndpoint.Port = static_cast<uint16_t>(Event.Data.ConnectEventData.UserPort);
 		SocketTuple.RemoteEndpoint.Address.Family = EIPFamily::IPv6;

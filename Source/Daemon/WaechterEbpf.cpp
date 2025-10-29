@@ -132,7 +132,7 @@ void WWaechterEbpf::UpdateData()
 			switch (SocketEvent.EventType)
 			{
 				case NE_SocketCreate:
-					SocketInfo->SocketState = ESocketState::Created;
+					SocketInfo->SocketState = ESocketConnectionState::Created;
 					break;
 				case NE_SocketConnect_4:
 				case NE_SocketConnect_6:
