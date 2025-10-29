@@ -10,6 +10,7 @@
 #include "TrafficItem.hpp"
 #include "Types.hpp"
 #include "Singleton.hpp"
+#include "SocketInfo.hpp"
 #include "TrafficCounter.hpp"
 
 class WSocketInfo;
@@ -36,6 +37,15 @@ public:
 	std::shared_ptr<WSocketInfo> MapSocket(WSocketCookie SocketCookie, WProcessId PID, bool bSilentFail = false);
 
 	std::shared_ptr<WApplicationMap> FindOrMapApplication(std::string const& AppName);
+
+	void MarkSocketForRemoval(WSocketCookie SocketCookie)
+	{
+		std::lock_guard Lock(DataMutex);
+		if (auto It = Sockets.find(SocketCookie); It != Sockets.end())
+		{
+			It->second->MarkForRemoval();
+		}
+	}
 
 	void RefreshAllTrafficCounters();
 

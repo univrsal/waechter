@@ -81,6 +81,12 @@ EEbpfInitResult WWaechterEbpf::Init()
 		return EEbpfInitResult::Inet6_Socket_Connect_Failed;
 	}
 
+	if (!this->FindAndAttachPlainProgram("on_tcp_set_state"))
+	{
+		spdlog::critical("Failed to attach on_tcp_set_state.");
+		return EEbpfInitResult::On_Tcp_Set_State_Failed;
+	}
+
 	Data = std::make_shared<WEbpfData>(*this);
 
 	if (!Data->IsValid())
@@ -147,6 +153,10 @@ void WWaechterEbpf::UpdateData()
 					{
 						WSystemMap::GetInstance().PushOutgoingTraffic(SocketEvent.Data.TrafficEventData.Bytes, SocketEvent.Cookie);
 					}
+					break;
+				case NE_SocketClosed:
+					spdlog::info("socket closed: cookie={} pid={}", SocketEvent.Cookie, Tgid);
+					WSystemMap::GetInstance().MarkSocketForRemoval(SocketEvent.Cookie);
 					break;
 				default:;
 			}

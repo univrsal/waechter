@@ -252,6 +252,21 @@ void WSystemMap::Cleanup()
 			}
 			else
 			{
+				for (auto SockIt = ProcessMap->GetSockets().begin(); SockIt != ProcessMap->GetSockets().end();)
+				{
+					auto& SocketInfo = SockIt->second;
+					if (SocketInfo->GetTrafficCounter().GetState() == CS_PendingRemoval)
+					{
+						bRemovedAny = true;
+						spdlog::info("Removing socket {} from process {} ({}).", SockIt->first, ProcessMap->GetPID(), AppName);
+						Sockets.erase(SockIt->first);
+						SockIt = ProcessMap->GetSockets().erase(SockIt);
+					}
+					else
+					{
+						++SockIt;
+					}
+				}
 				++It;
 			}
 		}

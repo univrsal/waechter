@@ -36,6 +36,21 @@ static __always_inline struct WSocketEvent* MakeSocketEvent(__u64 Cookie, __u8 E
 	return SocketEvent;
 }
 
+SEC("fentry/tcp_set_state")
+int BPF_PROG(on_tcp_set_state, struct sock* Sk, int Newstate)
+{
+	if (Newstate != TCP_CLOSE)
+		return 0;
+
+	struct WSocketEvent* Event = MakeSocketEvent(bpf_get_socket_cookie(Sk), NE_SocketClosed);
+
+	if (Event)
+	{
+		bpf_ringbuf_submit(Event, 0);
+	}
+	return 0;
+}
+
 SEC("cgroup/sock_create")
 int on_sock_create(struct bpf_sock* Socket)
 {
