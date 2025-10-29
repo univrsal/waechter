@@ -87,6 +87,12 @@ EEbpfInitResult WWaechterEbpf::Init()
 		return EEbpfInitResult::On_Tcp_Set_State_Failed;
 	}
 
+	if (!this->FindAndAttachPlainProgram("on_inet_sock_destruct"))
+	{
+		spdlog::critical("Failed to attach on_inet_sock_destruct.");
+		return EEbpfInitResult::On_Inet_Sock_Destruct_Failed;
+	}
+
 	Data = std::make_shared<WEbpfData>(*this);
 
 	if (!Data->IsValid())

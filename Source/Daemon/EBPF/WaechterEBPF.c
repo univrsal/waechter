@@ -48,6 +48,27 @@ int BPF_PROG(on_tcp_set_state, struct sock* Sk, int Newstate)
 	return 0;
 }
 
+SEC("fentry/inet_sock_destruct")
+int BPF_PROG(on_inet_sock_destruct, struct sock* Sk)
+{
+	bool IsTcp = Sk->sk_protocol == IPPROTO_TCP;
+	bool IsUdp = Sk->sk_protocol == IPPROTO_UDP;
+	bool IsICMP = Sk->sk_protocol == IPPROTO_ICMP;
+
+	if (!IsTcp && !IsUdp && !IsICMP)
+	{
+		// only care about TCP/UDP/ICMP sockets
+		return 0;
+	}
+	struct WSocketEvent* Event = MakeSocketEvent(bpf_get_socket_cookie(Sk), NE_SocketClosed);
+
+	if (Event)
+	{
+		bpf_ringbuf_submit(Event, 0);
+	}
+	return 0;
+}
+
 SEC("cgroup/sock_create")
 int on_sock_create(struct bpf_sock* Socket)
 {
