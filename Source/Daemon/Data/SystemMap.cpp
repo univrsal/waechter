@@ -258,7 +258,7 @@ void WSystemMap::Cleanup()
 					if (SocketInfo->GetTrafficCounter().GetState() == CS_PendingRemoval)
 					{
 						bRemovedAny = true;
-						spdlog::info("Removing socket {} from process {} ({}).", SockIt->first, ProcessMap->GetPID(), AppName);
+						spdlog::debug("Removing socket {} from process {} ({}).", SockIt->first, ProcessMap->GetPID(), AppName);
 						Sockets.erase(SockIt->first);
 						SockIt = ProcessMap->GetSockets().erase(SockIt);
 					}
@@ -274,7 +274,7 @@ void WSystemMap::Cleanup()
 
 	if (bRemovedAny)
 	{
-		spdlog::info("{} nodes remain in the system map after cleanup.", CountNodes());
+		spdlog::debug("{} nodes remain in the system map after cleanup.", CountNodes());
 	}
 }
 
@@ -302,6 +302,6 @@ int WSystemMap::CountNodes()
 		}
 	}
 
-	spdlog::info("App with most nodes: {} ({} nodes)", BiggestApp, BiggestAppCount);
+	spdlog::debug("App with most nodes: {} ({} nodes)", BiggestApp, BiggestAppCount);
 	return Sum;
 }

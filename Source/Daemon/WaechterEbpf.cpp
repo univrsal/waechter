@@ -132,12 +132,13 @@ void WWaechterEbpf::UpdateData()
 
 		/*
 		 This will also create the application/process/socket entries as needed
-		 NE_Traffic usually has PID set to 0, so for those to be properly associated with a process,
+		 NE_Traffic and NE_SocketClose usually have PID set to 0, so for those to be properly associated with a process,
 		 the daemon has to first capture the socket creation and connection events for that socket cookie.
 		 So for traffic events we fail silently if no matching socket is found because it usually just means
 		 we weren't around to capture the socket creation/connection.
 		*/
-		auto SocketInfo = WSystemMap::GetInstance().MapSocket(SocketEvent.Cookie, Tgid, SocketEvent.EventType == NE_Traffic);
+		auto const bSilentFail = SocketEvent.EventType == NE_Traffic || SocketEvent.EventType == NE_SocketClosed;
+		auto       SocketInfo = WSystemMap::GetInstance().MapSocket(SocketEvent.Cookie, Tgid, bSilentFail);
 
 		if (SocketInfo)
 		{
@@ -161,7 +162,6 @@ void WWaechterEbpf::UpdateData()
 					}
 					break;
 				case NE_SocketClosed:
-					spdlog::info("socket closed: cookie={} pid={}", SocketEvent.Cookie, Tgid);
 					WSystemMap::GetInstance().MarkSocketForRemoval(SocketEvent.Cookie);
 					break;
 				default:;
