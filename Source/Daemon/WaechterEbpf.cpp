@@ -104,6 +104,12 @@ void WWaechterEbpf::UpdateData()
 	Data->UpdateData();
 	std::lock_guard Lock(Data->SocketEvents->GetDataMutex());
 	auto&           SocketEventQueue = Data->SocketEvents->GetData();
+
+	if (SocketEventQueue.size() > 50)
+	{
+		spdlog::error("Queue for socket events is filling up, polling rate might be too low. {} events waiting", SocketEventQueue.size());
+	}
+
 	while (!SocketEventQueue.empty())
 	{
 		auto& SocketEvent = SocketEventQueue.front();
