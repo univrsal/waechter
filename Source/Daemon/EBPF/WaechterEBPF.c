@@ -30,9 +30,6 @@ static __always_inline struct WSocketEvent* MakeSocketEvent(__u64 Cookie, __u8 E
 	SocketEvent->Cookie = Cookie;
 	SocketEvent->EventType = EventType;
 
-	bpf_printk("PushSocketEvent: Cookie=%llu Event=%u PidTgId=%llu cgroup=%llu\n",
-		SocketEvent->Cookie, SocketEvent->EventType, SocketEvent->PidTgId, SocketEvent->CgroupId);
-
 	return SocketEvent;
 }
 
@@ -55,8 +52,6 @@ SEC("cgroup/sock_create")
 int on_sock_create(struct bpf_sock* Socket)
 {
 	__u64 Cookie = bpf_get_socket_cookie(Socket);
-	bpf_printk("OnSocketCreate: Cookie=%llu\n", Cookie);
-
 	__u64 PidTgid = bpf_get_current_pid_tgid();
 	__u32 Tgid = (__u32)(PidTgid >> 32);
 	if (Tgid == 0)
@@ -76,8 +71,6 @@ SEC("cgroup/connect4")
 int on_connect4(struct bpf_sock_addr* Ctx)
 {
 	__u64 Cookie = bpf_get_socket_cookie(Ctx);
-	bpf_printk("OnConnect4: Cookie=%llu\n", Cookie);
-
 	__u64 PidTgid = bpf_get_current_pid_tgid();
 	__u32 Tgid = (__u32)(PidTgid >> 32);
 	if (Tgid == 0)
@@ -103,8 +96,6 @@ SEC("cgroup/connect6")
 int on_connect6(struct bpf_sock_addr* Ctx)
 {
 	__u64 Cookie = bpf_get_socket_cookie(Ctx);
-	bpf_printk("on_connect6: cookie=%llu\n", Cookie);
-
 	__u64 PidTgid = bpf_get_current_pid_tgid();
 	__u32 Tgid = (__u32)(PidTgid >> 32);
 	if (Tgid == 0)
@@ -139,8 +130,7 @@ int BPF_PROG(socket_accept, struct socket* Sock, struct socket* NewSock)
 		return WLSM_ALLOW;
 	}
 
-	__u64 Cookie = bpf_get_socket_cookie(Socket);
-	bpf_printk("SocketAccept: Cookie=%llu\n", Cookie);
+	__u64                Cookie = bpf_get_socket_cookie(Socket);
 	struct WSocketEvent* SocketEvent = MakeSocketEvent(Cookie, NE_SocketAccept);
 	if (SocketEvent)
 	{
@@ -165,7 +155,6 @@ int cgskb_egress(struct __sk_buff* Skb)
 {
 	__u64 Cookie = bpf_get_socket_cookie(Skb);
 
-	bpf_printk("cgroup_skb/egress: cookie=%llu\n", Cookie);
 	struct WSocketEvent* SocketEvent = MakeSocketEvent(Cookie, NE_Traffic);
 	if (SocketEvent)
 	{
@@ -198,8 +187,7 @@ int cgskb_egress(struct __sk_buff* Skb)
 SEC("cgroup_skb/ingress")
 int cgskb_ingress(struct __sk_buff* Skb)
 {
-	__u64 Cookie = bpf_get_socket_cookie(Skb);
-	bpf_printk("cgroup_skb/ingress: cookie=%llu\n", Cookie);
+	__u64                Cookie = bpf_get_socket_cookie(Skb);
 	struct WSocketEvent* SocketEvent = MakeSocketEvent(Cookie, NE_Traffic);
 
 	if (SocketEvent)
@@ -229,4 +217,4 @@ int cgskb_ingress(struct __sk_buff* Skb)
 	return SK_PASS;
 }
 
-char LICENSE[] SEC("license") = "Dual BSD/GPL";
+char LICENSE[] SEC("license") = "GPL";
