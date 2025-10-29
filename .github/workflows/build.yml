@@ -44,10 +44,14 @@ jobs:
         run: |
           cmake --install build || true
 
+      - name: Get short commit
+        run: |
+          # put the short git commit into the Actions environment so it can be used in later steps
+          echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: waechter-build
+          name: waechter-ubuntu-${{ env.SHORT_SHA }}
           path: artifacts
           if-no-files-found: ignore
-
