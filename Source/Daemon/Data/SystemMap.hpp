@@ -25,6 +25,8 @@ class WSystemMap : public TSingleton<WSystemMap>, public ITrafficItem
 	// Remove exited processes and their sockets from the system map
 	void Cleanup();
 
+	int CountNodes();
+
 public:
 	WSystemMap();
 	~WSystemMap() override = default;

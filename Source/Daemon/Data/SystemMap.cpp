@@ -231,6 +231,7 @@ std::string WSystemMap::UpdateJson()
 
 void WSystemMap::Cleanup()
 {
+	bool bRemovedAny{ false };
 	for (auto& [AppName, AppMap] : Applications)
 	{
 		auto& ChildProcesses = AppMap->GetChildProcesses();
@@ -240,9 +241,10 @@ void WSystemMap::Cleanup()
 
 			if (ProcessMap->GetTrafficCounter().GetState() == CS_PendingRemoval)
 			{
-				spdlog::info("Removing process {} from application {}", ProcessMap->GetPID(), AppName);
+				bRemovedAny = true;
+				spdlog::info("Removing process {} from application {}.", ProcessMap->GetPID(), AppName);
 				// Remove sockets from system map
-				for (auto& [SocketCookie, SocketInfo] : ProcessMap->GetSockets())
+				for (const auto& SocketCookie : ProcessMap->GetSockets() | std::views::keys)
 				{
 					Sockets.erase(SocketCookie);
 				}
@@ -254,4 +256,37 @@ void WSystemMap::Cleanup()
 			}
 		}
 	}
+
+	if (bRemovedAny)
+	{
+		spdlog::info("{} nodes remain in the system map after cleanup.", CountNodes());
+	}
+}
+
+int WSystemMap::CountNodes()
+{
+	int         Sum = 0;
+	std::string BiggestApp{};
+	int         BiggestAppCount = 0;
+
+	for (auto& AppMap : Applications | std::views::values)
+	{
+		Sum += 1; // application node
+		int AppCount = 0;
+		for (auto& ProcessMap : AppMap->GetChildProcesses() | std::views::values)
+		{
+			Sum += 1;                                                 // process node
+			Sum += static_cast<int>(ProcessMap->GetSockets().size()); // socket nodes
+			AppCount += 1 + static_cast<int>(ProcessMap->GetSockets().size());
+		}
+
+		if (AppCount > BiggestAppCount)
+		{
+			BiggestApp = AppMap->GetBinaryName();
+			BiggestAppCount = AppCount;
+		}
+	}
+
+	spdlog::info("App with most nodes: {} ({} nodes)", BiggestApp, BiggestAppCount);
+	return Sum;
 }
