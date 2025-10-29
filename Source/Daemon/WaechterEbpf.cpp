@@ -119,7 +119,19 @@ void WWaechterEbpf::UpdateData()
 
 	if (SocketEventQueue.size() > 100)
 	{
-		spdlog::error("Queue for socket events is filling up, polling rate might be too low. {} events waiting", SocketEventQueue.size());
+		if (QueuePileupStartTime == 0)
+		{
+			QueuePileupStartTime = WTime::GetEpochMs();
+		}
+		else if (WTime::GetEpochMs() - QueuePileupStartTime > 5000)
+		{
+			spdlog::warn("Queue for socket events has been filling up for more than 5 seconds, polling rate might be too low. {} events waiting", SocketEventQueue.size());
+			QueuePileupStartTime = WTime::GetEpochMs(); // reset timer to avoid spamming logs
+		}
+	}
+	else
+	{
+		QueuePileupStartTime = 0;
 	}
 
 	while (!SocketEventQueue.empty())

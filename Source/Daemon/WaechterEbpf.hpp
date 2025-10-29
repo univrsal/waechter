@@ -8,6 +8,7 @@
 #include <memory>
 
 #include "EbpfObj.hpp"
+#include "Types.hpp"
 
 class WEbpfData;
 
@@ -29,9 +30,9 @@ enum class EEbpfInitResult
 
 class WWaechterEbpf : public WEbpfObj
 {
-	int InterfaceIndex{ -1 };
-
+	int                        InterfaceIndex{ -1 };
 	std::shared_ptr<WEbpfData> Data{};
+	WMsec                      QueuePileupStartTime{};
 
 public:
 	explicit WWaechterEbpf(std::string const& ProgramObjectFilePath);
