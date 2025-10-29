@@ -12,6 +12,11 @@ add_library(util STATIC
 
 target_include_directories(util PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+target_link_libraries(util PRIVATE
+        thirdparty::spdlog
+        thirdparty::deps_includes
+)
+
 target_compile_options(util PRIVATE
         -Wall -Wextra -Wpedantic
         -Wshadow -Wformat=2 -Wconversion -Wsign-conversion
