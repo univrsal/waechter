@@ -9,10 +9,32 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_subdirectory(Thirdparty)
 add_subdirectory(Source)
 
-set(WAECHTER_COMPILE_OPTIONS
-        -Wall -Wextra -Wpedantic
-        -Wshadow -Wformat=2 -Wconversion -Wsign-conversion
-        -Wnull-dereference -Wdouble-promotion -Wcast-align
-        -Wduplicated-cond -Wredundant-decls -Wpointer-arith
-        -Werror
+string(TIMESTAMP TODAY "%Y.%m.%d %H:%M")
+
+execute_process(
+        COMMAND git rev-parse --abbrev-ref HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_BRANCH
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+execute_process(
+        COMMAND git rev-parse --short HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_COMMIT_HASH
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+target_compile_definitions(waechterd PRIVATE
+        GIT_BRANCH="${GIT_BRANCH}   "
+        GIT_COMMIT_HASH="${GIT_COMMIT_HASH}"
+        WAECHTER_VERSION="${CMAKE_PROJECT_VERSION}"
+        BUILD_TIME="${TODAY}"
+)
+
+target_compile_definitions(waechter PUBLIC
+        GIT_BRANCH="${GIT_BRANCH}   "
+        GIT_COMMIT_HASH="${GIT_COMMIT_HASH}"
+        WAECHTER_VERSION="${CMAKE_PROJECT_VERSION}"
+        BUILD_TIME="${TODAY}"
+        ICON_PATH="${CMAKE_SOURCE_DIR}/Meta/Icon.png"
+        FONT_PATH="${CMAKE_SOURCE_DIR}/Thirdparty/jetbrains-mono/JetBrainsMono-Regular.ttf"
 )
