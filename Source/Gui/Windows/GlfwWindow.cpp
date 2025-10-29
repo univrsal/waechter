@@ -11,12 +11,54 @@
 #include <stb_image.h>
 #include <incbin.h>
 
+#include "Filesystem.hpp"
+
 INCBIN(Icon, ICON_PATH);
 INCBIN(Font, FONT_PATH);
 
-static void GlfwErrorCallback(int error, const char* description)
+static void GlfwErrorCallback(int Error, const char* Description)
 {
-	spdlog::error("GLFW Error {}: {}", error, description);
+	spdlog::error("GLFW Error {}: {}", Error, Description);
+}
+
+static stdfs::path GetConfigFolder()
+{
+	const char* Xdg = std::getenv("XDG_CONFIG_HOME");
+	stdfs::path Base;
+	if (Xdg && Xdg[0] != '\0')
+	{
+		Base = stdfs::path(Xdg);
+	}
+	else
+	{
+		const char* Home = std::getenv("HOME");
+		if (!Home || Home[0] == '\0')
+		{
+			spdlog::warn("Neither XDG_CONFIG_HOME nor HOME are set; cannot determine config folder");
+			return stdfs::path();
+		}
+		Base = stdfs::path(Home) / ".config";
+	}
+
+	stdfs::path Appdir = Base / "waechter";
+
+	std::error_code ec;
+	if (!stdfs::exists(Appdir))
+	{
+		if (!stdfs::create_directories(Appdir, ec))
+		{
+			spdlog::error("Failed to create config directory {}: {}", Appdir.string(), ec.message());
+			return stdfs::path(".");
+		}
+	}
+
+	if (!WFilesystem::Writable(Appdir))
+	{
+		spdlog::warn("Config directory {} is not writable", Appdir.string());
+		return stdfs::path(".");
+	}
+
+	return Appdir;
 }
 
 bool WGlfwWindow::Init()
@@ -29,7 +71,7 @@ bool WGlfwWindow::Init()
 		spdlog::critical("GLFW initialization failed!");
 		return false;
 	}
-	const char* glsl_version = "#version 130";
+	const char* GlslVersion = "#version 130";
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 	MainScale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor()); // Valid on GLFW 3.3+ only
@@ -65,27 +107,39 @@ bool WGlfwWindow::Init()
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO();
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
-	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
+	ImGuiIO& Io = ImGui::GetIO();
+	auto     Path = GetConfigFolder() / "imgui.ini";
 
-	ImFontConfig cfg;
-	cfg.OversampleH = 2;
-	cfg.OversampleV = 2;
-	cfg.PixelSnapH = true;
+	if (!Path.empty())
+	{
+		ImGuiIniPath = Path.string();
+		Io.IniFilename = ImGuiIniPath.c_str();
+	}
+	else
+	{
+		Io.IniFilename = nullptr; // disable auto-load/save
+	}
 
-	auto  fontSize = std::round(16.0f * MainScale);
-	auto* FontData = io.Fonts->AddFontFromMemoryTTF((void*)gFontData, static_cast<int>(gFontSize), fontSize, &cfg);
-	io.FontDefault = FontData;
+	Io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+	Io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+	Io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
+
+	ImFontConfig Cfg;
+	Cfg.OversampleH = 2;
+	Cfg.OversampleV = 2;
+	Cfg.PixelSnapH = true;
+
+	auto  FontSize = std::round(16.0f * MainScale);
+	auto* FontData = Io.Fonts->AddFontFromMemoryTTF((void*)gFontData, static_cast<int>(gFontSize), FontSize, &Cfg);
+	Io.FontDefault = FontData;
 	// Setup Dear ImGui style
 	ImGui::StyleColorsLight();
-	ImGuiStyle& style = ImGui::GetStyle();
-	style.ScaleAllSizes(MainScale);
-	style.FontScaleDpi = MainScale;
+	ImGuiStyle& Style = ImGui::GetStyle();
+	Style.ScaleAllSizes(MainScale);
+	Style.FontScaleDpi = MainScale;
 
 	ImGui_ImplGlfw_InitForOpenGL(Window, true);
-	ImGui_ImplOpenGL3_Init(glsl_version);
+	ImGui_ImplOpenGL3_Init(GlslVersion);
 	return true;
 }
 

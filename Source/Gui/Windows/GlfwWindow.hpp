@@ -8,6 +8,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <memory>
+#include <string>
 
 #include "Singleton.hpp"
 #include "MainWindow.hpp"
@@ -18,6 +19,9 @@ class WGlfwWindow : public TSingleton<WGlfwWindow>
 	float       MainScale{ 1.0f };
 
 	std::unique_ptr<WMainWindow> MainWindow{};
+
+	// Keep the ini filename alive for ImGui (ImGui stores a pointer to it)
+	std::string ImGuiIniPath{};
 
 public:
 	bool Init();
