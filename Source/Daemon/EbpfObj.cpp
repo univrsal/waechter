@@ -49,6 +49,14 @@ WEbpfObj::~WEbpfObj()
 		}
 	}
 
+	for (auto const& Link : Links)
+	{
+		if (bpf_link* BpfLink = std::get<0>(Link))
+		{
+			bpf_link__destroy(BpfLink);
+		}
+	}
+
 	if (Obj)
 	{
 		bpf_object__close(Obj);
@@ -62,6 +70,29 @@ bool WEbpfObj::Load()
 		return false;
 	}
 	return bpf_object__load(Obj) == 0;
+}
+
+bool WEbpfObj::FindAndAttachPlainProgram(const std::string& ProgName)
+{
+	auto* Prog = bpf_object__find_program_by_name(Obj, ProgName.c_str());
+
+	if (!Prog)
+	{
+		spdlog::critical("Program '{}' not found", ProgName);
+		return false;
+	}
+
+	bpf_link* Link = bpf_program__attach(Prog);
+
+	if (!Link)
+	{
+		spdlog::critical("Link attachment for program '{}' failed: {}", ProgName, WErrnoUtil::StrError());
+		return false;
+	}
+
+	Links.emplace_back(Link, Prog);
+
+	return true;
 }
 
 bool WEbpfObj::FindAndAttachProgram(const std::string& ProgName, bpf_attach_type AttachType, unsigned int Flags)

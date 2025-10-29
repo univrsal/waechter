@@ -29,10 +29,12 @@ struct WFdCloser
 class WEbpfObj
 {
 protected:
-	std::vector<std::tuple<bpf_program*, bpf_attach_type>> Programs{}; // attached programs
-	bpf_object*                                            Obj{};
-	std::unique_ptr<int, WFdCloser>                        CGroupFd{};
-	int                                                    XdpIfIndex{};
+	std::vector<std::tuple<bpf_program*, bpf_attach_type>>         Programs{}; // attached programs
+	std::vector<std::tuple<struct bpf_link*, struct bpf_program*>> Links{};
+
+	bpf_object*                     Obj{};
+	std::unique_ptr<int, WFdCloser> CGroupFd{};
+	int                             XdpIfIndex{};
 
 public:
 	explicit WEbpfObj(std::string ProgramObectFilePath);
@@ -40,6 +42,8 @@ public:
 	~WEbpfObj();
 
 	bool Load();
+
+	bool FindAndAttachPlainProgram(const std::string& ProgName);
 
 	bool FindAndAttachProgram(const std::string& ProgName, bpf_attach_type AttachType, unsigned int Flags = 0);
 
