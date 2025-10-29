@@ -65,7 +65,7 @@ int Run()
 			DaemonSocket.BroadcastTrafficUpdate();
 			LastTrafficUpdate = now;
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(5));
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
 	DaemonSocket.Stop();
 
