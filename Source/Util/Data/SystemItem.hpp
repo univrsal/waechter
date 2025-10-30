@@ -13,14 +13,14 @@
 
 class WSystemItem : public ITrafficItem
 {
+public:
 	std::string HostName{ "System" };
 
 	std::unordered_map<std::string, std::shared_ptr<WApplicationItem>> Applications;
 
-public:
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(ItemId, HostName, Applications);
+		archive(ItemId, HostName, Applications, DownloadSpeed, UploadSpeed);
 	}
 };

@@ -12,14 +12,14 @@
 
 class WProcessItem : public ITrafficItem
 {
+public:
 	WProcessId ProcessId{};
 
 	std::unordered_map<WSocketCookie, std::shared_ptr<WSocketItem>> Sockets;
-
-public:
 	template <class Archive>
+
 	void serialize(Archive& archive)
 	{
-		archive(ItemId, ProcessId);
+		archive(ItemId, ProcessId, Sockets, DownloadSpeed, UploadSpeed);
 	}
 };

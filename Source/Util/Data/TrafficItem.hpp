@@ -4,8 +4,13 @@
 
 #pragma once
 
-class ITrafficItem
+#include "Types.hpp"
+
+using WTrafficItemId = unsigned long long;
+
+struct ITrafficItem
 {
-protected:
-	uint64_t ItemId{};
+	WTrafficItemId  ItemId{};
+	WBytesPerSecond DownloadSpeed{};
+	WBytesPerSecond UploadSpeed{};
 };

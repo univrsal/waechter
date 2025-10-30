@@ -18,8 +18,9 @@ void WDaemonSocket::ListenThreadFunction()
 			auto NewClient = std::make_shared<WDaemonClient>(ClientSocket, this);
 			NewClient->StartListenThread();
 
-			auto TrafficJson = WSystemMap::GetInstance().ToJson();
-			NewClient->Send<WMessageTrafficTree>(TrafficJson);
+			// TODO: Re-do with cereal serialization
+			// auto TrafficJson = WSystemMap::GetInstance().ToJson();
+			// NewClient->Send<WMessageTrafficTree>(TrafficJson);
 
 			ClientsMutex.lock();
 			Clients.push_back(NewClient);
@@ -60,9 +61,10 @@ void WDaemonSocket::BroadcastTrafficUpdate()
 		return;
 	}
 
-	auto Json = SystemMap.UpdateJson();
-	for (auto& Client : Clients)
-	{
-		Client->Send<WMessageTrafficUpdate>(Json);
-	}
+	// TODO: Re-do with cereal serialization
+	// auto Json = SystemMap.UpdateJson();
+	// for (auto& Client : Clients)
+	// {
+	// 	Client->Send<WMessageTrafficUpdate>(Json);
+	// }
 }

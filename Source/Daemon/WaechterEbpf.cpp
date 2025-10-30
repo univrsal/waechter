@@ -15,7 +15,6 @@
 #include "Types.hpp"
 #include "Format.hpp"
 #include "Data/SystemMap.hpp"
-#include "Data/SocketInfo.hpp"
 
 WWaechterEbpf::WWaechterEbpf(std::string const& ProgramObectFilePath_)
 	: WEbpfObj(ProgramObectFilePath_)
@@ -157,7 +156,7 @@ void WWaechterEbpf::UpdateData()
 			switch (SocketEvent.EventType)
 			{
 				case NE_SocketCreate:
-					SocketInfo->SocketState = ESocketConnectionState::Created;
+					SocketInfo->TrafficItem->ConnectionState = ESocketConnectionState::Created;
 					break;
 				case NE_SocketConnect_4:
 				case NE_SocketConnect_6:

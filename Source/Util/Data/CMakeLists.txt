@@ -1,4 +1,5 @@
-target_sources(waechter::util
+target_sources(util
+        PRIVATE
         TrafficItem.hpp
         SystemItem.hpp
         ApplicationItem.hpp

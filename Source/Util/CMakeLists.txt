@@ -9,6 +9,7 @@ add_library(util STATIC
         Json.hpp
         Format.hpp
 )
+add_library(waechter::util ALIAS util)
 
 target_include_directories(util PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -27,5 +28,3 @@ target_compile_options(util PRIVATE
 )
 
 add_subdirectory(Data)
-
-add_library(waechter::util ALIAS util)

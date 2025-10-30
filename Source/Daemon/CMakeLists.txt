@@ -10,7 +10,6 @@ add_executable(waechterd
         EbpfData.cpp
         EbpfData.hpp
         EbpfRingBuffer.hpp
-        Data/TrafficItem.hpp
 )
 
 

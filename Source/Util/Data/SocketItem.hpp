@@ -18,13 +18,14 @@ enum class ESocketConnectionState
 
 class WSocketItem : public ITrafficItem
 {
+
+public:
 	WSocketTuple           SocketTuple{};
 	ESocketConnectionState ConnectionState{};
 
-public:
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(ItemId, SocketTuple, ConnectionState);
+		archive(ItemId, SocketTuple, ConnectionState, DownloadSpeed, UploadSpeed);
 	}
 };

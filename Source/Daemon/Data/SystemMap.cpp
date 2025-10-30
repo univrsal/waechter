@@ -5,49 +5,21 @@
 #include "SystemMap.hpp"
 
 #include <spdlog/spdlog.h>
-#include <fstream>
+
+#include "Filesystem.hpp"
+
 #include <ranges>
-#include <algorithm>
-#include <json11.hpp>
-
-#include "ApplicationMap.hpp"
-#include "ProcessMap.hpp"
-#include "SocketInfo.hpp"
-
-static std::string ReadProc(std::string const& Path)
-{
-	std::ifstream FileStream(Path, std::ios::in | std::ios::binary);
-	if (!FileStream)
-		return {};
-
-	std::ostringstream ss;
-	ss << FileStream.rdbuf();
-	std::string Content = ss.str();
-
-	if (Content.empty())
-		return "";
-
-	// replace NUL separators with spaces
-	std::ranges::replace(Content, '\0', ' ');
-
-	// remove a trailing space that comes from the final NUL (if any)
-	if (!Content.empty() && Content.back() == ' ')
-		Content.pop_back();
-
-	return Content;
-}
 
 WSystemMap::WSystemMap()
 {
-	// Get hostname
-	HostName = ReadProc("/proc/sys/kernel/hostname");
-	if (HostName.empty())
+	auto HostName = WFilesystem::ReadProc("/proc/sys/kernel/hostname");
+	if (!HostName.empty())
 	{
-		HostName = "System";
+		SystemItem->HostName = HostName;
 	}
 }
 
-std::shared_ptr<WSocketInfo> WSystemMap::MapSocket(WSocketCookie SocketCookie, WProcessId PID, bool bSilentFail)
+std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::MapSocket(WSocketCookie SocketCookie, WProcessId PID, bool bSilentFail)
 {
 	if (PID == 0)
 	{
@@ -66,8 +38,8 @@ std::shared_ptr<WSocketInfo> WSystemMap::MapSocket(WSocketCookie SocketCookie, W
 	// Read the command line from /proc/[pid]/cmdline
 	std::string CmdLinePath = "/proc/" + std::to_string(PID) + "/cmdline";
 	std::string CommPath = "/proc/" + std::to_string(PID) + "/comm";
-	auto        CmdLine = ReadProc(CmdLinePath);
-	auto        Comm = ReadProc(CommPath);
+	auto        CmdLine = WFilesystem::ReadProc(CmdLinePath);
+	auto        Comm = WFilesystem::ReadProc(CommPath);
 
 	// Remove trailing newline from Comm if present
 	if (!Comm.empty() && Comm.back() == '\n')
@@ -75,233 +47,173 @@ std::shared_ptr<WSocketInfo> WSystemMap::MapSocket(WSocketCookie SocketCookie, W
 		Comm.pop_back();
 	}
 
-	auto App = FindOrMapApplication(Comm);
-	auto Process = App->FindOrMapChildProcess(PID, CmdLine);
-	auto SocketInfo = Process->FindOrMapSocket(SocketCookie);
-
-	if (SocketInfo)
-	{
-		Sockets[SocketCookie] = SocketInfo;
-	}
-	return SocketInfo;
+	auto App = FindOrMapApplication(CmdLinePath, Comm);
+	auto Process = FindOrMapProcess(PID, App);
+	return FindOrMapSocket(SocketCookie, Process);
 }
 
-std::shared_ptr<WApplicationMap> WSystemMap::FindOrMapApplication(std::string const& AppName)
+void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
 {
-	auto It = Applications.find(AppName);
+	// TODO: This is probably not needed
+	if (Event.EventType == NE_SocketConnect_4)
+	{
+		TrafficItem->ConnectionState = ESocketConnectionState::Connecting;
+		TrafficItem->SocketTuple.Protocol = static_cast<EProtocol::Type>(Event.Data.ConnectEventData.Protocol);
+		TrafficItem->SocketTuple.RemoteEndpoint.Port = static_cast<uint16_t>(Event.Data.ConnectEventData.UserPort);
+		TrafficItem->SocketTuple.RemoteEndpoint.Address.Family = EIPFamily::IPv4;
+		TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[0] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr4 >> 24 & 0xFF);
+		TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[1] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr4 >> 16 & 0xFF);
+		TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[2] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr4 >> 8 & 0xFF);
+		TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[3] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr4 & 0xFF);
+	}
+	else if (Event.EventType == NE_SocketConnect_6)
+	{
+		TrafficItem->ConnectionState = ESocketConnectionState::Connecting;
+		TrafficItem->SocketTuple.Protocol = static_cast<EProtocol::Type>(Event.Data.ConnectEventData.Protocol);
+		TrafficItem->SocketTuple.RemoteEndpoint.Port = static_cast<uint16_t>(Event.Data.ConnectEventData.UserPort);
+		TrafficItem->SocketTuple.RemoteEndpoint.Address.Family = EIPFamily::IPv6;
+		for (unsigned long i = 0; i < 4; i++)
+		{
+			TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[i * 4 + 0] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr6[i] >> 24 & 0xFF);
+			TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[i * 4 + 1] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr6[i] >> 16 & 0xFF);
+			TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[i * 4 + 2] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr6[i] >> 8 & 0xFF);
+			TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[i * 4 + 3] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr6[i] & 0xFF);
+		}
+	}
+}
+
+std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::FindOrMapSocket(WSocketCookie SocketCookie, std::shared_ptr<WProcessCounter> const& ParentProcess)
+{
+	if (const auto It = Sockets.find(SocketCookie); It != Sockets.end())
+	{
+		return It->second;
+	}
+
+	auto SocketItem = std::make_shared<WSocketItem>();
+	auto Socket = std::make_shared<WSocketCounter>(SocketItem, ParentProcess);
+	SocketItem->ItemId = NextItemId++;
+
+	Sockets[SocketCookie] = Socket;
+	ParentProcess->TrafficItem->Sockets[SocketCookie] = SocketItem;
+
+	return Socket;
+}
+
+std::shared_ptr<WSystemMap::WProcessCounter> WSystemMap::FindOrMapProcess(WProcessId const PID, std::shared_ptr<WAppCounter> const& ParentApp)
+{
+	if (const auto It = Processes.find(PID); It != Processes.end())
+	{
+		return It->second;
+	}
+
+	auto ProcessItem = std::make_shared<WProcessItem>();
+	auto Process = std::make_shared<WProcessCounter>(ProcessItem, ParentApp);
+	ProcessItem->ItemId = NextItemId++;
+	ProcessItem->ProcessId = PID;
+
+	ParentApp->TrafficItem->Processes[PID] = ProcessItem;
+	Processes[PID] = Process;
+	return Process;
+}
+
+std::shared_ptr<WSystemMap::WAppCounter> WSystemMap::FindOrMapApplication(std::string const& AppPath, std::string const& AppName)
+{
+	auto It = Applications.find(AppPath);
 	if (It != Applications.end())
 	{
 		return It->second;
 	}
-	spdlog::debug("Mapped new application: {}", AppName);
-	auto AppMap = std::make_shared<WApplicationMap>(AppName, AppName);
-	Applications.emplace(AppName, AppMap);
-	return AppMap;
+
+	spdlog::debug("Mapped new application: {}", AppPath);
+	auto AppItem = std::make_shared<WApplicationItem>();
+	auto App = std::make_shared<WAppCounter>(AppItem);
+	AppItem->ItemId = NextItemId++;
+	AppItem->ApplicationPath = AppPath;
+	AppItem->ApplicationName = AppName;
+
+	SystemItem->Applications[AppName] = AppItem;
+	Applications[AppPath] = App;
+	return App;
 }
 
 void WSystemMap::RefreshAllTrafficCounters()
 {
 	std::lock_guard Lock(DataMutex);
-	Cleanup();
-	RefreshTrafficCounter();
-	for (auto& [AppName, AppMap] : Applications)
-	{
-		AppMap->RefreshAllTrafficCounters();
-	}
 }
 
 void WSystemMap::PushIncomingTraffic(WBytes Bytes, WSocketCookie SocketCookie)
 {
 	std::lock_guard Lock(DataMutex);
-	CountIncomingTraffic(Bytes);
+	TrafficCounter.PushIncomingTraffic(Bytes);
 
-	if (auto It = Sockets.find(SocketCookie); It != Sockets.end())
+	if (const auto It = Sockets.find(SocketCookie); It != Sockets.end())
 	{
 		auto Socket = It->second;
-		Socket->CountIncomingTraffic(Bytes);
-		if (Socket->ParentProcess)
-		{
-			Socket->ParentProcess->CountIncomingTraffic(Bytes);
-			if (Socket->ParentProcess->GetParentApplicationMap())
-			{
-				Socket->ParentProcess->GetParentApplicationMap()->CountIncomingTraffic(Bytes);
-			}
-		}
+		Socket->PushIncomingTraffic(Bytes);
+		Socket->ParentProcess->PushIncomingTraffic(Bytes);
+		Socket->ParentProcess->ParentApp->PushIncomingTraffic(Bytes);
 	}
 }
 
 void WSystemMap::PushOutgoingTraffic(WBytes Bytes, WSocketCookie SocketCookie)
 {
 	std::lock_guard Lock(DataMutex);
-	CountOutgoingTraffic(Bytes);
+	TrafficCounter.PushOutgoingTraffic(Bytes);
 
-	if (auto It = Sockets.find(SocketCookie); It != Sockets.end())
+	if (const auto It = Sockets.find(SocketCookie); It != Sockets.end())
 	{
 		auto Socket = It->second;
-		Socket->CountOutgoingTraffic(Bytes);
-		if (Socket->ParentProcess)
-		{
-			Socket->ParentProcess->CountOutgoingTraffic(Bytes);
-			if (Socket->ParentProcess->GetParentApplicationMap())
-			{
-				Socket->ParentProcess->GetParentApplicationMap()->CountOutgoingTraffic(Bytes);
-			}
-		}
+		Socket->PushOutgoingTraffic(Bytes);
+		Socket->ParentProcess->PushOutgoingTraffic(Bytes);
+		Socket->ParentProcess->ParentApp->PushOutgoingTraffic(Bytes);
 	}
-}
-
-std::string WSystemMap::ToJson()
-{
-	std::lock_guard Lock(DataMutex);
-	WJson::object   SystemTrafficTree;
-
-	SystemTrafficTree[JSON_KEY_DOWNLOAD] = GetTrafficCounter().GetDownloadSpeed();
-	SystemTrafficTree[JSON_KEY_UPLOAD] = GetTrafficCounter().GetUploadSpeed();
-	SystemTrafficTree[JSON_KEY_HOSTNAME] = HostName;
-
-	WJson::array ApplicationsArray;
-
-	for (auto& [AppName, AppMap] : Applications)
-	{
-
-		if (AppMap->GetChildProcesses().empty())
-		{
-			continue;
-		}
-		WJson::object AppJson;
-		AppMap->ToJson(AppJson);
-		ApplicationsArray.emplace_back(AppJson);
-	}
-	SystemTrafficTree[JSON_KEY_APPS] = ApplicationsArray;
-
-	return WJson(SystemTrafficTree).dump();
-}
-
-std::string WSystemMap::UpdateJson()
-{
-	std::lock_guard Lock(DataMutex);
-	WJson::array    UpdateItems;
-
-	auto MakeUpdateItem = [&](ITrafficItem const& Item, WJson::object& OutJson) {
-		OutJson[JSON_KEY_TYPE] = MT_TrafficData;
-		OutJson[JSON_KEY_ID] = static_cast<double>(Item.GetItemId());
-		OutJson[JSON_KEY_DOWNLOAD] = Item.GetTrafficCounter().GetDownloadSpeed();
-		OutJson[JSON_KEY_UPLOAD] = Item.GetTrafficCounter().GetUploadSpeed();
-	};
-
-	WJson::object SystemUpdate;
-	SystemUpdate[JSON_KEY_TYPE] = MT_TrafficData;
-	SystemUpdate[JSON_KEY_DOWNLOAD] = GetTrafficCounter().GetDownloadSpeed();
-	SystemUpdate[JSON_KEY_UPLOAD] = GetTrafficCounter().GetUploadSpeed();
-	SystemUpdate[JSON_KEY_ID] = 0; // system/root node ID is 0
-	UpdateItems.emplace_back(SystemUpdate);
-
-	for (auto& AppMap : Applications | std::views::values)
-	{
-		if (!AppMap->HasNewData())
-		{
-			continue;
-		}
-		WJson::object AppJson;
-		MakeUpdateItem(*AppMap, AppJson);
-		UpdateItems.emplace_back(AppJson);
-		for (auto& ProcessMap : AppMap->GetChildProcesses() | std::views::values)
-		{
-			if (!ProcessMap->HasNewData())
-			{
-				continue;
-			}
-			WJson::object ProcJson;
-			MakeUpdateItem(*ProcessMap, ProcJson);
-			UpdateItems.emplace_back(ProcJson);
-			for (auto& SocketInfo : ProcessMap->GetSockets() | std::views::values)
-			{
-				if (!SocketInfo->HasNewData())
-				{
-					continue;
-				}
-				WJson::object SockJson;
-				MakeUpdateItem(*SocketInfo, SockJson);
-				UpdateItems.emplace_back(SockJson);
-			}
-		}
-	}
-	return WJson(UpdateItems).dump();
 }
 
 void WSystemMap::Cleanup()
 {
 	bool bRemovedAny{ false };
-	for (auto& [AppName, AppMap] : Applications)
-	{
-		auto& ChildProcesses = AppMap->GetChildProcesses();
-		for (auto It = ChildProcesses.begin(); It != ChildProcesses.end();)
-		{
-			auto& ProcessMap = It->second;
 
-			if (ProcessMap->GetTrafficCounter().GetState() == CS_PendingRemoval)
+	for (auto ProcessIt = Processes.begin(); ProcessIt != Processes.end();)
+	{
+		auto& Process = ProcessIt->second;
+		if (Process->GetState() == CS_PendingRemoval)
+		{
+			bRemovedAny = true;
+			spdlog::info("Removing process {}.", ProcessIt->first);
+
+			// When cleaning up a process we have to
+			//  - Remove all its sockets from the Sockets map
+			//  - Remove the process from its parent application's Processes map
+			//  - Remove the process from the Processes map
+			for (const auto& SocketCookie : Process->TrafficItem->Sockets | std::views::keys)
 			{
-				bRemovedAny = true;
-				spdlog::info("Removing process {} from application {}.", ProcessMap->GetPID(), AppName);
-				// Remove sockets from system map
-				for (const auto& SocketCookie : ProcessMap->GetSockets() | std::views::keys)
-				{
-					Sockets.erase(SocketCookie);
-				}
-				It = ChildProcesses.erase(It);
+				Sockets.erase(SocketCookie);
 			}
-			else
-			{
-				for (auto SockIt = ProcessMap->GetSockets().begin(); SockIt != ProcessMap->GetSockets().end();)
-				{
-					auto& SocketInfo = SockIt->second;
-					if (SocketInfo->GetTrafficCounter().GetState() == CS_PendingRemoval)
-					{
-						bRemovedAny = true;
-						spdlog::debug("Removing socket {} from process {} ({}).", SockIt->first, ProcessMap->GetPID(), AppName);
-						Sockets.erase(SockIt->first);
-						SockIt = ProcessMap->GetSockets().erase(SockIt);
-					}
-					else
-					{
-						++SockIt;
-					}
-				}
-				++It;
-			}
+
+			Process->ParentApp->TrafficItem->Processes.erase(ProcessIt->first);
+			ProcessIt = Processes.erase(ProcessIt);
+		}
+	}
+
+	for (auto SocketIt = Sockets.begin(); SocketIt != Sockets.end();)
+	{
+		auto& Socket = SocketIt->second;
+		if (Socket->GetState() == CS_PendingRemoval)
+		{
+			bRemovedAny = true;
+			spdlog::info("Removing socket {}.", SocketIt->first);
+
+			// When cleaning up a socket we have to
+			//  - Remove it from its parent process's Sockets map
+			//  - Remove it from the Sockets map
+			Socket->ParentProcess->TrafficItem->Sockets.erase(SocketIt->first);
+			SocketIt = Sockets.erase(SocketIt);
 		}
 	}
 
 	if (bRemovedAny)
 	{
-		spdlog::debug("{} nodes remain in the system map after cleanup.", CountNodes());
+		auto NodeCount = Applications.size() + Processes.size() + Sockets.size();
+		spdlog::debug("{} nodes remain in the system map after cleanup.", NodeCount);
 	}
-}
-
-int WSystemMap::CountNodes()
-{
-	int         Sum = 0;
-	std::string BiggestApp{};
-	int         BiggestAppCount = 0;
-
-	for (auto& AppMap : Applications | std::views::values)
-	{
-		Sum += 1; // application node
-		int AppCount = 0;
-		for (auto& ProcessMap : AppMap->GetChildProcesses() | std::views::values)
-		{
-			Sum += 1;                                                 // process node
-			Sum += static_cast<int>(ProcessMap->GetSockets().size()); // socket nodes
-			AppCount += 1 + static_cast<int>(ProcessMap->GetSockets().size());
-		}
-
-		if (AppCount > BiggestAppCount)
-		{
-			BiggestApp = AppMap->GetBinaryName();
-			BiggestAppCount = AppCount;
-		}
-	}
-
-	spdlog::debug("App with most nodes: {} ({} nodes)", BiggestApp, BiggestAppCount);
-	return Sum;
 }

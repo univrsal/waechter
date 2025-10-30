@@ -12,15 +12,15 @@
 
 class WApplicationItem : public ITrafficItem
 {
+public:
 	std::string ApplicationName;
 	std::string ApplicationPath;
 
 	std::unordered_map<WProcessId, std::shared_ptr<WProcessItem>> Processes;
 
-public:
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(ItemId, ApplicationName, ApplicationPath, Processes);
+		archive(ItemId, ApplicationName, ApplicationPath, Processes, DownloadSpeed, UploadSpeed);
 	}
 };

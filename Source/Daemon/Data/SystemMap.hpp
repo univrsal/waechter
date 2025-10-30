@@ -7,26 +7,70 @@
 #include <unordered_map>
 #include <mutex>
 
-#include "TrafficItem.hpp"
+#include "EBPFCommon.h"
 #include "Types.hpp"
 #include "Singleton.hpp"
-#include "SocketInfo.hpp"
 #include "TrafficCounter.hpp"
+#include "Data/SystemItem.hpp"
 
-class WSocketInfo;
-class WApplicationMap;
-
-class WSystemMap : public TSingleton<WSystemMap>, public ITrafficItem
+/**
+ * Both the client and the daemon need a tree of applications, processes, and sockets
+ * but the daemon also needs to maintain global traffic counters and mappings.
+ * We split this into two trees. SystemItem is the root for the tree
+ * that gets serialized and sent to the client. The structure of this tree is
+ * shared between the client and daemon.
+ *
+ * The Other tree is built using the maps defined in this class each node containing
+ * a traffic counter and a shared pointer to the corresponding node in the SystemItem tree.
+ */
+class WSystemMap : public TSingleton<WSystemMap>
 {
-	// binary path -> application map
-	std::unordered_map<std::string, std::shared_ptr<WApplicationMap>> Applications;
-	std::unordered_map<WSocketCookie, std::shared_ptr<WSocketInfo>>   Sockets;
+public:
+	struct WAppCounter : TTrafficCounter<WApplicationItem>
+	{
+		explicit WAppCounter(std::shared_ptr<WApplicationItem> const& Item)
+			: TTrafficCounter(Item)
+		{
+		}
+	};
 
-	std::string HostName{ "System" };
-	// Remove exited processes and their sockets from the system map
+	struct WProcessCounter : TTrafficCounter<WProcessItem>
+	{
+		explicit WProcessCounter(std::shared_ptr<WProcessItem> const& Item, std::shared_ptr<WAppCounter> const& ParentApp_)
+			: TTrafficCounter(Item)
+			, ParentApp(ParentApp_)
+		{
+		}
+		std::shared_ptr<WAppCounter> ParentApp;
+	};
+
+	struct WSocketCounter : TTrafficCounter<WSocketItem>
+	{
+		explicit WSocketCounter(std::shared_ptr<WSocketItem> const& Item, std::shared_ptr<WProcessCounter> const& ParentProcess_)
+			: TTrafficCounter(Item)
+			, ParentProcess(ParentProcess_)
+		{
+		}
+
+		void ProcessSocketEvent(WSocketEvent const& Event);
+
+		std::shared_ptr<WProcessCounter> ParentProcess;
+	};
+
+private:
+	WTrafficItemId               NextItemId{ 1 }; // 0 is the root item
+	std::shared_ptr<WSystemItem> SystemItem = std::make_shared<WSystemItem>();
+	TTrafficCounter<WSystemItem> TrafficCounter{ SystemItem };
+
+	std::unordered_map<std::string, std::shared_ptr<WAppCounter>>      Applications{};
+	std::unordered_map<WProcessId, std::shared_ptr<WProcessCounter>>   Processes{};
+	std::unordered_map<WSocketCookie, std::shared_ptr<WSocketCounter>> Sockets{};
+
+	std::shared_ptr<WSocketCounter>  FindOrMapSocket(WSocketCookie SocketCookie, std::shared_ptr<WProcessCounter> const& ParentProcess);
+	std::shared_ptr<WProcessCounter> FindOrMapProcess(WProcessId PID, const std::shared_ptr<WAppCounter>& ParentApp);
+	std::shared_ptr<WAppCounter>     FindOrMapApplication(std::string const& AppPath, std::string const& AppName);
+
 	void Cleanup();
-
-	int CountNodes();
 
 public:
 	WSystemMap();
@@ -34,18 +78,7 @@ public:
 
 	std::mutex DataMutex;
 
-	std::shared_ptr<WSocketInfo> MapSocket(WSocketCookie SocketCookie, WProcessId PID, bool bSilentFail = false);
-
-	std::shared_ptr<WApplicationMap> FindOrMapApplication(std::string const& AppName);
-
-	void MarkSocketForRemoval(WSocketCookie SocketCookie)
-	{
-		std::lock_guard Lock(DataMutex);
-		if (auto It = Sockets.find(SocketCookie); It != Sockets.end())
-		{
-			It->second->MarkForRemoval();
-		}
-	}
+	std::shared_ptr<WSocketCounter> MapSocket(WSocketCookie SocketCookie, WProcessId PID, bool bSilentFail = false);
 
 	void RefreshAllTrafficCounters();
 
@@ -53,16 +86,27 @@ public:
 
 	void PushOutgoingTraffic(WBytes Bytes, WSocketCookie SocketCookie);
 
-	std::string ToJson();
+	void MarkSocketForRemoval(WSocketCookie SocketCookie)
+	{
+		if (const auto It = Sockets.find(SocketCookie); It != Sockets.end())
+		{
+			It->second->MarkForRemoval();
+		}
+	}
 
 	double GetDownloadSpeed() const
 	{
-		return GetTrafficCounter().GetDownloadSpeed();
+		return SystemItem->DownloadSpeed;
 	}
 
 	double GetUploadSpeed() const
 	{
-		return GetTrafficCounter().GetUploadSpeed();
+		return SystemItem->UploadSpeed;
+	}
+
+	bool HasNewData() const
+	{
+		return TrafficCounter.GetState() == CS_Active;
 	}
 
 	std::string UpdateJson();
