@@ -16,16 +16,14 @@ enum class ESocketConnectionState
 	Closed
 };
 
-class WSocketItem : public ITrafficItem
+struct WSocketItem : ITrafficItem
 {
-
-public:
 	WSocketTuple           SocketTuple{};
 	ESocketConnectionState ConnectionState{};
 
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(ItemId, SocketTuple, ConnectionState, DownloadSpeed, UploadSpeed);
+		archive(ItemId, DownloadSpeed, UploadSpeed, ConnectionState, SocketTuple);
 	}
 };

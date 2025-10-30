@@ -21,6 +21,6 @@ public:
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(ItemId, ApplicationName, ApplicationPath, Processes, DownloadSpeed, UploadSpeed);
+		archive(ItemId, DownloadSpeed, UploadSpeed, ApplicationName, ApplicationPath, Processes);
 	}
 };

@@ -10,7 +10,7 @@
 #include "SocketItem.hpp"
 #include "Types.hpp"
 
-class WProcessItem : public ITrafficItem
+struct WProcessItem : ITrafficItem
 {
 public:
 	WProcessId ProcessId{};
@@ -20,6 +20,6 @@ public:
 
 	void serialize(Archive& archive)
 	{
-		archive(ItemId, ProcessId, Sockets, DownloadSpeed, UploadSpeed);
+		archive(ItemId, DownloadSpeed, UploadSpeed, ProcessId, Sockets);
 	}
 };
