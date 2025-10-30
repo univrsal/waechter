@@ -33,5 +33,6 @@ Gui:
 
 Daemon -> Gui:
 
+- [ ] switch from json to cereal
 - [x] Send traffic tree updates
 - [ ] Add/remove tree entries
