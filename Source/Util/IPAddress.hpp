@@ -75,6 +75,12 @@ struct WIPAddress
 
 		return false;
 	}
+
+	template <class Archive>
+	void serialize(Archive& archive)
+	{
+		archive(Bytes, Family);
+	}
 };
 
 struct WEndpoint
@@ -90,6 +96,12 @@ struct WEndpoint
 		}
 		return Address.to_string() + ":" + std::to_string(Port);
 	}
+
+	template <class Archive>
+	void serialize(Archive& archive)
+	{
+		archive(Address, Port);
+	}
 };
 
 struct WSocketTuple
@@ -97,4 +109,10 @@ struct WSocketTuple
 	WEndpoint       LocalEndpoint{};
 	WEndpoint       RemoteEndpoint{};
 	EProtocol::Type Protocol{ EProtocol::TCP };
+
+	template <class Archive>
+	void serialize(Archive& archive)
+	{
+		archive(LocalEndpoint, RemoteEndpoint, Protocol);
+	}
 };

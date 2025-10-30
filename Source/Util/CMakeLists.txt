@@ -14,6 +14,7 @@ target_include_directories(util PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(util PRIVATE
         thirdparty::spdlog
+        thirdparty::cereal
         thirdparty::deps_includes
 )
 
@@ -24,5 +25,7 @@ target_compile_options(util PRIVATE
         -Wduplicated-cond -Wredundant-decls -Wpointer-arith
         -Werror
 )
+
+add_subdirectory(Data)
 
 add_library(waechter::util ALIAS util)
