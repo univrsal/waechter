@@ -109,5 +109,8 @@ public:
 		return TrafficCounter.GetState() == CS_Active;
 	}
 
-	std::string UpdateJson();
+	std::shared_ptr<WSystemItem> GetSystemItem()
+	{
+		return SystemItem;
+	}
 };

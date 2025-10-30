@@ -55,12 +55,8 @@ public:
 		return ClientSocket;
 	}
 
-	template <class T, typename... Args>
-	ssize_t Send(Args&&... Args_)
+	ssize_t SendData(WBuffer& Buffer)
 	{
-		SendBuffer.Reset();
-		T Msg(std::forward<Args>(Args_)...);
-		Msg.Serialize(SendBuffer);
-		return ClientSocket->Send(SendBuffer);
+		return ClientSocket->Send(Buffer);
 	}
 };

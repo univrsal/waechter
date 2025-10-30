@@ -28,7 +28,7 @@ pkg_check_modules(LIBBPF REQUIRED libbpf)
 target_include_directories(waechterd PRIVATE ${LIBBPF_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(waechterd PRIVATE ${LIBBPF_LIBRARIES}
-        waechter::util thirdparty::spdlog thirdparty::inih thirdparty::json11 thirdparty::deps_includes
+        waechter::util thirdparty::spdlog thirdparty::inih thirdparty::json11 thirdparty::cereal thirdparty::deps_includes
 )
 
 add_subdirectory(EBPF)

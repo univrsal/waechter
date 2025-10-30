@@ -2,13 +2,18 @@
 
 #include <filesystem>
 #include <spdlog/spdlog.h>
+#include <cereal/types/array.hpp>
+#include <cereal/types/unordered_map.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/string.hpp>
+#include <cereal/archives/binary.hpp>
 
-#include "Json.hpp"
 #include "Messages.hpp"
 #include "Data/SystemMap.hpp"
 
 void WDaemonSocket::ListenThreadFunction()
 {
+	WBuffer Buffer;
 	while (Running)
 	{
 		bool bTimedOut = false;
@@ -18,9 +23,18 @@ void WDaemonSocket::ListenThreadFunction()
 			auto NewClient = std::make_shared<WDaemonClient>(ClientSocket, this);
 			NewClient->StartListenThread();
 
-			// TODO: Re-do with cereal serialization
-			// auto TrafficJson = WSystemMap::GetInstance().ToJson();
-			// NewClient->Send<WMessageTrafficTree>(TrafficJson);
+			// create a binary stream for cereal to write to
+			std::ostringstream Os(std::ios::binary);
+			{
+				Os << MT_TrafficTree;
+				cereal::BinaryOutputArchive Archive(Os);
+				auto&                       SystemMap = WSystemMap::GetInstance();
+				Archive(SystemMap.GetSystemItem());
+			}
+
+			Buffer.Resize(Os.str().size());
+			std::memcpy(Buffer.GetData(), Os.str().data(), Os.str().size());
+			NewClient->SendData(Buffer);
 
 			ClientsMutex.lock();
 			Clients.push_back(NewClient);

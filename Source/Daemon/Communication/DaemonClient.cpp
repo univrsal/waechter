@@ -16,20 +16,18 @@ void WDaemonClient::ListenThreadFunction()
 			break;
 		}
 
-		auto Msg = ReadFromBuffer(Buf);
-		if (!Msg)
+		auto Type = ReadMessageTypeFromBuffer(Buf);
+		if (Type == MT_Invalid)
 		{
+			spdlog::warn("Received invalid message type from daemon");
 			continue;
 		}
 
-		switch (Msg->GetType())
+		switch (Type)
 		{
 			case MT_SetTcpLimit:
 			{
-				if (auto const TCPMsg = std::static_pointer_cast<WMessageSetTCPLimit>(Msg))
-				{
-					// TODO: Implement
-				}
+				// TODO: implement
 				break;
 			}
 			default:
