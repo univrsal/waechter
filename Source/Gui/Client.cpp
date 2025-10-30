@@ -38,35 +38,27 @@ void WClient::ConnectionThreadFunction()
 			continue;
 		}
 
-		auto Msg = ReadFromBuffer(Buf);
+		auto Type = ReadMessageTypeFromBuffer(Buf);
 
-		if (!Msg)
+		if (Type == MT_Invalid)
 		{
-			spdlog::error("Failed to parse message from server");
+			spdlog::error("Received invalid message type from server");
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			continue;
 		}
 
-		switch (Msg->GetType())
+		switch (Type)
 		{
 			case MT_TrafficTree:
 			{
-				if (auto const TrafficMsg = std::static_pointer_cast<WMessageTrafficTree>(Msg))
-				{
-					TrafficTree.LoadFromJson(TrafficMsg->Json);
-				}
 				break;
 			}
 			case MT_TrafficUpdate:
 			{
-				if (auto const TrafficMsg = std::static_pointer_cast<WMessageTrafficUpdate>(Msg))
-				{
-					TrafficTree.UpdateFromJson(TrafficMsg->Json);
-				}
 				break;
 			}
 			default:
-				spdlog::warn("Received unknown message type from server: {}", static_cast<int>(Msg->GetType()));
+				spdlog::warn("Received unknown message type from server: {}", static_cast<int>(Type));
 				break;
 		}
 	}
