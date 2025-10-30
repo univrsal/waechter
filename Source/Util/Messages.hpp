@@ -12,187 +12,24 @@
 #define WMESSAGE(clazz, type) \
 	clazz() : WMessage(type) {}
 
-enum EMessageType : uint8_t
+enum EMessageType : int8_t
 {
-	MT_Traffic,
+	MT_Invalid = -1,
 	MT_TrafficTree,
 	MT_TrafficUpdate,
 	MT_SetTcpLimit,
 };
 
-class WMessage
-{
-	EMessageType Type{};
-
-public:
-	explicit WMessage(EMessageType T)
-		: Type(T)
-	{
-	}
-
-	WMessage(WMessage const&) = default;
-	virtual ~WMessage() = default;
-
-	virtual void Serialize(WBuffer& Buf) const
-	{
-		Buf.Write(Type);
-	}
-
-	virtual void Deserialize(WBuffer& Buf) = 0;
-
-	[[nodiscard]] EMessageType GetType() const
-	{
-		return Type;
-	}
-};
-
-class WMessageTraffic : public WMessage
-{
-public:
-	size_t        Length{};
-	WSocketCookie SocketCookie{};
-
-	EPacketDirection Direction{};
-
-	~WMessageTraffic() override = default;
-
-	WMESSAGE(WMessageTraffic, MT_Traffic)
-
-	WMessageTraffic(WSocketCookie Cookie, size_t Len, EPacketDirection Dir)
-		: WMessage(MT_Traffic)
-		, Length(Len)
-		, SocketCookie(Cookie)
-		, Direction(Dir)
-	{
-	}
-
-	void Serialize(WBuffer& Buf) const override
-	{
-		WMessage::Serialize(Buf);
-		Buf.Write(SocketCookie);
-		Buf.Write(Length);
-		Buf.Write(Direction);
-	}
-
-	void Deserialize(WBuffer& Buf) override
-	{
-		Buf.Read(SocketCookie);
-		Buf.Read(Length);
-		Buf.Read(Direction);
-	}
-};
-
-class WMessageSetTCPLimit : public WMessage
-{
-public:
-	WSocketCookie    SocketCookie{};
-	WBytesPerSecond  Limit{};
-	EPacketDirection Direction{};
-
-	~WMessageSetTCPLimit() override = default;
-
-	WMESSAGE(WMessageSetTCPLimit, MT_SetTcpLimit)
-
-	WMessageSetTCPLimit(WSocketCookie SocketCookie_, WBytesPerSecond Limit_, EPacketDirection Direction_)
-		: WMessage(MT_SetTcpLimit)
-		, SocketCookie(SocketCookie_)
-		, Limit(Limit_)
-		, Direction(Direction_)
-	{
-	}
-
-	void Serialize(WBuffer& buf) const override
-	{
-		WMessage::Serialize(buf);
-		buf.Write(SocketCookie);
-		buf.Write(Limit);
-		buf.Write(Direction);
-	}
-
-	void Deserialize(WBuffer& Buf) override
-	{
-		Buf.Read(SocketCookie);
-		Buf.Read(Limit);
-		Buf.Read(Direction);
-	}
-};
-
-template <EMessageType T>
-class WMessageJsonBase : public WMessage
-{
-public:
-	std::string Json{};
-
-	WMessageJsonBase()
-		: WMessage(T)
-	{
-	}
-
-	explicit WMessageJsonBase(std::string Json_)
-		: WMessage(T)
-		, Json(std::move(Json_))
-	{
-	}
-
-	~WMessageJsonBase() override = default;
-
-	void Serialize(WBuffer& Buf) const override
-	{
-		WMessage::Serialize(Buf);
-		Buf.Write<std::size_t>(Json.length());
-		if (Json.empty())
-			return;
-		Buf.Write(Json.c_str(), Json.size());
-	}
-
-	void Deserialize(WBuffer& Buf) override
-	{
-		auto Length = std::size_t{};
-		Buf.Read(Length);
-		if (Length == 0)
-		{
-			Json.clear();
-			return;
-		}
-		Json.resize(Length);
-		Buf.Read(&Json[0], Length);
-	}
-};
-
-using WMessageTrafficTree = WMessageJsonBase<MT_TrafficTree>;
-using WMessageTrafficUpdate = WMessageJsonBase<MT_TrafficUpdate>;
-
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 
-static std::shared_ptr<WMessage> ReadFromBuffer(WBuffer& Buf)
+static EMessageType ReadMessageTypeFromBuffer(WBuffer& Buf)
 {
 	EMessageType Type;
 	if (!Buf.Read(Type))
 	{
-		return nullptr;
+		return MT_Invalid;
 	}
 
-	std::shared_ptr<WMessage> Msg{};
-	switch (Type)
-	{
-		case MT_Traffic:
-			Msg = std::make_shared<WMessageTraffic>();
-			Msg->Deserialize(Buf);
-			break;
-		case MT_SetTcpLimit:
-			Msg = std::make_shared<WMessageSetTCPLimit>();
-			Msg->Deserialize(Buf);
-			break;
-		case MT_TrafficTree:
-			Msg = std::make_shared<WMessageTrafficTree>();
-			Msg->Deserialize(Buf);
-			break;
-		case MT_TrafficUpdate:
-			Msg = std::make_shared<WMessageTrafficUpdate>();
-			Msg->Deserialize(Buf);
-			break;
-	}
-
-	return Msg;
+	return Type;
 }
