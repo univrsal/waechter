@@ -3,14 +3,18 @@
 //
 
 #pragma once
+#include <string>
+#include <unordered_map>
 
-#pragma once
 #include "TrafficItem.hpp"
+#include "SocketItem.hpp"
 #include "Types.hpp"
 
 class WProcessItem : public ITrafficItem
 {
 	WProcessId ProcessId{};
+
+	std::unordered_map<WSocketCookie, std::shared_ptr<WSocketItem>> Sockets;
 
 public:
 	template <class Archive>

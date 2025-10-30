@@ -5,17 +5,22 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
+#include <memory>
 
 #include "TrafficItem.hpp"
+#include "ApplicationItem.hpp"
 
 class WSystemItem : public ITrafficItem
 {
 	std::string HostName{ "System" };
 
+	std::unordered_map<std::string, std::shared_ptr<WApplicationItem>> Applications;
+
 public:
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(ItemId, HostName);
+		archive(ItemId, HostName, Applications);
 	}
 };
