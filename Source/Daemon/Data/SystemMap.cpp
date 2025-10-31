@@ -139,6 +139,21 @@ std::shared_ptr<WSystemMap::WAppCounter> WSystemMap::FindOrMapApplication(std::s
 void WSystemMap::RefreshAllTrafficCounters()
 {
 	std::lock_guard Lock(DataMutex);
+	TrafficCounter.Refresh();
+	for (const auto& App : Applications | std::views::values)
+	{
+		App->Refresh();
+	}
+
+	for (const auto& Process : Processes | std::views::values)
+	{
+		Process->Refresh();
+	}
+
+	for (const auto& Socket : Sockets | std::views::values)
+	{
+		Socket->Refresh();
+	}
 }
 
 void WSystemMap::PushIncomingTraffic(WBytes Bytes, WSocketCookie SocketCookie)
