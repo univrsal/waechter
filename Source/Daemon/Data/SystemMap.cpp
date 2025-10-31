@@ -139,6 +139,7 @@ std::shared_ptr<WSystemMap::WAppCounter> WSystemMap::FindOrMapApplication(std::s
 void WSystemMap::RefreshAllTrafficCounters()
 {
 	std::lock_guard Lock(DataMutex);
+	Cleanup();
 	TrafficCounter.Refresh();
 	for (const auto& App : Applications | std::views::values)
 	{
@@ -188,6 +189,8 @@ WTrafficTreeUpdates WSystemMap::GetUpdates()
 {
 	WTrafficTreeUpdates Updates{};
 
+	Updates.RemovedItems = RemovedItems;
+
 	if (TrafficCounter.GetState() == CS_Active)
 	{
 		Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{ SystemItem->ItemId,
@@ -234,8 +237,13 @@ void WSystemMap::Cleanup()
 
 	for (auto ProcessIt = Processes.begin(); ProcessIt != Processes.end();)
 	{
-		auto& Process = ProcessIt->second;
-		if (Process->GetState() == CS_PendingRemoval)
+		auto PID = ProcessIt->first;
+		if (!WFilesystem::IsProcessRunning(PID))
+		{
+			ProcessIt->second->MarkForRemoval();
+		}
+
+		if (auto const& Process = ProcessIt->second; Process->DueForRemoval())
 		{
 			bRemovedAny = true;
 			spdlog::info("Removing process {}.", ProcessIt->first);
@@ -244,29 +252,38 @@ void WSystemMap::Cleanup()
 			//  - Remove all its sockets from the Sockets map
 			//  - Remove the process from its parent application's Processes map
 			//  - Remove the process from the Processes map
-			for (const auto& SocketCookie : Process->TrafficItem->Sockets | std::views::keys)
+			for (auto const& [SocketCookie, Socket] : Process->TrafficItem->Sockets)
 			{
 				Sockets.erase(SocketCookie);
+				RemovedItems.emplace_back(Socket->ItemId);
 			}
 
 			Process->ParentApp->TrafficItem->Processes.erase(ProcessIt->first);
+			RemovedItems.emplace_back(ProcessIt->second->TrafficItem->ItemId);
 			ProcessIt = Processes.erase(ProcessIt);
+		}
+		else
+		{
+			++ProcessIt;
 		}
 	}
 
 	for (auto SocketIt = Sockets.begin(); SocketIt != Sockets.end();)
 	{
-		auto& Socket = SocketIt->second;
-		if (Socket->GetState() == CS_PendingRemoval)
+		if (auto const& Socket = SocketIt->second; Socket->DueForRemoval())
 		{
 			bRemovedAny = true;
-			spdlog::info("Removing socket {}.", SocketIt->first);
 
 			// When cleaning up a socket we have to
 			//  - Remove it from its parent process's Sockets map
 			//  - Remove it from the Sockets map
 			Socket->ParentProcess->TrafficItem->Sockets.erase(SocketIt->first);
+			RemovedItems.emplace_back(Socket->TrafficItem->ItemId);
 			SocketIt = Sockets.erase(SocketIt);
+		}
+		else
+		{
+			++SocketIt;
 		}
 	}
 

@@ -71,6 +71,9 @@ private:
 	std::shared_ptr<WProcessCounter> FindOrMapProcess(WProcessId PID, const std::shared_ptr<WAppCounter>& ParentApp);
 	std::shared_ptr<WAppCounter>     FindOrMapApplication(std::string const& AppPath, std::string const& AppName);
 
+	std::vector<WTrafficItemId> MarkedForRemovalItems;
+	std::vector<WTrafficItemId> RemovedItems;
+
 	void Cleanup();
 
 public:
