@@ -215,10 +215,7 @@ void WTrafficTree::Draw()
 
 	auto RenderItem = [&](std::string const& Name, const ITrafficItem* Item, ImGuiTreeNodeFlags NodeFlags) {
 		ImGui::TableSetColumnIndex(0);
-		if (!ImGui::TreeNodeEx(Name.c_str(), NodeFlags))
-		{
-			return false;
-		}
+		auto bNodeOpen = ImGui::TreeNodeEx(Name.c_str(), NodeFlags);
 
 		if (Item->DownloadSpeed > 0)
 		{
@@ -239,7 +236,7 @@ void WTrafficTree::Draw()
 		ImGui::TableSetColumnIndex(4);
 		// placeholder: add a UploadLimit field to WSystemItem to show real values
 		ImGui::TextDisabled("-");
-		return true;
+		return bNodeOpen;
 	};
 
 	bool bOpened{};
