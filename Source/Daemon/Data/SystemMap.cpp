@@ -228,6 +228,7 @@ WTrafficTreeUpdates WSystemMap::GetUpdates()
 		}
 	}
 
+	RemovedItems.clear();
 	return Updates;
 }
 
