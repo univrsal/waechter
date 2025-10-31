@@ -50,9 +50,6 @@ void WMainWindow::Draw()
 	ImGui::SetNextWindowPos(ImVec2(0, 0));
 	ImGui::SetNextWindowSize(display_size);
 
-	// Optional: remove window decorations and background if you want a full overlay
-	// ImGuiWindowFlags window_flags =
-	// ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoDecoration;
 	auto Main = ImGui::DockSpaceOverViewport();
 
 	if (ImGui::BeginMainMenuBar())
