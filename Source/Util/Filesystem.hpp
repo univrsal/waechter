@@ -4,12 +4,20 @@
 
 #pragma once
 
+#include "ErrnoUtil.hpp"
 #include "Types.hpp"
 
 #include <filesystem>
 #include <fstream>
 #include <algorithm>
+#include <pwd.h>
 #include <signal.h>
+#include <sys/stat.h>
+#include <spdlog/spdlog.h>
+#include <grp.h>
+#include <unistd.h>
+#include <cstdlib>
+#include <sys/types.h>
 
 namespace stdfs = std::filesystem;
 
@@ -79,5 +87,45 @@ public:
 		if (IsProcessRunningByKill(PID))
 			return true;
 		return IsProcessRunningByProc(PID);
+	}
+
+	static bool SetSocketOwnerAndPermsByName(std::string const& Path, std::string const& User, std::string const& Group, mode_t Mode)
+	{
+		uid_t Uid{};
+		gid_t Gid{};
+
+		if (passwd* Pw = getpwnam(User.c_str()))
+		{
+			Uid = Pw->pw_uid;
+		}
+		else
+		{
+			spdlog::error("user '{}' not found", User);
+			return false;
+		}
+
+		if (group* Gr = getgrnam(Group.c_str()))
+		{
+			Gid = Gr->gr_gid;
+		}
+		else
+		{
+			spdlog::error("group '{}' not found", Group);
+			return false;
+		}
+
+		if (chown(Path.c_str(), Uid, Gid) != 0)
+		{
+			spdlog::error("chown({}) failed: {} ({})", Path, WErrnoUtil::StrError(), errno);
+			return false;
+		}
+
+		if (chmod(Path.c_str(), Mode) != 0)
+		{
+			spdlog::error("chmod({}) failed: {} ({})", Path, WErrnoUtil::StrError(), errno);
+			return false;
+		}
+
+		return true;
 	}
 };

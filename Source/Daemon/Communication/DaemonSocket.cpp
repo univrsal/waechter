@@ -60,6 +60,12 @@ bool WDaemonSocket::StartListenThread()
 	{
 		return false;
 	}
+
+	auto const& Cfg = WDaemonConfig::GetInstance();
+	if (!WFilesystem::SetSocketOwnerAndPermsByName(SocketPath, Cfg.DaemonUser, Cfg.DaemonGroup, Cfg.DaemonSocketMode))
+	{
+		return false;
+	}
 	Running = true;
 	ListenThread = std::thread(&WDaemonSocket::ListenThreadFunction, this);
 	return true;

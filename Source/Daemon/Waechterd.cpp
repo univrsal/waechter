@@ -10,6 +10,7 @@
 #include "SignalHandler.hpp"
 #include "DaemonConfig.hpp"
 #include "EbpfData.hpp"
+#include "ErrnoUtil.hpp"
 #include "WaechterEbpf.hpp"
 #include "Communication/DaemonSocket.hpp"
 #include "Data/SystemMap.hpp"
@@ -36,12 +37,17 @@ int Run()
 		return -1;
 	}
 
+	if (!DaemonSocket.StartListenThread())
+	{
+		spdlog::error("Failed to bind and listen on daemon socket: {} ({})", WErrnoUtil::StrError(), errno);
+		return -1;
+	}
+
 	if (!WDaemonConfig::GetInstance().DropPrivileges())
 	{
 		spdlog::error("Failed to drop privileges");
 		return -1;
 	}
-	DaemonSocket.StartListenThread();
 
 	spdlog::info("Ebpf programs loaded and attached");
 
