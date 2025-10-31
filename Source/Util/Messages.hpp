@@ -1,16 +1,6 @@
 #pragma once
 
-#include <unistd.h>
-#include <memory>
-#include <utility>
-
-#include "IPAddress.hpp"
 #include "Buffer.hpp"
-#include "Types.hpp"
-#include "EBPFCommon.h"
-
-#define WMESSAGE(clazz, type) \
-	clazz() : WMessage(type) {}
 
 enum EMessageType : int8_t
 {
