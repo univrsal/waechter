@@ -188,6 +188,13 @@ WTrafficTreeUpdates WSystemMap::GetUpdates()
 {
 	WTrafficTreeUpdates Updates{};
 
+	if (TrafficCounter.GetState() == CS_Active)
+	{
+		Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{ SystemItem->ItemId,
+			SystemItem->DownloadSpeed,
+			SystemItem->UploadSpeed });
+	}
+
 	for (const auto& App : Applications | std::views::values)
 	{
 		if (App->GetState() == CS_Active)

@@ -83,6 +83,8 @@ void WTrafficTree::LoadFromBuffer(WBuffer const& Buffer)
 			}
 		}
 	}
+
+	TrafficItems[0] = &Root;
 }
 
 void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
@@ -271,7 +273,7 @@ void WTrafficTree::Draw()
 		{
 			ImGui::TableNextRow();
 			ImGui::PushID(PID); // PID fits in int on Linux
-			bOpened = RenderItem(fmt::format("Process {}", PID), Process.get(), ImGuiTreeNodeFlags_DefaultOpen);
+			bOpened = RenderItem(fmt::format("Process {}", PID), Process.get(), 0);
 
 			if (!bOpened)
 			{
