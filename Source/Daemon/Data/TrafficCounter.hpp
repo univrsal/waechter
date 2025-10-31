@@ -8,6 +8,7 @@ enum ECounterState
 	CS_Inactive,       // No traffic activity during the last time window
 	CS_Active,         // Traffic activity during the last time window
 	CS_PendingRemoval, // Process has quit
+	CS_Removed
 };
 
 template <typename T>
@@ -58,11 +59,23 @@ public:
 
 		if (auto const TimeStampMS = WTime::GetEpochMs(); TimeStampMS - TimeWindowStart >= RecentTrafficTimeWindow)
 		{
-			TrafficItem->DownloadSpeed = static_cast<double>(RecentDownload) / (static_cast<double>(RecentTrafficTimeWindow) / 1000.0);
+			auto NewDownloadSpeed = static_cast<double>(RecentDownload) / (static_cast<double>(RecentTrafficTimeWindow) / 1000.0);
 			RecentDownload = 0;
-			TrafficItem->UploadSpeed = static_cast<double>(RecentUpload) / (RecentTrafficTimeWindow / 1000.0);
+			auto NewUploadSpeed = static_cast<double>(RecentUpload) / (RecentTrafficTimeWindow / 1000.0);
 			RecentUpload = 0;
 			TimeWindowStart = TimeStampMS;
+
+			if (std::abs(NewDownloadSpeed - TrafficItem->DownloadSpeed) > 0.01)
+			{
+				TrafficItem->DownloadSpeed = NewDownloadSpeed;
+				State = CS_Active;
+			}
+
+			if (std::abs(NewUploadSpeed - TrafficItem->UploadSpeed) > 0.01)
+			{
+				TrafficItem->UploadSpeed = NewUploadSpeed;
+				State = CS_Active;
+			}
 
 			if (State != CS_PendingRemoval)
 			{
