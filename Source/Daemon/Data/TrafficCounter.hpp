@@ -19,6 +19,7 @@ protected:
 	WBytes RecentDownload{};
 
 	WMsec TimeWindowStart{};
+	WMsec RemovalTimeStamp{};
 
 	ECounterState State{ CS_Inactive };
 
@@ -65,20 +66,19 @@ public:
 			RecentUpload = 0;
 			TimeWindowStart = TimeStampMS;
 
-			if (std::abs(NewDownloadSpeed - TrafficItem->DownloadSpeed) > 0.01)
-			{
-				TrafficItem->DownloadSpeed = NewDownloadSpeed;
-				State = CS_Active;
-			}
-
-			if (std::abs(NewUploadSpeed - TrafficItem->UploadSpeed) > 0.01)
-			{
-				TrafficItem->UploadSpeed = NewUploadSpeed;
-				State = CS_Active;
-			}
-
 			if (State != CS_PendingRemoval)
 			{
+				if (std::abs(NewDownloadSpeed - TrafficItem->DownloadSpeed) > 0.01)
+				{
+					TrafficItem->DownloadSpeed = NewDownloadSpeed;
+					State = CS_Active;
+				}
+
+				if (std::abs(NewUploadSpeed - TrafficItem->UploadSpeed) > 0.01)
+				{
+					TrafficItem->UploadSpeed = NewUploadSpeed;
+					State = CS_Active;
+				}
 				if (TrafficItem->DownloadSpeed < 1)
 				{
 					State = CS_Inactive;
@@ -101,6 +101,16 @@ public:
 
 	void MarkForRemoval()
 	{
+		if (State == CS_PendingRemoval || State == CS_Removed)
+		{
+			return;
+		}
 		State = CS_PendingRemoval;
+		RemovalTimeStamp = WTime::GetEpochMs() + RemovalTimeWindow;
+	}
+
+	bool DueForRemoval()
+	{
+		return State == CS_PendingRemoval && WTime::GetEpochMs() >= RemovalTimeStamp;
 	}
 };
