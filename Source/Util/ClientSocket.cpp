@@ -1,3 +1,4 @@
+#include "ErrnoUtil.hpp"
 #include "Socket.hpp"
 #include "../../Thirdparty/spdlog/include/spdlog/spdlog.h"
 #include <sys/ioctl.h>
@@ -44,6 +45,7 @@ bool WClientSocket::Connect()
 	// Connect to the server
 	if (connect(SocketFd, reinterpret_cast<struct sockaddr*>(&Addr), sizeof(Addr)) == -1)
 	{
+		spdlog::debug("Failed to connect to socket {}: {} ({})", SocketPath, WErrnoUtil::StrError(), errno);
 		return false;
 	}
 	State = ES_Connected;
@@ -67,7 +69,6 @@ ssize_t WClientSocket::Send(WBuffer const& Buf)
 		}
 		return true;
 	};
-
 	auto Result = send(SocketFd, Buf.GetData(), Buf.GetWritePos(), 0);
 	Check(Result);
 	return Result;
