@@ -96,6 +96,8 @@ std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::FindOrMapSocket(WSocketC
 	Sockets[SocketCookie] = Socket;
 	ParentProcess->TrafficItem->Sockets[SocketCookie] = SocketItem;
 
+	AddedSockets.emplace_back(Socket);
+
 	return Socket;
 }
 
@@ -228,6 +230,24 @@ WTrafficTreeUpdates WSystemMap::GetUpdates()
 		}
 	}
 
+	for (const auto& Socket : AddedSockets)
+	{
+		if (Socket->GetState() == CS_Removed || Socket->GetState() == CS_PendingRemoval)
+		{
+			// No point in sending additions for sockets that are being removed
+			continue;
+		}
+
+		Updates.AddedSockets.emplace_back(WTrafficTreeSocketAddition{
+			Socket->TrafficItem->ItemId,
+			Socket->ParentProcess->TrafficItem->ProcessId,
+			Socket->ParentProcess->ParentApp->TrafficItem->ApplicationPath,
+			Socket->ParentProcess->ParentApp->TrafficItem->ApplicationName,
+			Socket->TrafficItem->SocketTuple,
+			Socket->TrafficItem->ConnectionState });
+	}
+
+	AddedSockets.clear();
 	RemovedItems.clear();
 	return Updates;
 }
