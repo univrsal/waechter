@@ -34,7 +34,10 @@ void WClient::ConnectionThreadFunction()
 
 		if (!bDataToRead)
 		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(250));
+			for (int i = 0; i < 5 && Running; ++i)
+			{
+				std::this_thread::sleep_for(std::chrono::milliseconds(50));
+			}
 			continue;
 		}
 
@@ -51,6 +54,7 @@ void WClient::ConnectionThreadFunction()
 		{
 			case MT_TrafficTree:
 			{
+				TrafficTree.LoadFromBuffer(Buf);
 				break;
 			}
 			case MT_TrafficUpdate:
