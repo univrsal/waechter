@@ -57,8 +57,9 @@ void WClient::ConnectionThreadFunction()
 				TrafficTree.LoadFromBuffer(Buf);
 				break;
 			}
-			case MT_TrafficUpdate:
+			case MT_TrafficTreeUpdate:
 			{
+				TrafficTree.UpdateFromBuffer(Buf);
 				break;
 			}
 			default:

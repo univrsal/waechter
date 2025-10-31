@@ -4,20 +4,65 @@
 
 #include "TrafficTree.hpp"
 
-#include "Format.hpp"
+// ReSharper disable CppUnusedIncludeDirective
 
 #include <imgui.h>
-// ReSharper disable CppUnusedIncludeDirective
-#include "Messages.hpp"
-
 #include <cereal/types/array.hpp>
+#include <cereal/types/vector.hpp>
 #include <cereal/types/unordered_map.hpp>
 #include <cereal/types/memory.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/archives/binary.hpp>
 
+#include "Format.hpp"
+#include "Messages.hpp"
+#include "Data/TrafficTreeUpdate.hpp"
+
+#include <ranges>
+
+template <class K, class V>
+static bool TryRemoveFromMap(std::unordered_map<K, V>& Map, WTrafficItemId TrafficItemId)
+{
+	for (auto It = Map.begin(); It != Map.end(); ++It)
+	{
+		if (It->second->ItemId == TrafficItemId)
+		{
+			Map.erase(It);
+			return true;
+		}
+	}
+	return false;
+}
+
+// This isn't exactly efficient, we should probably have something
+// along the lines of ITrafficItem->Parent->RemoveChild or similar.
+void WTrafficTree::RemoveTrafficItem(WTrafficItemId TrafficItemId)
+{
+	if (TryRemoveFromMap(Root.Applications, TrafficItemId))
+	{
+		return;
+	}
+
+	for (auto& [AppName, App] : Root.Applications)
+	{
+		if (TryRemoveFromMap(App->Processes, TrafficItemId))
+		{
+			return;
+		}
+
+		for (auto& [PID, Proc] : App->Processes)
+		{
+			if (TryRemoveFromMap(Proc->Sockets, TrafficItemId))
+			{
+				return;
+			}
+		}
+	}
+}
+
 void WTrafficTree::LoadFromBuffer(WBuffer const& Buffer)
 {
+	TrafficItems.clear();
 	std::stringstream ss;
 	ss.write(Buffer.GetData(), static_cast<long int>(Buffer.GetWritePos()));
 	{
@@ -25,10 +70,86 @@ void WTrafficTree::LoadFromBuffer(WBuffer const& Buffer)
 		cereal::BinaryInputArchive iar(ss);
 		iar(Root);
 	}
+
+	for (const auto& App : Root.Applications | std::views::values)
+	{
+		TrafficItems[App->ItemId] = App.get();
+		for (const auto& Proc : App->Processes | std::views::values)
+		{
+			TrafficItems[Proc->ItemId] = Proc.get();
+			for (const auto& Sock : Proc->Sockets | std::views::values)
+			{
+				TrafficItems[Sock->ItemId] = Sock.get();
+			}
+		}
+	}
 }
 
-void WTrafficTree::UpdateFromBuffer(WBuffer const&)
+void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 {
+	WTrafficTreeUpdates Updates{};
+	std::stringstream   ss;
+	ss.write(Buffer.GetData(), static_cast<long int>(Buffer.GetWritePos()));
+	{
+		ss.seekg(1); // Skip message type
+		cereal::BinaryInputArchive iar(ss);
+		iar(Updates);
+	}
+
+	for (const auto& RemovedId : Updates.RemovedItems)
+	{
+		if (TrafficItems.contains(RemovedId))
+		{
+			TrafficItems.erase(RemovedId);
+		}
+		RemoveTrafficItem(RemovedId);
+	}
+
+	for (const auto& Update : Updates.UpdatedItems)
+	{
+		if (const auto It = TrafficItems.find(Update.ItemId); It != TrafficItems.end())
+		{
+			It->second->DownloadSpeed = Update.NewDownloadSpeed;
+			It->second->UploadSpeed = Update.NewUploadSpeed;
+		}
+	}
+
+	for (const auto& Addition : Updates.AddedSockets)
+	{
+		// Find parent application
+		auto AppIt = Root.Applications.find(Addition.ApplicationPath);
+		if (AppIt == Root.Applications.end())
+		{
+			// Add new application if not found
+			auto NewApp = std::make_shared<WApplicationItem>();
+			NewApp->ApplicationName = Addition.ApplicationName;
+			NewApp->ApplicationPath = Addition.ApplicationPath;
+			Root.Applications[Addition.ApplicationPath] = NewApp;
+			AppIt = Root.Applications.find(Addition.ApplicationPath);
+		}
+		auto& App = AppIt->second;
+
+		// Find parent process
+		auto ProcIt = App->Processes.find(Addition.ProcessId);
+		if (ProcIt == App->Processes.end())
+		{
+			// Add new process if not found
+			auto NewProc = std::make_shared<WProcessItem>();
+			NewProc->ProcessId = Addition.ProcessId;
+			App->Processes[Addition.ProcessId] = NewProc;
+			ProcIt = App->Processes.find(Addition.ProcessId);
+		}
+
+		auto& Proc = ProcIt->second;
+
+		// Create new socket item
+		auto NewSocket = std::make_shared<WSocketItem>();
+		NewSocket->ItemId = Addition.ItemId;
+		NewSocket->SocketTuple = Addition.SocketTuple;
+		NewSocket->ConnectionState = Addition.ConnectionState;
+		Proc->Sockets[Addition.ItemId] = NewSocket;
+		TrafficItems[Addition.ItemId] = NewSocket.get();
+	}
 }
 
 void WTrafficTree::Draw()

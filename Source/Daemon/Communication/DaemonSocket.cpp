@@ -9,6 +9,7 @@
 #include "Filesystem.hpp"
 
 #include <cereal/types/array.hpp>
+#include <cereal/types/vector.hpp>
 #include <cereal/types/unordered_map.hpp>
 #include <cereal/types/memory.hpp>
 #include <cereal/types/string.hpp>
@@ -89,10 +90,21 @@ void WDaemonSocket::BroadcastTrafficUpdate()
 		return;
 	}
 
-	// TODO: Re-do with cereal serialization
-	// auto Json = SystemMap.UpdateJson();
-	// for (auto& Client : Clients)
-	// {
-	// 	Client->Send<WMessageTrafficUpdate>(Json);
-	// }
+	WTrafficTreeUpdates Updates = SystemMap.GetUpdates();
+
+	std::stringstream Os{};
+	{
+		Os << MT_TrafficTreeUpdate;
+		cereal::BinaryOutputArchive Archive(Os);
+		Archive(Updates);
+	}
+
+	for (const auto& Client : Clients)
+	{
+		WBuffer Buffer{};
+		Buffer.Resize(Os.str().size());
+		Buffer.SetWritingPos(Os.str().size());
+		std::memcpy(Buffer.GetData(), Os.str().data(), Os.str().size());
+		Client->SendData(Buffer);
+	}
 }

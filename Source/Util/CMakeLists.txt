@@ -8,6 +8,7 @@ add_library(util STATIC
         ClientSocket.cpp
         Json.hpp
         Format.hpp
+        Data/TrafficTreeUpdate.hpp
 )
 add_library(waechter::util ALIAS util)
 

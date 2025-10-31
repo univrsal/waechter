@@ -184,6 +184,43 @@ void WSystemMap::PushOutgoingTraffic(WBytes Bytes, WSocketCookie SocketCookie)
 	}
 }
 
+WTrafficTreeUpdates WSystemMap::GetUpdates()
+{
+	WTrafficTreeUpdates Updates{};
+
+	for (const auto& App : Applications | std::views::values)
+	{
+		if (App->GetState() == CS_Active)
+		{
+			Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{ App->TrafficItem->ItemId,
+				App->TrafficItem->DownloadSpeed,
+				App->TrafficItem->UploadSpeed });
+		}
+	}
+
+	for (const auto& Process : Processes | std::views::values)
+	{
+		if (Process->GetState() == CS_Active)
+		{
+			Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{ Process->TrafficItem->ItemId,
+				Process->TrafficItem->DownloadSpeed,
+				Process->TrafficItem->UploadSpeed });
+		}
+	}
+
+	for (const auto& Socket : Sockets | std::views::values)
+	{
+		if (Socket->GetState() == CS_Active)
+		{
+			Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{ Socket->TrafficItem->ItemId,
+				Socket->TrafficItem->DownloadSpeed,
+				Socket->TrafficItem->UploadSpeed });
+		}
+	}
+
+	return Updates;
+}
+
 void WSystemMap::Cleanup()
 {
 	bool bRemovedAny{ false };

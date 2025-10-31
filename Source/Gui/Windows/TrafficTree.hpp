@@ -15,7 +15,9 @@ class WTrafficTree
 
 	ETrafficUnit Unit = TU_MiBps;
 
-	uint64_t TreeNodeCounter = 0;
+	std::unordered_map<WTrafficItemId, ITrafficItem*> TrafficItems;
+
+	void RemoveTrafficItem(WTrafficItemId TrafficItemId);
 
 public:
 	WTrafficTree() = default;

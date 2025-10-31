@@ -12,6 +12,7 @@
 #include "Singleton.hpp"
 #include "TrafficCounter.hpp"
 #include "Data/SystemItem.hpp"
+#include "Data/TrafficTreeUpdate.hpp"
 
 /**
  * Both the client and the daemon need a tree of applications, processes, and sockets
@@ -113,4 +114,6 @@ public:
 	{
 		return SystemItem;
 	}
+
+	WTrafficTreeUpdates GetUpdates();
 };
