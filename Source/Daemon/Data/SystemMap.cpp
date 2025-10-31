@@ -47,7 +47,7 @@ std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::MapSocket(WSocketCookie 
 		Comm.pop_back();
 	}
 
-	auto App = FindOrMapApplication(CmdLinePath, Comm);
+	auto App = FindOrMapApplication(CmdLine, Comm);
 	auto Process = FindOrMapProcess(PID, App);
 	return FindOrMapSocket(SocketCookie, Process);
 }
