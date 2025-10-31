@@ -255,6 +255,11 @@ void WTrafficTree::Draw()
 
 	for (const auto& [Name, Child] : Root.Applications)
 	{
+		if (Child->Processes.empty())
+		{
+			continue;
+		}
+
 		ImGui::TableNextRow();
 		// Stable ID: application name within root
 		ImGui::PushID(Name.c_str());
