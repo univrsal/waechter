@@ -2,6 +2,12 @@
 
 #include <filesystem>
 #include <spdlog/spdlog.h>
+
+// ReSharper disable CppUnusedIncludeDirective
+#include "DaemonConfig.hpp"
+#include "ErrnoUtil.hpp"
+#include "Filesystem.hpp"
+
 #include <cereal/types/array.hpp>
 #include <cereal/types/unordered_map.hpp>
 #include <cereal/types/memory.hpp>
@@ -24,15 +30,17 @@ void WDaemonSocket::ListenThreadFunction()
 			NewClient->StartListenThread();
 
 			// create a binary stream for cereal to write to
-			std::ostringstream Os(std::ios::binary);
+			std::stringstream Os{};
 			{
+				auto& SystemMap = WSystemMap::GetInstance();
 				Os << MT_TrafficTree;
 				cereal::BinaryOutputArchive Archive(Os);
-				auto&                       SystemMap = WSystemMap::GetInstance();
-				Archive(SystemMap.GetSystemItem());
+				Archive(*SystemMap.GetSystemItem());
 			}
 
 			Buffer.Resize(Os.str().size());
+			Buffer.SetWritingPos(Os.str().size());
+			spdlog::info("Sending {} bytes of traffic tree data to client", Os.str().size());
 			std::memcpy(Buffer.GetData(), Os.str().data(), Os.str().size());
 			NewClient->SendData(Buffer);
 

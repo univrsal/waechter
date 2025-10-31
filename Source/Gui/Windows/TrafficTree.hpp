@@ -5,41 +5,22 @@
 #pragma once
 #include "Format.hpp"
 
-#include <string>
-#include <vector>
-#include <memory>
-
+#include "Buffer.hpp"
 #include "Types.hpp"
-
-#include <unordered_map>
-
-struct WTrafficTreeNode
-{
-	std::string     Name{};
-	std::string     Tooltip{};
-	WBytesPerSecond Upload{};
-	WBytesPerSecond Download{};
-	WBytesPerSecond UploadLimit{};
-	WBytesPerSecond DownloadLimit{};
-	bool            bPendingRemoval = false;
-
-	std::vector<std::shared_ptr<WTrafficTreeNode>> Children{};
-};
+#include "Data/SystemItem.hpp"
 
 class WTrafficTree
 {
-	WTrafficTreeNode Root{};
+	WSystemItem Root{};
 
 	ETrafficUnit Unit = TU_MiBps;
 
 	uint64_t TreeNodeCounter = 0;
 
-	std::unordered_map<uint64_t, std::shared_ptr<WTrafficTreeNode>> Nodes{};
-
 public:
 	WTrafficTree() = default;
 
-	void LoadFromJson(std::string const& Json);
-	void UpdateFromJson(std::string const& Json);
+	void LoadFromBuffer(WBuffer const& Buffer);
+	void UpdateFromBuffer(WBuffer const& Buffer);
 	void Draw();
 };
