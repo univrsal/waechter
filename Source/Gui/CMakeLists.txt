@@ -54,6 +54,9 @@ if (_license_defs)
     target_compile_definitions(waechter PRIVATE ${_license_defs})
 endif ()
 
-
 install(TARGETS waechter
         RUNTIME DESTINATION bin)
+
+target_compile_definitions(waechter PRIVATE
+        $<$<CONFIG:Debug>:WDEBUG>
+)
