@@ -38,6 +38,7 @@ struct WTrafficTreeSocketAddition
 
 struct WTrafficTreeUpdates
 {
+	std::vector<WTrafficItemId>             MarkedForRemovalItems;
 	std::vector<WTrafficItemId>             RemovedItems;
 	std::vector<WTrafficTreeTrafficUpdate>  UpdatedItems;
 	std::vector<WTrafficTreeSocketAddition> AddedSockets;
@@ -45,6 +46,6 @@ struct WTrafficTreeUpdates
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(RemovedItems, UpdatedItems, AddedSockets);
+		archive(RemovedItems, MarkedForRemovalItems, UpdatedItems, AddedSockets);
 	}
 };

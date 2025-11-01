@@ -5,8 +5,9 @@
 #pragma once
 #include "Format.hpp"
 
+#include <unordered_set>
+
 #include "Buffer.hpp"
-#include "Types.hpp"
 #include "Data/SystemItem.hpp"
 
 class WTrafficTree
@@ -16,6 +17,7 @@ class WTrafficTree
 	ETrafficUnit Unit = TU_MiBps;
 
 	std::unordered_map<WTrafficItemId, ITrafficItem*> TrafficItems;
+	std::unordered_set<WTrafficItemId>                MarkedForRemovalItems;
 
 	void RemoveTrafficItem(WTrafficItemId TrafficItemId);
 

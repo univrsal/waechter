@@ -97,6 +97,7 @@ public:
 		if (const auto It = Sockets.find(SocketCookie); It != Sockets.end())
 		{
 			It->second->MarkForRemoval();
+			MarkedForRemovalItems.emplace_back(It->second->TrafficItem->ItemId);
 		}
 	}
 

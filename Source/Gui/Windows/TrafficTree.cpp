@@ -38,6 +38,7 @@ static bool TryRemoveFromMap(std::unordered_map<K, V>& Map, WTrafficItemId Traff
 // along the lines of ITrafficItem->Parent->RemoveChild or similar.
 void WTrafficTree::RemoveTrafficItem(WTrafficItemId TrafficItemId)
 {
+	MarkedForRemovalItems.erase(TrafficItemId);
 	if (TryRemoveFromMap(Root.Applications, TrafficItemId))
 	{
 		return;
@@ -96,6 +97,11 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 		ss.seekg(1); // Skip message type
 		cereal::BinaryInputArchive iar(ss);
 		iar(Updates);
+	}
+
+	for (const auto& MarkedId : Updates.MarkedForRemovalItems)
+	{
+		MarkedForRemovalItems.insert(MarkedId);
 	}
 
 	for (const auto& RemovedId : Updates.RemovedItems)
@@ -215,7 +221,18 @@ void WTrafficTree::Draw()
 
 	auto RenderItem = [&](std::string const& Name, const ITrafficItem* Item, ImGuiTreeNodeFlags NodeFlags) {
 		ImGui::TableSetColumnIndex(0);
+
+		if (MarkedForRemovalItems.contains(Item->ItemId))
+		{
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{ 1.0f, 0.4f, 0.4f, 1.0f });
+		}
+
 		auto bNodeOpen = ImGui::TreeNodeEx(Name.c_str(), NodeFlags);
+
+		if (MarkedForRemovalItems.contains(Item->ItemId))
+		{
+			ImGui::PopStyleColor();
+		}
 
 		if (Item->DownloadSpeed > 0)
 		{

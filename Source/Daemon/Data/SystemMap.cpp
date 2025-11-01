@@ -192,6 +192,7 @@ WTrafficTreeUpdates WSystemMap::GetUpdates()
 	WTrafficTreeUpdates Updates{};
 
 	Updates.RemovedItems = RemovedItems;
+	Updates.MarkedForRemovalItems = MarkedForRemovalItems;
 
 	if (TrafficCounter.GetState() == CS_Active)
 	{
@@ -249,6 +250,7 @@ WTrafficTreeUpdates WSystemMap::GetUpdates()
 
 	AddedSockets.clear();
 	RemovedItems.clear();
+	MarkedForRemovalItems.clear();
 	return Updates;
 }
 
@@ -262,6 +264,7 @@ void WSystemMap::Cleanup()
 		if (!WFilesystem::IsProcessRunning(PID))
 		{
 			ProcessIt->second->MarkForRemoval();
+			MarkedForRemovalItems.emplace_back(ProcessIt->second->TrafficItem->ItemId);
 		}
 
 		if (auto const& Process = ProcessIt->second; Process->DueForRemoval())
@@ -294,6 +297,8 @@ void WSystemMap::Cleanup()
 		if (auto const& Socket = SocketIt->second; Socket->DueForRemoval())
 		{
 			bRemovedAny = true;
+
+			spdlog::info("Removing socket {}", SocketIt->first);
 
 			// When cleaning up a socket we have to
 			//  - Remove it from its parent process's Sockets map
