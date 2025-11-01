@@ -130,6 +130,7 @@ bool WGlfwWindow::Init()
 	Cfg.OversampleH = 2;
 	Cfg.OversampleV = 2;
 	Cfg.PixelSnapH = true;
+	Cfg.FontDataOwnedByAtlas = false; // font data comes from static incbin; do not let ImGui free it
 
 	auto  FontSize = std::round(16.0f * MainScale);
 	auto* FontData = Io.Fonts->AddFontFromMemoryTTF((void*)gFontData, static_cast<int>(gFontSize), FontSize, &Cfg);
@@ -143,7 +144,6 @@ bool WGlfwWindow::Init()
 	ImGui_ImplGlfw_InitForOpenGL(Window, true);
 	ImGui_ImplOpenGL3_Init(GlslVersion);
 
-	MainWindow->Init();
 	return true;
 }
 
@@ -181,8 +181,23 @@ void WGlfwWindow::RunLoop()
 	MainWindow = nullptr;
 }
 
-WGlfwWindow::~WGlfwWindow()
+void WGlfwWindow::Destroy()
 {
+	MainWindow = nullptr;
+	if (ImGui::GetCurrentContext())
+	{
+		ImGuiIO& io = ImGui::GetIO();
+		if (io.IniFilename && io.IniFilename[0] != '\0')
+		{
+			ImGui::SaveIniSettingsToDisk(io.IniFilename);
+		}
+	}
+
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImPlot::DestroyContext();
+	ImGui::DestroyContext();
+
 	glfwDestroyWindow(Window);
 	glfwTerminate();
 }

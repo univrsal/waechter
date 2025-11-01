@@ -22,5 +22,6 @@ int main()
 		return -1;
 	}
 	WGlfwWindow::GetInstance().RunLoop();
+	WGlfwWindow::GetInstance().Destroy();
 	return 0;
 }

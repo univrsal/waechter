@@ -7,6 +7,8 @@
 #include "imgui_internal.h"
 
 #include <imgui.h>
+#include <fstream>
+#include <string>
 
 void WMainWindow::DrawConnectionIndicator()
 {
@@ -41,9 +43,32 @@ void WMainWindow::DrawConnectionIndicator()
 		ImGui::SetTooltip(Client.IsConnected() ? "Connected to daemon" : "Not connected to daemon");
 	}
 }
-void WMainWindow::Init()
+
+void WMainWindow::Init(ImGuiID Main)
 {
 	LogWindow.AttachToSpdlog();
+	// Build default dock layout only if the dockspace has no restored layout:
+	// - node is null (no dockspace yet)
+	// - or node is a leaf AND has no windows (no splits/restored docks)
+	ImGuiDockNode* Node = ImGui::DockBuilderGetNode(Main);
+	bool           bNeedDefaultLayout = (Node == nullptr) || ((Node->ChildNodes[0] == nullptr && Node->ChildNodes[1] == nullptr) && Node->Windows.empty());
+
+	if (bNeedDefaultLayout)
+	{
+		if (Node == nullptr)
+		{
+			ImGui::DockBuilderRemoveNode(Main);
+			ImGui::DockBuilderAddNode(Main, ImGuiDockNodeFlags_DockSpace);
+		}
+
+		ImGuiID DockIdMain = Main;
+		ImGuiID DockIdDown = ImGui::DockBuilderSplitNode(DockIdMain, ImGuiDir_Down, 0.25f, nullptr, &DockIdMain);
+		ImGui::DockBuilderDockWindow("Traffic Tree", DockIdMain);
+		ImGui::DockBuilderDockWindow("Log", DockIdDown);
+		ImGui::DockBuilderDockWindow("Network activity", DockIdDown);
+		ImGui::DockBuilderFinish(Main);
+	}
+	bInit = true;
 }
 
 void WMainWindow::Draw()
@@ -68,27 +93,15 @@ void WMainWindow::Draw()
 		ImGui::EndMainMenuBar();
 	}
 
-	auto Main = ImGui::DockSpaceOverViewport();
+	ImGuiID Main = ImGui::DockSpaceOverViewport();
 
 	if (!bInit)
 	{
-		if (ImGui::DockBuilderGetNode(Main) == nullptr)
-		{
-			ImGui::DockBuilderRemoveNode(Main);
-			ImGui::DockBuilderAddNode(Main, ImGuiDockNodeFlags_DockSpace);
-		}
-
-		ImGuiID dock_main_id = Main;
-		ImGuiID dock_id_down = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.25f, nullptr, &dock_main_id);
-
-		ImGui::DockBuilderDockWindow("Traffic Tree", dock_main_id);
-		ImGui::DockBuilderDockWindow("Log", dock_id_down);
-		ImGui::DockBuilderDockWindow("Network activity", dock_id_down);
-		ImGui::DockBuilderFinish(Main);
-		bInit = true;
+		Init(Main);
 	}
 
-	Client.GetTrafficTree().Draw();
+	// Create windows so they can be saved/restored by ImGui ini
+	Client.GetTrafficTree().Draw(Main);
 	LogWindow.Draw();
 	NetworkGraphWindow.Draw();
 	AboutDialog.Draw();

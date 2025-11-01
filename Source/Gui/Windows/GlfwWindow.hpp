@@ -28,10 +28,12 @@ public:
 
 	void RunLoop();
 
-	~WGlfwWindow() override;
+	~WGlfwWindow() override = default;
 
 	WMainWindow* GetMainWindow()
 	{
 		return MainWindow.get();
 	}
+
+	void Destroy();
 };
