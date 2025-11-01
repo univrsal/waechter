@@ -113,7 +113,7 @@ public:
 
 	bool HasNewData() const
 	{
-		return TrafficCounter.GetState() == CS_Active;
+		return TrafficCounter.GetState() == CS_Active || !AddedSockets.empty() || !RemovedItems.empty() || !MarkedForRemovalItems.empty();
 	}
 
 	std::shared_ptr<WSystemItem> GetSystemItem()
