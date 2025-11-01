@@ -302,8 +302,6 @@ void WSystemMap::Cleanup()
 		{
 			bRemovedAny = true;
 
-			spdlog::info("Removing socket {}", SocketIt->first);
-
 			// When cleaning up a socket we have to
 			//  - Remove it from its parent process's Sockets map
 			//  - Remove it from the Sockets map
