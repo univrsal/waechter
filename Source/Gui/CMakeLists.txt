@@ -2,6 +2,8 @@ add_executable(waechter
         Client.cpp
         Client.hpp
         Waechter.cpp
+        Windows/DetailsWindow.cpp
+        Windows/DetailsWindow.hpp
 )
 
 add_subdirectory(Windows)

@@ -7,6 +7,7 @@
 #include "Client.hpp"
 #include "LogWindow.hpp"
 #include "NetworkGraphWindow.hpp"
+#include "DetailsWindow.hpp"
 
 class WMainWindow
 {
@@ -14,6 +15,7 @@ class WMainWindow
 	WClient             Client{};
 	WLogWindow          LogWindow{};
 	WNetworkGraphWindow NetworkGraphWindow{};
+	WDetailsWindow      DetailsWindow{};
 
 	bool bInit{ false };
 	void DrawConnectionIndicator();
