@@ -215,6 +215,8 @@ void WTrafficTree::Draw()
 		}
 		ImGui::EndCombo();
 	}
+	ImGui::Separator();
+	ImGui::BeginChild("TreeRegion", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 
 	// 5 columns: Name | upload | download | upload limit | download limit
 	if (!ImGui::BeginTable("TrafficTable", 5,
@@ -343,4 +345,5 @@ void WTrafficTree::Draw()
 		ImGui::TreePop();
 
 	ImGui::EndTable();
+	ImGu ::EndChild();
 }
