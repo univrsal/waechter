@@ -8,4 +8,6 @@ target_sources(waechter
         AboutDialog.hpp
         TrafficTree.cpp
         TrafficTree.hpp
+        LogWindow.cpp
+        LogWindow.hpp
 )

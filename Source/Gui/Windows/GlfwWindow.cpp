@@ -140,6 +140,8 @@ bool WGlfwWindow::Init()
 
 	ImGui_ImplGlfw_InitForOpenGL(Window, true);
 	ImGui_ImplOpenGL3_Init(GlslVersion);
+
+	MainWindow->Init();
 	return true;
 }
 

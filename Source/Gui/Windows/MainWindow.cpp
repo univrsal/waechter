@@ -41,6 +41,10 @@ void WMainWindow::DrawConnectionIndicator()
 		ImGui::SetTooltip(Client.IsConnected() ? "Connected to daemon" : "Not connected to daemon");
 	}
 }
+void WMainWindow::Init()
+{
+	LogWindow.AttachToSpdlog();
+}
 
 void WMainWindow::Draw()
 {
@@ -50,11 +54,8 @@ void WMainWindow::Draw()
 	ImGui::SetNextWindowPos(ImVec2(0, 0));
 	ImGui::SetNextWindowSize(display_size);
 
-	auto Main = ImGui::DockSpaceOverViewport();
-
 	if (ImGui::BeginMainMenuBar())
 	{
-		// First draw menu items normally (left side)
 		if (ImGui::BeginMenu("Help"))
 		{
 			if (ImGui::MenuItem("About"))
@@ -67,12 +68,34 @@ void WMainWindow::Draw()
 		ImGui::EndMainMenuBar();
 	}
 
+	auto Main = ImGui::DockSpaceOverViewport();
+
+	if (!bInit)
+	{
+		if (ImGui::DockBuilderGetNode(Main) == nullptr)
+		{
+			ImGui::DockBuilderRemoveNode(Main);
+			ImGui::DockBuilderAddNode(Main, ImGuiDockNodeFlags_DockSpace);
+		}
+
+		ImGuiID dock_main_id = Main;
+		ImGuiID dock_id_down = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.25f, nullptr, &dock_main_id);
+
+		ImGui::DockBuilderDockWindow("Traffic Tree", dock_main_id);
+		ImGui::DockBuilderDockWindow("Log", dock_id_down);
+		ImGui::DockBuilderFinish(Main);
+		bInit = true;
+	}
+
 	ImGui::SetNextWindowDockID(Main, ImGuiCond_FirstUseEver);
 	if (ImGui::Begin("Traffic Tree", nullptr, ImGuiWindowFlags_None))
 	{
 		Client.GetTrafficTree().Draw();
 		ImGui::End();
 	}
+
+	// Draw log window (docked by default at bottom)
+	LogWindow.Draw();
 
 	AboutDialog.Draw();
 }
