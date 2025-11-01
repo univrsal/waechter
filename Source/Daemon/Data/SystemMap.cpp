@@ -264,7 +264,7 @@ void WSystemMap::Cleanup()
 	for (auto ProcessIt = Processes.begin(); ProcessIt != Processes.end();)
 	{
 		auto PID = ProcessIt->first;
-		if (!WFilesystem::IsProcessRunning(PID))
+		if (!WFilesystem::IsProcessRunning(PID) && !ProcessIt->second->IsMarkedForRemoval())
 		{
 			ProcessIt->second->MarkForRemoval();
 			MarkedForRemovalItems.emplace_back(ProcessIt->second->TrafficItem->ItemId);

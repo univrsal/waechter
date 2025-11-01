@@ -99,6 +99,11 @@ public:
 		return State;
 	}
 
+	bool IsMarkedForRemoval() const
+	{
+		return State == CS_PendingRemoval;
+	}
+
 	void MarkForRemoval()
 	{
 		if (State == CS_PendingRemoval || State == CS_Removed)
