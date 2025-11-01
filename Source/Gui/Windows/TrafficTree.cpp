@@ -301,7 +301,7 @@ void WTrafficTree::Draw()
 		ImGui::TableNextRow();
 		// Stable ID: application name within root
 		ImGui::PushID(Name.c_str());
-		bOpened = RenderItem(Name, Child.get(), ImGuiTreeNodeFlags_DefaultOpen);
+		bOpened = RenderItem(Child->ApplicationName, Child.get(), ImGuiTreeNodeFlags_DefaultOpen);
 
 		if (!bOpened)
 		{

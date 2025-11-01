@@ -33,6 +33,8 @@ Gui:
 
 Daemon -> Gui:
 
+- [ ] Some apps have the entire command line as the name
+- [x] There's an app with "" as the name for some reason
 - [x] switch from json to cereal
 - [x] Send traffic tree updates
 - [x] Add/remove tree entries
