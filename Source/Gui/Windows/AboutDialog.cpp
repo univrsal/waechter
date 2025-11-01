@@ -1,6 +1,7 @@
 //
 // Created by usr on 27/10/2025.
 //
+#define INCBIN_PREFIX G
 
 #include "AboutDialog.hpp"
 #include <imgui.h>
@@ -22,16 +23,16 @@ WAboutDialog::WAboutDialog()
 {
 	ThirdPartyLibraries.clear();
 
-	ThirdPartyLibraries.emplace_back("glad", "https://github.com/Dav1dde/glad", gGladLicenseData, gGladLicenseSize);
-	ThirdPartyLibraries.emplace_back("glfw", "https://www.glfw.org", gGlfwLicenseData, gGlfwLicenseSize);
-	ThirdPartyLibraries.emplace_back("Dear ImGui", "https://github.com/ocornut/imgui", gImguiLicenseData, gImguiLicenseSize);
-	ThirdPartyLibraries.emplace_back("incbin", "https://github.com/graphitemaster/incbin", gIncbinLicenseData, gIncbinLicenseSize);
-	ThirdPartyLibraries.emplace_back("inih", "https://github.com/benhoyt/inih", gInihLicenseData, gInihLicenseSize);
-	ThirdPartyLibraries.emplace_back("json11", "https://github.com/dropbox/json11", gJson11LicenseData, gJson11LicenseSize);
-	ThirdPartyLibraries.emplace_back("spdlog", "https://github.com/gabime/spdlog", gSpdlogLicenseData, gSpdlogLicenseSize);
-	ThirdPartyLibraries.emplace_back("stb", "https://github.com/nothings/stb", gStbLicenseData, gStbLicenseSize);
-	ThirdPartyLibraries.emplace_back("JetBrains Mono", "https://www.jetbrains.com/lp/mono/", gJetbrainsMonoLicenseData, gJetbrainsMonoLicenseSize);
-	ThirdPartyLibraries.emplace_back("cereal", "https://github.com/USCiLab/cereal", gCerealLicenseData, gCerealLicenseSize);
+	ThirdPartyLibraries.emplace_back("glad", "https://github.com/Dav1dde/glad", GGladLicenseData, GGladLicenseSize);
+	ThirdPartyLibraries.emplace_back("glfw", "https://www.glfw.org", GGlfwLicenseData, GGlfwLicenseSize);
+	ThirdPartyLibraries.emplace_back("Dear ImGui", "https://github.com/ocornut/imgui", GImguiLicenseData, GImguiLicenseSize);
+	ThirdPartyLibraries.emplace_back("incbin", "https://github.com/graphitemaster/incbin", GIncbinLicenseData, GIncbinLicenseSize);
+	ThirdPartyLibraries.emplace_back("inih", "https://github.com/benhoyt/inih", GInihLicenseData, GInihLicenseSize);
+	ThirdPartyLibraries.emplace_back("json11", "https://github.com/dropbox/json11", GJson11LicenseData, GJson11LicenseSize);
+	ThirdPartyLibraries.emplace_back("spdlog", "https://github.com/gabime/spdlog", GSpdlogLicenseData, GSpdlogLicenseSize);
+	ThirdPartyLibraries.emplace_back("stb", "https://github.com/nothings/stb", GStbLicenseData, GStbLicenseSize);
+	ThirdPartyLibraries.emplace_back("JetBrains Mono", "https://www.jetbrains.com/lp/mono/", GJetbrainsMonoLicenseData, GJetbrainsMonoLicenseSize);
+	ThirdPartyLibraries.emplace_back("cereal", "https://github.com/USCiLab/cereal", GCerealLicenseData, GCerealLicenseSize);
 
 	VersionString = fmt::format("Version {}, commit {}@{}\nCompiled at {}", WAECHTER_VERSION, GIT_COMMIT_HASH, GIT_BRANCH, BUILD_TIME);
 }
