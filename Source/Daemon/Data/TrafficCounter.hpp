@@ -7,8 +7,7 @@ enum ECounterState
 {
 	CS_Inactive,       // No traffic activity during the last time window
 	CS_Active,         // Traffic activity during the last time window
-	CS_PendingRemoval, // Process has quit
-	CS_Removed
+	CS_PendingRemoval, // Process/Socket has quit/closed, in grace period before removal
 };
 
 template <typename T>
@@ -66,30 +65,27 @@ public:
 			RecentUpload = 0;
 			TimeWindowStart = TimeStampMS;
 
-			if (State != CS_PendingRemoval)
+			if (std::abs(NewDownloadSpeed - TrafficItem->DownloadSpeed) > 0.01)
 			{
-				if (std::abs(NewDownloadSpeed - TrafficItem->DownloadSpeed) > 0.01)
-				{
-					TrafficItem->DownloadSpeed = NewDownloadSpeed;
-					State = CS_Active;
-				}
+				TrafficItem->DownloadSpeed = NewDownloadSpeed;
+				State = CS_Active;
+			}
 
-				if (std::abs(NewUploadSpeed - TrafficItem->UploadSpeed) > 0.01)
-				{
-					TrafficItem->UploadSpeed = NewUploadSpeed;
-					State = CS_Active;
-				}
-				if (TrafficItem->DownloadSpeed < 1)
-				{
-					State = CS_Inactive;
-					TrafficItem->DownloadSpeed = 0;
-				}
+			if (std::abs(NewUploadSpeed - TrafficItem->UploadSpeed) > 0.01)
+			{
+				TrafficItem->UploadSpeed = NewUploadSpeed;
+				State = CS_Active;
+			}
+			if (TrafficItem->DownloadSpeed < 1)
+			{
+				State = CS_Inactive;
+				TrafficItem->DownloadSpeed = 0;
+			}
 
-				if (TrafficItem->UploadSpeed < 1)
-				{
-					State = CS_Inactive;
-					TrafficItem->UploadSpeed = 0;
-				}
+			if (TrafficItem->UploadSpeed < 1)
+			{
+				State = CS_Inactive;
+				TrafficItem->UploadSpeed = 0;
 			}
 		}
 	}
@@ -106,7 +102,7 @@ public:
 
 	void MarkForRemoval()
 	{
-		if (State == CS_PendingRemoval || State == CS_Removed)
+		if (State == CS_PendingRemoval)
 		{
 			return;
 		}

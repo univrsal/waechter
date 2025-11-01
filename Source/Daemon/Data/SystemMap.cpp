@@ -233,7 +233,7 @@ WTrafficTreeUpdates WSystemMap::GetUpdates()
 
 	for (const auto& Socket : AddedSockets)
 	{
-		if (Socket->GetState() == CS_Removed || Socket->GetState() == CS_PendingRemoval)
+		if (Socket->GetState() == CS_PendingRemoval)
 		{
 			// No point in sending additions for sockets that are being removed
 			continue;
