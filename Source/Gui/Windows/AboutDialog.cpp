@@ -16,6 +16,7 @@ INCBIN(Json11License, THIRD_PARTY_JSON11_LICENSE_PATH);
 INCBIN(SpdlogLicense, THIRD_PARTY_SPDLOG_LICENSE_PATH);
 INCBIN(StbLicense, THIRD_PARTY_STB_LICENSE_PATH);
 INCBIN(JetbrainsMonoLicense, THIRD_PARTY_JETBRAINS_MONO_LICENSE_PATH);
+INCBIN(CerealLicense, THIRD_PARTY_CEREAL_LICENSE_PATH);
 
 WAboutDialog::WAboutDialog()
 {
@@ -30,6 +31,7 @@ WAboutDialog::WAboutDialog()
 	ThirdPartyLibraries.emplace_back("spdlog", "https://github.com/gabime/spdlog", gSpdlogLicenseData, gSpdlogLicenseSize);
 	ThirdPartyLibraries.emplace_back("stb", "https://github.com/nothings/stb", gStbLicenseData, gStbLicenseSize);
 	ThirdPartyLibraries.emplace_back("JetBrains Mono", "https://www.jetbrains.com/lp/mono/", gJetbrainsMonoLicenseData, gJetbrainsMonoLicenseSize);
+	ThirdPartyLibraries.emplace_back("cereal", "https://github.com/USCiLab/cereal", gCerealLicenseData, gCerealLicenseSize);
 
 	VersionString = fmt::format("Version {}, commit {}@{}\nCompiled at {}", WAECHTER_VERSION, GIT_COMMIT_HASH, GIT_BRANCH, BUILD_TIME);
 }
