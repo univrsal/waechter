@@ -18,6 +18,7 @@ INCBIN(SpdlogLicense, THIRD_PARTY_SPDLOG_LICENSE_PATH);
 INCBIN(StbLicense, THIRD_PARTY_STB_LICENSE_PATH);
 INCBIN(JetbrainsMonoLicense, THIRD_PARTY_JETBRAINS_MONO_LICENSE_PATH);
 INCBIN(CerealLicense, THIRD_PARTY_CEREAL_LICENSE_PATH);
+INCBIN(ImPlotLicense, THIRD_PARTY_IMPLOT_LICENSE_PATH);
 
 WAboutDialog::WAboutDialog()
 {
@@ -33,6 +34,7 @@ WAboutDialog::WAboutDialog()
 	ThirdPartyLibraries.emplace_back("stb", "https://github.com/nothings/stb", GStbLicenseData, GStbLicenseSize);
 	ThirdPartyLibraries.emplace_back("JetBrains Mono", "https://www.jetbrains.com/lp/mono/", GJetbrainsMonoLicenseData, GJetbrainsMonoLicenseSize);
 	ThirdPartyLibraries.emplace_back("cereal", "https://github.com/USCiLab/cereal", GCerealLicenseData, GCerealLicenseSize);
+	ThirdPartyLibraries.emplace_back("implot", "https://github.com/epezent/implot", GImPlotLicenseData, GImPlotLicenseSize);
 
 	VersionString = fmt::format("Version {}, commit {}@{}\nCompiled at {}", WAECHTER_VERSION, GIT_COMMIT_HASH, GIT_BRANCH, BUILD_TIME);
 }
@@ -79,7 +81,6 @@ void WAboutDialog::Draw()
 			ImGui::Spacing();
 			ImGui::TextWrapped("%s", Library.LicenseText.c_str());
 		}
-
 		ImGui::End();
 	}
 }
