@@ -170,7 +170,7 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 	}
 }
 
-void WTrafficTree::Draw()
+void WTrafficTree::Draw(ImGuiID MainID)
 {
 	auto UnitText = [this] {
 		switch (Unit)
@@ -190,6 +190,7 @@ void WTrafficTree::Draw()
 		}
 	};
 
+	ImGui::SetNextWindowDockID(MainID, ImGuiCond_FirstUseEver);
 	if (!ImGui::Begin("Traffic Tree", nullptr, ImGuiWindowFlags_None))
 	{
 		ImGui::End();

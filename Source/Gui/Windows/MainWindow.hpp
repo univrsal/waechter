@@ -17,13 +17,15 @@ class WMainWindow
 
 	bool bInit{ false };
 	void DrawConnectionIndicator();
+	void Init(ImGuiID Main);
 
 public:
-	void Init();
 	void Draw();
 
 	WNetworkGraphWindow& GetNetworkGraphWindow()
 	{
 		return NetworkGraphWindow;
 	}
+
+	~WMainWindow() = default;
 };

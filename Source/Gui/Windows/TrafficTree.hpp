@@ -5,6 +5,7 @@
 #pragma once
 #include "Format.hpp"
 
+#include <imgui.h>
 #include <unordered_set>
 
 #include "Buffer.hpp"
@@ -26,5 +27,5 @@ public:
 
 	void LoadFromBuffer(WBuffer const& Buffer);
 	void UpdateFromBuffer(WBuffer const& Buffer);
-	void Draw();
+	void Draw(ImGuiID MainID);
 };
