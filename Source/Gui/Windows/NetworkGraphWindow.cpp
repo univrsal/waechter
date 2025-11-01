@@ -4,9 +4,18 @@
 
 #include "NetworkGraphWindow.hpp"
 
+#include <cmath>
 #include <imgui.h>
 #include <implot.h>
+#include <cstdio>
 #include <limits>
+
+int FormatBandwidth(double Value, char* Buf, int Size, void* UserData)
+{
+	const auto*  U = static_cast<const WNetworkGraphWindow::WUnitFmt*>(UserData);
+	const double V = Value / (U ? U->Factor : 1.0);
+	return std::snprintf(Buf, static_cast<size_t>(Size), "%.0f", V);
+}
 
 void WNetworkGraphWindow::Draw()
 {
@@ -14,18 +23,20 @@ void WNetworkGraphWindow::Draw()
 	Time += static_cast<double>(ImGui::GetIO().DeltaTime);
 	if (ImGui::Begin("Network activity", nullptr, ImGuiWindowFlags_None))
 	{
-		static ImPlotAxisFlags flags = 0;
-		if (ImPlot::BeginPlot("##Scrolling", ImVec2(-1, 150)))
+		if (ImPlot::BeginPlot("##Scrolling", ImVec2(-1, -1)))
 		{
 			std::lock_guard Lock(Mutex);
-			ImPlot::SetupAxes(nullptr, nullptr, flags, flags);
-			ImPlot::SetupAxisLimits(ImAxis_X1, Time - History, Time, ImGuiCond_Always);
-			ImPlot::SetupAxisLimits(ImAxis_Y1, 0, 1);
-			// Prevent vertical panning/zooming below 0
-			ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, 0.0, std::numeric_limits<double>::infinity());
 
-			ImPlot::PlotLine("Upload", &UploadBuffer.Data[0].x, &UploadBuffer.Data[0].y, UploadBuffer.Data.size(), 0, UploadBuffer.Offset, 2 * sizeof(float));
-			ImPlot::PlotLine("Download", &DownloadBuffer.Data[0].x, &DownloadBuffer.Data[0].y, DownloadBuffer.Data.size(), 0, DownloadBuffer.Offset, 2 * sizeof(float));
+			// Setup axes: show chosen unit on Y axis
+			ImPlot::SetupAxes(nullptr, TrafficFmt.Label, 0, ImPlotAxisFlags_AutoFit);
+			ImPlot::SetupAxisFormat(ImAxis_Y1, FormatBandwidth, &TrafficFmt);
+
+			ImPlot::SetupAxisLimits(ImAxis_X1, Time - History, Time, ImGuiCond_Always);
+			ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, 0.0, std::numeric_limits<double>::infinity());
+			ImPlot::PlotLine("Upload", &UploadBuffer.Data[0].x, &UploadBuffer.Data[0].y,
+				UploadBuffer.Data.size(), 0, UploadBuffer.Offset, 2 * sizeof(float));
+			ImPlot::PlotLine("Download", &DownloadBuffer.Data[0].x, &DownloadBuffer.Data[0].y,
+				DownloadBuffer.Data.size(), 0, DownloadBuffer.Offset, 2 * sizeof(float));
 			ImPlot::EndPlot();
 		}
 	}
