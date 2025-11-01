@@ -234,6 +234,15 @@ void WTrafficTree::Draw()
 			ImGui::PopStyleColor();
 		}
 
+#if WDEBUG
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::BeginTooltip();
+			ImGui::Text("ID: %llu", Item->ItemId);
+			ImGui::EndTooltip();
+		}
+#endif
+
 		if (Item->DownloadSpeed > 0)
 		{
 			ImGui::TableSetColumnIndex(1);
