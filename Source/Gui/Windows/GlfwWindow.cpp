@@ -10,6 +10,7 @@
 #include <imgui_impl_opengl3.h>
 #include <stb_image.h>
 #include <incbin.h>
+#include <implot.h>
 
 #include "Filesystem.hpp"
 
@@ -35,7 +36,7 @@ static stdfs::path GetConfigFolder()
 		if (!Home || Home[0] == '\0')
 		{
 			spdlog::warn("Neither XDG_CONFIG_HOME nor HOME are set; cannot determine config folder");
-			return stdfs::path();
+			return {};
 		}
 		Base = stdfs::path(Home) / ".config";
 	}
@@ -48,14 +49,14 @@ static stdfs::path GetConfigFolder()
 		if (!stdfs::create_directories(Appdir, ec))
 		{
 			spdlog::error("Failed to create config directory {}: {}", Appdir.string(), ec.message());
-			return stdfs::path(".");
+			return { "." };
 		}
 	}
 
 	if (!WFilesystem::Writable(Appdir))
 	{
 		spdlog::warn("Config directory {} is not writable", Appdir.string());
-		return stdfs::path(".");
+		return { "." };
 	}
 
 	return Appdir;
@@ -107,6 +108,7 @@ bool WGlfwWindow::Init()
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
+	ImPlot::CreateContext();
 	ImGuiIO& Io = ImGui::GetIO();
 	auto     Path = GetConfigFolder() / "imgui.ini";
 

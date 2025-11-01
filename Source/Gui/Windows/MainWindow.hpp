@@ -6,12 +6,14 @@
 #include "AboutDialog.hpp"
 #include "Client.hpp"
 #include "LogWindow.hpp"
+#include "NetworkGraphWindow.hpp"
 
 class WMainWindow
 {
-	WAboutDialog AboutDialog{};
-	WClient      Client{};
-	WLogWindow   LogWindow{};
+	WAboutDialog        AboutDialog{};
+	WClient             Client{};
+	WLogWindow          LogWindow{};
+	WNetworkGraphWindow NetworkGraphWindow{};
 
 	bool bInit{ false };
 	void DrawConnectionIndicator();
@@ -19,4 +21,9 @@ class WMainWindow
 public:
 	void Init();
 	void Draw();
+
+	WNetworkGraphWindow& GetNetworkGraphWindow()
+	{
+		return NetworkGraphWindow;
+	}
 };

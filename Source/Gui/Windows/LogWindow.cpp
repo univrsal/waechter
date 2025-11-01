@@ -118,6 +118,6 @@ void WLogWindow::Draw()
 
 		DoScrollToBottom();
 		ImGui::EndChild();
-		ImGui::End();
 	}
+	ImGui::End();
 }

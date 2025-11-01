@@ -10,4 +10,6 @@ target_sources(waechter
         TrafficTree.hpp
         LogWindow.cpp
         LogWindow.hpp
+        NetworkGraphWindow.cpp
+        NetworkGraphWindow.hpp
 )

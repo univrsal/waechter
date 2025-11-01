@@ -83,6 +83,7 @@ void WMainWindow::Draw()
 
 		ImGui::DockBuilderDockWindow("Traffic Tree", dock_main_id);
 		ImGui::DockBuilderDockWindow("Log", dock_id_down);
+		ImGui::DockBuilderDockWindow("Network activity", dock_id_down);
 		ImGui::DockBuilderFinish(Main);
 		bInit = true;
 	}
@@ -96,6 +97,6 @@ void WMainWindow::Draw()
 
 	// Draw log window (docked by default at bottom)
 	LogWindow.Draw();
-
+	NetworkGraphWindow.Draw();
 	AboutDialog.Draw();
 }

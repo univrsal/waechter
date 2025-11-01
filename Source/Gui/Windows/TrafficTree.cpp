@@ -15,6 +15,7 @@
 #include <cereal/archives/binary.hpp>
 
 #include "Format.hpp"
+#include "GlfwWindow.hpp"
 #include "Messages.hpp"
 #include "Data/TrafficTreeUpdate.hpp"
 
@@ -119,6 +120,11 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 		{
 			It->second->DownloadSpeed = Update.NewDownloadSpeed;
 			It->second->UploadSpeed = Update.NewUploadSpeed;
+
+			if (Update.ItemId == 0)
+			{
+				WGlfwWindow::GetInstance().GetMainWindow()->GetNetworkGraphWindow().AddData(It->second->UploadSpeed, It->second->DownloadSpeed);
+			}
 		}
 	}
 

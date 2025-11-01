@@ -29,4 +29,9 @@ public:
 	void RunLoop();
 
 	~WGlfwWindow() override;
+
+	WMainWindow* GetMainWindow()
+	{
+		return MainWindow.get();
+	}
 };

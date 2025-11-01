@@ -12,6 +12,7 @@ target_link_libraries(waechter PRIVATE
         thirdparty::glfw
         thirdparty::glad
         thirdparty::imgui
+        thirdparty::implot
         thirdparty::incbin
         thirdparty::stb
         thirdparty::deps_includes
