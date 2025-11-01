@@ -10,6 +10,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # keep ccache inside the repository workspace so the actions/cache step can store it reliably
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
 
     steps:
       - name: Checkout
@@ -30,15 +33,43 @@ jobs:
             zlib1g-dev \
             libx11-dev libxrandr-dev libxi-dev libxinerama-dev libxcursor-dev libxxf86vm-dev \
             libgl1-mesa-dev \
-            libwayland-dev wayland-protocols libxkbcommon-dev
+            libwayland-dev wayland-protocols libxkbcommon-dev \
+            ccache
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ./.ccache
+          key: ${{ runner.os }}-ccache-${{ hashFiles('**/CMakeLists.txt', '**/*.cpp', '**/*.c', '**/*.h') }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
+
+      - name: Cache CMake build directory (optional)
+        uses: actions/cache@v4
+        with:
+          # caching the entire build dir can speed up incremental builds but may be fragile across toolchain changes
+          path: build
+          key: ${{ runner.os }}-cmake-build-${{ hashFiles('**/CMakeLists.txt', 'Source/**', 'Thirdparty/**') }}
+          restore-keys: |
+            ${{ runner.os }}-cmake-build-
+
+      - name: Show ccache stats (before)
+        run: |
+          ccache --version || true
+          ccache -s || true
 
       - name: Configure (CMake + Ninja)
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/artifacts"
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/artifacts" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       - name: Build
         run: |
           cmake --build build --config Release -- -k 0
+
+      - name: Show ccache stats (after)
+        run: |
+          ccache -s || true
 
       - name: Package
         run: |
