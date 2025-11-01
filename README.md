@@ -1,5 +1,7 @@
 ## Wächter [*/ˈvɛçtɐ/*]
 
+[![Build (Ubuntu)](https://github.com/univrsal/Waechter/actions/workflows/build.yml/badge.svg)](https://github.com/univrsal/Waechter/actions/workflows/build.yml)
+
 A Linux traffic monitoring and shaping tool.
 
 Wächter uses eBPF to capture and throttle network packets and gather detailed statistics about network usage. It is
