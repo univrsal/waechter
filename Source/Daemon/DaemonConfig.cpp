@@ -56,17 +56,14 @@ void WDaemonConfig::Load(std::string const& Path)
 		return;
 	}
 
-	if (Reader.HasSection("network"))
-	{
-		SafeGet("network", "interface", NetworkInterfaceName);
-		SafeGet("network", "cgroup_path", CGroupPath);
+	SafeGet("network", "interface", NetworkInterfaceName);
+	SafeGet("network", "cgroup_path", CGroupPath);
 
-		SafeGet("daemon", "user", DaemonUser);
-		SafeGet("daemon", "group", DaemonGroup);
-		SafeGet("daemon", "socket_path", DaemonSocketPath);
-		DaemonSocketMode = static_cast<mode_t>(Reader.GetInteger("daemon", "socket_permissions", DaemonSocketMode));
-		SafeGet("daemon", "ebpf_program_object_path", EbpfProgramObjectPath);
-	}
+	SafeGet("daemon", "user", DaemonUser);
+	SafeGet("daemon", "group", DaemonGroup);
+	SafeGet("daemon", "socket_path", DaemonSocketPath);
+	DaemonSocketMode = static_cast<mode_t>(Reader.GetInteger("daemon", "socket_permissions", DaemonSocketMode));
+	SafeGet("daemon", "ebpf_program_object_path", EbpfProgramObjectPath);
 }
 
 void WDaemonConfig::SetDefaults()
