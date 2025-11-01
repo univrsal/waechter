@@ -131,9 +131,11 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 			// Add new application if not found
 			auto NewApp = std::make_shared<WApplicationItem>();
 			NewApp->ApplicationName = Addition.ApplicationName;
+			NewApp->ItemId = Addition.ApplicationItemId;
 			NewApp->ApplicationPath = Addition.ApplicationPath;
 			Root.Applications[Addition.ApplicationPath] = NewApp;
 			AppIt = Root.Applications.find(Addition.ApplicationPath);
+			TrafficItems[NewApp->ItemId] = NewApp.get();
 		}
 		auto& App = AppIt->second;
 
@@ -144,8 +146,10 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 			// Add new process if not found
 			auto NewProc = std::make_shared<WProcessItem>();
 			NewProc->ProcessId = Addition.ProcessId;
+			NewProc->ItemId = Addition.ProcessItemId;
 			App->Processes[Addition.ProcessId] = NewProc;
 			ProcIt = App->Processes.find(Addition.ProcessId);
+			TrafficItems[NewProc->ItemId] = NewProc.get();
 		}
 
 		auto& Proc = ProcIt->second;
