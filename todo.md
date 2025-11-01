@@ -16,13 +16,13 @@ Ebpf -> Daemon:
 - [x] Track traffic statistics per binary/pid/src-dst pair
 - [x] Remove closed processes from tracking map
 - [x] Remove closed sockets from tracking map
-- [ ] Don't immediately remove closed processes/sockets
-- [ ] (maybe) compress messages
+- [x] Don't immediately remove closed processes/sockets
+- [x] (maybe) compress messages
 
 Gui:
 
 - [x] Decode traffic tree
-- [ ] Highlight about-to-be removed PIDs and Sockets
+- [x] Highlight about-to-be removed PIDs and Sockets
 - [ ] Add traffic graph window
     - [ ] Show traffic over time upload/download for entire system
 - [ ] Connection detail window (depends on selected row in traffic tree)
@@ -33,6 +33,6 @@ Gui:
 
 Daemon -> Gui:
 
-- [ ] switch from json to cereal
+- [x] switch from json to cereal
 - [x] Send traffic tree updates
-- [ ] Add/remove tree entries
+- [x] Add/remove tree entries
