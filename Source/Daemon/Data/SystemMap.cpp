@@ -5,10 +5,9 @@
 #include "SystemMap.hpp"
 
 #include <spdlog/spdlog.h>
+#include <ranges>
 
 #include "Filesystem.hpp"
-
-#include <ranges>
 
 WSystemMap::WSystemMap()
 {
@@ -141,7 +140,6 @@ std::shared_ptr<WSystemMap::WAppCounter> WSystemMap::FindOrMapApplication(std::s
 void WSystemMap::RefreshAllTrafficCounters()
 {
 	std::lock_guard Lock(DataMutex);
-	Cleanup();
 	TrafficCounter.Refresh();
 	for (const auto& App : Applications | std::views::values)
 	{
@@ -157,6 +155,7 @@ void WSystemMap::RefreshAllTrafficCounters()
 	{
 		Socket->Refresh();
 	}
+	Cleanup();
 }
 
 void WSystemMap::PushIncomingTraffic(WBytes Bytes, WSocketCookie SocketCookie)
@@ -274,6 +273,8 @@ void WSystemMap::Cleanup()
 		{
 			bRemovedAny = true;
 			spdlog::info("Removing process {}.", ProcessIt->first);
+			TrafficCounter.PushIncomingTraffic(0); // Force state update
+			Process->ParentApp->PushIncomingTraffic(0);
 
 			// When cleaning up a process we have to
 			//  - Remove all its sockets from the Sockets map

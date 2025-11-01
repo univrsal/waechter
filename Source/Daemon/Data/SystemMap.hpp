@@ -98,6 +98,9 @@ public:
 		{
 			It->second->MarkForRemoval();
 			MarkedForRemovalItems.emplace_back(It->second->TrafficItem->ItemId);
+			It->second->ParentProcess->PushIncomingTraffic(0); // Force state update
+			It->second->ParentProcess->ParentApp->PushOutgoingTraffic(0);
+			TrafficCounter.PushIncomingTraffic(0);
 		}
 	}
 
