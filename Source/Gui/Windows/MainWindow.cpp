@@ -88,14 +88,7 @@ void WMainWindow::Draw()
 		bInit = true;
 	}
 
-	ImGui::SetNextWindowDockID(Main, ImGuiCond_FirstUseEver);
-	if (ImGui::Begin("Traffic Tree", nullptr, ImGuiWindowFlags_None))
-	{
-		Client.GetTrafficTree().Draw();
-		ImGui::End();
-	}
-
-	// Draw log window (docked by default at bottom)
+	Client.GetTrafficTree().Draw();
 	LogWindow.Draw();
 	NetworkGraphWindow.Draw();
 	AboutDialog.Draw();

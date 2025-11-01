@@ -190,6 +190,12 @@ void WTrafficTree::Draw()
 		}
 	};
 
+	if (!ImGui::Begin("Traffic Tree", nullptr, ImGuiWindowFlags_None))
+	{
+		ImGui::End();
+		return;
+	}
+
 	// Toolbar
 	if (ImGui::BeginCombo("Unit", UnitText(), ImGuiComboFlags_WidthFitPreview))
 	{
@@ -215,6 +221,7 @@ void WTrafficTree::Draw()
 		}
 		ImGui::EndCombo();
 	}
+
 	ImGui::Separator();
 	ImGui::BeginChild("TreeRegion", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 
@@ -222,6 +229,8 @@ void WTrafficTree::Draw()
 	if (!ImGui::BeginTable("TrafficTable", 5,
 			ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV))
 	{
+		ImGui::EndChild();
+		ImGui::End();
 		return;
 	}
 
@@ -288,6 +297,8 @@ void WTrafficTree::Draw()
 	if (!bOpened)
 	{
 		ImGui::EndTable();
+		ImGui::EndChild();
+		ImGui::End();
 		return;
 	}
 
@@ -345,5 +356,6 @@ void WTrafficTree::Draw()
 		ImGui::TreePop();
 
 	ImGui::EndTable();
-	ImGu ::EndChild();
+	ImGui::EndChild();
+	ImGui::End();
 }

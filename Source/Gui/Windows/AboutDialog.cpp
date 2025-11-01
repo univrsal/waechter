@@ -81,6 +81,6 @@ void WAboutDialog::Draw()
 			ImGui::Spacing();
 			ImGui::TextWrapped("%s", Library.LicenseText.c_str());
 		}
-		ImGui::End();
 	}
+	ImGui::End();
 }
