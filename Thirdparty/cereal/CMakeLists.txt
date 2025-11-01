@@ -11,8 +11,8 @@ if (APPLE)
     option(SKIP_PORTABILITY_TEST "Skip portability (32 bit) tests" ON)
 endif ()
 
-option(BUILD_DOC "Build documentation" ON)
-option(BUILD_SANDBOX "Build sandbox examples" ON)
+option(BUILD_DOC "Build documentation" OFF)
+option(BUILD_SANDBOX "Build sandbox examples" OFF)
 option(SKIP_PERFORMANCE_COMPARISON "Skip building performance sandbox comparison (requires boost)" OFF)
 
 # TODO: should not be needed! CK
