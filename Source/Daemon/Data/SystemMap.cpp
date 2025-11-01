@@ -239,13 +239,16 @@ WTrafficTreeUpdates WSystemMap::GetUpdates()
 			continue;
 		}
 
-		Updates.AddedSockets.emplace_back(WTrafficTreeSocketAddition{
-			Socket->TrafficItem->ItemId,
-			Socket->ParentProcess->TrafficItem->ProcessId,
-			Socket->ParentProcess->ParentApp->TrafficItem->ApplicationPath,
-			Socket->ParentProcess->ParentApp->TrafficItem->ApplicationName,
-			Socket->TrafficItem->SocketTuple,
-			Socket->TrafficItem->ConnectionState });
+		WTrafficTreeSocketAddition Addition{};
+		Addition.ItemId = Socket->TrafficItem->ItemId;
+		Addition.ProcessItemId = Socket->ParentProcess->TrafficItem->ItemId;
+		Addition.ApplicationItemId = Socket->ParentProcess->ParentApp->TrafficItem->ItemId;
+		Addition.ProcessId = Socket->ParentProcess->TrafficItem->ProcessId;
+		Addition.ApplicationPath = Socket->ParentProcess->ParentApp->TrafficItem->ApplicationPath;
+		Addition.ApplicationName = Socket->ParentProcess->ParentApp->TrafficItem->ApplicationName;
+		Addition.SocketTuple = Socket->TrafficItem->SocketTuple;
+		Addition.ConnectionState = Socket->TrafficItem->ConnectionState;
+		Updates.AddedSockets.emplace_back(Addition);
 	}
 
 	AddedSockets.clear();

@@ -23,6 +23,8 @@ struct WTrafficTreeTrafficUpdate
 struct WTrafficTreeSocketAddition
 {
 	WTrafficItemId         ItemId{};
+	WTrafficItemId         ProcessItemId{};
+	WTrafficItemId         ApplicationItemId{};
 	WProcessId             ProcessId{};
 	std::string            ApplicationPath{};
 	std::string            ApplicationName{};
@@ -32,7 +34,7 @@ struct WTrafficTreeSocketAddition
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(ItemId, ProcessId, ApplicationName, ApplicationPath, SocketTuple, ConnectionState);
+		archive(ItemId, ProcessItemId, ApplicationItemId, ProcessId, ApplicationName, ApplicationPath, SocketTuple, ConnectionState);
 	}
 };
 
