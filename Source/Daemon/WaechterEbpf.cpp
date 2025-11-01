@@ -151,32 +151,35 @@ void WWaechterEbpf::UpdateData()
 		auto const bSilentFail = SocketEvent.EventType == NE_Traffic || SocketEvent.EventType == NE_SocketClosed;
 		auto       SocketInfo = WSystemMap::GetInstance().MapSocket(SocketEvent.Cookie, Tgid, bSilentFail);
 
-		if (SocketInfo)
+		switch (SocketEvent.EventType)
 		{
-			switch (SocketEvent.EventType)
-			{
-				case NE_SocketCreate:
+			case NE_SocketCreate:
+				if (SocketInfo)
+				{
 					SocketInfo->TrafficItem->ConnectionState = ESocketConnectionState::Created;
-					break;
-				case NE_SocketConnect_4:
-				case NE_SocketConnect_6:
+				}
+				break;
+			case NE_SocketConnect_4:
+			case NE_SocketConnect_6:
+				if (SocketInfo)
+				{
 					SocketInfo->ProcessSocketEvent(SocketEvent);
-					break;
-				case NE_Traffic:
-					if (SocketEvent.Data.TrafficEventData.Direction == PD_Incoming)
-					{
-						WSystemMap::GetInstance().PushIncomingTraffic(SocketEvent.Data.TrafficEventData.Bytes, SocketEvent.Cookie);
-					}
-					else if (SocketEvent.Data.TrafficEventData.Direction == PD_Outgoing)
-					{
-						WSystemMap::GetInstance().PushOutgoingTraffic(SocketEvent.Data.TrafficEventData.Bytes, SocketEvent.Cookie);
-					}
-					break;
-				case NE_SocketClosed:
-					WSystemMap::GetInstance().MarkSocketForRemoval(SocketEvent.Cookie);
-					break;
-				default:;
-			}
+				}
+				break;
+			case NE_Traffic:
+				if (SocketEvent.Data.TrafficEventData.Direction == PD_Incoming)
+				{
+					WSystemMap::GetInstance().PushIncomingTraffic(SocketEvent.Data.TrafficEventData.Bytes, SocketEvent.Cookie);
+				}
+				else if (SocketEvent.Data.TrafficEventData.Direction == PD_Outgoing)
+				{
+					WSystemMap::GetInstance().PushOutgoingTraffic(SocketEvent.Data.TrafficEventData.Bytes, SocketEvent.Cookie);
+				}
+				break;
+			case NE_SocketClosed:
+				WSystemMap::GetInstance().MarkSocketForRemoval(SocketEvent.Cookie);
+				break;
+			default:;
 		}
 		SocketEventQueue.pop_front();
 	}
