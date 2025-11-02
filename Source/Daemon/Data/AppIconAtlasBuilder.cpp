@@ -17,7 +17,7 @@ struct WPackedIcon
 {
 	std::string                      Path{};
 	std::string                      BinaryName{};
-	int                              W{}, H{};
+	unsigned int                     W{}, H{};
 	std::unique_ptr<unsigned char[]> Pixels{}; // RGBA
 };
 
@@ -59,8 +59,8 @@ bool WAppIconAtlasBuilder::GetAtlasData(WAppIconAtlasData& outData, std::vector<
 		Icon.BinaryName = BinaryName;
 		Icon.W = IconW;
 		Icon.H = IconH;
-		Icon.Pixels = std::make_unique<unsigned char[]>(static_cast<std::size_t>(IconW * IconH * 4));
-		std::memcpy(Icon.Pixels.get(), Data, static_cast<std::size_t>(IconW * IconH * 4));
+		Icon.Pixels = std::make_unique<unsigned char[]>(Icon.W * Icon.H * 4);
+		std::memcpy(Icon.Pixels.get(), Data, Icon.W * Icon.H * 4);
 		stbi_image_free(Data);
 		PackedIcons.emplace_back(std::move(Icon));
 	}
@@ -69,16 +69,16 @@ bool WAppIconAtlasBuilder::GetAtlasData(WAppIconAtlasData& outData, std::vector<
 	std::vector<stbrp_rect> Rects(NumIcons);
 	for (std::size_t i = 0; i < NumIcons; ++i)
 	{
-		Rects[i].id = i;
-		Rects[i].w = PackedIcons[i].W;
-		Rects[i].h = PackedIcons[i].H;
+		Rects[i].id = static_cast<int>(i);
+		Rects[i].w = static_cast<int>(PackedIcons[i].W);
+		Rects[i].h = static_cast<int>(PackedIcons[i].H);
 		Rects[i].x = Rects[i].y = 0;
 	}
 
 	std::vector<stbrp_node> Nodes(AtlasSize);
 	stbrp_context           Context;
-	stbrp_init_target(&Context, AtlasSize, AtlasSize, Nodes.data(), Nodes.size());
-	stbrp_pack_rects(&Context, Rects.data(), NumIcons);
+	stbrp_init_target(&Context, static_cast<int>(AtlasSize), static_cast<int>(AtlasSize), Nodes.data(), static_cast<int>(Nodes.size()));
+	stbrp_pack_rects(&Context, Rects.data(), static_cast<int>(NumIcons));
 
 	for (std::size_t i = 0; i < NumIcons; ++i)
 	{
@@ -100,8 +100,8 @@ bool WAppIconAtlasBuilder::GetAtlasData(WAppIconAtlasData& outData, std::vector<
 		// Copy icon pixels into atlas
 		for (std::size_t Row = 0; Row < H; ++Row)
 		{
-			auto Idx = ((Y + Row) * AtlasSize + X) * 4;
-			auto Idx2 = Row * W * 4;
+			auto const Idx = ((Y + Row) * AtlasSize + X) * 4;
+			auto const Idx2 = Row * W * 4;
 			std::memcpy(
 				&outData.AtlasImageData[Idx],
 				&PackedIcons[i].Pixels[Idx2],
