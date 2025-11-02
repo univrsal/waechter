@@ -242,6 +242,8 @@ void WTrafficTree::Draw(ImGuiID MainID)
 	ImGui::TableSetupColumn("Ul. limit", ImGuiTableColumnFlags_WidthFixed, 100.0f);
 
 	auto RenderItem = [&](std::string const& Name, const ITrafficItem* Item, ImGuiTreeNodeFlags NodeFlags) {
+		NodeFlags |= ImGuiTreeNodeFlags_SpanFullWidth;
+		NodeFlags |= ImGuiTreeNodeFlags_OpenOnArrow;
 		ImGui::TableSetColumnIndex(0);
 
 		if (MarkedForRemovalItems.contains(Item->ItemId))
@@ -249,11 +251,21 @@ void WTrafficTree::Draw(ImGuiID MainID)
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{ 1.0f, 0.4f, 0.4f, 1.0f });
 		}
 
+		if (SelectedItemId == Item->ItemId)
+		{
+			NodeFlags |= ImGuiTreeNodeFlags_Selected;
+		}
+
 		auto bNodeOpen = ImGui::TreeNodeEx(Name.c_str(), NodeFlags);
 
 		if (MarkedForRemovalItems.contains(Item->ItemId))
 		{
 			ImGui::PopStyleColor();
+		}
+
+		if (ImGui::IsItemClicked())
+		{
+			SelectedItemId = Item->ItemId;
 		}
 
 #if WDEBUG

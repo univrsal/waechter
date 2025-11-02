@@ -19,6 +19,7 @@ class WTrafficTree
 
 	std::unordered_map<WTrafficItemId, ITrafficItem*> TrafficItems;
 	std::unordered_set<WTrafficItemId>                MarkedForRemovalItems;
+	WTrafficItemId                                    SelectedItemId = std::numeric_limits<WTrafficItemId>::max();
 
 	void RemoveTrafficItem(WTrafficItemId TrafficItemId);
 
