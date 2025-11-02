@@ -10,7 +10,7 @@ Ebpf -> Daemon:
 - [ ] Assign a Src -> Dest IP pair to each socket
 - [ ] Track socket state
 
-- Daemon:
+Daemon:
 
 - [x] Read pid/cookie/packet header/total packet length from ring buffer
 - [x] Track traffic statistics per binary/pid/src-dst pair
@@ -30,10 +30,12 @@ Gui:
     - [ ] Show process details
     - [ ] Show app details
     - [ ] Show system details
+- [ ] App traffic still gets stuck sometimes
+- [ ] After last socket closes PID is no longer drawn, but app is still there and traffic is stuck
+- [ ] Traffic graph should adjust y axis based on visible traffic data
+  Daemon -> Gui:
 
-Daemon -> Gui:
-
-- [ ] Some apps have the entire command line as the name
+- [x] Some apps have the entire command line as the name
 - [x] There's an app with "" as the name for some reason
 - [x] switch from json to cereal
 - [x] Send traffic tree updates
