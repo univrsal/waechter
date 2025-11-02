@@ -320,12 +320,17 @@ WTrafficTreeUpdates WSystemMap::GetUpdates()
 		}
 
 		WTrafficTreeSocketAddition Addition{};
+
+		auto const PPTI = Socket->ParentProcess->TrafficItem;
+		auto const PATI = Socket->ParentProcess->ParentApp->TrafficItem;
+
 		Addition.ItemId = Socket->TrafficItem->ItemId;
-		Addition.ProcessItemId = Socket->ParentProcess->TrafficItem->ItemId;
-		Addition.ApplicationItemId = Socket->ParentProcess->ParentApp->TrafficItem->ItemId;
-		Addition.ProcessId = Socket->ParentProcess->TrafficItem->ProcessId;
-		Addition.ApplicationPath = Socket->ParentProcess->ParentApp->TrafficItem->ApplicationPath;
-		Addition.ApplicationName = Socket->ParentProcess->ParentApp->TrafficItem->ApplicationName;
+		Addition.ProcessItemId = PPTI->ItemId;
+		Addition.ApplicationItemId = PATI->ItemId;
+		Addition.ProcessId = PPTI->ProcessId;
+		Addition.ApplicationPath = PATI->ApplicationPath;
+		Addition.ApplicationName = PATI->ApplicationName;
+		Addition.ApplicationCommandLine = PATI->ApplicationCommandLine;
 		Addition.SocketTuple = Socket->TrafficItem->SocketTuple;
 		Addition.ConnectionState = Socket->TrafficItem->ConnectionState;
 		Updates.AddedSockets.emplace_back(Addition);
