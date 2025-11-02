@@ -69,7 +69,7 @@ private:
 
 	std::shared_ptr<WSocketCounter>  FindOrMapSocket(WSocketCookie SocketCookie, std::shared_ptr<WProcessCounter> const& ParentProcess);
 	std::shared_ptr<WProcessCounter> FindOrMapProcess(WProcessId PID, std::shared_ptr<WAppCounter> const& ParentApp);
-	std::shared_ptr<WAppCounter>     FindOrMapApplication(std::string const& AppPath, std::string const& AppName);
+	std::shared_ptr<WAppCounter>     FindOrMapApplication(std::string const& ExePath, std::string const& CommandLine, std::string const& AppName);
 
 	std::vector<WTrafficItemId> MarkedForRemovalItems{};
 	std::vector<WTrafficItemId> RemovedItems{};

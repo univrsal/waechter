@@ -34,19 +34,48 @@ std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::MapSocket(WSocketCookie 
 		return It->second;
 	}
 
-	// Read the command line from /proc/[pid]/cmdline
-	std::string CmdLinePath = "/proc/" + std::to_string(PID) + "/cmdline";
-	std::string CommPath = "/proc/" + std::to_string(PID) + "/comm";
-	auto        CmdLine = WFilesystem::ReadProc(CmdLinePath);
-	auto        Comm = WFilesystem::ReadProc(CommPath);
-
-	// Remove trailing newline from Comm if present
+	// Build robust process info
+	std::string              ExePath = WFilesystem::GetProcessExePath(PID);
+	std::vector<std::string> Argv = WFilesystem::GetProcessCmdlineArgs(PID);
+	std::string              Comm = WFilesystem::ReadProc("/proc/" + std::to_string(PID) + "/comm");
 	if (!Comm.empty() && Comm.back() == '\n')
 	{
 		Comm.pop_back();
 	}
 
-	auto App = FindOrMapApplication(CmdLine, Comm);
+	// Fallbacks if cmdline is empty (kernel threads) or trimmed
+	if (Argv.empty())
+	{
+		if (!ExePath.empty())
+		{
+			Argv.push_back(ExePath);
+		}
+		else if (!Comm.empty())
+		{
+			Argv.push_back(Comm);
+		}
+	}
+
+	// If exePath missing but argv[0] exists, try to resolve to absolute via /proc/[pid]/cwd or PATH (skip PATH resolution for now)
+	if (ExePath.empty() && !Argv.empty())
+	{
+		// If argv[0] is absolute, use it; else leave empty.
+		if (!Argv[0].empty() && Argv[0].front() == '/')
+		{
+			ExePath = Argv[0];
+		}
+	}
+
+	// Reconstruct human-readable command line preserving argv boundaries with spaces
+	std::string cmdline;
+	for (size_t i = 0; i < Argv.size(); ++i)
+	{
+		cmdline += Argv[i];
+		if (i + 1 < Argv.size())
+			cmdline += ' ';
+	}
+
+	auto App = FindOrMapApplication(ExePath, cmdline, Comm);
 	auto Process = FindOrMapProcess(PID, App);
 	return FindOrMapSocket(SocketCookie, Process);
 }
@@ -117,23 +146,44 @@ std::shared_ptr<WSystemMap::WProcessCounter> WSystemMap::FindOrMapProcess(WProce
 	return Process;
 }
 
-std::shared_ptr<WSystemMap::WAppCounter> WSystemMap::FindOrMapApplication(std::string const& AppPath, std::string const& AppName)
+std::shared_ptr<WSystemMap::WAppCounter> WSystemMap::FindOrMapApplication(std::string const& ExePath, std::string const& CommandLine, std::string const& AppName)
 {
-	auto It = Applications.find(AppPath);
-	if (It != Applications.end())
+	// Prefer the resolved exe path as key if available; otherwise fall back to argv[0] from CommandLine's first token
+	std::string Key = ExePath;
+	if (Key.empty())
+	{
+		Key = CommandLine;
+		if (auto pos = Key.find(' '); pos != std::string::npos)
+		{
+			Key = Key.substr(0, pos);
+		}
+	}
+
+	if (auto It = Applications.find(Key); It != Applications.end())
 	{
 		return It->second;
 	}
 
-	spdlog::debug("Mapped new application: {}", AppPath);
+	spdlog::debug("Mapped new application: key='{}', exe='{}', cmd='{}'", Key, ExePath, CommandLine);
 	auto AppItem = std::make_shared<WApplicationItem>();
 	auto App = std::make_shared<WAppCounter>(AppItem);
 	AppItem->ItemId = NextItemId++;
-	AppItem->ApplicationPath = AppPath;
-	AppItem->ApplicationName = AppName;
+	AppItem->ApplicationPath = Key; // store the most reliable path we have
+	AppItem->ApplicationCommandLine = CommandLine;
+	// Choose display name: AppName (comm) if provided, else basename of key
+	if (!AppName.empty())
+	{
+		AppItem->ApplicationName = AppName;
+	}
+	else
+	{
+		// derive basename
+		auto pos = Key.find_last_of('/');
+		AppItem->ApplicationName = (pos == std::string::npos) ? Key : Key.substr(pos + 1);
+	}
 
-	SystemItem->Applications[AppName] = AppItem;
-	Applications[AppPath] = App;
+	SystemItem->Applications[AppItem->ApplicationName] = AppItem;
+	Applications[Key] = App;
 	return App;
 }
 
