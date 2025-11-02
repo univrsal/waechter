@@ -17,6 +17,15 @@ enum ETrafficUnit
 	TU_Auto
 };
 
+enum EStorageUnit
+{
+	SU_Bytes,
+	SU_KiB,
+	SU_MiB,
+	SU_GiB,
+	SU_Auto
+};
+
 class WTrafficFormat
 {
 public:
@@ -53,6 +62,48 @@ public:
 				return AutoFormat(Speed);
 			default:
 				return fmt::format("{:.2f} B/s", Speed);
+		}
+	}
+};
+
+class WStorageFormat
+{
+public:
+	static std::string AutoFormat(WBytes Bytes_)
+	{
+		auto Bytes = static_cast<double>(Bytes_); // should be fine
+		if (Bytes < 1024)
+		{
+			return fmt::format("{:.2f} B", Bytes);
+		}
+		if (Bytes < 1024 * 1024)
+		{
+			return fmt::format("{:.2f} KiB", Bytes / 1024.0);
+		}
+		if (Bytes < 1024 * 1024 * 1024)
+		{
+			return fmt::format("{:.2f} MiB", Bytes / (1024.0 * 1024.0));
+		}
+		return fmt::format("{:.2f} GiB", Bytes / (1024.0 * 1024.0 * 1024.0));
+	}
+
+	static std::string Format(WBytes Bytes_, EStorageUnit Unit)
+	{
+		auto Bytes = static_cast<double>(Bytes_); // should be fine
+		switch (Unit)
+		{
+			case SU_Bytes:
+				return fmt::format("{:.2f} B", Bytes);
+			case SU_KiB:
+				return fmt::format("{:.2f} KiB", Bytes / 1024.0);
+			case SU_MiB:
+				return fmt::format("{:.2f} MiB", Bytes / (1024.0 * 1024.0));
+			case SU_GiB:
+				return fmt::format("{:.2f} GiB", Bytes / (1024.0 * 1024.0 * 1024.0));
+			case SU_Auto:
+				return AutoFormat(Bytes_);
+			default:
+				return fmt::format("{:.2f} B", Bytes);
 		}
 	}
 };
