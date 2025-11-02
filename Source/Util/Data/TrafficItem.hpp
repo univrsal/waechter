@@ -8,6 +8,14 @@
 
 using WTrafficItemId = unsigned long long;
 
+enum ETrafficItemType : uint8_t
+{
+	TI_System,
+	TI_Application,
+	TI_Process,
+	TI_Socket
+};
+
 struct ITrafficItem
 {
 	WTrafficItemId  ItemId{};

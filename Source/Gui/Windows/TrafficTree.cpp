@@ -62,7 +62,7 @@ void WTrafficTree::RemoveTrafficItem(WTrafficItemId TrafficItemId)
 	}
 }
 
-bool WTrafficTree::RenderItem(std::string const& Name, ITrafficItem const* Item, ImGuiTreeNodeFlags NodeFlags)
+bool WTrafficTree::RenderItem(std::string const& Name, ITrafficItem const* Item, ImGuiTreeNodeFlags NodeFlags, ETrafficItemType Type)
 {
 	NodeFlags |= ImGuiTreeNodeFlags_SpanFullWidth;
 	NodeFlags |= ImGuiTreeNodeFlags_OpenOnArrow;
@@ -88,6 +88,8 @@ bool WTrafficTree::RenderItem(std::string const& Name, ITrafficItem const* Item,
 	if (ImGui::IsItemClicked())
 	{
 		SelectedItemId = Item->ItemId;
+		SelectedItem = Item;
+		SelectedItemType = Type;
 	}
 
 #if WDEBUG
@@ -305,7 +307,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 
 	// start first data row for the root item
 	ImGui::TableNextRow();
-	bOpened = RenderItem(Root.HostName, &Root, ImGuiTreeNodeFlags_DefaultOpen);
+	bOpened = RenderItem(Root.HostName, &Root, ImGuiTreeNodeFlags_DefaultOpen, TI_System);
 	bool rootOpened = bOpened;
 
 	if (!bOpened)
@@ -326,7 +328,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 		ImGui::TableNextRow();
 		// Stable ID: application name within root
 		ImGui::PushID(Name.c_str());
-		bOpened = RenderItem(Child->ApplicationName, Child.get(), ImGuiTreeNodeFlags_DefaultOpen);
+		bOpened = RenderItem(Child->ApplicationName, Child.get(), ImGuiTreeNodeFlags_DefaultOpen, TI_Application);
 
 		if (!bOpened)
 		{
@@ -343,7 +345,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 
 			ImGui::TableNextRow();
 			ImGui::PushID(PID); // PID fits in int on Linux
-			bOpened = RenderItem(fmt::format("Process {}", PID), Process.get(), 0);
+			bOpened = RenderItem(fmt::format("Process {}", PID), Process.get(), 0, TI_Process);
 
 			if (!bOpened)
 			{
@@ -358,7 +360,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 				std::string sockId = std::string("sock:") + std::to_string(SocketCookie);
 				ImGui::PushID(sockId.c_str());
 				ImGuiTreeNodeFlags socketFlags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-				RenderItem(fmt::format("Socket {}", SocketCookie), Socket.get(), socketFlags);
+				RenderItem(fmt::format("Socket {}", SocketCookie), Socket.get(), socketFlags, TI_Socket);
 				ImGui::PopID();
 				// No TreePop() here because NoTreePushOnOpen prevents a push
 			}
