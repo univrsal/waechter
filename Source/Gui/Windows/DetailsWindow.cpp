@@ -33,14 +33,40 @@ void WDetailsWindow::DrawSystemDetails()
 	ImGui::Text("Hostname: %s", System->HostName.c_str());
 	ImGui::Separator();
 	ImGui::Text("Uptime: %s", FormattedUptime.c_str());
+	ImGui::Text("Total Downloaded: %s", WStorageFormat::AutoFormat(System->TotalDownloadBytes).c_str());
+	ImGui::Text("Total Uploaded: %s", WStorageFormat::AutoFormat(System->TotalUploadBytes).c_str());
 }
 
 void WDetailsWindow::DrawApplicationDetails()
 {
+	auto const* App = Tree->GetSeletedTrafficItem<WApplicationItem>();
+	if (App == nullptr)
+	{
+		return;
+	}
+
+	ImGui::Text("%s", App->ApplicationName.c_str());
+	ImGui::Separator();
+	if (!App->ApplicationPath.empty())
+	{
+		ImGui::Text("Path: %s", App->ApplicationPath.c_str());
+	}
+	ImGui::Text("Total Downloaded: %s", WStorageFormat::AutoFormat(App->TotalDownloadBytes).c_str());
+	ImGui::Text("Total Uploaded: %s", WStorageFormat::AutoFormat(App->TotalUploadBytes).c_str());
 }
 
 void WDetailsWindow::DrawProcessDetails()
 {
+	auto const* Proc = Tree->GetSeletedTrafficItem<WProcessItem>();
+	if (Proc == nullptr)
+	{
+		return;
+	}
+
+	ImGui::Text("Process ID : %d", Proc->ProcessId);
+	ImGui::Separator();
+	ImGui::Text("Total Downloaded: %s", WStorageFormat::AutoFormat(Proc->TotalDownloadBytes).c_str());
+	ImGui::Text("Total Uploaded: %s", WStorageFormat::AutoFormat(Proc->TotalUploadBytes).c_str());
 }
 
 void WDetailsWindow::DrawSocketDetails()

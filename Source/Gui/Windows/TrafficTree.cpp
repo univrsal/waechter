@@ -181,6 +181,8 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 		{
 			It->second->DownloadSpeed = Update.NewDownloadSpeed;
 			It->second->UploadSpeed = Update.NewUploadSpeed;
+			It->second->TotalDownloadBytes = Update.TotalDownloadBytes;
+			It->second->TotalUploadBytes = Update.TotalUploadBytes;
 
 			if (Update.ItemId == 0)
 			{

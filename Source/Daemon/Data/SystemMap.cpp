@@ -83,7 +83,7 @@ void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
 
 std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::FindOrMapSocket(WSocketCookie SocketCookie, std::shared_ptr<WProcessCounter> const& ParentProcess)
 {
-	if (const auto It = Sockets.find(SocketCookie); It != Sockets.end())
+	if (auto const It = Sockets.find(SocketCookie); It != Sockets.end())
 	{
 		return It->second;
 	}
@@ -102,7 +102,7 @@ std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::FindOrMapSocket(WSocketC
 
 std::shared_ptr<WSystemMap::WProcessCounter> WSystemMap::FindOrMapProcess(WProcessId const PID, std::shared_ptr<WAppCounter> const& ParentApp)
 {
-	if (const auto It = Processes.find(PID); It != Processes.end())
+	if (auto const It = Processes.find(PID); It != Processes.end())
 	{
 		return It->second;
 	}
@@ -141,17 +141,17 @@ void WSystemMap::RefreshAllTrafficCounters()
 {
 	std::lock_guard Lock(DataMutex);
 	TrafficCounter.Refresh();
-	for (const auto& App : Applications | std::views::values)
+	for (auto const& App : Applications | std::views::values)
 	{
 		App->Refresh();
 	}
 
-	for (const auto& Process : Processes | std::views::values)
+	for (auto const& Process : Processes | std::views::values)
 	{
 		Process->Refresh();
 	}
 
-	for (const auto& Socket : Sockets | std::views::values)
+	for (auto const& Socket : Sockets | std::views::values)
 	{
 		Socket->Refresh();
 	}
@@ -163,7 +163,7 @@ void WSystemMap::PushIncomingTraffic(WBytes Bytes, WSocketCookie SocketCookie)
 	std::lock_guard Lock(DataMutex);
 	TrafficCounter.PushIncomingTraffic(Bytes);
 
-	if (const auto It = Sockets.find(SocketCookie); It != Sockets.end())
+	if (auto const It = Sockets.find(SocketCookie); It != Sockets.end())
 	{
 		auto Socket = It->second;
 		Socket->PushIncomingTraffic(Bytes);
@@ -177,7 +177,7 @@ void WSystemMap::PushOutgoingTraffic(WBytes Bytes, WSocketCookie SocketCookie)
 	std::lock_guard Lock(DataMutex);
 	TrafficCounter.PushOutgoingTraffic(Bytes);
 
-	if (const auto It = Sockets.find(SocketCookie); It != Sockets.end())
+	if (auto const It = Sockets.find(SocketCookie); It != Sockets.end())
 	{
 		auto Socket = It->second;
 		Socket->PushOutgoingTraffic(Bytes);
@@ -195,42 +195,58 @@ WTrafficTreeUpdates WSystemMap::GetUpdates()
 
 	if (TrafficCounter.GetState() == CS_Active)
 	{
-		Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{ SystemItem->ItemId,
+		Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{
+			SystemItem->ItemId,
 			SystemItem->DownloadSpeed,
-			SystemItem->UploadSpeed });
+			SystemItem->UploadSpeed,
+			SystemItem->TotalDownloadBytes,
+			SystemItem->TotalUploadBytes,
+		});
 	}
 
-	for (const auto& App : Applications | std::views::values)
+	for (auto const& App : Applications | std::views::values)
 	{
 		if (App->GetState() == CS_Active)
 		{
-			Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{ App->TrafficItem->ItemId,
+			Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{
+				App->TrafficItem->ItemId,
 				App->TrafficItem->DownloadSpeed,
-				App->TrafficItem->UploadSpeed });
+				App->TrafficItem->UploadSpeed,
+				App->TrafficItem->TotalDownloadBytes,
+				App->TrafficItem->TotalUploadBytes,
+			});
 		}
 	}
 
-	for (const auto& Process : Processes | std::views::values)
+	for (auto const& Process : Processes | std::views::values)
 	{
 		if (Process->GetState() == CS_Active)
 		{
-			Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{ Process->TrafficItem->ItemId,
+			Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{
+				Process->TrafficItem->ItemId,
 				Process->TrafficItem->DownloadSpeed,
-				Process->TrafficItem->UploadSpeed });
+				Process->TrafficItem->UploadSpeed,
+				Process->TrafficItem->TotalDownloadBytes,
+				Process->TrafficItem->TotalUploadBytes,
+			});
 		}
 	}
 
-	for (const auto& Socket : Sockets | std::views::values)
+	for (auto const& Socket : Sockets | std::views::values)
 	{
 		if (Socket->GetState() == CS_Active)
 		{
-			Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{ Socket->TrafficItem->ItemId,
+			Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{
+				Socket->TrafficItem->ItemId,
 				Socket->TrafficItem->DownloadSpeed,
-				Socket->TrafficItem->UploadSpeed });
+				Socket->TrafficItem->UploadSpeed,
+				Socket->TrafficItem->TotalDownloadBytes,
+				Socket->TrafficItem->TotalUploadBytes,
+			});
 		}
 	}
 
-	for (const auto& Socket : AddedSockets)
+	for (auto const& Socket : AddedSockets)
 	{
 		if (Socket->GetState() == CS_PendingRemoval)
 		{
