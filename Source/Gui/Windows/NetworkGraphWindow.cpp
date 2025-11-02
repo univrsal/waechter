@@ -12,9 +12,9 @@
 
 int FormatBandwidth(double Value, char* Buf, int Size, void* UserData)
 {
-	const auto*  U = static_cast<const WNetworkGraphWindow::WUnitFmt*>(UserData);
-	const double V = Value / (U ? U->Factor : 1.0);
-	return std::snprintf(Buf, static_cast<size_t>(Size), "%.0f", V);
+	auto const*  U = static_cast<WNetworkGraphWindow::WUnitFmt const*>(UserData);
+	double const V = Value / (U ? U->Factor : 1.0);
+	return std::snprintf(Buf, static_cast<size_t>(Size), "%.2f", V);
 }
 
 void WNetworkGraphWindow::Draw()
