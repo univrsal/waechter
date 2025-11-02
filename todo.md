@@ -23,8 +23,9 @@ Gui:
 
 - [x] Decode traffic tree
 - [x] Highlight about-to-be removed PIDs and Sockets
-- [ ] Add traffic graph window
-    - [ ] Show traffic over time upload/download for entire system
+- [x] Add traffic graph window
+    - [x] Show traffic over time upload/download for entire system
+- [x] apps and processes showing up twice for some reason
 - [ ] Connection detail window (depends on selected row in traffic tree)
     - [ ] Show socket state
     - [ ] Show process details
@@ -33,7 +34,8 @@ Gui:
 - [ ] App traffic still gets stuck sometimes
 - [ ] After last socket closes PID is no longer drawn, but app is still there and traffic is stuck
 - [ ] Traffic graph should adjust y axis based on visible traffic data
-  Daemon -> Gui:
+
+Daemon -> Gui:
 
 - [x] Some apps have the entire command line as the name
 - [x] There's an app with "" as the name for some reason
