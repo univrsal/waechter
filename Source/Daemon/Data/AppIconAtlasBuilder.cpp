@@ -16,6 +16,7 @@
 struct WPackedIcon
 {
 	std::string                      Path{};
+	std::string                      BinaryName{};
 	int                              W{}, H{};
 	std::unique_ptr<unsigned char[]> Pixels{}; // RGBA
 };
@@ -55,6 +56,7 @@ bool WAppIconAtlasBuilder::GetAtlasData(WAppIconAtlasData& outData, std::vector<
 		}
 		WPackedIcon Icon;
 		Icon.Path = IconPath;
+		Icon.BinaryName = BinaryName;
 		Icon.W = IconW;
 		Icon.H = IconH;
 		Icon.Pixels = std::make_unique<unsigned char[]>(static_cast<std::size_t>(IconW * IconH * 4));
@@ -113,7 +115,7 @@ bool WAppIconAtlasBuilder::GetAtlasData(WAppIconAtlasData& outData, std::vector<
 		Uv.U2 = static_cast<float>(X + W) / static_cast<float>(AtlasSize);
 		Uv.V2 = static_cast<float>(Y + H) / static_cast<float>(AtlasSize);
 
-		outData.UvData[BinaryNames[i]] = Uv;
+		outData.UvData[PackedIcons[i].BinaryName] = Uv;
 	}
 	outData.AtlasSize = static_cast<int>(AtlasSize);
 
