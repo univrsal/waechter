@@ -20,6 +20,6 @@ public:
 
 	void serialize(Archive& archive)
 	{
-		archive(ItemId, DownloadSpeed, UploadSpeed, ProcessId, Sockets);
+		archive(ItemId, DownloadSpeed, UploadSpeed, TotalDownloadBytes, TotalUploadBytes, ProcessId, Sockets);
 	}
 };

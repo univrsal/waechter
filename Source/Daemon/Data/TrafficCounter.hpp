@@ -60,10 +60,7 @@ public:
 		if (auto const TimeStampMS = WTime::GetEpochMs(); TimeStampMS - TimeWindowStart >= RecentTrafficTimeWindow)
 		{
 			auto NewDownloadSpeed = static_cast<double>(RecentDownload) / (static_cast<double>(RecentTrafficTimeWindow) / 1000.0);
-			RecentDownload = 0;
 			auto NewUploadSpeed = static_cast<double>(RecentUpload) / (RecentTrafficTimeWindow / 1000.0);
-			RecentUpload = 0;
-			TimeWindowStart = TimeStampMS;
 
 			if (std::abs(NewDownloadSpeed - TrafficItem->DownloadSpeed) > 0.01)
 			{
@@ -87,6 +84,11 @@ public:
 				State = CS_Inactive;
 				TrafficItem->UploadSpeed = 0;
 			}
+			TrafficItem->TotalDownloadBytes += RecentDownload;
+			TrafficItem->TotalUploadBytes += RecentUpload;
+			RecentDownload = 0;
+			RecentUpload = 0;
+			TimeWindowStart = TimeStampMS;
 		}
 	}
 

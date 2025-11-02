@@ -12,11 +12,13 @@ struct WTrafficTreeTrafficUpdate
 	WTrafficItemId  ItemId{};
 	WBytesPerSecond NewDownloadSpeed{};
 	WBytesPerSecond NewUploadSpeed{};
+	WBytes          TotalDownloadBytes{};
+	WBytes          TotalUploadBytes{};
 
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(ItemId, NewDownloadSpeed, NewUploadSpeed);
+		archive(ItemId, NewDownloadSpeed, NewUploadSpeed, TotalDownloadBytes, TotalUploadBytes);
 	}
 };
 

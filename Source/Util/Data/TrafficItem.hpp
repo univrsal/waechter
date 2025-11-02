@@ -21,4 +21,7 @@ struct ITrafficItem
 	WTrafficItemId  ItemId{};
 	WBytesPerSecond DownloadSpeed{};
 	WBytesPerSecond UploadSpeed{};
+
+	WBytes TotalDownloadBytes{};
+	WBytes TotalUploadBytes{};
 };

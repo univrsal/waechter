@@ -24,6 +24,6 @@ struct WSocketItem : ITrafficItem
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(ItemId, DownloadSpeed, UploadSpeed, ConnectionState, SocketTuple);
+		archive(ItemId, DownloadSpeed, UploadSpeed, TotalDownloadBytes, TotalUploadBytes, ConnectionState, SocketTuple);
 	}
 };

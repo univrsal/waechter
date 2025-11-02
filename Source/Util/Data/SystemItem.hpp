@@ -20,6 +20,6 @@ struct WSystemItem : ITrafficItem
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(ItemId, DownloadSpeed, UploadSpeed, HostName, Applications);
+		archive(ItemId, DownloadSpeed, UploadSpeed, HostName, TotalDownloadBytes, TotalUploadBytes, Applications);
 	}
 };
