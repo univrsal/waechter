@@ -67,15 +67,15 @@ std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::MapSocket(WSocketCookie 
 	}
 
 	// Reconstruct human-readable command line preserving argv boundaries with spaces
-	std::string cmdline;
+	std::string CmdlIne;
 	for (size_t i = 0; i < Argv.size(); ++i)
 	{
-		cmdline += Argv[i];
+		CmdlIne += Argv[i];
 		if (i + 1 < Argv.size())
-			cmdline += ' ';
+			CmdlIne += ' ';
 	}
 
-	auto App = FindOrMapApplication(ExePath, cmdline, Comm);
+	auto App = FindOrMapApplication(ExePath, CmdlIne, Comm);
 	auto Process = FindOrMapProcess(PID, App);
 	return FindOrMapSocket(SocketCookie, Process);
 }
