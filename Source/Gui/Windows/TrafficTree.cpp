@@ -323,6 +323,11 @@ void WTrafficTree::Draw(ImGuiID MainID)
 
 		for (const auto& [PID, Process] : Child->Processes)
 		{
+			if (Process->Sockets.empty())
+			{
+				continue;
+			}
+
 			ImGui::TableNextRow();
 			ImGui::PushID(PID); // PID fits in int on Linux
 			bOpened = RenderItem(fmt::format("Process {}", PID), Process.get(), 0);
