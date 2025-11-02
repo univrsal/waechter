@@ -50,8 +50,6 @@ int Run()
 		return -1;
 	}
 
-	WAppIconAtlasBuilder::GetInstance().Init();
-
 	spdlog::info("Ebpf programs loaded and attached");
 
 	// Poll ring buffers and periodically print aggregate stats

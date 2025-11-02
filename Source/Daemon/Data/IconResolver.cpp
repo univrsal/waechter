@@ -12,6 +12,8 @@
 
 inline std::string FindDesktopFile(std::string const& BinaryName, std::vector<std::string> const& DesktopDirs)
 {
+	auto BinaryNameLowercase = BinaryName;
+	std::transform(BinaryNameLowercase.begin(), BinaryNameLowercase.end(), BinaryNameLowercase.begin(), ::tolower);
 
 	for (auto const& Dir : DesktopDirs)
 	{
@@ -23,8 +25,11 @@ inline std::string FindDesktopFile(std::string const& BinaryName, std::vector<st
 				std::string   Line;
 				while (std::getline(File, Line))
 				{
-					if (Line.rfind("Exec=", 0) == 0 && Line.find(BinaryName) != std::string::npos)
+					auto LineLowercase = Line;
+					std::ranges::transform(LineLowercase, LineLowercase.begin(), ::tolower);
+					if (LineLowercase.rfind("exec=", 0) == 0 && LineLowercase.find(BinaryNameLowercase) != std::string::npos)
 					{
+						spdlog::info("Found desktop file for binary '{}' at path '{}'", BinaryName, Entry.path().string());
 						return Entry.path();
 					}
 				}
@@ -54,7 +59,7 @@ inline std::string FindIconPathByName(std::string const& Name)
 	// If found, return the path to the icon
 	for (auto const& Dir : stdfs::recursive_directory_iterator("/usr/share/icons/hicolor"))
 	{
-		if (Dir.path().extension() == ".png" && Dir.path().filename().string() == Name + ".png")
+		if (Dir.path().extension() == ".png" && Dir.path().filename().string().find(Name) != std::string::npos)
 		{
 			return Dir.path();
 		}
@@ -77,14 +82,5 @@ std::string WIconResolver::GetIconFromBinaryName(std::string const& Binary)
 		spdlog::warn("No icon name found in desktop file '{}'", DesktopFile);
 		return "";
 	}
-
 	return FindIconPathByName(Name);
-}
-
-void WIconResolver::Init()
-{
-	// We have to delay this until the daemon has dropped to the unprivileged user
-	DesktopDirs = {
-		"/usr/share/applications",
-	};
 }

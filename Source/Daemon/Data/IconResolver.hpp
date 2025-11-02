@@ -14,14 +14,13 @@ class WIconResolver
 	std::unordered_map<std::string, std::string> IconMap{};
 
 	std::string              GetIconFromBinaryName(std::string const& Binary);
-	std::vector<std::string> DesktopDirs{};
+	std::vector<std::string> DesktopDirs = {
+		"/usr/share/applications",
+	};
 
 public:
-	void Init();
-
 	std::string const& ResolveIcon(std::string const& Binary)
 	{
-		spdlog::debug("Resolving icon for binary '{}'", Binary);
 		if (auto const Iter = IconMap.find(Binary); Iter != IconMap.end())
 		{
 			return Iter->second;

@@ -4,6 +4,8 @@
 
 #include "DetailsWindow.hpp"
 
+#include "AppIconAtlas.hpp"
+
 #include <imgui.h>
 #include <sys/sysinfo.h>
 
@@ -44,6 +46,12 @@ void WDetailsWindow::DrawApplicationDetails()
 	{
 		return;
 	}
+	// Draw app icon
+	auto&           A = WAppIconAtlas::GetInstance();
+	std::lock_guard Lock(A.GetMutex());
+	A.DrawIconForApplication(App->ApplicationName, ImVec2(16, 16));
+
+	ImGui::SameLine();
 
 	ImGui::Text("%s", App->ApplicationName.c_str());
 	ImGui::Separator();

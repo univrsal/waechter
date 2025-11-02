@@ -5,36 +5,42 @@
 #pragma once
 #include "Buffer.hpp"
 #include "Singleton.hpp"
+#include "Data/AppIconAtlasData.hpp"
 
 #include <imgui.h>
 #include <glad/glad.h>
 #include <mutex>
-class WAppIconAtlasData;
+#include <string>
+#include <unordered_map>
+#include <optional>
 
 class WAppIconAtlas : public TSingleton<WAppIconAtlas>
 {
-	std::mutex Mutex;
-	GLuint     TextureId{};
+	std::mutex                                Mutex;
+	GLuint                                    TextureId{ 0 };
+	std::unordered_map<std::string, WAtlasUv> UvData;
+	std::optional<WAppIconAtlasData>          PendingData; // set by background thread, consumed by render thread
 
 public:
 	WAppIconAtlas() = default;
-	~WAppIconAtlas()
-	{
-		if (TextureId != 0)
-		{
-			glDeleteTextures(1, &TextureId);
-		}
-	}
+	~WAppIconAtlas() = default;
 
 	std::mutex& GetMutex()
 	{
 		return Mutex;
 	}
 
-	GLuint GetTextureId() const
+	void Cleanup()
 	{
-		return TextureId;
+		if (TextureId != 0)
+		{
+			glDeleteTextures(1, &TextureId);
+			TextureId = 0;
+		}
 	}
 
+	void DrawIconForApplication(std::string const& BinaryName, ImVec2 Size);
 	void FromAtlasData(WBuffer& Data);
+	// Call this on the render thread (with a current GL context)
+	void UploadPendingIfAny();
 };

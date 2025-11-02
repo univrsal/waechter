@@ -41,6 +41,7 @@ void WDaemonSocket::ListenThreadFunction()
 			WAppIconAtlasData Data{};
 			if (WAppIconAtlasBuilder::GetInstance().GetAtlasData(Data, ActiveApps))
 			{
+				spdlog::info("Atlas has {} icons", Data.UvData.size());
 				NewClient->SendMessage(MT_AppIconAtlasData, Data);
 			}
 			else

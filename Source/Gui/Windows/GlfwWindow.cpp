@@ -14,6 +14,7 @@
 
 #include "Filesystem.hpp"
 #include "Time.hpp"
+#include "AppIconAtlas.hpp"
 
 INCBIN(Icon, ICON_PATH);
 INCBIN(Font, FONT_PATH);
@@ -168,6 +169,9 @@ void WGlfwWindow::RunLoop()
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
+		// Perform any pending GL uploads (e.g., icon atlas) on the render thread
+		WAppIconAtlas::GetInstance().UploadPendingIfAny();
+
 		MainWindow->Draw();
 
 		// Rendering
@@ -188,6 +192,7 @@ void WGlfwWindow::RunLoop()
 void WGlfwWindow::Destroy()
 {
 	MainWindow = nullptr;
+	WAppIconAtlas::GetInstance().Cleanup();
 	if (ImGui::GetCurrentContext())
 	{
 		ImGuiIO& io = ImGui::GetIO();
