@@ -9,6 +9,7 @@ add_library(util STATIC
         Json.hpp
         Format.hpp
         Data/TrafficTreeUpdate.hpp
+        Time.cpp
 )
 add_library(waechter::util ALIAS util)
 
