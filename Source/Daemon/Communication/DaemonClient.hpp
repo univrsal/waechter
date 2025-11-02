@@ -23,7 +23,7 @@ class WDaemonClient
 
 public:
 	WDaemonClient(std::shared_ptr<WClientSocket> CS, WDaemonSocket* PS)
-		: ClientSocket(CS)
+		: ClientSocket(std::move(CS))
 		, ParentSocket(PS)
 	{
 	}
