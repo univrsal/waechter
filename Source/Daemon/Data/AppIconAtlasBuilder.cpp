@@ -57,8 +57,8 @@ bool WAppIconAtlasBuilder::GetAtlasData(WAppIconAtlasData& outData, std::vector<
 		WPackedIcon Icon;
 		Icon.Path = IconPath;
 		Icon.BinaryName = BinaryName;
-		Icon.W = IconW;
-		Icon.H = IconH;
+		Icon.W = static_cast<uint>(IconW);
+		Icon.H = static_cast<uint>(IconH);
 		Icon.Pixels = std::make_unique<unsigned char[]>(Icon.W * Icon.H * 4);
 		std::memcpy(Icon.Pixels.get(), Data, Icon.W * Icon.H * 4);
 		stbi_image_free(Data);
