@@ -13,18 +13,19 @@
 #include <implot.h>
 
 #include "Filesystem.hpp"
+#include "Time.hpp"
 
 INCBIN(Icon, ICON_PATH);
 INCBIN(Font, FONT_PATH);
 
-static void GlfwErrorCallback(int Error, const char* Description)
+static void GlfwErrorCallback(int Error, char const* Description)
 {
 	spdlog::error("GLFW Error {}: {}", Error, Description);
 }
 
 static stdfs::path GetConfigFolder()
 {
-	const char* Xdg = std::getenv("XDG_CONFIG_HOME");
+	char const* Xdg = std::getenv("XDG_CONFIG_HOME");
 	stdfs::path Base;
 	if (Xdg && Xdg[0] != '\0')
 	{
@@ -32,7 +33,7 @@ static stdfs::path GetConfigFolder()
 	}
 	else
 	{
-		const char* Home = std::getenv("HOME");
+		char const* Home = std::getenv("HOME");
 		if (!Home || Home[0] == '\0')
 		{
 			spdlog::warn("Neither XDG_CONFIG_HOME nor HOME are set; cannot determine config folder");
@@ -72,7 +73,7 @@ bool WGlfwWindow::Init()
 		spdlog::critical("GLFW initialization failed!");
 		return false;
 	}
-	const char* GlslVersion = "#version 130";
+	char const* GlslVersion = "#version 130";
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 	MainScale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor()); // Valid on GLFW 3.3+ only
@@ -144,6 +145,8 @@ bool WGlfwWindow::Init()
 	ImGui_ImplGlfw_InitForOpenGL(Window, true);
 	ImGui_ImplOpenGL3_Init(GlslVersion);
 
+	WTimerManager::GetInstance().Start(glfwGetTime());
+
 	return true;
 }
 
@@ -154,7 +157,6 @@ void WGlfwWindow::RunLoop()
 	while (!glfwWindowShouldClose(Window))
 	{
 		glfwPollEvents();
-
 		if (glfwGetWindowAttrib(Window, GLFW_ICONIFIED) != 0)
 		{
 			ImGui_ImplGlfw_Sleep(10);
@@ -177,6 +179,7 @@ void WGlfwWindow::RunLoop()
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		glfwSwapBuffers(Window);
+		WTimerManager::GetInstance().UpdateTimers(glfwGetTime());
 	}
 	MainWindow = nullptr;
 }

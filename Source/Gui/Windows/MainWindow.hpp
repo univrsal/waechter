@@ -15,7 +15,7 @@ class WMainWindow
 	WClient             Client{};
 	WLogWindow          LogWindow{};
 	WNetworkGraphWindow NetworkGraphWindow{};
-	WDetailsWindow      DetailsWindow{};
+	WDetailsWindow      DetailsWindow{ &Client.GetTrafficTree() };
 
 	bool bInit{ false };
 	void DrawConnectionIndicator();
@@ -27,6 +27,11 @@ public:
 	WNetworkGraphWindow& GetNetworkGraphWindow()
 	{
 		return NetworkGraphWindow;
+	}
+
+	WClient& GetClient()
+	{
+		return Client;
 	}
 
 	~WMainWindow() = default;
