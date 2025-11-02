@@ -73,13 +73,13 @@ void WTrafficTree::LoadFromBuffer(WBuffer const& Buffer)
 		iar(Root);
 	}
 
-	for (const auto& App : Root.Applications | std::views::values)
+	for (auto const& App : Root.Applications | std::views::values)
 	{
 		TrafficItems[App->ItemId] = App.get();
-		for (const auto& Proc : App->Processes | std::views::values)
+		for (auto const& Proc : App->Processes | std::views::values)
 		{
 			TrafficItems[Proc->ItemId] = Proc.get();
-			for (const auto& Sock : Proc->Sockets | std::views::values)
+			for (auto const& Sock : Proc->Sockets | std::views::values)
 			{
 				TrafficItems[Sock->ItemId] = Sock.get();
 			}
@@ -100,12 +100,12 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 		iar(Updates);
 	}
 
-	for (const auto& MarkedId : Updates.MarkedForRemovalItems)
+	for (auto const& MarkedId : Updates.MarkedForRemovalItems)
 	{
 		MarkedForRemovalItems.insert(MarkedId);
 	}
 
-	for (const auto& RemovedId : Updates.RemovedItems)
+	for (auto const& RemovedId : Updates.RemovedItems)
 	{
 		if (TrafficItems.contains(RemovedId))
 		{
@@ -114,9 +114,9 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 		RemoveTrafficItem(RemovedId);
 	}
 
-	for (const auto& Update : Updates.UpdatedItems)
+	for (auto const& Update : Updates.UpdatedItems)
 	{
-		if (const auto It = TrafficItems.find(Update.ItemId); It != TrafficItems.end())
+		if (auto const It = TrafficItems.find(Update.ItemId); It != TrafficItems.end())
 		{
 			It->second->DownloadSpeed = Update.NewDownloadSpeed;
 			It->second->UploadSpeed = Update.NewUploadSpeed;
@@ -128,7 +128,7 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 		}
 	}
 
-	for (const auto& Addition : Updates.AddedSockets)
+	for (auto const& Addition : Updates.AddedSockets)
 	{
 		// Find parent application
 		auto AppIt = Root.Applications.find(Addition.ApplicationPath);
@@ -158,7 +158,7 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 			TrafficItems[NewProc->ItemId] = NewProc.get();
 		}
 
-		auto& Proc = ProcIt->second;
+		auto const& Proc = ProcIt->second;
 
 		// Create new socket item
 		auto NewSocket = std::make_shared<WSocketItem>();
@@ -315,7 +315,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 		return;
 	}
 
-	for (const auto& [Name, Child] : Root.Applications)
+	for (auto const& [Name, Child] : Root.Applications)
 	{
 		if (Child->Processes.empty())
 		{
@@ -333,7 +333,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 			continue;
 		}
 
-		for (const auto& [PID, Process] : Child->Processes)
+		for (auto const& [PID, Process] : Child->Processes)
 		{
 			if (Process->Sockets.empty())
 			{
@@ -350,7 +350,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 				continue;
 			}
 
-			for (const auto& [SocketCookie, Socket] : Process->Sockets)
+			for (auto const& [SocketCookie, Socket] : Process->Sockets)
 			{
 				ImGui::TableNextRow();
 				// Use string ID for potentially wide cookies

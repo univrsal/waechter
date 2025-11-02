@@ -1,4 +1,4 @@
-StatementMacros: ['UPROPERTY', 'UFUNCTION', 'UCLASS', 'USTRUCT', 'UENUM', 'UINTERFACE', 'GENERATED_BODY']
+StatementMacros: [ 'UPROPERTY', 'UFUNCTION', 'UCLASS', 'USTRUCT', 'UENUM', 'UINTERFACE', 'GENERATED_BODY' ]
 Language: Cpp
 BasedOnStyle: LLVM
 
@@ -12,6 +12,7 @@ AllowShortBlocksOnASingleLine: Empty
 AllowShortEnumsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: Inline
 AllowShortLambdasOnASingleLine: All
+QualifierAlignment: Right
 BraceWrapping:
   AfterCaseLabel: true
   AfterClass: true
