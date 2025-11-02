@@ -18,18 +18,19 @@
 #include <unistd.h>
 #include <cstdlib>
 #include <sys/types.h>
+#include <vector>
 
 namespace stdfs = std::filesystem;
 
 class WFilesystem
 {
 public:
-	static bool Exists(const stdfs::path& p)
+	static bool Exists(stdfs::path const& p)
 	{
 		return stdfs::exists(p);
 	}
 
-	static bool Writable(const stdfs::path& p)
+	static bool Writable(stdfs::path const& p)
 	{
 		stdfs::perms pms = stdfs::status(p).permissions();
 		return ((pms & stdfs::perms::owner_write) != stdfs::perms::none) || ((pms & stdfs::perms::group_write) != stdfs::perms::none) || ((pms & stdfs::perms::others_write) != stdfs::perms::none);
@@ -56,6 +57,106 @@ public:
 			Content.pop_back();
 
 		return Content;
+	}
+
+	// Read /proc file containing NUL-separated strings into a vector of strings.
+	static std::vector<std::string> ReadProcNulSeparated(std::string const& Path)
+	{
+		std::ifstream FileStream(Path, std::ios::in | std::ios::binary);
+		if (!FileStream)
+			return {};
+
+		std::string              buffer((std::istreambuf_iterator<char>(FileStream)), std::istreambuf_iterator<char>());
+		std::vector<std::string> parts{};
+		if (buffer.empty())
+			return parts;
+
+		std::string current{};
+		for (char c : buffer)
+		{
+			if (c == '\0')
+			{
+				parts.emplace_back(std::move(current));
+				current.clear();
+			}
+			else
+			{
+				current.push_back(c);
+			}
+		}
+		// Some proc files may not end with a NUL; add remainder if any
+		if (!current.empty())
+		{
+			parts.emplace_back(std::move(current));
+		}
+
+		// Drop a possible trailing empty element due to final NUL
+		if (!parts.empty() && parts.back().empty())
+		{
+			parts.pop_back();
+		}
+		return parts;
+	}
+
+	// Readlink helper that returns the symlink target as string; returns empty on failure.
+	static std::string ReadLink(std::string const& Path)
+	{
+		std::vector<char> buf(256);
+		while (true)
+		{
+			ssize_t n = ::readlink(Path.c_str(), buf.data(), buf.size());
+			if (n < 0)
+			{
+				return {};
+			}
+			if (static_cast<size_t>(n) < buf.size())
+			{
+				return std::string(buf.data(), static_cast<size_t>(n));
+			}
+			// Buffer too small, grow and retry
+			buf.resize(buf.size() * 2);
+		}
+	}
+
+	static std::string StripDeletedSuffix(std::string s)
+	{
+		constexpr char const* suffix = " (deleted)";
+		size_t const          len = std::char_traits<char>::length(suffix);
+		if (s.size() >= len && s.compare(s.size() - len, len, suffix) == 0)
+		{
+			s.erase(s.size() - len);
+		}
+		return s;
+	}
+
+	// Returns the absolute path of the executable for PID using /proc/[pid]/exe symlink if available.
+	static std::string GetProcessExePath(WProcessId PID)
+	{
+		if (PID <= 0)
+			return {};
+		std::string link = "/proc/" + std::to_string(PID) + "/exe";
+		std::string target = ReadLink(link);
+		if (target.empty())
+			return {};
+		return StripDeletedSuffix(target);
+	}
+
+	// Returns the current working directory of the process (best-effort).
+	static std::string GetProcessCwd(WProcessId PID)
+	{
+		if (PID <= 0)
+			return {};
+		std::string link = "/proc/" + std::to_string(PID) + "/cwd";
+		std::string target = ReadLink(link);
+		return StripDeletedSuffix(target);
+	}
+
+	// Returns argv vector for the given PID by reading /proc/[pid]/cmdline
+	static std::vector<std::string> GetProcessCmdlineArgs(WProcessId PID)
+	{
+		if (PID <= 0)
+			return {};
+		return ReadProcNulSeparated("/proc/" + std::to_string(PID) + "/cmdline");
 	}
 
 	static bool IsProcessRunningByKill(WProcessId PID)
