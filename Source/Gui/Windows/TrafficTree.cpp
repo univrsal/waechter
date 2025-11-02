@@ -62,6 +62,65 @@ void WTrafficTree::RemoveTrafficItem(WTrafficItemId TrafficItemId)
 	}
 }
 
+bool WTrafficTree::RenderItem(std::string const& Name, ITrafficItem const* Item, ImGuiTreeNodeFlags NodeFlags)
+{
+	NodeFlags |= ImGuiTreeNodeFlags_SpanFullWidth;
+	NodeFlags |= ImGuiTreeNodeFlags_OpenOnArrow;
+	ImGui::TableSetColumnIndex(0);
+
+	if (MarkedForRemovalItems.contains(Item->ItemId))
+	{
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{ 1.0f, 0.4f, 0.4f, 1.0f });
+	}
+
+	if (SelectedItemId == Item->ItemId)
+	{
+		NodeFlags |= ImGuiTreeNodeFlags_Selected;
+	}
+
+	auto bNodeOpen = ImGui::TreeNodeEx(Name.c_str(), NodeFlags);
+
+	if (MarkedForRemovalItems.contains(Item->ItemId))
+	{
+		ImGui::PopStyleColor();
+	}
+
+	if (ImGui::IsItemClicked())
+	{
+		SelectedItemId = Item->ItemId;
+	}
+
+#if WDEBUG
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::BeginTooltip();
+		ImGui::Text("ID: %llu", Item->ItemId);
+		ImGui::EndTooltip();
+	}
+#endif
+
+	if (Item->DownloadSpeed > 0)
+	{
+		ImGui::TableSetColumnIndex(1);
+		ImGui::Text("%s", WTrafficFormat::Format(Item->DownloadSpeed, Unit).c_str());
+	}
+
+	if (Item->UploadSpeed > 0)
+	{
+		ImGui::TableSetColumnIndex(2);
+		ImGui::Text("%s", WTrafficFormat::Format(Item->UploadSpeed, Unit).c_str());
+	}
+
+	ImGui::TableSetColumnIndex(3);
+	// placeholder: add a DownloadLimit field to WSystemItem to show real values
+	ImGui::TextDisabled("-");
+
+	ImGui::TableSetColumnIndex(4);
+	// placeholder: add a UploadLimit field to WSystemItem to show real values
+	ImGui::TextDisabled("-");
+	return bNodeOpen;
+}
+
 void WTrafficTree::LoadFromBuffer(WBuffer const& Buffer)
 {
 	TrafficItems.clear();
@@ -240,64 +299,6 @@ void WTrafficTree::Draw(ImGuiID MainID)
 	ImGui::TableSetupColumn("Ul.", ImGuiTableColumnFlags_WidthFixed, 100.0f);
 	ImGui::TableSetupColumn("Dl. limit", ImGuiTableColumnFlags_WidthFixed, 100.0f);
 	ImGui::TableSetupColumn("Ul. limit", ImGuiTableColumnFlags_WidthFixed, 100.0f);
-
-	auto RenderItem = [&](std::string const& Name, const ITrafficItem* Item, ImGuiTreeNodeFlags NodeFlags) {
-		NodeFlags |= ImGuiTreeNodeFlags_SpanFullWidth;
-		NodeFlags |= ImGuiTreeNodeFlags_OpenOnArrow;
-		ImGui::TableSetColumnIndex(0);
-
-		if (MarkedForRemovalItems.contains(Item->ItemId))
-		{
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{ 1.0f, 0.4f, 0.4f, 1.0f });
-		}
-
-		if (SelectedItemId == Item->ItemId)
-		{
-			NodeFlags |= ImGuiTreeNodeFlags_Selected;
-		}
-
-		auto bNodeOpen = ImGui::TreeNodeEx(Name.c_str(), NodeFlags);
-
-		if (MarkedForRemovalItems.contains(Item->ItemId))
-		{
-			ImGui::PopStyleColor();
-		}
-
-		if (ImGui::IsItemClicked())
-		{
-			SelectedItemId = Item->ItemId;
-		}
-
-#if WDEBUG
-		if (ImGui::IsItemHovered())
-		{
-			ImGui::BeginTooltip();
-			ImGui::Text("ID: %llu", Item->ItemId);
-			ImGui::EndTooltip();
-		}
-#endif
-
-		if (Item->DownloadSpeed > 0)
-		{
-			ImGui::TableSetColumnIndex(1);
-			ImGui::Text("%s", WTrafficFormat::Format(Item->DownloadSpeed, Unit).c_str());
-		}
-
-		if (Item->UploadSpeed > 0)
-		{
-			ImGui::TableSetColumnIndex(2);
-			ImGui::Text("%s", WTrafficFormat::Format(Item->UploadSpeed, Unit).c_str());
-		}
-
-		ImGui::TableSetColumnIndex(3);
-		// placeholder: add a DownloadLimit field to WSystemItem to show real values
-		ImGui::TextDisabled("-");
-
-		ImGui::TableSetColumnIndex(4);
-		// placeholder: add a UploadLimit field to WSystemItem to show real values
-		ImGui::TextDisabled("-");
-		return bNodeOpen;
-	};
 
 	bool bOpened{};
 	ImGui::TableHeadersRow();

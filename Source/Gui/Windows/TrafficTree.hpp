@@ -23,6 +23,8 @@ class WTrafficTree
 
 	void RemoveTrafficItem(WTrafficItemId TrafficItemId);
 
+	bool RenderItem(std::string const& Name, const ITrafficItem* Item, ImGuiTreeNodeFlags NodeFlags);
+
 public:
 	WTrafficTree() = default;
 
