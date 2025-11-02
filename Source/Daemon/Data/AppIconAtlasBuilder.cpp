@@ -31,7 +31,6 @@ bool WAppIconAtlasBuilder::GetAtlasData(WAppIconAtlasData& outData, std::vector<
 		std::string IconPath = Resolver.ResolveIcon(BinaryName);
 		if (IconPath.empty())
 		{
-			spdlog::debug("No icon for binary '{}'", BinaryName);
 			continue;
 		}
 
@@ -42,12 +41,10 @@ bool WAppIconAtlasBuilder::GetAtlasData(WAppIconAtlasData& outData, std::vector<
 			spdlog::warn("Failed to load app icon from path '{}'", IconPath);
 			continue;
 		}
-		spdlog::debug("Loaded app icon with size {}x{} from path '{}'", IconW, IconH, IconPath);
 
 		if (IconW > static_cast<int>(IconSize) || IconH > static_cast<int>(IconSize))
 		{
 			// Resize icon to fit
-			spdlog::info("Resizing icon '{}' from {}x{} to {}x{}", IconPath, IconW, IconH, IconSize, IconSize);
 			auto ResizedData = std::make_unique<unsigned char[]>(IconSize * IconSize * 4);
 			stbir_resize_uint8_srgb(Data, IconW, IconH, 0,
 				ResizedData.get(), static_cast<int>(IconSize), static_cast<int>(IconSize), 0, STBIR_RGBA);
