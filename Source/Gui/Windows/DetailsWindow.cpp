@@ -71,6 +71,9 @@ void WDetailsWindow::DrawProcessDetails()
 		return;
 	}
 
+	WAppIconAtlas::GetInstance().DrawProcessIcon(ImVec2(16, 16));
+	ImGui::SameLine();
+
 	ImGui::Text("Process ID : %d", Proc->ProcessId);
 	ImGui::Separator();
 	ImGui::Text("Total Downloaded: %s", WStorageFormat::AutoFormat(Proc->TotalDownloadBytes).c_str());

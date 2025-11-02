@@ -59,6 +59,11 @@ if (_license_defs)
     target_compile_definitions(waechter PRIVATE ${_license_defs})
 endif ()
 
+target_compile_definitions(waechter PRIVATE
+        "NO_ICON_IMAGE=\"${CMAKE_SOURCE_DIR}/Meta/noicon.png\""
+        "PROCESS_ICON_IMAGE=\"${CMAKE_SOURCE_DIR}/Meta/process.png\""
+)
+
 install(TARGETS waechter
         RUNTIME DESTINATION bin)
 

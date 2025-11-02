@@ -147,7 +147,7 @@ bool WGlfwWindow::Init()
 	ImGui_ImplOpenGL3_Init(GlslVersion);
 
 	WTimerManager::GetInstance().Start(glfwGetTime());
-
+	WAppIconAtlas::GetInstance().Init();
 	MainWindow->GetClient().Start();
 	return true;
 }
