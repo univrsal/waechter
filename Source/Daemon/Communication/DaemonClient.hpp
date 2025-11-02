@@ -1,8 +1,19 @@
 #pragma once
 
+#include "Messages.hpp"
+
+// ReSharper disable CppUnusedIncludeDirective
 #include <atomic>
 #include <utility>
 #include <thread>
+#include <cereal/types/array.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/unordered_set.hpp>
+#include <cereal/types/unordered_map.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/string.hpp>
+#include <cereal/archives/binary.hpp>
+#include <spdlog/spdlog.h>
 
 #include "Socket.hpp"
 
@@ -63,5 +74,25 @@ public:
 	ssize_t SendFramedData(std::string const& Data) const
 	{
 		return ClientSocket->SendFramed(Data);
+	}
+
+	template <class T>
+	void SendMessage(EMessageType Type, T const& Data)
+	{
+		std::stringstream AtlasOs{};
+		{
+			AtlasOs << Type;
+			cereal::BinaryOutputArchive AtlasArchive(AtlasOs);
+			AtlasArchive(Data);
+		}
+		auto Sent = SendFramedData(AtlasOs.str());
+		if (Sent < 0)
+		{
+			spdlog::error("Failed to send app icon atlas data to client");
+		}
+		else
+		{
+			spdlog::info("Sent app icon atlas data ({} bytes) to client", Sent);
+		}
 	}
 };

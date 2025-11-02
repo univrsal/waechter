@@ -33,43 +33,15 @@ void WDaemonSocket::ListenThreadFunction()
 			NewClient->StartListenThread();
 
 			// create a binary stream for cereal to write to
-			auto&             SystemMap = WSystemMap::GetInstance();
-			std::stringstream Os{};
-			{
-				Os << MT_TrafficTree;
-				cereal::BinaryOutputArchive Archive(Os);
-				Archive(*SystemMap.GetSystemItem());
-			}
-			auto Sent = NewClient->SendFramedData(Os.str());
-			if (Sent < 0)
-			{
-				spdlog::error("Failed to send initial traffic tree to client");
-			}
-			else
-			{
-				spdlog::info("Sent initial traffic tree ({} bytes) to client", Sent);
-			}
+			auto& SystemMap = WSystemMap::GetInstance();
+			NewClient->SendMessage(MT_TrafficTree, *SystemMap.GetSystemItem());
 
 			// Send app icon atlas
 			auto              ActiveApps = SystemMap.GetActiveApplicationPaths();
 			WAppIconAtlasData Data{};
 			if (WAppIconAtlasBuilder::GetInstance().GetAtlasData(Data, ActiveApps))
 			{
-				std::stringstream AtlasOs{};
-				{
-					AtlasOs << MT_AppIconAtlasData;
-					cereal::BinaryOutputArchive AtlasArchive(AtlasOs);
-					AtlasArchive(Data);
-				}
-				Sent = NewClient->SendFramedData(AtlasOs.str());
-				if (Sent < 0)
-				{
-					spdlog::error("Failed to send app icon atlas data to client");
-				}
-				else
-				{
-					spdlog::info("Sent app icon atlas data ({} bytes) to client", Sent);
-				}
+				NewClient->SendMessage(MT_AppIconAtlasData, Data);
 			}
 			else
 			{

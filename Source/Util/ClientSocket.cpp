@@ -1,7 +1,9 @@
-#include "ErrnoUtil.hpp"
 #include "Socket.hpp"
-#include "../../Thirdparty/spdlog/include/spdlog/spdlog.h"
+
 #include <sys/ioctl.h>
+#include <spdlog/spdlog.h>
+
+#include "ErrnoUtil.hpp"
 
 void WClientSocket::Close()
 {

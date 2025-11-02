@@ -4,7 +4,6 @@
 
 #include "Messages.hpp"
 #include "DaemonSocket.hpp"
-#include <cstdint>
 
 void WDaemonClient::ListenThreadFunction()
 {
