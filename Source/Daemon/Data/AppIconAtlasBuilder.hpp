@@ -13,5 +13,7 @@ class WAppIconAtlasBuilder : public TSingleton<WAppIconAtlasBuilder>
 	WIconResolver Resolver;
 
 public:
+	void Init();
+	void Cleanup() { Resolver.Cleanup(); }
 	bool GetAtlasData(WAppIconAtlasData& outData, std::vector<std::string> const& BinaryNames, std::size_t AtlasSize = 256, std::size_t IconSize = 32);
 };

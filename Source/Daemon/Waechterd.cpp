@@ -50,6 +50,7 @@ int Run()
 		return -1;
 	}
 
+	WAppIconAtlasBuilder::GetInstance().Init();
 	spdlog::info("Ebpf programs loaded and attached");
 
 	// Poll ring buffers and periodically print aggregate stats
@@ -75,6 +76,7 @@ int Run()
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
 	DaemonSocket.Stop();
+	WAppIconAtlasBuilder::GetInstance().Cleanup();
 
 	return 0;
 }

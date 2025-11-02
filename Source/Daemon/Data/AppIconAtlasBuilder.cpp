@@ -21,6 +21,11 @@ struct WPackedIcon
 	std::unique_ptr<unsigned char[]> Pixels{}; // RGBA
 };
 
+void WAppIconAtlasBuilder::Init()
+{
+	Resolver.TryLoadGtkFunctions();
+}
+
 bool WAppIconAtlasBuilder::GetAtlasData(WAppIconAtlasData& outData, std::vector<std::string> const& BinaryNames, std::size_t AtlasSize, std::size_t IconSize)
 {
 	std::vector<WPackedIcon> PackedIcons{};
@@ -29,13 +34,30 @@ bool WAppIconAtlasBuilder::GetAtlasData(WAppIconAtlasData& outData, std::vector<
 
 	for (auto const& BinaryName : BinaryNames)
 	{
+		if (Resolver.HasGtk())
+		{
+			auto GTKIcon = Resolver.GtkLookupIcon(BinaryName, static_cast<int>(IconSize));
+			if (GTKIcon.Width > 0 && GTKIcon.Height > 0)
+			{
+				WPackedIcon Icon{};
+				Icon.BinaryName = BinaryName;
+				Icon.W = GTKIcon.Width;
+				Icon.H = GTKIcon.Height;
+				Icon.Pixels = std::make_unique<unsigned char[]>(GTKIcon.Rgba.size());
+				std::memcpy(Icon.Pixels.get(), GTKIcon.Rgba.data(), GTKIcon.Rgba.size());
+				PackedIcons.emplace_back(std::move(Icon));
+				continue;
+			}
+			// else fallback to file-based icon resolution
+		}
+
+		int         IconW, IconH, N;
 		std::string IconPath = Resolver.ResolveIcon(BinaryName);
 		if (IconPath.empty())
 		{
 			continue;
 		}
 
-		int            IconW, IconH, N;
 		unsigned char* Data = stbi_load(IconPath.c_str(), &IconW, &IconH, &N, 4); // Force RGBA
 		if (!Data)
 		{
@@ -54,8 +76,8 @@ bool WAppIconAtlasBuilder::GetAtlasData(WAppIconAtlasData& outData, std::vector<
 			IconW = static_cast<int>(IconSize);
 			IconH = static_cast<int>(IconSize);
 		}
+
 		WPackedIcon Icon;
-		Icon.Path = IconPath;
 		Icon.BinaryName = BinaryName;
 		Icon.W = static_cast<uint>(IconW);
 		Icon.H = static_cast<uint>(IconH);
