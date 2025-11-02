@@ -13,14 +13,15 @@
 class WApplicationItem : public ITrafficItem
 {
 public:
-	std::string ApplicationName;
-	std::string ApplicationPath;
+	std::string ApplicationName;        // ssh
+	std::string ApplicationPath;        // /usr/bin/ssh
+	std::string ApplicationCommandLine; // /usr/bin/ssh user@host
 
 	std::unordered_map<WProcessId, std::shared_ptr<WProcessItem>> Processes;
 
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(ItemId, DownloadSpeed, UploadSpeed, TotalDownloadBytes, TotalUploadBytes, ApplicationName, ApplicationPath, Processes);
+		archive(ItemId, DownloadSpeed, UploadSpeed, TotalDownloadBytes, TotalUploadBytes, ApplicationName, ApplicationPath, ApplicationCommandLine, Processes);
 	}
 };

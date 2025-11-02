@@ -30,13 +30,14 @@ struct WTrafficTreeSocketAddition
 	WProcessId             ProcessId{};
 	std::string            ApplicationPath{};
 	std::string            ApplicationName{};
+	std::string            ApplicationCommandLine{};
 	WSocketTuple           SocketTuple{};
 	ESocketConnectionState ConnectionState{};
 
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(ItemId, ProcessItemId, ApplicationItemId, ProcessId, ApplicationName, ApplicationPath, SocketTuple, ConnectionState);
+		archive(ItemId, ProcessItemId, ApplicationItemId, ProcessId, ApplicationName, ApplicationPath, ApplicationCommandLine, SocketTuple, ConnectionState);
 	}
 };
 
