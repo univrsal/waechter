@@ -49,6 +49,7 @@ enum ESocketState
 
 class WClientSocket : public WSocket
 {
+	WBuffer                   FrameBuffer{};
 	std::atomic<ESocketState> State{};
 	bool                      bBlocking{ true };
 
@@ -76,6 +77,8 @@ public:
 	bool Connect();
 
 	ssize_t Send(WBuffer const& Buf);
+
+	ssize_t SendFramed(std::string const& Data);
 
 	bool Receive(WBuffer& Buf, bool* bDataToRead = nullptr);
 

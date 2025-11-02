@@ -46,6 +46,32 @@ public:
 	[[nodiscard]] std::size_t GetWritePos() const { return WritePos; }
 	[[nodiscard]] bool        HasDataToRead() const { return ReadPos < WritePos; }
 
+	// Number of bytes available to read (unconsumed)
+	[[nodiscard]] std::size_t GetReadableSize() const { return WritePos - ReadPos; }
+	// Pointer to next readable byte (do not write through it)
+	[[nodiscard]] char const* PeekReadPtr() const { return Data.data() + ReadPos; }
+	// Consume N bytes from the readable range
+	void Consume(std::size_t N)
+	{
+		std::size_t Adv = std::min(N, GetReadableSize());
+		ReadPos += Adv;
+		if (ReadPos == WritePos)
+		{
+			// fully consumed; reset to start to avoid growth
+			Reset();
+		}
+	}
+	// Optionally compact buffer by moving unread data to the start
+	void Compact()
+	{
+		if (ReadPos == 0 || ReadPos >= WritePos)
+			return;
+		size_t Remaining = WritePos - ReadPos;
+		std::memmove(Data.data(), Data.data() + ReadPos, Remaining);
+		ReadPos = 0;
+		WritePos = Remaining;
+	}
+
 	void SetWritingPos(std::size_t Pos)
 	{
 		// allow moving within current size, grow if needed
@@ -64,8 +90,8 @@ public:
 		if (ReadPos > WritePos) // invariant guard
 			ReadPos = WritePos;
 
-		const std::size_t Available = WritePos - ReadPos;
-		const std::size_t N = std::min(Len, Available);
+		std::size_t const Available = WritePos - ReadPos;
+		std::size_t const N = std::min(Len, Available);
 
 		if (N > 0)
 		{
@@ -75,7 +101,7 @@ public:
 		return N;
 	}
 
-	void Write(const char* Buf, std::size_t BytesToWrite)
+	void Write(char const* Buf, std::size_t BytesToWrite)
 	{
 		if (Buf == nullptr || BytesToWrite == 0)
 			return;
@@ -87,7 +113,7 @@ public:
 			return;
 		}
 
-		const std::size_t Needed = WritePos + BytesToWrite;
+		std::size_t const Needed = WritePos + BytesToWrite;
 		EnsureCapacity(Needed);
 
 		std::memcpy(Data.data() + WritePos, Buf, BytesToWrite);
@@ -117,7 +143,7 @@ public:
 	}
 
 	char*                     GetData() { return Data.data(); }
-	[[nodiscard]] const char* GetData() const { return Data.data(); }
+	[[nodiscard]] char const* GetData() const { return Data.data(); }
 
 	template <typename T>
 	void Write(T const& Value)

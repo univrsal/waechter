@@ -4,11 +4,14 @@
 
 #include "Messages.hpp"
 #include "DaemonSocket.hpp"
+#include <cstdint>
 
 void WDaemonClient::ListenThreadFunction()
 {
 	WBuffer Buf{};
 	bool    bDataToRead{};
+	WBuffer Accum{};
+	WBuffer Msg;
 	while (Running)
 	{
 		if (!ClientSocket->Receive(Buf, &bDataToRead))
@@ -23,22 +26,39 @@ void WDaemonClient::ListenThreadFunction()
 			continue;
 		}
 
-		auto Type = ReadMessageTypeFromBuffer(Buf);
-		if (Type == MT_Invalid)
+		// Append to accumulator and parse framed messages (size-prefixed)
+		Accum.Write(Buf.GetData(), Buf.GetWritePos());
+		for (;;)
 		{
-			spdlog::warn("Received invalid message type from daemon");
-			continue;
-		}
+			if (Accum.GetReadableSize() < 4)
+				break;
+			uint32_t FrameLength = 0;
+			std::memcpy(&FrameLength, Accum.PeekReadPtr(), 4);
+			if (Accum.GetReadableSize() < static_cast<size_t>(4 + FrameLength))
+				break;
+			Accum.Consume(4);
+			Msg.Resize(FrameLength);
+			std::memcpy(Msg.GetData(), Accum.PeekReadPtr(), FrameLength);
+			Msg.SetWritingPos(FrameLength);
+			Accum.Consume(FrameLength);
 
-		switch (Type)
-		{
-			case MT_SetTcpLimit:
+			auto Type = ReadMessageTypeFromBuffer(Msg);
+			if (Type == MT_Invalid)
 			{
-				// TODO: implement
-				break;
+				spdlog::warn("Received invalid message type from daemon client");
+				continue;
 			}
-			default:
-				break;
+
+			switch (Type)
+			{
+				case MT_SetTcpLimit:
+				{
+					// TODO: implement
+					break;
+				}
+				default:
+					break;
+			}
 		}
 	}
 	ClientSocket->Close();

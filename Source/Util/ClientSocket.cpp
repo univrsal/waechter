@@ -54,24 +54,41 @@ bool WClientSocket::Connect()
 
 ssize_t WClientSocket::Send(WBuffer const& Buf)
 {
-	auto Check = [&](ssize_t Result) {
-		if (Result < 0)
-		{
-			if (errno == EPIPE || errno == EBADF || errno == ECONNRESET)
-			{
-				State = ES_Initial;
-			}
-			else
-			{
-				State = ES_ConnectedButCantSend;
-			}
-			return false;
-		}
-		return true;
+	auto MarkStateForError = [&](int e) {
+		if (e == EPIPE || e == EBADF || e == ECONNRESET)
+			State = ES_Initial;
+		else
+			State = ES_ConnectedButCantSend;
 	};
-	auto Result = send(SocketFd, Buf.GetData(), Buf.GetWritePos(), 0);
-	Check(Result);
-	return Result;
+
+	char const* Data = Buf.GetData();
+	size_t      Total = 0;
+	size_t      Len = Buf.GetWritePos();
+	while (Total < Len)
+	{
+		ssize_t Sent = send(SocketFd, Data + Total, Len - Total, 0);
+		if (Sent < 0)
+		{
+			if (errno == EINTR)
+				continue; // retry
+			if (!bBlocking && (errno == EAGAIN || errno == EWOULDBLOCK))
+				break; // return partial in non-blocking mode
+			MarkStateForError(errno);
+			return (Total > 0) ? static_cast<ssize_t>(Total) : -1;
+		}
+		if (Sent == 0)
+			break; // shouldn't happen unless disconnected
+		Total += static_cast<size_t>(Sent);
+	}
+	return static_cast<ssize_t>(Total);
+}
+
+ssize_t WClientSocket::SendFramed(std::string const& Data)
+{
+	FrameBuffer.Reset();
+	FrameBuffer.Write(static_cast<uint32_t>(Data.size()));
+	FrameBuffer.Write(Data.data(), Data.size());
+	return Send(FrameBuffer);
 }
 
 bool WClientSocket::Receive(WBuffer& Buf, bool* bDataToRead)

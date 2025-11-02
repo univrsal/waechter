@@ -55,8 +55,13 @@ public:
 		return ClientSocket;
 	}
 
-	ssize_t SendData(WBuffer& Buffer)
+	ssize_t SendData(WBuffer& Buffer) const
 	{
 		return ClientSocket->Send(Buffer);
+	}
+
+	ssize_t SendFramedData(std::string const& Data) const
+	{
+		return ClientSocket->SendFramed(Data);
 	}
 };
