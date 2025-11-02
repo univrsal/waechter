@@ -7,6 +7,7 @@ enum EMessageType : int8_t
 	MT_Invalid = -1,
 	MT_TrafficTree,
 	MT_TrafficTreeUpdate,
+	MT_AppIconAtlasData,
 	MT_SetTcpLimit,
 };
 

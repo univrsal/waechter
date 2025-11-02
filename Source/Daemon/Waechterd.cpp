@@ -13,6 +13,7 @@
 #include "ErrnoUtil.hpp"
 #include "WaechterEbpf.hpp"
 #include "Communication/DaemonSocket.hpp"
+#include "Data/AppIconAtlasBuilder.hpp"
 #include "Data/SystemMap.hpp"
 
 int Run()
@@ -48,6 +49,8 @@ int Run()
 		spdlog::error("Failed to drop privileges");
 		return -1;
 	}
+
+	WAppIconAtlasBuilder::GetInstance().Init();
 
 	spdlog::info("Ebpf programs loaded and attached");
 

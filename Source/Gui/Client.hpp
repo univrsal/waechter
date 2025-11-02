@@ -25,6 +25,13 @@ class WClient
 	bool EnsureConnected();
 
 public:
+	void Start()
+	{
+		Socket = std::make_unique<WClientSocket>("/var/run/waechterd.sock");
+		Running = true;
+		ConnectionThread = std::thread(&WClient::ConnectionThreadFunction, this);
+	}
+
 	void Stop()
 	{
 		Running = false;

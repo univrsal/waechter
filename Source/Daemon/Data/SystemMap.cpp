@@ -186,6 +186,21 @@ void WSystemMap::PushOutgoingTraffic(WBytes Bytes, WSocketCookie SocketCookie)
 	}
 }
 
+std::vector<std::string> WSystemMap::GetActiveApplicationPaths()
+{
+	std::lock_guard          Lock(DataMutex);
+	std::vector<std::string> ActiveApps{};
+
+	for (auto const& [AppPath, App] : Applications)
+	{
+		if (!App->TrafficItem->Processes.empty())
+		{
+			ActiveApps.emplace_back(App->TrafficItem->ApplicationName);
+		}
+	}
+	return ActiveApps;
+}
+
 WTrafficTreeUpdates WSystemMap::GetUpdates()
 {
 	WTrafficTreeUpdates Updates{};

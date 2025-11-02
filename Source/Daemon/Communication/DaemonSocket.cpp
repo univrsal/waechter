@@ -16,7 +16,9 @@
 #include <cereal/archives/binary.hpp>
 
 #include "Messages.hpp"
+#include "Data/AppIconAtlasBuilder.hpp"
 #include "Data/SystemMap.hpp"
+#include <cstdint>
 
 void WDaemonSocket::ListenThreadFunction()
 {
@@ -31,19 +33,48 @@ void WDaemonSocket::ListenThreadFunction()
 			NewClient->StartListenThread();
 
 			// create a binary stream for cereal to write to
+			auto&             SystemMap = WSystemMap::GetInstance();
 			std::stringstream Os{};
 			{
-				auto& SystemMap = WSystemMap::GetInstance();
 				Os << MT_TrafficTree;
 				cereal::BinaryOutputArchive Archive(Os);
 				Archive(*SystemMap.GetSystemItem());
 			}
+			auto Sent = NewClient->SendFramedData(Os.str());
+			if (Sent < 0)
+			{
+				spdlog::error("Failed to send initial traffic tree to client");
+			}
+			else
+			{
+				spdlog::info("Sent initial traffic tree ({} bytes) to client", Sent);
+			}
 
-			Buffer.Resize(Os.str().size());
-			Buffer.SetWritingPos(Os.str().size());
-			spdlog::info("Sending {} bytes of traffic tree data to client", Os.str().size());
-			std::memcpy(Buffer.GetData(), Os.str().data(), Os.str().size());
-			NewClient->SendData(Buffer);
+			// Send app icon atlas
+			auto              ActiveApps = SystemMap.GetActiveApplicationPaths();
+			WAppIconAtlasData Data{};
+			if (WAppIconAtlasBuilder::GetInstance().GetAtlasData(Data, ActiveApps))
+			{
+				std::stringstream AtlasOs{};
+				{
+					AtlasOs << MT_AppIconAtlasData;
+					cereal::BinaryOutputArchive AtlasArchive(AtlasOs);
+					AtlasArchive(Data);
+				}
+				Sent = NewClient->SendFramedData(AtlasOs.str());
+				if (Sent < 0)
+				{
+					spdlog::error("Failed to send app icon atlas data to client");
+				}
+				else
+				{
+					spdlog::info("Sent app icon atlas data ({} bytes) to client", Sent);
+				}
+			}
+			else
+			{
+				spdlog::warn("No app icon atlas data to send to client");
+			}
 
 			ClientsMutex.lock();
 			Clients.push_back(NewClient);
@@ -99,12 +130,13 @@ void WDaemonSocket::BroadcastTrafficUpdate()
 		Archive(Updates);
 	}
 
-	for (const auto& Client : Clients)
+	for (auto const& Client : Clients)
 	{
-		WBuffer Buffer{};
-		Buffer.Resize(Os.str().size());
-		Buffer.SetWritingPos(Os.str().size());
-		std::memcpy(Buffer.GetData(), Os.str().data(), Os.str().size());
-		Client->SendData(Buffer);
+		WBuffer            Frame{};
+		std::string const& s = Os.str();
+		uint32_t           frameLen = static_cast<uint32_t>(s.size());
+		Frame.Write(reinterpret_cast<char const*>(&frameLen), sizeof(frameLen));
+		Frame.Write(s.data(), s.size());
+		Client->SendData(Frame);
 	}
 }

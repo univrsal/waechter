@@ -10,6 +10,10 @@ add_executable(waechterd
         EbpfData.cpp
         EbpfData.hpp
         EbpfRingBuffer.hpp
+        Data/IconResolver.cpp
+        Data/IconResolver.hpp
+        Data/AppIconAtlasBuilder.cpp
+        Data/AppIconAtlasBuilder.hpp
 )
 
 

@@ -68,7 +68,7 @@ private:
 	std::unordered_map<WSocketCookie, std::shared_ptr<WSocketCounter>> Sockets{};
 
 	std::shared_ptr<WSocketCounter>  FindOrMapSocket(WSocketCookie SocketCookie, std::shared_ptr<WProcessCounter> const& ParentProcess);
-	std::shared_ptr<WProcessCounter> FindOrMapProcess(WProcessId PID, const std::shared_ptr<WAppCounter>& ParentApp);
+	std::shared_ptr<WProcessCounter> FindOrMapProcess(WProcessId PID, std::shared_ptr<WAppCounter> const& ParentApp);
 	std::shared_ptr<WAppCounter>     FindOrMapApplication(std::string const& AppPath, std::string const& AppName);
 
 	std::vector<WTrafficItemId> MarkedForRemovalItems{};
@@ -94,7 +94,7 @@ public:
 
 	void MarkSocketForRemoval(WSocketCookie SocketCookie)
 	{
-		if (const auto It = Sockets.find(SocketCookie); It != Sockets.end())
+		if (auto const It = Sockets.find(SocketCookie); It != Sockets.end())
 		{
 			It->second->MarkForRemoval();
 			MarkedForRemovalItems.emplace_back(It->second->TrafficItem->ItemId);
@@ -123,6 +123,8 @@ public:
 	{
 		return SystemItem;
 	}
+
+	std::vector<std::string> GetActiveApplicationPaths();
 
 	WTrafficTreeUpdates GetUpdates();
 };

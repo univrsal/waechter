@@ -4,13 +4,31 @@
 
 #include "Client.hpp"
 
+#include "AppIconAtlas.hpp"
+
 #include <spdlog/spdlog.h>
 
 #include "Messages.hpp"
+#include <cstdint>
+
+namespace
+{
+	// helper to read little-endian uint32 from bytes (we control both ends)
+	static inline bool ReadU32(char const* p, size_t n, uint32_t& out)
+	{
+		if (n < 4)
+			return false;
+		uint32_t v;
+		std::memcpy(&v, p, 4);
+		out = v;
+		return true;
+	}
+} // namespace
 
 void WClient::ConnectionThreadFunction()
 {
-	WBuffer Buf{};
+	WBuffer Buf{};   // per-read buffer from socket
+	WBuffer Accum{}; // accumulator for framing
 	while (Running)
 	{
 		if (!EnsureConnected())
@@ -41,30 +59,54 @@ void WClient::ConnectionThreadFunction()
 			continue;
 		}
 
-		auto Type = ReadMessageTypeFromBuffer(Buf);
+		// Append received chunk to accumulator
+		Accum.Write(Buf.GetData(), Buf.GetWritePos());
 
-		if (Type == MT_Invalid)
+		// Try to parse as many frames as we can
+		for (;;)
 		{
-			spdlog::error("Received invalid message type from server");
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
-			continue;
-		}
+			// Need 4 bytes for size prefix
+			if (Accum.GetReadableSize() < 4)
+				break;
+			uint32_t frameLen = 0;
+			ReadU32(Accum.PeekReadPtr(), Accum.GetReadableSize(), frameLen);
+			// Wait for full frame
+			if (Accum.GetReadableSize() < static_cast<size_t>(4 + frameLen))
+				break;
 
-		switch (Type)
-		{
-			case MT_TrafficTree:
+			// Create a view buffer over the message payload [after prefix]
+			WBuffer Msg;
+			Msg.Resize(frameLen);
+			// skip 4-byte prefix
+			Accum.Consume(4);
+			// copy payload into Msg
+			std::memcpy(Msg.GetData(), Accum.PeekReadPtr(), frameLen);
+			Msg.SetWritingPos(frameLen);
+			// consume from accumulator
+			Accum.Consume(frameLen);
+
+			// Dispatch based on 1-byte message type at start of payload
+			auto Type = ReadMessageTypeFromBuffer(Msg);
+			if (Type == MT_Invalid)
 			{
-				TrafficTree.LoadFromBuffer(Buf);
-				break;
+				spdlog::error("Received invalid message type from server (framed)");
+				continue;
 			}
-			case MT_TrafficTreeUpdate:
+			switch (Type)
 			{
-				TrafficTree.UpdateFromBuffer(Buf);
-				break;
+				case MT_TrafficTree:
+					TrafficTree.LoadFromBuffer(Msg);
+					break;
+				case MT_TrafficTreeUpdate:
+					TrafficTree.UpdateFromBuffer(Msg);
+					break;
+				case MT_AppIconAtlasData:
+					WAppIconAtlas::GetInstance().FromAtlasData(Msg);
+					break;
+				default:
+					spdlog::warn("Received unknown message type from server: {}", static_cast<int>(Type));
+					break;
 			}
-			default:
-				spdlog::warn("Received unknown message type from server: {}", static_cast<int>(Type));
-				break;
 		}
 	}
 }
@@ -99,7 +141,4 @@ bool WClient::EnsureConnected()
 
 WClient::WClient()
 {
-	Socket = std::make_unique<WClientSocket>("/var/run/waechterd.sock");
-	Running = true;
-	ConnectionThread = std::thread(&WClient::ConnectionThreadFunction, this);
 }

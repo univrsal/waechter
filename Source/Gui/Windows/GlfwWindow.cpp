@@ -147,6 +147,7 @@ bool WGlfwWindow::Init()
 
 	WTimerManager::GetInstance().Start(glfwGetTime());
 
+	MainWindow->GetClient().Start();
 	return true;
 }
 

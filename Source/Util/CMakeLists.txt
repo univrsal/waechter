@@ -10,6 +10,7 @@ add_library(util STATIC
         Format.hpp
         Data/TrafficTreeUpdate.hpp
         Time.cpp
+        Data/AppIconAtlasData.hpp
 )
 add_library(waechter::util ALIAS util)
 

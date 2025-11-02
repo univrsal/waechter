@@ -4,6 +4,8 @@ add_executable(waechter
         Waechter.cpp
         Windows/DetailsWindow.cpp
         Windows/DetailsWindow.hpp
+        AppIconAtlas.cpp
+        AppIconAtlas.hpp
 )
 
 add_subdirectory(Windows)
