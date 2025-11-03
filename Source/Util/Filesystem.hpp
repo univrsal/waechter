@@ -66,67 +66,67 @@ public:
 		if (!FileStream)
 			return {};
 
-		std::string              buffer((std::istreambuf_iterator<char>(FileStream)), std::istreambuf_iterator<char>());
-		std::vector<std::string> parts{};
-		if (buffer.empty())
-			return parts;
+		std::string              Buffer((std::istreambuf_iterator(FileStream)), std::istreambuf_iterator<char>());
+		std::vector<std::string> Parts{};
+		if (Buffer.empty())
+			return Parts;
 
-		std::string current{};
-		for (char c : buffer)
+		std::string Current{};
+		for (char C : Buffer)
 		{
-			if (c == '\0')
+			if (C == '\0')
 			{
-				parts.emplace_back(std::move(current));
-				current.clear();
+				Parts.emplace_back(std::move(Current));
+				Current.clear();
 			}
 			else
 			{
-				current.push_back(c);
+				Current.push_back(C);
 			}
 		}
 		// Some proc files may not end with a NUL; add remainder if any
-		if (!current.empty())
+		if (!Current.empty())
 		{
-			parts.emplace_back(std::move(current));
+			Parts.emplace_back(std::move(Current));
 		}
 
 		// Drop a possible trailing empty element due to final NUL
-		if (!parts.empty() && parts.back().empty())
+		if (!Parts.empty() && Parts.back().empty())
 		{
-			parts.pop_back();
+			Parts.pop_back();
 		}
-		return parts;
+		return Parts;
 	}
 
 	// Readlink helper that returns the symlink target as string; returns empty on failure.
 	static std::string ReadLink(std::string const& Path)
 	{
-		std::vector<char> buf(256);
+		std::vector<char> Buf(256);
 		while (true)
 		{
-			ssize_t n = ::readlink(Path.c_str(), buf.data(), buf.size());
-			if (n < 0)
+			ssize_t N = ::readlink(Path.c_str(), Buf.data(), Buf.size());
+			if (N < 0)
 			{
 				return {};
 			}
-			if (static_cast<size_t>(n) < buf.size())
+			if (static_cast<size_t>(N) < Buf.size())
 			{
-				return std::string(buf.data(), static_cast<size_t>(n));
+				return { Buf.data(), static_cast<size_t>(N) };
 			}
 			// Buffer too small, grow and retry
-			buf.resize(buf.size() * 2);
+			Buf.resize(Buf.size() * 2);
 		}
 	}
 
-	static std::string StripDeletedSuffix(std::string s)
+	static std::string StripDeletedSuffix(std::string S)
 	{
-		constexpr char const* suffix = " (deleted)";
-		size_t const          len = std::char_traits<char>::length(suffix);
-		if (s.size() >= len && s.compare(s.size() - len, len, suffix) == 0)
+		constexpr char const* Suffix = " (deleted)";
+		size_t const          Len = std::char_traits<char>::length(Suffix);
+		if (S.size() >= Len && S.compare(S.size() - Len, Len, Suffix) == 0)
 		{
-			s.erase(s.size() - len);
+			S.erase(S.size() - Len);
 		}
-		return s;
+		return S;
 	}
 
 	// Returns the absolute path of the executable for PID using /proc/[pid]/exe symlink if available.
@@ -134,11 +134,11 @@ public:
 	{
 		if (PID <= 0)
 			return {};
-		std::string link = "/proc/" + std::to_string(PID) + "/exe";
-		std::string target = ReadLink(link);
-		if (target.empty())
+		std::string Link = "/proc/" + std::to_string(PID) + "/exe";
+		std::string Target = ReadLink(Link);
+		if (Target.empty())
 			return {};
-		return StripDeletedSuffix(target);
+		return StripDeletedSuffix(Target);
 	}
 
 	// Returns the current working directory of the process (best-effort).
@@ -146,9 +146,9 @@ public:
 	{
 		if (PID <= 0)
 			return {};
-		std::string link = "/proc/" + std::to_string(PID) + "/cwd";
-		std::string target = ReadLink(link);
-		return StripDeletedSuffix(target);
+		std::string Link = "/proc/" + std::to_string(PID) + "/cwd";
+		std::string Target = ReadLink(Link);
+		return StripDeletedSuffix(Target);
 	}
 
 	// Returns argv vector for the given PID by reading /proc/[pid]/cmdline
@@ -179,8 +179,8 @@ public:
 		if (PID <= 0)
 			return false;
 
-		std::string procPath = "/proc/" + std::to_string(PID);
-		return (access(procPath.c_str(), F_OK) == 0);
+		std::string ProcPath = "/proc/" + std::to_string(PID);
+		return (access(ProcPath.c_str(), F_OK) == 0);
 	}
 
 	static bool IsProcessRunning(WProcessId PID)
