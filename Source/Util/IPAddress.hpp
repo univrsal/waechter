@@ -34,7 +34,7 @@ struct WIPAddress
 	std::array<uint8_t, 16> Bytes;
 	EIPFamily::Type         Family;
 
-	[[nodiscard]] std::string to_string() const
+	[[nodiscard]] std::string ToString() const
 	{
 		if (Family == EIPFamily::IPv4)
 		{
@@ -88,13 +88,13 @@ struct WEndpoint
 	WIPAddress Address{};
 	uint16_t   Port{}; // host byte order
 
-	[[nodiscard]] std::string to_string() const
+	[[nodiscard]] std::string ToString() const
 	{
 		if (Address.Family == EIPFamily::IPv6)
 		{
-			return "[" + Address.to_string() + "]:" + std::to_string(Port);
+			return "[" + Address.ToString() + "]:" + std::to_string(Port);
 		}
-		return Address.to_string() + ":" + std::to_string(Port);
+		return Address.ToString() + ":" + std::to_string(Port);
 	}
 
 	template <class Archive>
