@@ -2,8 +2,6 @@ add_executable(waechter
         Client.cpp
         Client.hpp
         Waechter.cpp
-        Windows/DetailsWindow.cpp
-        Windows/DetailsWindow.hpp
         AppIconAtlas.cpp
         AppIconAtlas.hpp
 )
