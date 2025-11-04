@@ -19,6 +19,7 @@ INCBIN(StbLicense, THIRD_PARTY_STB_LICENSE_PATH);
 INCBIN(JetbrainsMonoLicense, THIRD_PARTY_JETBRAINS_MONO_LICENSE_PATH);
 INCBIN(CerealLicense, THIRD_PARTY_CEREAL_LICENSE_PATH);
 INCBIN(ImPlotLicense, THIRD_PARTY_IMPLOT_LICENSE_PATH);
+INCBIN(FlagsLicense, THIRD_PARTY_FLAGS_LICENSE_PATH);
 
 WAboutDialog::WAboutDialog()
 {
@@ -35,6 +36,7 @@ WAboutDialog::WAboutDialog()
 	ThirdPartyLibraries.emplace_back("JetBrains Mono", "https://www.jetbrains.com/lp/mono/", GJetbrainsMonoLicenseData, GJetbrainsMonoLicenseSize);
 	ThirdPartyLibraries.emplace_back("cereal", "https://github.com/USCiLab/cereal", GCerealLicenseData, GCerealLicenseSize);
 	ThirdPartyLibraries.emplace_back("implot", "https://github.com/epezent/implot", GImPlotLicenseData, GImPlotLicenseSize);
+	ThirdPartyLibraries.emplace_back("flag-icons", "https://github.com/lipis/flag-icons", GFlagsLicenseData, GFlagsLicenseSize);
 
 	VersionString = fmt::format("Version {}, commit {}@{}\nCompiled at {}", WAECHTER_VERSION, GIT_COMMIT_HASH, GIT_BRANCH, BUILD_TIME);
 }
@@ -69,7 +71,7 @@ void WAboutDialog::Draw()
 
 		ImGui::Text("Thirdparty libraries:");
 
-		for (const auto& Library : ThirdPartyLibraries)
+		for (auto const& Library : ThirdPartyLibraries)
 		{
 			ImGui::Separator();
 			ImGui::Spacing();

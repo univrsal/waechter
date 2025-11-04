@@ -8,8 +8,10 @@ add_subdirectory(incbin)
 add_subdirectory(stb)
 add_subdirectory(json11)
 add_subdirectory(cereal)
+add_subdirectory(flags)
 
-add_library(deps_includes INTERFACE)
+add_library(deps_includes INTERFACE
+        flags/CountryFlags.cpp)
 add_library(thirdparty::deps_includes ALIAS deps_includes)
 
 target_include_directories(deps_includes SYSTEM INTERFACE
