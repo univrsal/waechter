@@ -26,4 +26,9 @@ struct WSocketItem : ITrafficItem
 	{
 		archive(ItemId, DownloadSpeed, UploadSpeed, TotalDownloadBytes, TotalUploadBytes, ConnectionState, SocketTuple);
 	}
+
+	[[nodiscard]] ETrafficItemType GetType() const override
+	{
+		return TI_Socket;
+	}
 };

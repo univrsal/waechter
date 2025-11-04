@@ -40,21 +40,21 @@ static bool TryRemoveFromMap(std::unordered_map<K, V>& Map, WTrafficItemId Traff
 void WTrafficTree::RemoveTrafficItem(WTrafficItemId TrafficItemId)
 {
 	MarkedForRemovalItems.erase(TrafficItemId);
-	if (TryRemoveFromMap(Root.Applications, TrafficItemId))
+	if (Root.RemoveChild(TrafficItemId))
 	{
 		return;
 	}
 
-	for (auto& [AppName, App] : Root.Applications)
+	for (auto& App : Root.Applications | std::views::values)
 	{
-		if (TryRemoveFromMap(App->Processes, TrafficItemId))
+		if (App->RemoveChild(TrafficItemId))
 		{
 			return;
 		}
 
-		for (auto& [PID, Proc] : App->Processes)
+		for (auto& Proc : App->Processes | std::views::values)
 		{
-			if (TryRemoveFromMap(Proc->Sockets, TrafficItemId))
+			if (Proc->RemoveChild(TrafficItemId))
 			{
 				return;
 			}
@@ -164,6 +164,20 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 	for (auto const& MarkedId : Updates.MarkedForRemovalItems)
 	{
 		MarkedForRemovalItems.insert(MarkedId);
+
+		auto It = TrafficItems.find(MarkedId);
+		if (It != TrafficItems.end())
+		{
+			auto& Item = It->second;
+			Item->DownloadSpeed = 0;
+			Item->UploadSpeed = 0;
+
+			if (Item->GetType() == TI_Socket)
+			{
+				auto SocketItem = static_cast<WSocketItem*>(Item);
+				SocketItem->ConnectionState = ESocketConnectionState::Closed;
+			}
+		}
 	}
 
 	for (auto const& RemovedId : Updates.RemovedItems)

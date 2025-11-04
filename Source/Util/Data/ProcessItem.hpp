@@ -22,4 +22,22 @@ public:
 	{
 		archive(ItemId, DownloadSpeed, UploadSpeed, TotalDownloadBytes, TotalUploadBytes, ProcessId, Sockets);
 	}
+
+	[[nodiscard]] ETrafficItemType GetType() const override
+	{
+		return TI_Process;
+	}
+
+	bool RemoveChild(WTrafficItemId TrafficItemId) override
+	{
+		for (auto It = Sockets.begin(); It != Sockets.end(); ++It)
+		{
+			if (It->second->ItemId == TrafficItemId)
+			{
+				Sockets.erase(It);
+				return true;
+			}
+		}
+		return false;
+	}
 };

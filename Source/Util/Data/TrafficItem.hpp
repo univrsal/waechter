@@ -24,4 +24,13 @@ struct ITrafficItem
 
 	WBytes TotalDownloadBytes{};
 	WBytes TotalUploadBytes{};
+
+	virtual ~ITrafficItem() = default;
+
+	[[nodiscard]] virtual ETrafficItemType GetType() const = 0;
+
+	virtual bool RemoveChild(WTrafficItemId)
+	{
+		return false;
+	}
 };

@@ -22,4 +22,22 @@ struct WSystemItem : ITrafficItem
 	{
 		archive(ItemId, DownloadSpeed, UploadSpeed, HostName, TotalDownloadBytes, TotalUploadBytes, Applications);
 	}
+
+	[[nodiscard]] ETrafficItemType GetType() const override
+	{
+		return TI_System;
+	}
+
+	bool RemoveChild(WTrafficItemId TrafficItemId) override
+	{
+		for (auto It = Applications.begin(); It != Applications.end(); ++It)
+		{
+			if (It->second->ItemId == TrafficItemId)
+			{
+				Applications.erase(It);
+				return true;
+			}
+		}
+		return false;
+	}
 };

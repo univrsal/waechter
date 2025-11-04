@@ -24,4 +24,22 @@ public:
 	{
 		archive(ItemId, DownloadSpeed, UploadSpeed, TotalDownloadBytes, TotalUploadBytes, ApplicationName, ApplicationPath, ApplicationCommandLine, Processes);
 	}
+
+	[[nodiscard]] ETrafficItemType GetType() const override
+	{
+		return TI_Application;
+	}
+
+	bool RemoveChild(WTrafficItemId TrafficItemId) override
+	{
+		for (auto It = Processes.begin(); It != Processes.end(); ++It)
+		{
+			if (It->second->ItemId == TrafficItemId)
+			{
+				Processes.erase(It);
+				return true;
+			}
+		}
+		return false;
+	}
 };
