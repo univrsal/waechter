@@ -13,6 +13,25 @@
 #include "Time.hpp"
 #include "Data/SystemItem.hpp"
 
+static char const* SocketConnectionStateToString(ESocketConnectionState State)
+{
+	switch (State)
+	{
+		case ESocketConnectionState::Unknown:
+			return "Unknown";
+		case ESocketConnectionState::Created:
+			return "Created";
+		case ESocketConnectionState::Connecting:
+			return "Connecting";
+		case ESocketConnectionState::Connected:
+			return "Connected";
+		case ESocketConnectionState::Closed:
+			return "Closed";
+		default:
+			return "Invalid";
+	}
+}
+
 long GetUptimeSeconds()
 {
 	struct sysinfo SysInfo{};
@@ -57,7 +76,11 @@ void WDetailsWindow::DrawApplicationDetails()
 	ImGui::Separator();
 	if (!App->ApplicationPath.empty())
 	{
-		ImGui::Text("Path: %s", App->ApplicationPath.c_str());
+		// Wrap long paths across lines so they don't clip outside the window
+		ImGui::TextUnformatted("Path:");
+		ImGui::PushTextWrapPos(0.0f);
+		ImGui::TextWrapped("%s", App->ApplicationPath.c_str());
+		ImGui::PopTextWrapPos();
 	}
 	ImGui::Text("Total Downloaded: %s", WStorageFormat::AutoFormat(App->TotalDownloadBytes).c_str());
 	ImGui::Text("Total Uploaded: %s", WStorageFormat::AutoFormat(App->TotalUploadBytes).c_str());
@@ -82,6 +105,17 @@ void WDetailsWindow::DrawProcessDetails()
 
 void WDetailsWindow::DrawSocketDetails()
 {
+	auto const* Sock = Tree->GetSeletedTrafficItem<WSocketItem>();
+	if (Sock == nullptr)
+	{
+		return;
+	}
+
+	ImGui::Text("Socket state: %s", SocketConnectionStateToString(Sock->ConnectionState));
+	ImGui::Separator();
+	ImGui::Text("Local Address: %s", Sock->SocketTuple.LocalEndpoint.ToString().c_str());
+	ImGui::Text("Remote Address: %s", Sock->SocketTuple.RemoteEndpoint.ToString().c_str());
+	ImGui::Separator();
 }
 
 WDetailsWindow::WDetailsWindow(WTrafficTree* Tree_)
