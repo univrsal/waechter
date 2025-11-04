@@ -7,6 +7,7 @@ add_executable(waechter
 )
 
 add_subdirectory(Windows)
+add_subdirectory(Util)
 
 target_link_libraries(waechter PRIVATE
         thirdparty::spdlog
@@ -19,7 +20,9 @@ target_link_libraries(waechter PRIVATE
         thirdparty::stb
         thirdparty::deps_includes
         thirdparty::json11
+        thirdparty::flags
         waechter::util
+        dl
 )
 
 target_include_directories(waechter PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
@@ -60,6 +63,7 @@ endif ()
 target_compile_definitions(waechter PRIVATE
         "NO_ICON_IMAGE=\"${CMAKE_SOURCE_DIR}/Meta/noicon.png\""
         "PROCESS_ICON_IMAGE=\"${CMAKE_SOURCE_DIR}/Meta/process.png\""
+        "COUNTRY_FLAG_ATLAS_IMAGE=\"${CMAKE_SOURCE_DIR}/Thirdparty/flags/atlas.png\""
 )
 
 install(TARGETS waechter

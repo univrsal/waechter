@@ -6,11 +6,20 @@
 
 #include <string>
 
+#if WAECHTER_WITH_IPQUERY_IO_API
+	#include "Util/IpQueryIntegration.hpp"
+#endif
+
 class WTrafficTree;
 
 class WDetailsWindow
 {
 	WTrafficTree* Tree;
+
+#if WAECHTER_WITH_IPQUERY_IO_API
+	WIpQueryIntegration IpQueryIntegration{};
+	WIpInfoData const*  CurrentIpInfo{ nullptr };
+#endif
 
 	void DrawSystemDetails();
 	void DrawApplicationDetails();
@@ -20,6 +29,6 @@ class WDetailsWindow
 	std::string FormattedUptime{};
 
 public:
-	WDetailsWindow(WTrafficTree* Tree_);
+	explicit WDetailsWindow(WTrafficTree* Tree_);
 	void Draw();
 };

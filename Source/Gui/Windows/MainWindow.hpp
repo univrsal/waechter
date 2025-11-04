@@ -8,6 +8,8 @@
 #include "LogWindow.hpp"
 #include "NetworkGraphWindow.hpp"
 #include "DetailsWindow.hpp"
+#include "Util/FlagAtlas.hpp"
+#include "Util/LibCurl.hpp"
 
 class WMainWindow
 {
@@ -16,6 +18,8 @@ class WMainWindow
 	WLogWindow          LogWindow{};
 	WNetworkGraphWindow NetworkGraphWindow{};
 	WDetailsWindow      DetailsWindow{ &Client.GetTrafficTree() };
+	WFlagAtlas          FlagAtlas{};
+	WLibCurl            LibCurl{};
 
 	bool bInit{ false };
 	void DrawConnectionIndicator();
@@ -23,6 +27,11 @@ class WMainWindow
 
 public:
 	void Draw();
+
+	WLibCurl& GetLibCurl()
+	{
+		return LibCurl;
+	}
 
 	WNetworkGraphWindow& GetNetworkGraphWindow()
 	{
@@ -32,6 +41,11 @@ public:
 	WClient& GetClient()
 	{
 		return Client;
+	}
+
+	WFlagAtlas& GetFlagAtlas()
+	{
+		return FlagAtlas;
 	}
 
 	~WMainWindow() = default;

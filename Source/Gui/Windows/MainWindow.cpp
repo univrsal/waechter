@@ -12,9 +12,9 @@
 
 void WMainWindow::DrawConnectionIndicator()
 {
-	const float IndicatorSize = 12.0f;
-	const float Radius = IndicatorSize * 0.5f;
-	const float MarginRight = -2.0f;
+	float const IndicatorSize = 12.0f;
+	float const Radius = IndicatorSize * 0.5f;
+	float const MarginRight = -2.0f;
 
 	ImGui::SameLine(0.0f, 0.0f);
 
@@ -70,6 +70,8 @@ void WMainWindow::Init(ImGuiID Main)
 		ImGui::DockBuilderDockWindow("Details", DockIdRight);
 		ImGui::DockBuilderFinish(Main);
 	}
+	FlagAtlas.Load();
+	LibCurl.Load();
 	bInit = true;
 }
 
