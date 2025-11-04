@@ -68,22 +68,35 @@ void WClient::ConnectionThreadFunction()
 			// Need 4 bytes for size prefix
 			if (Accum.GetReadableSize() < 4)
 				break;
-			uint32_t frameLen = 0;
-			ReadU32(Accum.PeekReadPtr(), Accum.GetReadableSize(), frameLen);
+			uint32_t FrameLength = 0;
+			ReadU32(Accum.PeekReadPtr(), Accum.GetReadableSize(), FrameLength);
+
+			// Sanity-check frame length to avoid huge allocations and potential
+			// compiler/static-analysis array-bounds diagnostics (and to protect
+			// against malformed/malicious data). Use a reasonable upper bound.
+			constexpr uint32_t MAX_FRAME_LENGTH = 16 * 1024 * 1024; // 16 MiB
+			if (FrameLength > MAX_FRAME_LENGTH)
+			{
+				spdlog::error("Received absurdly large frame length from server: {}", FrameLength);
+				// Corrupt stream / desync: close socket to force reconnect and drop data
+				Socket->Close();
+				break; // break out of frame parsing loop and let connection loop handle reconnect
+			}
 			// Wait for full frame
-			if (Accum.GetReadableSize() < static_cast<size_t>(4 + frameLen))
+			if (Accum.GetReadableSize() < 4 + FrameLength)
 				break;
 
-			// Create a view buffer over the message payload [after prefix]
-			WBuffer Msg;
-			Msg.Resize(frameLen);
+			// Create a buffer sized to the message payload to avoid calling
+			// WBuffer::Resize (which can trigger inlined diagnostics). Construct
+			// directly with the desired size.
+			WBuffer Msg(FrameLength);
 			// skip 4-byte prefix
 			Accum.Consume(4);
 			// copy payload into Msg
-			std::memcpy(Msg.GetData(), Accum.PeekReadPtr(), frameLen);
-			Msg.SetWritingPos(frameLen);
+			std::memcpy(Msg.GetData(), Accum.PeekReadPtr(), FrameLength);
+			Msg.SetWritingPos(FrameLength);
 			// consume from accumulator
-			Accum.Consume(frameLen);
+			Accum.Consume(FrameLength);
 
 			// Dispatch based on 1-byte message type at start of payload
 			auto Type = ReadMessageTypeFromBuffer(Msg);
