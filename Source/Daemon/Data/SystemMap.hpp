@@ -97,6 +97,7 @@ public:
 		if (auto const It = Sockets.find(SocketCookie); It != Sockets.end())
 		{
 			It->second->MarkForRemoval();
+			It->second->TrafficItem->ConnectionState = ESocketConnectionState::Closed;
 			MarkedForRemovalItems.emplace_back(It->second->TrafficItem->ItemId);
 			It->second->ParentProcess->PushIncomingTraffic(0); // Force state update
 			It->second->ParentProcess->ParentApp->PushOutgoingTraffic(0);
