@@ -6,12 +6,12 @@
 
 A Linux traffic monitoring and shaping tool.
 
-Wächter uses eBPF to capture and throttle network packets and gather detailed statistics about network usage. It is
+Wächter uses eBPF to monitor network traffic and enforce rules to block or throttle connections. It is
 divided up into three parts:
 
-- An eBPF program that hooks into the Linux kernel to capture network packets and gather statistics
+- An eBPF program that hooks into the Linux kernel to gather traffic data and enforce rules
 - A daemon that loads the eBPF program, reads data from it and keeps track of network usage statistics and rules
-- A client GUI that allows users to view statistics and configure rules for traffic shaping
+- A client GUI to edit and view rules and traffic statistics
 
 Build requirements:
 
