@@ -66,7 +66,12 @@ public:
 		if (!FileStream)
 			return {};
 
-		std::string              Buffer((std::istreambuf_iterator(FileStream)), std::istreambuf_iterator<char>());
+		// Read the file into a buffer using rdbuf() to avoid potential
+		// null-dereference warnings triggered by constructing a string
+		// from std::istreambuf_iterator (seen under -Wnull-dereference).
+		std::ostringstream ss;
+		ss << FileStream.rdbuf();
+		std::string              Buffer = ss.str();
 		std::vector<std::string> Parts{};
 		if (Buffer.empty())
 			return Parts;
