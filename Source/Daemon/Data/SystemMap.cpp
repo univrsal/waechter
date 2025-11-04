@@ -6,6 +6,7 @@
 
 #include <spdlog/spdlog.h>
 #include <ranges>
+#include <arpa/inet.h> // for ntohl
 
 #include "Filesystem.hpp"
 
@@ -83,18 +84,27 @@ std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::MapSocket(WSocketCookie 
 void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
 {
 	// TODO: This is probably not needed
-	if (Event.EventType == NE_SocketConnect_4)
+	if (Event.EventType == NE_SocketConnect_4 && TrafficItem->ConnectionState != ESocketConnectionState::Connecting)
 	{
 		TrafficItem->ConnectionState = ESocketConnectionState::Connecting;
 		TrafficItem->SocketTuple.Protocol = static_cast<EProtocol::Type>(Event.Data.ConnectEventData.Protocol);
 		TrafficItem->SocketTuple.RemoteEndpoint.Port = static_cast<uint16_t>(Event.Data.ConnectEventData.UserPort);
 		TrafficItem->SocketTuple.RemoteEndpoint.Address.Family = EIPFamily::IPv4;
-		TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[0] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr4 >> 24 & 0xFF);
-		TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[1] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr4 >> 16 & 0xFF);
-		TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[2] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr4 >> 8 & 0xFF);
-		TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[3] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr4 & 0xFF);
+		{
+			// Convert from network byte order to host order, then split into bytes (big-endian order)
+			uint32_t IP = ntohl(Event.Data.ConnectEventData.Addr4);
+			TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[0] = static_cast<uint8_t>((IP >> 24) & 0xFF);
+			TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[1] = static_cast<uint8_t>((IP >> 16) & 0xFF);
+			TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[2] = static_cast<uint8_t>((IP >> 8) & 0xFF);
+			TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[3] = static_cast<uint8_t>(IP & 0xFF);
+		}
+
+		if (ParentProcess)
+		{
+			spdlog::info("Mapped {}: IP {} for PID {} / {}", Event.Cookie, TrafficItem->SocketTuple.RemoteEndpoint.ToString(), ParentProcess->TrafficItem->ProcessId, ParentProcess->ParentApp->TrafficItem->ApplicationName);
+		}
 	}
-	else if (Event.EventType == NE_SocketConnect_6)
+	else if (Event.EventType == NE_SocketConnect_6 && TrafficItem->ConnectionState != ESocketConnectionState::Connecting)
 	{
 		TrafficItem->ConnectionState = ESocketConnectionState::Connecting;
 		TrafficItem->SocketTuple.Protocol = static_cast<EProtocol::Type>(Event.Data.ConnectEventData.Protocol);
@@ -217,6 +227,7 @@ void WSystemMap::PushIncomingTraffic(WBytes Bytes, WSocketCookie SocketCookie)
 	{
 		auto Socket = It->second;
 		Socket->PushIncomingTraffic(Bytes);
+		Socket->TrafficItem->ConnectionState = ESocketConnectionState::Connected;
 		Socket->ParentProcess->PushIncomingTraffic(Bytes);
 		Socket->ParentProcess->ParentApp->PushIncomingTraffic(Bytes);
 	}
@@ -231,6 +242,7 @@ void WSystemMap::PushOutgoingTraffic(WBytes Bytes, WSocketCookie SocketCookie)
 	{
 		auto Socket = It->second;
 		Socket->PushOutgoingTraffic(Bytes);
+		Socket->TrafficItem->ConnectionState = ESocketConnectionState::Connected;
 		Socket->ParentProcess->PushOutgoingTraffic(Bytes);
 		Socket->ParentProcess->ParentApp->PushOutgoingTraffic(Bytes);
 	}
