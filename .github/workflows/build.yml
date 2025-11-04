@@ -3,8 +3,14 @@ name: Build (Ubuntu)
 on:
   push:
     branches: [ main, master ]
+    paths:
+      - 'Source/**'
+      - 'Thirdparty/**'
   pull_request:
     branches: [ main, master ]
+    paths:
+      - 'Source/**'
+      - 'Thirdparty/**'
   workflow_dispatch:
 
 jobs:
