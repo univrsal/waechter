@@ -32,6 +32,23 @@ static char const* SocketConnectionStateToString(ESocketConnectionState State)
 	}
 }
 
+static char const* ProtocolToString(EProtocol::Type Protocol)
+{
+	switch (Protocol)
+	{
+		case EProtocol::TCP:
+			return "TCP";
+		case EProtocol::UDP:
+			return "UDP";
+		case EProtocol::ICMP:
+			return "ICMP";
+		case EProtocol::ICMPv6:
+			return "ICMPv6";
+		default:
+			return "Unknown";
+	}
+}
+
 long GetUptimeSeconds()
 {
 	struct sysinfo SysInfo{};
@@ -113,9 +130,12 @@ void WDetailsWindow::DrawSocketDetails()
 
 	ImGui::Text("Socket state: %s", SocketConnectionStateToString(Sock->ConnectionState));
 	ImGui::Separator();
-	ImGui::Text("Local Address: %s", Sock->SocketTuple.LocalEndpoint.ToString().c_str());
-	ImGui::Text("Remote Address: %s", Sock->SocketTuple.RemoteEndpoint.ToString().c_str());
+	ImGui::InputText("Local Endpoint", const_cast<char*>(Sock->SocketTuple.LocalEndpoint.ToString().c_str()), 64, ImGuiInputTextFlags_ReadOnly);
+	ImGui::InputText("Remote Endpoint", const_cast<char*>(Sock->SocketTuple.RemoteEndpoint.ToString().c_str()), 64, ImGuiInputTextFlags_ReadOnly);
+	ImGui::Text("Protocol: %s", ProtocolToString(Sock->SocketTuple.Protocol));
 	ImGui::Separator();
+	ImGui::Text("Total Downloaded: %s", WStorageFormat::AutoFormat(Sock->TotalDownloadBytes).c_str());
+	ImGui::Text("Total Uploaded: %s", WStorageFormat::AutoFormat(Sock->TotalUploadBytes).c_str());
 }
 
 WDetailsWindow::WDetailsWindow(WTrafficTree* Tree_)
