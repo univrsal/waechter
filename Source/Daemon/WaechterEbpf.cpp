@@ -80,6 +80,18 @@ EEbpfInitResult WWaechterEbpf::Init()
 		return EEbpfInitResult::Inet6_Socket_Connect_Failed;
 	}
 
+	// // Attach UDP sendmsg hooks to capture destination address/port for unconnected UDP sockets
+	// if (!this->FindAndAttachProgram("on_sendmsg4", BPF_CGROUP_UDP4_SENDMSG))
+	// {
+	// 	spdlog::critical("Failed to attach on_sendmsg4 (BPF_CGROUP_UDP4_SENDMSG).");
+	// 	return EEbpfInitResult::Inet4_Socket_SendMsg_Failed;
+	// }
+	// if (!this->FindAndAttachProgram("on_sendmsg6", BPF_CGROUP_UDP6_SENDMSG))
+	// {
+	// 	spdlog::critical("Failed to attach on_sendmsg6 (BPF_CGROUP_UDP6_SENDMSG).");
+	// 	return EEbpfInitResult::Inet6_Socket_SendMsg_Failed;
+	// }
+
 	if (!this->FindAndAttachPlainProgram("on_tcp_set_state"))
 	{
 		spdlog::critical("Failed to attach on_tcp_set_state.");

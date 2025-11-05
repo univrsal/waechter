@@ -29,6 +29,8 @@ enum ENetEventType
 	NE_SocketConnect_6,
 	NE_SocketAccept,
 	NE_SocketClosed,
+	NE_SocketSendmsg_4,
+	NE_SocketSendmsg_6,
 	NE_Traffic
 };
 

@@ -22,6 +22,8 @@ enum class EEbpfInitResult
 	Inet_Socket_Create_Failed,
 	Inet4_Socket_Connect_Failed,
 	Inet6_Socket_Connect_Failed,
+	Inet4_Socket_SendMsg_Failed,
+	Inet6_Socket_SendMsg_Failed,
 	On_Tcp_Set_State_Failed,
 	On_Inet_Sock_Destruct_Failed,
 	Ring_Buffers_Not_Found,
