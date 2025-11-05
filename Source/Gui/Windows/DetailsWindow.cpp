@@ -129,23 +129,20 @@ void WDetailsWindow::DrawSocketDetails()
 	}
 
 	ImGui::Text("Socket state: %s", SocketConnectionStateToString(Sock->ConnectionState));
-	if (Sock->ConnectionState == ESocketConnectionState::Connected)
-	{
-		ImGui::Separator();
-		ImGui::InputText("Local Endpoint", const_cast<char*>(Sock->SocketTuple.LocalEndpoint.ToString().c_str()), 64, ImGuiInputTextFlags_ReadOnly);
-		ImGui::InputText("Remote Endpoint", const_cast<char*>(Sock->SocketTuple.RemoteEndpoint.ToString().c_str()), 64, ImGuiInputTextFlags_ReadOnly);
-		ImGui::Text("Protocol: %s", ProtocolToString(Sock->SocketTuple.Protocol));
-		ImGui::Separator();
-		ImGui::Text("Total Downloaded: %s", WStorageFormat::AutoFormat(Sock->TotalDownloadBytes).c_str());
-		ImGui::Text("Total Uploaded: %s", WStorageFormat::AutoFormat(Sock->TotalUploadBytes).c_str());
+	ImGui::Separator();
+	ImGui::InputText("Local Endpoint", const_cast<char*>(Sock->SocketTuple.LocalEndpoint.ToString().c_str()), 64, ImGuiInputTextFlags_ReadOnly);
+	ImGui::InputText("Remote Endpoint", const_cast<char*>(Sock->SocketTuple.RemoteEndpoint.ToString().c_str()), 64, ImGuiInputTextFlags_ReadOnly);
+	ImGui::Text("Protocol: %s", ProtocolToString(Sock->SocketTuple.Protocol));
+	ImGui::Separator();
+	ImGui::Text("Total Downloaded: %s", WStorageFormat::AutoFormat(Sock->TotalDownloadBytes).c_str());
+	ImGui::Text("Total Uploaded: %s", WStorageFormat::AutoFormat(Sock->TotalUploadBytes).c_str());
 
 #if WAECHTER_WITH_IPQUERY_IO_API
-		if (WGlfwWindow::GetInstance().GetMainWindow()->GetLibCurl().IsLoaded())
-		{
-			IpQueryIntegration.Draw(Sock);
-		}
-#endif
+	if (WGlfwWindow::GetInstance().GetMainWindow()->GetLibCurl().IsLoaded())
+	{
+		IpQueryIntegration.Draw(Sock);
 	}
+#endif
 }
 
 WDetailsWindow::WDetailsWindow(WTrafficTree* Tree_)
