@@ -16,9 +16,18 @@ enum class ESocketConnectionState
 	Closed
 };
 
+enum class ESocketType
+{
+	Unknown,
+	Connect, /* Outgoing tcp/udp */
+	Listen,  /* i.e. tcp server socket */
+	Accept   /* Incoming udp (and tcp?) */
+};
+
 struct WSocketItem : ITrafficItem
 {
 	WSocketTuple           SocketTuple{};
+	ESocketType            SocketType{};
 	ESocketConnectionState ConnectionState{};
 
 	template <class Archive>
