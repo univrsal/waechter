@@ -207,6 +207,12 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 
 	for (auto const& Addition : Updates.AddedSockets)
 	{
+		// Check if the socket already exists
+		if (TrafficItems.contains(Addition.ItemId))
+		{
+			spdlog::warn("{} already exists in traffic tree, skipping addition", Addition.ItemId);
+			continue;
+		}
 		// Find parent application
 		auto AppIt = Root.Applications.find(Addition.ApplicationPath);
 		if (AppIt == Root.Applications.end())

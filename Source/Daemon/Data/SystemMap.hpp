@@ -6,6 +6,7 @@
 #include <memory>
 #include <unordered_map>
 #include <mutex>
+#include <atomic>
 
 #include "EBPFCommon.h"
 #include "Types.hpp"
@@ -13,6 +14,7 @@
 #include "TrafficCounter.hpp"
 #include "Data/SystemItem.hpp"
 #include "Data/TrafficTreeUpdate.hpp"
+#include "spdlog/spdlog.h"
 
 /**
  * Both the client and the daemon need a tree of applications, processes, and sockets
@@ -59,7 +61,7 @@ public:
 	};
 
 private:
-	WTrafficItemId               NextItemId{ 1 }; // 0 is the root item
+	std::atomic<WTrafficItemId>  NextItemId{ 1 }; // 0 is the root item
 	std::shared_ptr<WSystemItem> SystemItem = std::make_shared<WSystemItem>();
 	TTrafficCounter<WSystemItem> TrafficCounter{ SystemItem };
 
@@ -77,6 +79,14 @@ private:
 	std::vector<std::shared_ptr<WSocketCounter>> AddedSockets{};
 
 	void Cleanup();
+
+	WTrafficItemId GetNextItemId()
+	{
+		auto Result = NextItemId.load();
+		spdlog::info("NextItemId: {}", Result);
+		++NextItemId;
+		return Result;
+	}
 
 public:
 	WSystemMap();
