@@ -54,12 +54,18 @@ struct WSocketTrafficEventData
 	__u8  Direction;
 };
 
+struct WSocketCreateEventData
+{
+	__u32 Protocol;
+};
+
 struct WSocketEventData
 {
 	union
 	{
 		struct WSocketConnectEventData ConnectEventData;
 		struct WSocketTrafficEventData TrafficEventData;
+		struct WSocketCreateEventData  SocketCreateEventData;
 	};
 };
 
