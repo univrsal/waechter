@@ -101,7 +101,7 @@ void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
 
 		if (ParentProcess)
 		{
-			spdlog::info("Mapped {}: IP {} for PID {} / {}", Event.Cookie, TrafficItem->SocketTuple.RemoteEndpoint.ToString(), ParentProcess->TrafficItem->ProcessId, ParentProcess->ParentApp->TrafficItem->ApplicationName);
+			spdlog::trace("Mapped {}: IP {} for PID {} / {}", Event.Cookie, TrafficItem->SocketTuple.RemoteEndpoint.ToString(), ParentProcess->TrafficItem->ProcessId, ParentProcess->ParentApp->TrafficItem->ApplicationName);
 		}
 	}
 	else if (Event.EventType == NE_SocketConnect_6 && TrafficItem->ConnectionState != ESocketConnectionState::Connecting)
