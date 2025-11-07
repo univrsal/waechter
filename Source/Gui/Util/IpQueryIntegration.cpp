@@ -79,7 +79,7 @@ void WIpQueryIntegration::Draw(WSocketItem const* Sock)
 		{
 			WGlfwWindow::GetInstance().GetMainWindow()->GetFlagAtlas().DrawFlag(CurrentIpInfo->CountryCode, ImVec2(24, 18));
 			ImGui::SameLine();
-			ImGui::InputText("Country", const_cast<char*>(CurrentIpInfo->Country.c_str()), 64, ImGuiInputTextFlags_ReadOnly);
+			ImGui::Text("%s", CurrentIpInfo->Country.c_str());
 			ImGui::InputText("City", const_cast<char*>(CurrentIpInfo->City.c_str()), 64, ImGuiInputTextFlags_ReadOnly);
 			ImGui::InputText("ISP", const_cast<char*>(CurrentIpInfo->Isp.c_str()), 128, ImGuiInputTextFlags_ReadOnly);
 			ImGui::InputText("Organization", const_cast<char*>(CurrentIpInfo->Organization.c_str()), 128, ImGuiInputTextFlags_ReadOnly);
