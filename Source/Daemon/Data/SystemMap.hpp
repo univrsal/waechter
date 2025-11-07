@@ -83,7 +83,6 @@ private:
 	WTrafficItemId GetNextItemId()
 	{
 		auto Result = NextItemId.load();
-		spdlog::info("NextItemId: {}", Result);
 		++NextItemId;
 		return Result;
 	}
