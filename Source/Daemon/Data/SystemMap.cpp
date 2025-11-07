@@ -172,6 +172,10 @@ std::shared_ptr<WSystemMap::WAppCounter> WSystemMap::FindOrMapApplication(std::s
 		{
 			Key = Key.substr(0, pos);
 		}
+		// FIXME: Using just argv[0] would group all python applications under the same
+		// tree entry, with the first one encountered used as the parent
+		// falsely grouping python processes of unrelated programs under that application
+		Key += " " + AppName;
 	}
 
 	if (auto It = Applications.find(Key); It != Applications.end())
