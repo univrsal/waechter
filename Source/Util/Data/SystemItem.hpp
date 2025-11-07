@@ -11,6 +11,8 @@
 #include "TrafficItem.hpp"
 #include "ApplicationItem.hpp"
 
+#include <ranges>
+
 struct WSystemItem : ITrafficItem
 {
 	std::string HostName{ "System" };
@@ -26,6 +28,23 @@ struct WSystemItem : ITrafficItem
 	[[nodiscard]] ETrafficItemType GetType() const override
 	{
 		return TI_System;
+	}
+
+	bool NoChildren() override
+	{
+		if (Applications.empty())
+		{
+			return true;
+		}
+
+		for (auto const& App : Applications | std::views::values)
+		{
+			if (!App->NoChildren())
+			{
+				return false;
+			}
+		}
+		return true;
 	}
 
 	bool RemoveChild(WTrafficItemId TrafficItemId) override

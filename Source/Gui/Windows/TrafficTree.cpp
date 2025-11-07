@@ -342,7 +342,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 
 	for (auto const& [Name, Child] : Root.Applications)
 	{
-		if (Child->Processes.empty())
+		if (Child->NoChildren())
 		{
 			continue;
 		}

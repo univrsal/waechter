@@ -30,6 +30,23 @@ public:
 		return TI_Application;
 	}
 
+	bool NoChildren() override
+	{
+		if (Processes.empty())
+		{
+			return true;
+		}
+
+		for (auto const& [PID, Process] : Processes)
+		{
+			if (!Process->NoChildren())
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
 	bool RemoveChild(WTrafficItemId TrafficItemId) override
 	{
 		for (auto It = Processes.begin(); It != Processes.end(); ++It)

@@ -33,4 +33,9 @@ struct ITrafficItem
 	{
 		return false;
 	}
+
+	virtual bool NoChildren()
+	{
+		return true;
+	}
 };

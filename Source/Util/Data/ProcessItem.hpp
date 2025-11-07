@@ -28,6 +28,11 @@ public:
 		return TI_Process;
 	}
 
+	bool NoChildren() override
+	{
+		return Sockets.empty();
+	}
+
 	bool RemoveChild(WTrafficItemId TrafficItemId) override
 	{
 		for (auto It = Sockets.begin(); It != Sockets.end(); ++It)
