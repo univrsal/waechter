@@ -275,7 +275,7 @@ WTrafficTreeUpdates WSystemMap::GetUpdates()
 	Updates.RemovedItems = RemovedItems;
 	Updates.MarkedForRemovalItems = MarkedForRemovalItems;
 
-	if (TrafficCounter.GetState() == CS_Active)
+	if (TrafficCounter.IsActive())
 	{
 		Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{
 			SystemItem->ItemId,
@@ -288,7 +288,7 @@ WTrafficTreeUpdates WSystemMap::GetUpdates()
 
 	for (auto const& App : Applications | std::views::values)
 	{
-		if (App->GetState() == CS_Active)
+		if (App->IsActive())
 		{
 			Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{
 				App->TrafficItem->ItemId,
@@ -302,7 +302,7 @@ WTrafficTreeUpdates WSystemMap::GetUpdates()
 
 	for (auto const& Process : Processes | std::views::values)
 	{
-		if (Process->GetState() == CS_Active)
+		if (Process->IsActive())
 		{
 			Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{
 				Process->TrafficItem->ItemId,
@@ -316,7 +316,7 @@ WTrafficTreeUpdates WSystemMap::GetUpdates()
 
 	for (auto const& Socket : Sockets | std::views::values)
 	{
-		if (Socket->GetState() == CS_Active)
+		if (Socket->IsActive())
 		{
 			Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{
 				Socket->TrafficItem->ItemId,

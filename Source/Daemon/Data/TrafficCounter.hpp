@@ -48,6 +48,11 @@ public:
 		State = CS_Active;
 	}
 
+	bool IsActive() const
+	{
+		return State == CS_Active;
+	}
+
 	void Refresh()
 	{
 		if (State == CS_PendingRemoval)
@@ -73,17 +78,17 @@ public:
 				TrafficItem->UploadSpeed = NewUploadSpeed;
 				State = CS_Active;
 			}
+
 			if (TrafficItem->DownloadSpeed < 1)
 			{
-				State = CS_Inactive;
 				TrafficItem->DownloadSpeed = 0;
 			}
 
 			if (TrafficItem->UploadSpeed < 1)
 			{
-				State = CS_Inactive;
 				TrafficItem->UploadSpeed = 0;
 			}
+
 			TrafficItem->TotalDownloadBytes += RecentDownload;
 			TrafficItem->TotalUploadBytes += RecentUpload;
 			RecentDownload = 0;
@@ -109,6 +114,8 @@ public:
 			return;
 		}
 		State = CS_PendingRemoval;
+		TrafficItem->UploadSpeed = 0;
+		TrafficItem->DownloadSpeed = 0;
 		RemovalTimeStamp = WTime::GetEpochMs() + RemovalTimeWindow;
 	}
 
