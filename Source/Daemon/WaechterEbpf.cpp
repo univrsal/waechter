@@ -166,11 +166,6 @@ void WWaechterEbpf::UpdateData()
 		switch (SocketEvent.EventType)
 		{
 			case NE_SocketCreate:
-				if (SocketInfo)
-				{
-					SocketInfo->TrafficItem->ConnectionState = ESocketConnectionState::Created;
-				}
-				break;
 			case NE_SocketConnect_4:
 			case NE_SocketConnect_6:
 				if (SocketInfo)

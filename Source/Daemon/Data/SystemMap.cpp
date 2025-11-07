@@ -118,6 +118,11 @@ void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
 			TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[i * 4 + 3] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr6[i] & 0xFF);
 		}
 	}
+	else if (Event.EventType == NE_SocketCreate)
+	{
+		TrafficItem->ConnectionState = ESocketConnectionState::Created;
+		TrafficItem->SocketTuple.Protocol = static_cast<EProtocol::Type>(Event.Data.SocketCreateEventData.Protocol);
+	}
 }
 
 std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::FindOrMapSocket(WSocketCookie SocketCookie, std::shared_ptr<WProcessCounter> const& ParentProcess)
