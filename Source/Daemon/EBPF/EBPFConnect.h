@@ -71,6 +71,34 @@ int BPF_PROG(on_tcp_set_state, struct sock* Sk, int Newstate)
 			bpf_ringbuf_submit(Event, 0);
 		}
 	}
+	else if (Newstate == TCP_LISTEN)
+	{
+		struct WSocketEvent* Event = MakeSocketEvent(bpf_get_socket_cookie(Sk), NE_TCPSocketListening);
+		// Family
+		u16 Family = BPF_CORE_READ(Sk, __sk_common.skc_family);
+
+		// Local port: host-endian
+		u16 Lport = BPF_CORE_READ(Sk, __sk_common.skc_num);
+
+		if (Event)
+		{
+			Event->Data.TCPSocketListenEventData.UserPort = Lport;
+
+			if (Family == AF_INET)
+			{
+				// IPv4 address
+				__u32 Laddr4 = BPF_CORE_READ(Sk, __sk_common.skc_rcv_saddr);
+				Event->Data.TCPSocketListenEventData.Addr4 = Laddr4;
+			}
+			else if (Family == AF_INET6)
+			{
+				// IPv6 address
+				BPF_CORE_READ_INTO(
+					&Event->Data.TCPSocketListenEventData.Addr6, Sk, __sk_common.skc_v6_rcv_saddr.in6_u.u6_addr32);
+			}
+			bpf_ringbuf_submit(Event, 0);
+		}
+	}
 	return 0;
 }
 

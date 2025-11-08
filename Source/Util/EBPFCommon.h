@@ -72,6 +72,16 @@ struct WSocketCreateEventData
 	__u32 Protocol;
 };
 
+struct WSocketListenEventData
+{
+	__u32 UserPort;
+	union
+	{
+		__u32 Addr4;
+		__u32 Addr6[4];
+	};
+};
+
 struct WSocketEventData
 {
 	union
@@ -80,6 +90,7 @@ struct WSocketEventData
 		struct WSocketTrafficEventData        TrafficEventData;
 		struct WSocketCreateEventData         SocketCreateEventData;
 		struct WSocketTCPEstablishedEventData TCPSocketEstablishedEventData;
+		struct WSocketListenEventData         TCPSocketListenEventData;
 	};
 };
 
