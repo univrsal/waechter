@@ -9,6 +9,26 @@
 #define AF_INET 2
 #define AF_INET6 10
 
+SEC("tracepoint/sock/inet_sock_set_state")
+int on_set_state(struct trace_event_raw_inet_sock_set_state* ctx)
+{
+	// Only care about TCP
+	if (ctx->protocol != IPPROTO_TCP)
+		return 0;
+
+	// Only log when entering TCP_LISTEN
+	if (ctx->newstate != TCP_LISTEN)
+		return 0;
+
+	struct WSocketEvent* Event = MakeSocketEvent(0, NE_TCPSocketListening);
+	if (Event)
+	{
+		Event->Data.TCPSocketListenEventData.UserPort = bpf_ntohs(ctx->sport);
+		bpf_ringbuf_submit(Event, 0);
+	}
+	return 0;
+}
+
 SEC("fentry/tcp_set_state")
 int BPF_PROG(on_tcp_set_state, struct sock* Sk, int Newstate)
 {
