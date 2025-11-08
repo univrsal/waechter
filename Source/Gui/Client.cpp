@@ -144,9 +144,6 @@ bool WClient::EnsureConnected()
 			{
 				return false;
 			}
-			// Fallthrough
-		case ES_ConnectedButCantSend:
-			Socket->SetState(ES_Connected);
 		default:;
 	}
 	return Socket->GetState() == ES_Connected;

@@ -58,9 +58,13 @@ ssize_t WClientSocket::Send(WBuffer const& Buf)
 {
 	auto MarkStateForError = [&](int e) {
 		if (e == EPIPE || e == EBADF || e == ECONNRESET)
+		{
 			State = ES_Initial;
+		}
 		else
-			State = ES_ConnectedButCantSend;
+		{
+			spdlog::error("Socket send error: {} ({})", WErrnoUtil::StrError(), e);
+		}
 	};
 
 	char const* Data = Buf.GetData();

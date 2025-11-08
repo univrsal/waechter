@@ -43,8 +43,7 @@ enum ESocketState
 {
 	ES_Initial,
 	ES_Opened,
-	ES_Connected,
-	ES_ConnectedButCantSend
+	ES_Connected
 };
 
 class WClientSocket : public WSocket
