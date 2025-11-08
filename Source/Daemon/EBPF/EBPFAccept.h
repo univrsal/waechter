@@ -12,7 +12,6 @@ int BPF_PROG(socket_accept, struct socket* Sock, struct socket* NewSock)
 	struct sock* Socket = NewSock->sk; // preserve trusted pointer type
 	if (!Socket)
 	{
-		bpf_printk("SocketAccept: Invalid new socket\n");
 		return WLSM_ALLOW;
 	}
 
