@@ -9,8 +9,8 @@ Ebpf -> Daemon:
 
 - [ ] Assign a Src -> Dest IP pair to each socket
     - [x] TCP connect sockets
-    - [ ] UDP sockets (?)
     - [ ] TCP accepted sockets (?)
+    - [ ] UDP accept sockets (?)
 - [x] Track socket state
 
 Daemon:
