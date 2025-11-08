@@ -6,5 +6,5 @@
 
 WEbpfData::WEbpfData(WWaechterEbpf const& EbpfObj)
 {
-	SocketEvents = std::make_unique<TEbpfRingBuffer<WSocketEvent>>(EbpfObj.FindMapFd("socket_event_ring"));
+	SocketEvents = std::make_unique<TEbpfRingBuffer<WSocketEvent>>(EbpfObj.Skeleton->maps.socket_event_ring);
 }

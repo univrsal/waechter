@@ -16,90 +16,70 @@
 #include "Format.hpp"
 #include "Data/SystemMap.hpp"
 
-WWaechterEbpf::WWaechterEbpf(std::string const& ProgramObectFilePath_) : WEbpfObj(ProgramObectFilePath_) {}
+WWaechterEbpf::WWaechterEbpf() = default;
 
-WWaechterEbpf::~WWaechterEbpf() {}
+WWaechterEbpf::~WWaechterEbpf()
+{
+	waechter_ebpf__destroy(Skeleton);
+}
 
 EEbpfInitResult WWaechterEbpf::Init()
 {
-	if (this->InterfaceIndex < 0)
+	Skeleton = waechter_ebpf__open();
+	if (!Skeleton)
 	{
-		this->InterfaceIndex =
-			static_cast<int>(if_nametoindex(WDaemonConfig::GetInstance().NetworkInterfaceName.c_str()));
-	}
-
-	if (!this->Obj)
-	{
-		spdlog::critical("Failed to open BPF object file");
+		spdlog::error("Failed to open eBPF object");
 		return EEbpfInitResult::Open_Failed;
 	}
 
-	if (!this->Load())
+	Obj = Skeleton->obj;
+
+	auto Result = waechter_ebpf__load(Skeleton);
+
+	if (Result != 0)
 	{
-		spdlog::critical("Failed to load BPF file");
+		spdlog::error("Failed to load eBPF object: {}", Result);
 		return EEbpfInitResult::Load_Failed;
 	}
+
+	Result = waechter_ebpf__attach(Skeleton);
+
+	if (Result != 0)
+	{
+		spdlog::error("Failed to attach eBPF programs: {}", Result);
+		return EEbpfInitResult::Attach_Failed;
+	}
+
+	Data = std::make_shared<WEbpfData>(*this);
 
 	if (!this->FindAndAttachProgram("cgskb_ingress", BPF_CGROUP_INET_INGRESS))
 	{
 		spdlog::critical("Failed to find and attach ingress");
-		return EEbpfInitResult::Cg_Ingress_Attach_Failed;
+		return EEbpfInitResult::Attach_Failed;
 	}
 
 	if (!this->FindAndAttachProgram("cgskb_egress", BPF_CGROUP_INET_EGRESS))
 	{
 		spdlog::critical("Failed to find and attach ingress");
-		return EEbpfInitResult::CG_Egress_Attach_Failed;
+		return EEbpfInitResult::Attach_Failed;
 	}
 
 	if (!this->FindAndAttachProgram("on_sock_create", BPF_CGROUP_INET_SOCK_CREATE))
 	{
 		spdlog::critical("Failed to attach on_sock_create (BPF_CGROUP_INET_SOCK_CREATE).");
-		return EEbpfInitResult::Inet_Socket_Create_Failed;
+		return EEbpfInitResult::Attach_Failed;
 	}
 
 	if (!this->FindAndAttachProgram("on_connect4", BPF_CGROUP_INET4_CONNECT))
 	{
 		spdlog::critical("Failed to attach on_connect4 (BPF_CGROUP_INET4_CONNECT).");
-		return EEbpfInitResult::Inet4_Socket_Connect_Failed;
+		return EEbpfInitResult::Attach_Failed;
 	}
 
 	if (!this->FindAndAttachProgram("on_connect6", BPF_CGROUP_INET6_CONNECT))
 	{
 		spdlog::critical("Failed to attach on_connect6 (BPF_CGROUP_INET6_CONNECT).");
-		return EEbpfInitResult::Inet6_Socket_Connect_Failed;
-	}
-
-	// // Attach UDP sendmsg hooks to capture destination address/port for unconnected UDP sockets
-	// if (!this->FindAndAttachProgram("on_sendmsg4", BPF_CGROUP_UDP4_SENDMSG))
-	// {
-	// 	spdlog::critical("Failed to attach on_sendmsg4 (BPF_CGROUP_UDP4_SENDMSG).");
-	// 	return EEbpfInitResult::Inet4_Socket_SendMsg_Failed;
-	// }
-	// if (!this->FindAndAttachProgram("on_sendmsg6", BPF_CGROUP_UDP6_SENDMSG))
-	// {
-	// 	spdlog::critical("Failed to attach on_sendmsg6 (BPF_CGROUP_UDP6_SENDMSG).");
-	// 	return EEbpfInitResult::Inet6_Socket_SendMsg_Failed;
-	// }
-
-	if (!this->FindAndAttachPlainProgram("on_tcp_set_state"))
-	{
-		spdlog::critical("Failed to attach on_tcp_set_state.");
-		return EEbpfInitResult::On_Tcp_Set_State_Failed;
-	}
-
-	if (!this->FindAndAttachPlainProgram("on_inet_sock_destruct"))
-	{
-		spdlog::critical("Failed to attach on_inet_sock_destruct.");
-		return EEbpfInitResult::On_Inet_Sock_Destruct_Failed;
-	}
-
-	Data = std::make_shared<WEbpfData>(*this);
-
-	if (!Data->IsValid())
-	{
-		spdlog::critical("Failed to find one or more maps");
-		return EEbpfInitResult::Ring_Buffers_Not_Found;
+		return EEbpfInitResult::Attach_Failed;
 	}
 
 	return EEbpfInitResult::Success;

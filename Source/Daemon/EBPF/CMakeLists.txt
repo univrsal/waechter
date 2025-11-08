@@ -46,13 +46,23 @@ set(BPF_HDR
         ${CMAKE_SOURCE_DIR}/Source/Util/EBPFCommon.h
 )
 set(BPF_OBJ ${CMAKE_CURRENT_BINARY_DIR}/waechter-ebpf.o)
+set(SKELETON_OUT "${CMAKE_CURRENT_BINARY_DIR}/WaechterEBPF.skel.h")
+
+
+add_library(ebpf_includes INTERFACE)
+
+target_include_directories(ebpf_includes SYSTEM INTERFACE
+        ${CMAKE_CURRENT_BINARY_DIR}
+)
+target_link_libraries(waechterd PRIVATE ebpf_includes)
 
 add_custom_command(
-        OUTPUT ${BPF_OBJ}
+        OUTPUT ${BPF_OBJ} ${SKELETON_OUT}
         COMMAND ${CLANG_EXECUTABLE} -O2 -g -target bpf -D__TARGET_ARCH_${BPF_TARGET_ARCH} -Wall -Wno-unused-value -Wno-pointer-sign -Wno-compare-distinct-pointer-types -Werror
         -I/usr/include -I/usr/include/bpf
         -I${CMAKE_SOURCE_DIR}/Source/Util
         -c ${BPF_SRC} -o ${BPF_OBJ}
+        COMMAND ${BPFTTOOL_EXECUTABLE} gen skeleton ${BPF_OBJ} > ${SKELETON_OUT}
         DEPENDS ${BPF_SRC} ${BPF_HDR}
         COMMENT "Building eBPF object ${BPF_OBJ}"
         VERBATIM

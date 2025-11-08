@@ -26,7 +26,7 @@ int Run()
 	WDaemonConfig::BTFTest();
 
 	std::string   EBPFObjectPath = WDaemonConfig::GetInstance().EbpfProgramObjectPath;
-	WWaechterEbpf EbpfObj(EBPFObjectPath);
+	WWaechterEbpf EbpfObj;
 	WDaemonSocket DaemonSocket(WDaemonConfig::GetInstance().DaemonSocketPath);
 
 	spdlog::info("Waechter daemon starting");

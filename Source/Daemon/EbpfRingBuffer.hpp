@@ -29,30 +29,23 @@ class TEbpfRingBuffer
 	}
 
 public:
-	explicit TEbpfRingBuffer(int MapFd)
+	explicit TEbpfRingBuffer(bpf_map* Map)
 	{
-		if (MapFd < 0)
+		if (Map == nullptr)
 		{
-			spdlog::error("WEbpfRingBuffer: invalid MapFd {} provided; map not found or not loaded", MapFd);
+			spdlog::error("WEbpfRingBuffer: invalid Map {} provided; map not found or not loaded");
 			RingBufferPtr = nullptr;
 			return;
 		}
-
-		RingBufferPtr = ring_buffer__new(MapFd, RingBufferCallback, this, nullptr);
+		int Fd = bpf_map__fd(Map);
+		RingBufferPtr = ring_buffer__new(Fd, RingBufferCallback, this, nullptr);
 		if (!RingBufferPtr)
 		{
-			spdlog::error("WEbpfRingBuffer: ring_buffer__new failed for MapFd {}", MapFd);
+			spdlog::error("WEbpfRingBuffer: ring_buffer__new failed");
 		}
 	}
 
-	~TEbpfRingBuffer()
-	{
-		if (RingBufferPtr)
-		{
-			ring_buffer__free(RingBufferPtr);
-			RingBufferPtr = nullptr;
-		}
-	}
+	~TEbpfRingBuffer() { ring_buffer__free(RingBufferPtr); }
 
 	void PushData(T const& NewData)
 	{
@@ -73,8 +66,5 @@ public:
 		}
 	}
 
-	[[nodiscard]] bool IsValid() const
-	{
-		return RingBufferPtr != nullptr;
-	}
+	[[nodiscard]] bool IsValid() const { return RingBufferPtr != nullptr; }
 };

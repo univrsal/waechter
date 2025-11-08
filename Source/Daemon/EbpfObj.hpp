@@ -16,12 +16,12 @@ struct bpf_program;
 
 struct WFdCloser
 {
-	void operator()(int* fd) const
+	void operator()(int const* Fd) const
 	{
-		if (fd && *fd >= 0)
+		if (Fd && *Fd >= 0)
 		{
-			close(*fd);
-			delete fd;
+			close(*Fd);
+			delete Fd;
 		}
 	}
 };
@@ -37,17 +37,15 @@ protected:
 	int                             XdpIfIndex{};
 
 public:
-	explicit WEbpfObj(std::string ProgramObectFilePath);
+	explicit WEbpfObj();
 
 	~WEbpfObj();
 
-	bool Load();
+	bool FindAndAttachPlainProgram(std::string const& ProgName);
 
-	bool FindAndAttachPlainProgram(const std::string& ProgName);
+	bool FindAndAttachProgram(std::string const& ProgName, bpf_attach_type AttachType, unsigned int Flags = 0);
 
-	bool FindAndAttachProgram(const std::string& ProgName, bpf_attach_type AttachType, unsigned int Flags = 0);
-
-	bool FindAndAttachXdpProgram(const std::string& ProgName, int IfIndex, unsigned int Flags = 0);
+	bool FindAndAttachXdpProgram(std::string const& ProgName, int IfIndex, unsigned int Flags = 0);
 
 	[[nodiscard]] int FindMapFd(std::string const& MapFdPath) const;
 

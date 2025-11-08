@@ -12,7 +12,7 @@
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
 
-WEbpfObj::WEbpfObj(std::string ProgramObectFilePath)
+WEbpfObj::WEbpfObj()
 {
 	int CGroupFdRaw = -1;
 	if (!WDaemonConfig::GetInstance().CGroupPath.empty())
@@ -27,7 +27,6 @@ WEbpfObj::WEbpfObj(std::string ProgramObectFilePath)
 		CGroupFd.reset(new int(CGroupFdRaw));
 	}
 
-	Obj = bpf_object__open_file(ProgramObectFilePath.c_str(), nullptr);
 	errno = 0;
 }
 
@@ -62,15 +61,6 @@ WEbpfObj::~WEbpfObj()
 	{
 		bpf_object__close(Obj);
 	}
-}
-
-bool WEbpfObj::Load()
-{
-	if (!Obj)
-	{
-		return false;
-	}
-	return bpf_object__load(Obj) == 0;
 }
 
 bool WEbpfObj::FindAndAttachPlainProgram(std::string const& ProgName)
