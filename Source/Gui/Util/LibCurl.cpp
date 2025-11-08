@@ -90,7 +90,8 @@ void WLibCurl::Resolve()
 
 bool WLibCurl::IsLoaded() const noexcept
 {
-	return Handle && curl_easy_init_fp && curl_easy_cleanup_fp && curl_easy_perform_fp && curl_easy_setopt_fp && curl_easy_strerror_fp;
+	return Handle && curl_easy_init_fp && curl_easy_cleanup_fp && curl_easy_perform_fp && curl_easy_setopt_fp
+		&& curl_easy_strerror_fp;
 }
 
 std::string WLibCurl::GetLoadedVersion() const
@@ -134,8 +135,11 @@ WJson WLibCurl::GetJson(std::string const& Url, std::string& OutError) const
 		return true;
 	};
 
-	bool bOk =
-		SetOpt(CURLOPT_URL, Url.c_str()) && SetOpt(CURLOPT_WRITEFUNCTION, reinterpret_cast<size_t (*)(char*, size_t, size_t, void*)>(WriteCallback)) && SetOpt(CURLOPT_WRITEDATA, &Body) && SetOpt(CURLOPT_USERAGENT, "waechter/1.0 (+https://github.com/)") && SetOpt(CURLOPT_FOLLOWLOCATION, 1L) && SetOpt(CURLOPT_MAXREDIRS, 5L) && SetOpt(CURLOPT_TIMEOUT, 10L) && SetOpt(CURLOPT_CONNECTTIMEOUT, 5L) && SetOpt(CURLOPT_ACCEPT_ENCODING, ""); // enable all supported encodings
+	bool bOk = SetOpt(CURLOPT_URL, Url.c_str())
+		&& SetOpt(CURLOPT_WRITEFUNCTION, reinterpret_cast<size_t (*)(char*, size_t, size_t, void*)>(WriteCallback))
+		&& SetOpt(CURLOPT_WRITEDATA, &Body) && SetOpt(CURLOPT_USERAGENT, "waechter/1.0 (+https://github.com/)")
+		&& SetOpt(CURLOPT_FOLLOWLOCATION, 1L) && SetOpt(CURLOPT_MAXREDIRS, 5L) && SetOpt(CURLOPT_TIMEOUT, 10L)
+		&& SetOpt(CURLOPT_CONNECTTIMEOUT, 5L) && SetOpt(CURLOPT_ACCEPT_ENCODING, ""); // enable all supported encodings
 
 	if (!bOk)
 	{

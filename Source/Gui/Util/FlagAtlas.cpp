@@ -32,20 +32,12 @@ void WFlagAtlas::DrawFlag(std::string const& CountryCode, ImVec2 Size)
 		float U2 = U1 + FlagSize.x;
 		float V2 = V1 + FlagSize.y;
 
-		ImGui::Image(
-			TextureId,
-			Size,
-			ImVec2(U1, V1),
-			ImVec2(U2, V2));
+		ImGui::Image(TextureId, Size, ImVec2(U1, V1), ImVec2(U2, V2));
 	}
 	else
 	{
 		// Draw empty placeholder
-		ImGui::Image(
-			TextureId,
-			Size,
-			PlaceholderUv1,
-			PlaceholderUv2);
+		ImGui::Image(TextureId, Size, PlaceholderUv1, PlaceholderUv2);
 	}
 }
 
@@ -59,7 +51,8 @@ void WFlagAtlas::Load()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	int            Width, Height, Channels;
-	unsigned char* ImageDataPtr = stbi_load_from_memory(GFlagAtlasData, static_cast<int>(GFlagAtlasSize), &Width, &Height, &Channels, 4);
+	unsigned char* ImageDataPtr =
+		stbi_load_from_memory(GFlagAtlasData, static_cast<int>(GFlagAtlasSize), &Width, &Height, &Channels, 4);
 	if (ImageDataPtr == nullptr)
 	{
 		spdlog::error("Failed to load flag atlas image from memory");

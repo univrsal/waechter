@@ -130,8 +130,10 @@ void WDetailsWindow::DrawSocketDetails()
 
 	ImGui::Text("Socket state: %s", SocketConnectionStateToString(Sock->ConnectionState));
 	ImGui::Separator();
-	ImGui::InputText("Local Endpoint", const_cast<char*>(Sock->SocketTuple.LocalEndpoint.ToString().c_str()), 64, ImGuiInputTextFlags_ReadOnly);
-	ImGui::InputText("Remote Endpoint", const_cast<char*>(Sock->SocketTuple.RemoteEndpoint.ToString().c_str()), 64, ImGuiInputTextFlags_ReadOnly);
+	ImGui::InputText("Local Endpoint", const_cast<char*>(Sock->SocketTuple.LocalEndpoint.ToString().c_str()), 64,
+		ImGuiInputTextFlags_ReadOnly);
+	ImGui::InputText("Remote Endpoint", const_cast<char*>(Sock->SocketTuple.RemoteEndpoint.ToString().c_str()), 64,
+		ImGuiInputTextFlags_ReadOnly);
 	ImGui::Text("Protocol: %s", ProtocolToString(Sock->SocketTuple.Protocol));
 	ImGui::Separator();
 	ImGui::Text("Total Downloaded: %s", WStorageFormat::AutoFormat(Sock->TotalDownloadBytes).c_str());
@@ -145,8 +147,7 @@ void WDetailsWindow::DrawSocketDetails()
 #endif
 }
 
-WDetailsWindow::WDetailsWindow(WTrafficTree* Tree_)
-	: Tree(Tree_)
+WDetailsWindow::WDetailsWindow(WTrafficTree* Tree_) : Tree(Tree_)
 {
 	WTimerManager::GetInstance().AddTimer(1.0, [this] {
 		long UptimeSeconds = GetUptimeSeconds();

@@ -20,7 +20,8 @@ WEbpfObj::WEbpfObj(std::string ProgramObectFilePath)
 		CGroupFdRaw = open(WDaemonConfig::GetInstance().CGroupPath.c_str(), O_RDONLY | O_CLOEXEC);
 		if (CGroupFdRaw < 0)
 		{
-			spdlog::critical("Failed to open cgroup path '{}': {}", WDaemonConfig::GetInstance().CGroupPath, WErrnoUtil::StrError());
+			spdlog::critical(
+				"Failed to open cgroup path '{}': {}", WDaemonConfig::GetInstance().CGroupPath, WErrnoUtil::StrError());
 			return;
 		}
 		CGroupFd.reset(new int(CGroupFdRaw));
@@ -72,7 +73,7 @@ bool WEbpfObj::Load()
 	return bpf_object__load(Obj) == 0;
 }
 
-bool WEbpfObj::FindAndAttachPlainProgram(const std::string& ProgName)
+bool WEbpfObj::FindAndAttachPlainProgram(std::string const& ProgName)
 {
 	auto* Prog = bpf_object__find_program_by_name(Obj, ProgName.c_str());
 
@@ -95,7 +96,7 @@ bool WEbpfObj::FindAndAttachPlainProgram(const std::string& ProgName)
 	return true;
 }
 
-bool WEbpfObj::FindAndAttachProgram(const std::string& ProgName, bpf_attach_type AttachType, unsigned int Flags)
+bool WEbpfObj::FindAndAttachProgram(std::string const& ProgName, bpf_attach_type AttachType, unsigned int Flags)
 {
 	auto* Prog = bpf_object__find_program_by_name(Obj, ProgName.c_str());
 
@@ -122,7 +123,7 @@ bool WEbpfObj::FindAndAttachProgram(const std::string& ProgName, bpf_attach_type
 	return Result;
 }
 
-bool WEbpfObj::FindAndAttachXdpProgram(const std::string& ProgName, int IfIndex, unsigned int Flags)
+bool WEbpfObj::FindAndAttachXdpProgram(std::string const& ProgName, int IfIndex, unsigned int Flags)
 {
 	auto* Prog = bpf_object__find_program_by_name(Obj, ProgName.c_str());
 

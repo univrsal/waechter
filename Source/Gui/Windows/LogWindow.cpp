@@ -4,13 +4,13 @@
 #include <imgui_internal.h>
 #include <spdlog/sinks/base_sink.h>
 
-void WImGuiLogSink::sink_it_(const spdlog::details::log_msg& msg)
+void WImGuiLogSink::sink_it_(spdlog::details::log_msg const& Message)
 {
-	spdlog::memory_buf_t formatted;
-	formatter_->format(msg, formatted);
+	spdlog::memory_buf_t Formatted;
+	formatter_->format(Message, Formatted);
 	if (Owner)
 	{
-		Owner->Append(msg.level, std::string(formatted.data(), formatted.size()));
+		Owner->Append(Message.level, std::string(Formatted.data(), Formatted.size()));
 	}
 }
 
@@ -85,7 +85,7 @@ void WLogWindow::Draw()
 		{
 
 			std::lock_guard<std::mutex> lk(Mutex);
-			for (const auto& e : Entries)
+			for (auto const& e : Entries)
 			{
 				ImVec4 col = ImGui::GetStyleColorVec4(ImGuiCol_Text);
 				switch (e.Level)

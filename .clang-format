@@ -12,6 +12,7 @@ AllowShortBlocksOnASingleLine: Empty
 AllowShortEnumsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: Inline
 AllowShortLambdasOnASingleLine: All
+AlwaysBreakTemplateDeclarations: true
 QualifierAlignment: Right
 BraceWrapping:
   AfterCaseLabel: true
@@ -35,7 +36,7 @@ BreakInheritanceList: AfterColon
 BreakBeforeTernaryOperators: true
 BreakConstructorInitializers: BeforeComma
 BreakStringLiterals: false
-ColumnLimit: 0
+ColumnLimit: 120
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 Cpp11BracedListStyle: false
 EmptyLineBeforeAccessModifier: LogicalBlock

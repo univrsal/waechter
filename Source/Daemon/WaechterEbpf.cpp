@@ -16,20 +16,16 @@
 #include "Format.hpp"
 #include "Data/SystemMap.hpp"
 
-WWaechterEbpf::WWaechterEbpf(std::string const& ProgramObectFilePath_)
-	: WEbpfObj(ProgramObectFilePath_)
-{
-}
+WWaechterEbpf::WWaechterEbpf(std::string const& ProgramObectFilePath_) : WEbpfObj(ProgramObectFilePath_) {}
 
-WWaechterEbpf::~WWaechterEbpf()
-{
-}
+WWaechterEbpf::~WWaechterEbpf() {}
 
 EEbpfInitResult WWaechterEbpf::Init()
 {
 	if (this->InterfaceIndex < 0)
 	{
-		this->InterfaceIndex = static_cast<int>(if_nametoindex(WDaemonConfig::GetInstance().NetworkInterfaceName.c_str()));
+		this->InterfaceIndex =
+			static_cast<int>(if_nametoindex(WDaemonConfig::GetInstance().NetworkInterfaceName.c_str()));
 	}
 
 	if (!this->Obj)
@@ -130,7 +126,9 @@ void WWaechterEbpf::UpdateData()
 		}
 		else if (WTime::GetEpochMs() - QueuePileupStartTime > 5000)
 		{
-			spdlog::warn("Queue for socket events has been filling up for more than 5 seconds, polling rate might be too low. {} events waiting", SocketEventQueue.size());
+			spdlog::warn(
+				"Queue for socket events has been filling up for more than 5 seconds, polling rate might be too low. {} events waiting",
+				SocketEventQueue.size());
 			QueuePileupStartTime = WTime::GetEpochMs(); // reset timer to avoid spamming logs
 		}
 	}
@@ -172,11 +170,13 @@ void WWaechterEbpf::UpdateData()
 			case NE_Traffic:
 				if (SocketEvent.Data.TrafficEventData.Direction == PD_Incoming)
 				{
-					WSystemMap::GetInstance().PushIncomingTraffic(SocketEvent.Data.TrafficEventData.Bytes, SocketEvent.Cookie);
+					WSystemMap::GetInstance().PushIncomingTraffic(
+						SocketEvent.Data.TrafficEventData.Bytes, SocketEvent.Cookie);
 				}
 				else if (SocketEvent.Data.TrafficEventData.Direction == PD_Outgoing)
 				{
-					WSystemMap::GetInstance().PushOutgoingTraffic(SocketEvent.Data.TrafficEventData.Bytes, SocketEvent.Cookie);
+					WSystemMap::GetInstance().PushOutgoingTraffic(
+						SocketEvent.Data.TrafficEventData.Bytes, SocketEvent.Cookie);
 				}
 				break;
 			case NE_SocketClosed:

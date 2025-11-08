@@ -20,12 +20,12 @@ namespace EIPv6ExtensionHeaders
 	};
 } // namespace EIPv6ExtensionHeaders
 
-static uint16_t Read16(const uint8_t* Buffer)
+static uint16_t Read16(uint8_t const* Buffer)
 {
 	return static_cast<uint16_t>(static_cast<uint16_t>(Buffer[0]) << 8 | static_cast<uint16_t>(Buffer[1]));
 }
 
-static bool ParseIPv4(const uint8_t* Buffer, std::size_t Length, WPacketHeaderParser& Out, std::size_t& L4Offset)
+static bool ParseIPv4(uint8_t const* Buffer, std::size_t Length, WPacketHeaderParser& Out, std::size_t& L4Offset)
 {
 	if (Length < 20)
 	{
@@ -80,7 +80,7 @@ static bool IsIPv6ExtensionHeader(uint8_t NextHeader)
 	}
 }
 
-static bool ParseIPv6(const uint8_t* Buffer, std::size_t Length, WPacketHeaderParser& Out, std::size_t& L4Offset)
+static bool ParseIPv6(uint8_t const* Buffer, std::size_t Length, WPacketHeaderParser& Out, std::size_t& L4Offset)
 {
 	if (Length < 40)
 	{
@@ -176,7 +176,7 @@ static bool ParseIPv6(const uint8_t* Buffer, std::size_t Length, WPacketHeaderPa
 	return true;
 }
 
-static bool ParseL4(const uint8_t* Buffer, std::size_t Length, WPacketHeaderParser& Out, std::size_t L4Offset)
+static bool ParseL4(uint8_t const* Buffer, std::size_t Length, WPacketHeaderParser& Out, std::size_t L4Offset)
 {
 	if (Out.L4Proto == EProtocol::TCP)
 	{
@@ -213,7 +213,7 @@ static bool ParseL4(const uint8_t* Buffer, std::size_t Length, WPacketHeaderPars
 	return true;
 }
 
-inline bool ParsePacketL3(const uint8_t* Data, std::size_t Length, WPacketHeaderParser& Out)
+inline bool ParsePacketL3(uint8_t const* Data, std::size_t Length, WPacketHeaderParser& Out)
 {
 	Out = WPacketHeaderParser{};
 	if (Length == 0)

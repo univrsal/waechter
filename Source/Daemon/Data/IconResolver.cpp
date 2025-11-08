@@ -27,9 +27,11 @@ inline std::string FindDesktopFile(std::string const& BinaryName, std::vector<st
 				{
 					auto LineLowercase = Line;
 					std::ranges::transform(LineLowercase, LineLowercase.begin(), ::tolower);
-					if (LineLowercase.rfind("exec=", 0) == 0 && LineLowercase.find(BinaryNameLowercase) != std::string::npos)
+					if (LineLowercase.rfind("exec=", 0) == 0
+						&& LineLowercase.find(BinaryNameLowercase) != std::string::npos)
 					{
-						spdlog::info("Found desktop file for binary '{}' at path '{}'", BinaryName, Entry.path().string());
+						spdlog::info(
+							"Found desktop file for binary '{}' at path '{}'", BinaryName, Entry.path().string());
 						return Entry.path();
 					}
 				}

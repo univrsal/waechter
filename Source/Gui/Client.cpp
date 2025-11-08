@@ -11,19 +11,15 @@
 #include "Messages.hpp"
 #include <cstdint>
 
-namespace
+inline bool ReadU32(char const* DataPtr, size_t N, uint32_t& outI32)
 {
-	// helper to read little-endian uint32 from bytes (we control both ends)
-	static inline bool ReadU32(char const* p, size_t n, uint32_t& out)
-	{
-		if (n < 4)
-			return false;
-		uint32_t v;
-		std::memcpy(&v, p, 4);
-		out = v;
-		return true;
-	}
-} // namespace
+	if (N < 4)
+		return false;
+	uint32_t Val;
+	std::memcpy(&Val, DataPtr, 4);
+	outI32 = Val;
+	return true;
+}
 
 void WClient::ConnectionThreadFunction()
 {
@@ -149,6 +145,4 @@ bool WClient::EnsureConnected()
 	return Socket->GetState() == ES_Connected;
 }
 
-WClient::WClient()
-{
-}
+WClient::WClient() {}

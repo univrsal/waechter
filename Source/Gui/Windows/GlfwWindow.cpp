@@ -97,7 +97,8 @@ bool WGlfwWindow::Init()
 	}
 
 	int            Width, Height, Channels;
-	unsigned char* Pixels = stbi_load_from_memory(gIconData, static_cast<int>(gIconSize), &Width, &Height, &Channels, 4);
+	unsigned char* Pixels =
+		stbi_load_from_memory(gIconData, static_cast<int>(gIconSize), &Width, &Height, &Channels, 4);
 	if (Pixels)
 	{
 		GLFWimage Image{};
@@ -179,7 +180,8 @@ void WGlfwWindow::RunLoop()
 		int display_w, display_h;
 		glfwGetFramebufferSize(Window, &display_w, &display_h);
 		glViewport(0, 0, display_w, display_h);
-		glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
+		glClearColor(
+			clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
 		glClear(GL_COLOR_BUFFER_BIT);
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 

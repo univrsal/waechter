@@ -34,7 +34,8 @@ void WAppIconAtlas::Init()
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 		int            Width, Height, Channels;
-		unsigned char* ImageDataPtr = stbi_load_from_memory(ImageData, static_cast<int>(ImageSize), &Width, &Height, &Channels, 4);
+		unsigned char* ImageDataPtr =
+			stbi_load_from_memory(ImageData, static_cast<int>(ImageSize), &Width, &Height, &Channels, 4);
 		if (ImageDataPtr == nullptr)
 		{
 			spdlog::error("Failed to load image from memory");
@@ -52,10 +53,7 @@ void WAppIconAtlas::Init()
 
 void WAppIconAtlas::DrawProcessIcon(ImVec2 Size)
 {
-	ImGui::Image(ProcessIconTextureId,
-		Size,
-		ImVec2(0.0f, 0.0f),
-		ImVec2(1.0f, 1.0f));
+	ImGui::Image(ProcessIconTextureId, Size, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
 }
 
 void WAppIconAtlas::DrawIconForApplication(std::string const& BinaryName, ImVec2 Size)
@@ -63,21 +61,13 @@ void WAppIconAtlas::DrawIconForApplication(std::string const& BinaryName, ImVec2
 	if (!UvData.contains(BinaryName) || TextureId == 0)
 	{
 		// Draw no-icon placeholder
-		ImGui::Image(
-			NoIconTextureId,
-			Size,
-			ImVec2(0.0f, 0.0f),
-			ImVec2(1.0f, 1.0f));
+		ImGui::Image(NoIconTextureId, Size, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
 		return;
 	}
 
 	auto UV = UvData[BinaryName];
 
-	ImGui::Image(
-		TextureId,
-		Size,
-		ImVec2(UV.U1, UV.V1),
-		ImVec2(UV.U2, UV.V2));
+	ImGui::Image(TextureId, Size, ImVec2(UV.U1, UV.V1), ImVec2(UV.U2, UV.V2));
 }
 
 void WAppIconAtlas::FromAtlasData(WBuffer& Buffer)
@@ -128,7 +118,8 @@ void WAppIconAtlas::UploadPendingIfAny()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, Data.AtlasSize, Data.AtlasSize, 0, GL_RGBA, GL_UNSIGNED_BYTE, Data.AtlasImageData.data());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, Data.AtlasSize, Data.AtlasSize, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+		Data.AtlasImageData.data());
 
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, 0);

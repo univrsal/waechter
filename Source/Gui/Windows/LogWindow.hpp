@@ -1,4 +1,3 @@
-// filepath: /home/usr/docs/git/cpp/waechter/Source/Gui/Windows/LogWindow.hpp
 #pragma once
 
 #include "spdlog/sinks/base_sink.h"
@@ -22,11 +21,10 @@ class WImGuiLogSink : public spdlog::sinks::base_sink<std::mutex>
 	WLogWindow* Owner{};
 
 public:
-	explicit WImGuiLogSink(WLogWindow* InOwner)
-		: Owner(InOwner) {}
+	explicit WImGuiLogSink(WLogWindow* InOwner) : Owner(InOwner) {}
 
 protected:
-	void sink_it_(const spdlog::details::log_msg& msg) override;
+	void sink_it_(spdlog::details::log_msg const& Message) override;
 	void flush_() override {}
 };
 

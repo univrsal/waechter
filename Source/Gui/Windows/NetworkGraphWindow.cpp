@@ -33,8 +33,8 @@ void WNetworkGraphWindow::Draw()
 
 			ImPlot::SetupAxisLimits(ImAxis_X1, Time - History, Time, ImGuiCond_Always);
 			ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, 0.0, std::numeric_limits<double>::infinity());
-			ImPlot::PlotLine("Upload", &UploadBuffer.Data[0].x, &UploadBuffer.Data[0].y,
-				UploadBuffer.Data.size(), 0, UploadBuffer.Offset, 2 * sizeof(float));
+			ImPlot::PlotLine("Upload", &UploadBuffer.Data[0].x, &UploadBuffer.Data[0].y, UploadBuffer.Data.size(), 0,
+				UploadBuffer.Offset, 2 * sizeof(float));
 			ImPlot::PlotLine("Download", &DownloadBuffer.Data[0].x, &DownloadBuffer.Data[0].y,
 				DownloadBuffer.Data.size(), 0, DownloadBuffer.Offset, 2 * sizeof(float));
 			ImPlot::EndPlot();

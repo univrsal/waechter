@@ -27,18 +27,27 @@ WAboutDialog::WAboutDialog()
 
 	ThirdPartyLibraries.emplace_back("glad", "https://github.com/Dav1dde/glad", GGladLicenseData, GGladLicenseSize);
 	ThirdPartyLibraries.emplace_back("glfw", "https://www.glfw.org", GGlfwLicenseData, GGlfwLicenseSize);
-	ThirdPartyLibraries.emplace_back("Dear ImGui", "https://github.com/ocornut/imgui", GImguiLicenseData, GImguiLicenseSize);
-	ThirdPartyLibraries.emplace_back("incbin", "https://github.com/graphitemaster/incbin", GIncbinLicenseData, GIncbinLicenseSize);
+	ThirdPartyLibraries.emplace_back(
+		"Dear ImGui", "https://github.com/ocornut/imgui", GImguiLicenseData, GImguiLicenseSize);
+	ThirdPartyLibraries.emplace_back(
+		"incbin", "https://github.com/graphitemaster/incbin", GIncbinLicenseData, GIncbinLicenseSize);
 	ThirdPartyLibraries.emplace_back("inih", "https://github.com/benhoyt/inih", GInihLicenseData, GInihLicenseSize);
-	ThirdPartyLibraries.emplace_back("json11", "https://github.com/dropbox/json11", GJson11LicenseData, GJson11LicenseSize);
-	ThirdPartyLibraries.emplace_back("spdlog", "https://github.com/gabime/spdlog", GSpdlogLicenseData, GSpdlogLicenseSize);
+	ThirdPartyLibraries.emplace_back(
+		"json11", "https://github.com/dropbox/json11", GJson11LicenseData, GJson11LicenseSize);
+	ThirdPartyLibraries.emplace_back(
+		"spdlog", "https://github.com/gabime/spdlog", GSpdlogLicenseData, GSpdlogLicenseSize);
 	ThirdPartyLibraries.emplace_back("stb", "https://github.com/nothings/stb", GStbLicenseData, GStbLicenseSize);
-	ThirdPartyLibraries.emplace_back("JetBrains Mono", "https://www.jetbrains.com/lp/mono/", GJetbrainsMonoLicenseData, GJetbrainsMonoLicenseSize);
-	ThirdPartyLibraries.emplace_back("cereal", "https://github.com/USCiLab/cereal", GCerealLicenseData, GCerealLicenseSize);
-	ThirdPartyLibraries.emplace_back("implot", "https://github.com/epezent/implot", GImPlotLicenseData, GImPlotLicenseSize);
-	ThirdPartyLibraries.emplace_back("flag-icons", "https://github.com/lipis/flag-icons", GFlagsLicenseData, GFlagsLicenseSize);
+	ThirdPartyLibraries.emplace_back(
+		"JetBrains Mono", "https://www.jetbrains.com/lp/mono/", GJetbrainsMonoLicenseData, GJetbrainsMonoLicenseSize);
+	ThirdPartyLibraries.emplace_back(
+		"cereal", "https://github.com/USCiLab/cereal", GCerealLicenseData, GCerealLicenseSize);
+	ThirdPartyLibraries.emplace_back(
+		"implot", "https://github.com/epezent/implot", GImPlotLicenseData, GImPlotLicenseSize);
+	ThirdPartyLibraries.emplace_back(
+		"flag-icons", "https://github.com/lipis/flag-icons", GFlagsLicenseData, GFlagsLicenseSize);
 
-	VersionString = fmt::format("Version {}, commit {}@{}\nCompiled at {}", WAECHTER_VERSION, GIT_COMMIT_HASH, GIT_BRANCH, BUILD_TIME);
+	VersionString = fmt::format(
+		"Version {}, commit {}@{}\nCompiled at {}", WAECHTER_VERSION, GIT_COMMIT_HASH, GIT_BRANCH, BUILD_TIME);
 }
 
 void WAboutDialog::Draw()
@@ -50,11 +59,11 @@ void WAboutDialog::Draw()
 
 	ImGuiIO& io = ImGui::GetIO();
 	auto     display_size = io.DisplaySize; // Current window/swapchain size
-	ImGui::SetNextWindowPos(ImVec2(display_size.x * 0.5f, display_size.y * 0.5f),
-		ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+	ImGui::SetNextWindowPos(ImVec2(display_size.x * 0.5f, display_size.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 	ImGui::SetNextWindowSize({ 700, display_size.y - 100 });
 
-	if (ImGui::Begin("About", &bVisible, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
+	if (ImGui::Begin(
+			"About", &bVisible, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
 	{
 		auto Style = ImGui::GetStyle();
 		ImGui::PushFont(nullptr, Style.FontSizeBase * 1.4f);

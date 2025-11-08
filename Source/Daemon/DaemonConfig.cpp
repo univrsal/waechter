@@ -95,7 +95,9 @@ void WDaemonConfig::BTFTest()
 	int Fd = open("/sys/kernel/btf/vmlinux", O_RDONLY | O_CLOEXEC);
 	if (Fd < 0)
 	{
-		spdlog::critical("Your kernel does not seem to support BTF, which is required for the EBPF program to work: failed to open /sys/kernel/btf/vmlinux: {}", WErrnoUtil::StrError());
+		spdlog::critical(
+			"Your kernel does not seem to support BTF, which is required for the EBPF program to work: failed to open /sys/kernel/btf/vmlinux: {}",
+			WErrnoUtil::StrError());
 	}
 	else
 	{

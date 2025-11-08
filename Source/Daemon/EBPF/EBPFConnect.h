@@ -45,9 +45,8 @@ int BPF_PROG(on_tcp_set_state, struct sock* Sk, int Newstate)
 			{
 				Event->EventType = NE_TCPSocketEstablished_6;
 				// IPv6 address
-				BPF_CORE_READ_INTO(&Event->Data.TCPSocketEstablishedEventData.Addr6,
-					Sk,
-					__sk_common.skc_v6_rcv_saddr.in6_u.u6_addr32);
+				BPF_CORE_READ_INTO(
+					&Event->Data.TCPSocketEstablishedEventData.Addr6, Sk, __sk_common.skc_v6_rcv_saddr.in6_u.u6_addr32);
 			}
 			bpf_ringbuf_submit(Event, 0);
 		}

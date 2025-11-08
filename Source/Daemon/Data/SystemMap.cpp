@@ -19,7 +19,8 @@ WSystemMap::WSystemMap()
 	}
 }
 
-std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::MapSocket(WSocketCookie SocketCookie, WProcessId PID, bool bSilentFail)
+std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::MapSocket(
+	WSocketCookie SocketCookie, WProcessId PID, bool bSilentFail)
 {
 	if (PID == 0)
 	{
@@ -57,7 +58,8 @@ std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::MapSocket(WSocketCookie 
 		}
 	}
 
-	// If exePath missing but argv[0] exists, try to resolve to absolute via /proc/[pid]/cwd or PATH (skip PATH resolution for now)
+	// If exePath missing but argv[0] exists, try to resolve to absolute via /proc/[pid]/cwd or PATH (skip PATH
+	// resolution for now)
 	if (ExePath.empty() && !Argv.empty())
 	{
 		// If argv[0] is absolute, use it; else leave empty.
@@ -101,10 +103,13 @@ void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
 
 		if (ParentProcess)
 		{
-			spdlog::trace("Mapped {}: IP {} for PID {} / {}", Event.Cookie, TrafficItem->SocketTuple.RemoteEndpoint.ToString(), ParentProcess->TrafficItem->ProcessId, ParentProcess->ParentApp->TrafficItem->ApplicationName);
+			spdlog::trace("Mapped {}: IP {} for PID {} / {}", Event.Cookie,
+				TrafficItem->SocketTuple.RemoteEndpoint.ToString(), ParentProcess->TrafficItem->ProcessId,
+				ParentProcess->ParentApp->TrafficItem->ApplicationName);
 		}
 	}
-	else if (Event.EventType == NE_SocketConnect_6 && TrafficItem->ConnectionState != ESocketConnectionState::Connecting)
+	else if (Event.EventType == NE_SocketConnect_6
+		&& TrafficItem->ConnectionState != ESocketConnectionState::Connecting)
 	{
 		TrafficItem->ConnectionState = ESocketConnectionState::Connecting;
 		TrafficItem->SocketTuple.Protocol = static_cast<EProtocol::Type>(Event.Data.ConnectEventData.Protocol);
@@ -112,10 +117,14 @@ void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
 		TrafficItem->SocketTuple.RemoteEndpoint.Address.Family = EIPFamily::IPv6;
 		for (unsigned long i = 0; i < 4; i++)
 		{
-			TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[i * 4 + 0] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr6[i] >> 24 & 0xFF);
-			TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[i * 4 + 1] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr6[i] >> 16 & 0xFF);
-			TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[i * 4 + 2] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr6[i] >> 8 & 0xFF);
-			TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[i * 4 + 3] = static_cast<uint8_t>(Event.Data.ConnectEventData.Addr6[i] & 0xFF);
+			TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[i * 4 + 0] =
+				static_cast<uint8_t>(Event.Data.ConnectEventData.Addr6[i] >> 24 & 0xFF);
+			TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[i * 4 + 1] =
+				static_cast<uint8_t>(Event.Data.ConnectEventData.Addr6[i] >> 16 & 0xFF);
+			TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[i * 4 + 2] =
+				static_cast<uint8_t>(Event.Data.ConnectEventData.Addr6[i] >> 8 & 0xFF);
+			TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[i * 4 + 3] =
+				static_cast<uint8_t>(Event.Data.ConnectEventData.Addr6[i] & 0xFF);
 		}
 	}
 	else if (Event.EventType == NE_SocketCreate)
@@ -125,7 +134,8 @@ void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
 	}
 	else if (Event.EventType == NE_TCPSocketEstablished_4)
 	{
-		TrafficItem->SocketTuple.LocalEndpoint.Port = static_cast<uint16_t>(Event.Data.TCPSocketEstablishedEventData.UserPort);
+		TrafficItem->SocketTuple.LocalEndpoint.Port =
+			static_cast<uint16_t>(Event.Data.TCPSocketEstablishedEventData.UserPort);
 		TrafficItem->SocketTuple.LocalEndpoint.Address.Family = EIPFamily::IPv4;
 		{
 			// Convert from network byte order to host order, then split into bytes (big-endian order)
@@ -138,19 +148,25 @@ void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
 	}
 	else if (Event.EventType == NE_TCPSocketEstablished_6)
 	{
-		TrafficItem->SocketTuple.LocalEndpoint.Port = static_cast<uint16_t>(Event.Data.TCPSocketEstablishedEventData.UserPort);
+		TrafficItem->SocketTuple.LocalEndpoint.Port =
+			static_cast<uint16_t>(Event.Data.TCPSocketEstablishedEventData.UserPort);
 		TrafficItem->SocketTuple.LocalEndpoint.Address.Family = EIPFamily::IPv6;
 		for (unsigned long i = 0; i < 4; i++)
 		{
-			TrafficItem->SocketTuple.LocalEndpoint.Address.Bytes[i * 4 + 0] = static_cast<uint8_t>(Event.Data.TCPSocketEstablishedEventData.Addr6[i] >> 24 & 0xFF);
-			TrafficItem->SocketTuple.LocalEndpoint.Address.Bytes[i * 4 + 1] = static_cast<uint8_t>(Event.Data.TCPSocketEstablishedEventData.Addr6[i] >> 16 & 0xFF);
-			TrafficItem->SocketTuple.LocalEndpoint.Address.Bytes[i * 4 + 2] = static_cast<uint8_t>(Event.Data.TCPSocketEstablishedEventData.Addr6[i] >> 8 & 0xFF);
-			TrafficItem->SocketTuple.LocalEndpoint.Address.Bytes[i * 4 + 3] = static_cast<uint8_t>(Event.Data.TCPSocketEstablishedEventData.Addr6[i] & 0xFF);
+			TrafficItem->SocketTuple.LocalEndpoint.Address.Bytes[i * 4 + 0] =
+				static_cast<uint8_t>(Event.Data.TCPSocketEstablishedEventData.Addr6[i] >> 24 & 0xFF);
+			TrafficItem->SocketTuple.LocalEndpoint.Address.Bytes[i * 4 + 1] =
+				static_cast<uint8_t>(Event.Data.TCPSocketEstablishedEventData.Addr6[i] >> 16 & 0xFF);
+			TrafficItem->SocketTuple.LocalEndpoint.Address.Bytes[i * 4 + 2] =
+				static_cast<uint8_t>(Event.Data.TCPSocketEstablishedEventData.Addr6[i] >> 8 & 0xFF);
+			TrafficItem->SocketTuple.LocalEndpoint.Address.Bytes[i * 4 + 3] =
+				static_cast<uint8_t>(Event.Data.TCPSocketEstablishedEventData.Addr6[i] & 0xFF);
 		}
 	}
 }
 
-std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::FindOrMapSocket(WSocketCookie SocketCookie, std::shared_ptr<WProcessCounter> const& ParentProcess)
+std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::FindOrMapSocket(
+	WSocketCookie SocketCookie, std::shared_ptr<WProcessCounter> const& ParentProcess)
 {
 	if (auto const It = Sockets.find(SocketCookie); It != Sockets.end())
 	{
@@ -169,7 +185,8 @@ std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::FindOrMapSocket(WSocketC
 	return Socket;
 }
 
-std::shared_ptr<WSystemMap::WProcessCounter> WSystemMap::FindOrMapProcess(WProcessId const PID, std::shared_ptr<WAppCounter> const& ParentApp)
+std::shared_ptr<WSystemMap::WProcessCounter> WSystemMap::FindOrMapProcess(
+	WProcessId const PID, std::shared_ptr<WAppCounter> const& ParentApp)
 {
 	if (auto const It = Processes.find(PID); It != Processes.end())
 	{
@@ -186,7 +203,8 @@ std::shared_ptr<WSystemMap::WProcessCounter> WSystemMap::FindOrMapProcess(WProce
 	return Process;
 }
 
-std::shared_ptr<WSystemMap::WAppCounter> WSystemMap::FindOrMapApplication(std::string const& ExePath, std::string const& CommandLine, std::string const& AppName)
+std::shared_ptr<WSystemMap::WAppCounter> WSystemMap::FindOrMapApplication(
+	std::string const& ExePath, std::string const& CommandLine, std::string const& AppName)
 {
 	// Prefer the resolved exe path as key if available; otherwise fall back to argv[0] from CommandLine's first token
 	std::string Key = ExePath;

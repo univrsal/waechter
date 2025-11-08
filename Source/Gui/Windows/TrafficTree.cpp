@@ -62,7 +62,8 @@ void WTrafficTree::RemoveTrafficItem(WTrafficItemId TrafficItemId)
 	}
 }
 
-bool WTrafficTree::RenderItem(std::string const& Name, ITrafficItem const* Item, ImGuiTreeNodeFlags NodeFlags, ETrafficItemType Type)
+bool WTrafficTree::RenderItem(
+	std::string const& Name, ITrafficItem const* Item, ImGuiTreeNodeFlags NodeFlags, ETrafficItemType Type)
 {
 	NodeFlags |= ImGuiTreeNodeFlags_SpanFullWidth;
 	NodeFlags |= ImGuiTreeNodeFlags_OpenOnArrow;
@@ -200,7 +201,8 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 
 			if (Update.ItemId == 0)
 			{
-				WGlfwWindow::GetInstance().GetMainWindow()->GetNetworkGraphWindow().AddData(It->second->UploadSpeed, It->second->DownloadSpeed);
+				WGlfwWindow::GetInstance().GetMainWindow()->GetNetworkGraphWindow().AddData(
+					It->second->UploadSpeed, It->second->DownloadSpeed);
 			}
 		}
 	}
@@ -310,8 +312,8 @@ void WTrafficTree::Draw(ImGuiID MainID)
 	ImGui::BeginChild("TreeRegion", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 
 	// 5 columns: Name | upload | download | upload limit | download limit
-	if (!ImGui::BeginTable("TrafficTable", 5,
-			ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV))
+	if (!ImGui::BeginTable(
+			"TrafficTable", 5, ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV))
 	{
 		ImGui::EndChild();
 		ImGui::End();

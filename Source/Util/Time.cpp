@@ -7,8 +7,7 @@
 #include <utility>
 
 WTimer::WTimer(double IntervalSeconds, std::function<void()> Callback_)
-	: Interval(IntervalSeconds)
-	, Callback(std::move(Callback_))
+	: Interval(IntervalSeconds), Callback(std::move(Callback_))
 {
 }
 

@@ -51,7 +51,8 @@ void WMainWindow::Init(ImGuiID Main)
 	// - node is null (no dockspace yet)
 	// - or node is a leaf AND has no windows (no splits/restored docks)
 	ImGuiDockNode* Node = ImGui::DockBuilderGetNode(Main);
-	bool           bNeedDefaultLayout = (Node == nullptr) || ((Node->ChildNodes[0] == nullptr && Node->ChildNodes[1] == nullptr) && Node->Windows.empty());
+	bool           bNeedDefaultLayout = (Node == nullptr)
+		|| ((Node->ChildNodes[0] == nullptr && Node->ChildNodes[1] == nullptr) && Node->Windows.empty());
 
 	if (bNeedDefaultLayout)
 	{

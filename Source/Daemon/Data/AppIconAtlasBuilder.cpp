@@ -21,7 +21,8 @@ struct WPackedIcon
 	std::unique_ptr<unsigned char[]> Pixels{}; // RGBA
 };
 
-bool WAppIconAtlasBuilder::GetAtlasData(WAppIconAtlasData& outData, std::vector<std::string> const& BinaryNames, std::size_t AtlasSize, std::size_t IconSize)
+bool WAppIconAtlasBuilder::GetAtlasData(WAppIconAtlasData& outData, std::vector<std::string> const& BinaryNames,
+	std::size_t AtlasSize, std::size_t IconSize)
 {
 	std::vector<WPackedIcon> PackedIcons{};
 	PackedIcons.reserve(BinaryNames.size());
@@ -47,8 +48,8 @@ bool WAppIconAtlasBuilder::GetAtlasData(WAppIconAtlasData& outData, std::vector<
 		{
 			// Resize icon to fit
 			auto ResizedData = std::make_unique<unsigned char[]>(IconSize * IconSize * 4);
-			stbir_resize_uint8_srgb(Data, IconW, IconH, 0,
-				ResizedData.get(), static_cast<int>(IconSize), static_cast<int>(IconSize), 0, STBIR_RGBA);
+			stbir_resize_uint8_srgb(Data, IconW, IconH, 0, ResizedData.get(), static_cast<int>(IconSize),
+				static_cast<int>(IconSize), 0, STBIR_RGBA);
 			stbi_image_free(Data);
 			Data = ResizedData.release();
 			IconW = static_cast<int>(IconSize);
@@ -77,7 +78,8 @@ bool WAppIconAtlasBuilder::GetAtlasData(WAppIconAtlasData& outData, std::vector<
 
 	std::vector<stbrp_node> Nodes(AtlasSize);
 	stbrp_context           Context;
-	stbrp_init_target(&Context, static_cast<int>(AtlasSize), static_cast<int>(AtlasSize), Nodes.data(), static_cast<int>(Nodes.size()));
+	stbrp_init_target(&Context, static_cast<int>(AtlasSize), static_cast<int>(AtlasSize), Nodes.data(),
+		static_cast<int>(Nodes.size()));
 	stbrp_pack_rects(&Context, Rects.data(), static_cast<int>(NumIcons));
 
 	for (std::size_t i = 0; i < NumIcons; ++i)
@@ -102,10 +104,7 @@ bool WAppIconAtlasBuilder::GetAtlasData(WAppIconAtlasData& outData, std::vector<
 		{
 			auto const Idx = ((Y + Row) * AtlasSize + X) * 4;
 			auto const Idx2 = Row * W * 4;
-			std::memcpy(
-				&outData.AtlasImageData[Idx],
-				&PackedIcons[i].Pixels[Idx2],
-				W * 4);
+			std::memcpy(&outData.AtlasImageData[Idx], &PackedIcons[i].Pixels[Idx2], W * 4);
 		}
 
 		// Calculate UV coordinates
