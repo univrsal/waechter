@@ -31,3 +31,9 @@
 #ifndef XDP_PASS
 	#define XDP_PASS 2
 #endif
+
+struct
+{
+	__uint(type, BPF_MAP_TYPE_RINGBUF);
+	__uint(max_entries, PACKET_RING_SIZE);
+} socket_event_ring SEC(".maps");

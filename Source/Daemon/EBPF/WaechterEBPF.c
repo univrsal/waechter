@@ -2,13 +2,6 @@
 #define EBPF_COMMON
 #include "EBPFCommon.h"
 
-// stores socket identity (PID/TGID + cgroup) per socket cookie
-struct
-{
-	__uint(type, BPF_MAP_TYPE_RINGBUF);
-	__uint(max_entries, PACKET_RING_SIZE);
-} socket_event_ring SEC(".maps");
-
 static __always_inline struct WSocketEvent* MakeSocketEvent(__u64 Cookie, __u8 EventType)
 {
 	if (Cookie == 0)
