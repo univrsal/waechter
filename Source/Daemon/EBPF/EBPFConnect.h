@@ -6,18 +6,51 @@
 
 #include "EBPFInternal.h"
 
+#define AF_INET 2
+#define AF_INET6 10
+
 SEC("fentry/tcp_set_state")
 int BPF_PROG(on_tcp_set_state, struct sock* Sk, int Newstate)
 {
-	// TODO: Do we need this if we have connect4/6 hooks?
-	if (Newstate != TCP_CLOSE)
-		return 0;
-
-	struct WSocketEvent* Event = MakeSocketEvent(bpf_get_socket_cookie(Sk), NE_SocketClosed);
-
-	if (Event)
+	if (Newstate == TCP_CLOSE)
 	{
-		bpf_ringbuf_submit(Event, 0);
+		struct WSocketEvent* Event = MakeSocketEvent(bpf_get_socket_cookie(Sk), NE_SocketClosed);
+
+		if (Event)
+		{
+			bpf_ringbuf_submit(Event, 0);
+		}
+	}
+	else if (Newstate == TCP_ESTABLISHED)
+	{
+		struct WSocketEvent* Event = MakeSocketEvent(bpf_get_socket_cookie(Sk), NE_TCPSocketEstablished_4);
+		// Family
+		u16 Family = BPF_CORE_READ(Sk, __sk_common.skc_family);
+
+		// Local port: host-endian
+		u16 Lport = BPF_CORE_READ(Sk, __sk_common.skc_num);
+
+		if (Event)
+		{
+			Event->Data.TCPSocketEstablishedEventData.UserPort = Lport;
+
+			if (Family == AF_INET)
+			{
+				// IPv4 address
+				__u32 Laddr4 = BPF_CORE_READ(Sk, __sk_common.skc_rcv_saddr);
+				Event->Data.TCPSocketEstablishedEventData.Addr4 = Laddr4;
+				Event->EventType = NE_TCPSocketEstablished_4;
+			}
+			else if (Family == AF_INET6)
+			{
+				Event->EventType = NE_TCPSocketEstablished_6;
+				// IPv6 address
+				BPF_CORE_READ_INTO(&Event->Data.TCPSocketEstablishedEventData.Addr6,
+					Sk,
+					__sk_common.skc_v6_rcv_saddr.in6_u.u6_addr32);
+			}
+			bpf_ringbuf_submit(Event, 0);
+		}
 	}
 	return 0;
 }

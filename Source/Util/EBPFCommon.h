@@ -26,7 +26,9 @@ enum ENetEventType
 {
 	NE_SocketCreate,
 	NE_SocketConnect_4,
-	NE_SocketConnect_6,
+	NE_SocketConnect_6, // At this point we do not have the local address/port yet
+	NE_TCPSocketEstablished_4,
+	NE_TCPSocketEstablished_6,
 	NE_SocketAccept,
 	NE_SocketClosed,
 	NE_SocketSendmsg_4,
@@ -38,6 +40,16 @@ struct WSocketConnectEventData
 {
 	__u32 UserFamily;
 	__u32 Protocol;
+	__u32 UserPort;
+	union
+	{
+		__u32 Addr4;
+		__u32 Addr6[4];
+	};
+};
+
+struct WSocketTCPEstablishedEventData
+{
 	__u32 UserPort;
 	union
 	{
@@ -63,9 +75,10 @@ struct WSocketEventData
 {
 	union
 	{
-		struct WSocketConnectEventData ConnectEventData;
-		struct WSocketTrafficEventData TrafficEventData;
-		struct WSocketCreateEventData  SocketCreateEventData;
+		struct WSocketConnectEventData        ConnectEventData;
+		struct WSocketTrafficEventData        TrafficEventData;
+		struct WSocketCreateEventData         SocketCreateEventData;
+		struct WSocketTCPEstablishedEventData TCPSocketEstablishedEventData;
 	};
 };
 

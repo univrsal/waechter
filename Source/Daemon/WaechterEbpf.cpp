@@ -162,6 +162,8 @@ void WWaechterEbpf::UpdateData()
 			case NE_SocketCreate:
 			case NE_SocketConnect_4:
 			case NE_SocketConnect_6:
+			case NE_TCPSocketEstablished_4:
+			case NE_TCPSocketEstablished_6:
 				if (SocketInfo)
 				{
 					SocketInfo->ProcessSocketEvent(SocketEvent);

@@ -89,15 +89,15 @@ void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
 		TrafficItem->ConnectionState = ESocketConnectionState::Connecting;
 		TrafficItem->SocketTuple.Protocol = static_cast<EProtocol::Type>(Event.Data.ConnectEventData.Protocol);
 		TrafficItem->SocketTuple.RemoteEndpoint.Port = static_cast<uint16_t>(Event.Data.ConnectEventData.UserPort);
+
 		TrafficItem->SocketTuple.RemoteEndpoint.Address.Family = EIPFamily::IPv4;
-		{
-			// Convert from network byte order to host order, then split into bytes (big-endian order)
-			uint32_t IP = ntohl(Event.Data.ConnectEventData.Addr4);
-			TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[0] = static_cast<uint8_t>((IP >> 24) & 0xFF);
-			TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[1] = static_cast<uint8_t>((IP >> 16) & 0xFF);
-			TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[2] = static_cast<uint8_t>((IP >> 8) & 0xFF);
-			TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[3] = static_cast<uint8_t>(IP & 0xFF);
-		}
+
+		// Convert from network byte order to host order, then split into bytes (big-endian order)
+		uint32_t RemoteIP = ntohl(Event.Data.ConnectEventData.Addr4);
+		TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[0] = static_cast<uint8_t>((RemoteIP >> 24) & 0xFF);
+		TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[1] = static_cast<uint8_t>((RemoteIP >> 16) & 0xFF);
+		TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[2] = static_cast<uint8_t>((RemoteIP >> 8) & 0xFF);
+		TrafficItem->SocketTuple.RemoteEndpoint.Address.Bytes[3] = static_cast<uint8_t>(RemoteIP & 0xFF);
 
 		if (ParentProcess)
 		{
@@ -122,6 +122,31 @@ void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
 	{
 		TrafficItem->ConnectionState = ESocketConnectionState::Created;
 		TrafficItem->SocketTuple.Protocol = static_cast<EProtocol::Type>(Event.Data.SocketCreateEventData.Protocol);
+	}
+	else if (Event.EventType == NE_TCPSocketEstablished_4)
+	{
+		TrafficItem->SocketTuple.LocalEndpoint.Port = static_cast<uint16_t>(Event.Data.TCPSocketEstablishedEventData.UserPort);
+		TrafficItem->SocketTuple.LocalEndpoint.Address.Family = EIPFamily::IPv4;
+		{
+			// Convert from network byte order to host order, then split into bytes (big-endian order)
+			uint32_t LocalIP = ntohl(Event.Data.TCPSocketEstablishedEventData.Addr4);
+			TrafficItem->SocketTuple.LocalEndpoint.Address.Bytes[0] = static_cast<uint8_t>((LocalIP >> 24) & 0xFF);
+			TrafficItem->SocketTuple.LocalEndpoint.Address.Bytes[1] = static_cast<uint8_t>((LocalIP >> 16) & 0xFF);
+			TrafficItem->SocketTuple.LocalEndpoint.Address.Bytes[2] = static_cast<uint8_t>((LocalIP >> 8) & 0xFF);
+			TrafficItem->SocketTuple.LocalEndpoint.Address.Bytes[3] = static_cast<uint8_t>(LocalIP & 0xFF);
+		}
+	}
+	else if (Event.EventType == NE_TCPSocketEstablished_6)
+	{
+		TrafficItem->SocketTuple.LocalEndpoint.Port = static_cast<uint16_t>(Event.Data.TCPSocketEstablishedEventData.UserPort);
+		TrafficItem->SocketTuple.LocalEndpoint.Address.Family = EIPFamily::IPv6;
+		for (unsigned long i = 0; i < 4; i++)
+		{
+			TrafficItem->SocketTuple.LocalEndpoint.Address.Bytes[i * 4 + 0] = static_cast<uint8_t>(Event.Data.TCPSocketEstablishedEventData.Addr6[i] >> 24 & 0xFF);
+			TrafficItem->SocketTuple.LocalEndpoint.Address.Bytes[i * 4 + 1] = static_cast<uint8_t>(Event.Data.TCPSocketEstablishedEventData.Addr6[i] >> 16 & 0xFF);
+			TrafficItem->SocketTuple.LocalEndpoint.Address.Bytes[i * 4 + 2] = static_cast<uint8_t>(Event.Data.TCPSocketEstablishedEventData.Addr6[i] >> 8 & 0xFF);
+			TrafficItem->SocketTuple.LocalEndpoint.Address.Bytes[i * 4 + 3] = static_cast<uint8_t>(Event.Data.TCPSocketEstablishedEventData.Addr6[i] & 0xFF);
+		}
 	}
 }
 
