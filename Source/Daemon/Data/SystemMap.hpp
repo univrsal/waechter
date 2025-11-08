@@ -31,17 +31,14 @@ class WSystemMap : public TSingleton<WSystemMap>
 public:
 	struct WAppCounter : TTrafficCounter<WApplicationItem>
 	{
-		explicit WAppCounter(std::shared_ptr<WApplicationItem> const& Item)
-			: TTrafficCounter(Item)
-		{
-		}
+		explicit WAppCounter(std::shared_ptr<WApplicationItem> const& Item) : TTrafficCounter(Item) {}
 	};
 
 	struct WProcessCounter : TTrafficCounter<WProcessItem>
 	{
-		explicit WProcessCounter(std::shared_ptr<WProcessItem> const& Item, std::shared_ptr<WAppCounter> const& ParentApp_)
-			: TTrafficCounter(Item)
-			, ParentApp(ParentApp_)
+		explicit WProcessCounter(
+			std::shared_ptr<WProcessItem> const& Item, std::shared_ptr<WAppCounter> const& ParentApp_)
+			: TTrafficCounter(Item), ParentApp(ParentApp_)
 		{
 		}
 		std::shared_ptr<WAppCounter> ParentApp;
@@ -49,9 +46,9 @@ public:
 
 	struct WSocketCounter : TTrafficCounter<WSocketItem>
 	{
-		explicit WSocketCounter(std::shared_ptr<WSocketItem> const& Item, std::shared_ptr<WProcessCounter> const& ParentProcess_)
-			: TTrafficCounter(Item)
-			, ParentProcess(ParentProcess_)
+		explicit WSocketCounter(
+			std::shared_ptr<WSocketItem> const& Item, std::shared_ptr<WProcessCounter> const& ParentProcess_)
+			: TTrafficCounter(Item), ParentProcess(ParentProcess_)
 		{
 		}
 
@@ -69,13 +66,15 @@ private:
 	std::unordered_map<WProcessId, std::shared_ptr<WProcessCounter>>   Processes{};
 	std::unordered_map<WSocketCookie, std::shared_ptr<WSocketCounter>> Sockets{};
 
-	std::shared_ptr<WSocketCounter>  FindOrMapSocket(WSocketCookie SocketCookie, std::shared_ptr<WProcessCounter> const& ParentProcess);
+	std::shared_ptr<WSocketCounter> FindOrMapSocket(
+		WSocketCookie SocketCookie, std::shared_ptr<WProcessCounter> const& ParentProcess);
 	std::shared_ptr<WProcessCounter> FindOrMapProcess(WProcessId PID, std::shared_ptr<WAppCounter> const& ParentApp);
-	std::shared_ptr<WAppCounter>     FindOrMapApplication(std::string const& ExePath, std::string const& CommandLine, std::string const& AppName);
+	std::shared_ptr<WAppCounter>     FindOrMapApplication(
+			std::string const& ExePath, std::string const& CommandLine, std::string const& AppName);
 
-	std::vector<WTrafficItemId> MarkedForRemovalItems{};
-	std::vector<WTrafficItemId> RemovedItems{};
-
+	std::vector<WTrafficItemId>                  MarkedForRemovalItems{};
+	std::vector<WTrafficItemId>                  RemovedItems{};
+	std::vector<WTrafficTreeSocketStateChange>   SocketStateChanges{};
 	std::vector<std::shared_ptr<WSocketCounter>> AddedSockets{};
 
 	void Cleanup();
@@ -114,25 +113,22 @@ public:
 		}
 	}
 
-	double GetDownloadSpeed() const
-	{
-		return SystemItem->DownloadSpeed;
-	}
+	double GetDownloadSpeed() const { return SystemItem->DownloadSpeed; }
 
-	double GetUploadSpeed() const
-	{
-		return SystemItem->UploadSpeed;
-	}
+	double GetUploadSpeed() const { return SystemItem->UploadSpeed; }
 
 	bool HasNewData() const
 	{
-		return TrafficCounter.GetState() == CS_Active || !AddedSockets.empty() || !RemovedItems.empty() || !MarkedForRemovalItems.empty();
+		return TrafficCounter.GetState() == CS_Active || !AddedSockets.empty() || !RemovedItems.empty()
+			|| !MarkedForRemovalItems.empty() || !SocketStateChanges.empty();
 	}
 
-	std::shared_ptr<WSystemItem> GetSystemItem()
+	void AddStateChange(WTrafficTreeSocketStateChange const& StateChange)
 	{
-		return SystemItem;
+		SocketStateChanges.emplace_back(StateChange);
 	}
+
+	std::shared_ptr<WSystemItem> GetSystemItem() { return SystemItem; }
 
 	std::vector<std::string> GetActiveApplicationPaths();
 
