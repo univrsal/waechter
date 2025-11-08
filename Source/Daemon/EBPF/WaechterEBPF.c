@@ -1,6 +1,7 @@
 #include "EBPFInternal.h"
 
 #include "EBPFTraffic.c"
+#include "EBPFConnect.h"
 
 SEC("fentry/tcp_set_state")
 int BPF_PROG(on_tcp_set_state, struct sock* Sk, int Newstate)
