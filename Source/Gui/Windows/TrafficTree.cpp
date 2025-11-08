@@ -259,9 +259,11 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 		auto It = TrafficItems.find(StateChange.ItemId);
 		if (It != TrafficItems.end() && It->second->GetType() == TI_Socket)
 		{
-			auto SocketItem = dynamic_cast<WSocketItem*>(It->second);
-			SocketItem->ConnectionState = StateChange.NewState;
-			SocketItem->SocketType = StateChange.SocketType;
+			if (auto SocketItem = dynamic_cast<WSocketItem*>(It->second))
+			{
+				SocketItem->ConnectionState = StateChange.NewState;
+				SocketItem->SocketType = StateChange.SocketType;
+			}
 		}
 	}
 }
