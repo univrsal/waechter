@@ -44,12 +44,6 @@ EEbpfInitResult WWaechterEbpf::Init()
 		return EEbpfInitResult::Load_Failed;
 	}
 
-	if (!this->FindAndAttachXdpProgram("xdp_waechter", this->InterfaceIndex, XDP_FLAGS_UPDATE_IF_NOEXIST | XDP_FLAGS_SKB_MODE))
-	{
-		spdlog::critical("Failed to find and attach xdp_program");
-		return EEbpfInitResult::Xdp_Attach_Failed;
-	}
-
 	if (!this->FindAndAttachProgram("cgskb_ingress", BPF_CGROUP_INET_INGRESS))
 	{
 		spdlog::critical("Failed to find and attach ingress");

@@ -80,13 +80,6 @@ int BPF_PROG(socket_accept, struct socket* Sock, struct socket* NewSock)
 	#error "LSM socket_accept hook requires CO-RE support with vmlinux.h"
 #endif
 
-SEC("xdp")
-int xdp_waechter(struct xdp_md* Ctx)
-{
-	WUNUSED(Ctx);
-	return XDP_PASS;
-}
-
 // Capture UDP destination for unconnected sockets (sendto/sendmsg)
 SEC("cgroup/sendmsg4")
 int on_sendmsg4(struct bpf_sock_addr* Ctx)

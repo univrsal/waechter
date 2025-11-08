@@ -16,7 +16,6 @@ enum class EEbpfInitResult
 {
 	Open_Failed,
 	Load_Failed,
-	Xdp_Attach_Failed,
 	Cg_Ingress_Attach_Failed,
 	CG_Egress_Attach_Failed,
 	Inet_Socket_Create_Failed,
