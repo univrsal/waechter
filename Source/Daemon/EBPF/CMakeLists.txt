@@ -39,6 +39,12 @@ endif ()
 
 # Build eBPF object
 set(BPF_SRC ${CMAKE_CURRENT_SOURCE_DIR}/WaechterEBPF.c)
+set(BPF_HDR
+        ${CMAKE_CURRENT_SOURCE_DIR}/vmlinux.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/EBPFConnect.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/EBPFTraffic.h
+        ${CMAKE_SOURCE_DIR}/Source/Util/EBPFCommon.h
+)
 set(BPF_OBJ ${CMAKE_CURRENT_BINARY_DIR}/waechter-ebpf.o)
 
 add_custom_command(
@@ -47,7 +53,7 @@ add_custom_command(
         -I/usr/include -I/usr/include/bpf
         -I${CMAKE_SOURCE_DIR}/Source/Util
         -c ${BPF_SRC} -o ${BPF_OBJ}
-        DEPENDS ${BPF_SRC}
+        DEPENDS ${BPF_SRC} ${BPF_HDR}
         COMMENT "Building eBPF object ${BPF_OBJ}"
         VERBATIM
 )
