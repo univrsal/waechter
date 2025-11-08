@@ -166,6 +166,14 @@ void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
 				static_cast<uint8_t>(Event.Data.TCPSocketEstablishedEventData.Addr6[i] & 0xFF);
 		}
 	}
+	else if (Event.EventType == NE_TCPSocketListening)
+	{
+		spdlog::info(
+			"{}: TCP socket listening on port {}", Event.Cookie, Event.Data.TCPSocketEstablishedEventData.UserPort);
+		TrafficItem->SocketType = ESocketType::Listen;
+		TrafficItem->SocketTuple.LocalEndpoint.Port =
+			static_cast<uint16_t>(Event.Data.TCPSocketEstablishedEventData.UserPort);
+	}
 }
 
 std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::FindOrMapSocket(

@@ -29,6 +29,7 @@ enum ENetEventType
 	NE_SocketConnect_6, // At this point we do not have the local address/port yet
 	NE_TCPSocketEstablished_4,
 	NE_TCPSocketEstablished_6,
+	NE_TCPSocketListening,
 	NE_SocketAccept,
 	NE_SocketClosed,
 	NE_SocketSendmsg_4,
