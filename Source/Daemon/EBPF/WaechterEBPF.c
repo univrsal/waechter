@@ -1,30 +1,4 @@
 #include "EBPFInternal.h"
-#define EBPF_COMMON
-#include "EBPFCommon.h"
-
-static __always_inline struct WSocketEvent* MakeSocketEvent(__u64 Cookie, __u8 EventType)
-{
-	if (Cookie == 0)
-	{
-		// No point in processing this as we want to map cookie <-> pid/tgid
-		return NULL;
-	}
-
-	struct WSocketEvent* SocketEvent = (struct WSocketEvent*)bpf_ringbuf_reserve(&socket_event_ring, sizeof(struct WSocketEvent), 0);
-	if (!SocketEvent)
-	{
-		bpf_printk("push_socket_event: reserve NULL cookie=%llu event=%u\n", Cookie, EventType);
-		return NULL;
-	}
-	__builtin_memset(&SocketEvent->Data, 0, sizeof(struct WSocketEventData));
-
-	SocketEvent->CgroupId = bpf_get_current_cgroup_id();
-	SocketEvent->PidTgId = bpf_get_current_pid_tgid();
-	SocketEvent->Cookie = Cookie;
-	SocketEvent->EventType = EventType;
-
-	return SocketEvent;
-}
 
 SEC("fentry/tcp_set_state")
 int BPF_PROG(on_tcp_set_state, struct sock* Sk, int Newstate)
