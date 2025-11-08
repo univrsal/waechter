@@ -8,7 +8,10 @@ Ebpf:
 Ebpf -> Daemon:
 
 - [ ] Assign a Src -> Dest IP pair to each socket
-- [ ] Track socket state
+    - [x] TCP connect sockets
+    - [ ] UDP sockets (?)
+    - [ ] TCP accepted sockets (?)
+- [x] Track socket state
 
 Daemon:
 
@@ -18,6 +21,8 @@ Daemon:
 - [x] Remove closed sockets from tracking map
 - [x] Don't immediately remove closed processes/sockets
 - [x] (maybe) compress messages
+- [ ] Resolve IP addresses to hostnames asynchronously
+- [ ] Handle accept event
 
 Gui:
 
@@ -31,9 +36,9 @@ Gui:
     - [x] Show process details
     - [x] Show app details
     - [x] Show system details
-- [ ] App traffic still gets stuck sometimes
-- [ ] Some sockets share the same item id
-- [ ] After last socket closes PID is no longer drawn, but app is still there and traffic is stuck
+- [ ] ? App traffic still gets stuck sometimes
+- [x] Some sockets share the same item id
+- [x] After last socket closes PID is no longer drawn, but app is still there and traffic is stuck
 - [ ] Traffic graph should adjust y axis based on visible traffic data
 
 Daemon -> Gui:
