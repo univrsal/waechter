@@ -1,6 +1,6 @@
 #include "EBPFInternal.h"
 
-#include "EBPFTraffic.c"
+#include "EBPFTraffic.h"
 #include "EBPFConnect.h"
 
 SEC("fentry/tcp_set_state")
