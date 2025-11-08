@@ -6,6 +6,22 @@
 
 #include "EBPFInternal.h"
 
+SEC("fentry/tcp_set_state")
+int BPF_PROG(on_tcp_set_state, struct sock* Sk, int Newstate)
+{
+	// TODO: Do we need this if we have connect4/6 hooks?
+	if (Newstate != TCP_CLOSE)
+		return 0;
+
+	struct WSocketEvent* Event = MakeSocketEvent(bpf_get_socket_cookie(Sk), NE_SocketClosed);
+
+	if (Event)
+	{
+		bpf_ringbuf_submit(Event, 0);
+	}
+	return 0;
+}
+
 SEC("cgroup/connect4")
 int on_connect4(struct bpf_sock_addr* Ctx)
 {
