@@ -37,20 +37,35 @@ struct WTrafficTreeSocketAddition
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(ItemId, ProcessItemId, ApplicationItemId, ProcessId, ApplicationName, ApplicationPath, ApplicationCommandLine, SocketTuple, ConnectionState);
+		archive(ItemId, ProcessItemId, ApplicationItemId, ProcessId, ApplicationName, ApplicationPath,
+			ApplicationCommandLine, SocketTuple, ConnectionState);
+	}
+};
+
+struct WTrafficTreeSocketStateChange
+{
+	WTrafficItemId         ItemId{};
+	ESocketConnectionState NewState{};
+	ESocketType            SocketType{};
+
+	template <class Archive>
+	void serialize(Archive& archive)
+	{
+		archive(ItemId, NewState, SocketType);
 	}
 };
 
 struct WTrafficTreeUpdates
 {
-	std::vector<WTrafficItemId>             MarkedForRemovalItems;
-	std::vector<WTrafficItemId>             RemovedItems;
-	std::vector<WTrafficTreeTrafficUpdate>  UpdatedItems;
-	std::vector<WTrafficTreeSocketAddition> AddedSockets;
+	std::vector<WTrafficItemId>                MarkedForRemovalItems;
+	std::vector<WTrafficItemId>                RemovedItems;
+	std::vector<WTrafficTreeTrafficUpdate>     UpdatedItems;
+	std::vector<WTrafficTreeSocketAddition>    AddedSockets;
+	std::vector<WTrafficTreeSocketStateChange> SocketStateChange;
 
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(RemovedItems, MarkedForRemovalItems, UpdatedItems, AddedSockets);
+		archive(RemovedItems, MarkedForRemovalItems, UpdatedItems, AddedSockets, SocketStateChange);
 	}
 };

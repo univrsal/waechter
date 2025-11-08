@@ -25,7 +25,6 @@ int on_sock_create(struct bpf_sock* Socket)
 	__u64 Cookie = bpf_get_socket_cookie(Socket);
 	__u64 PidTgid = bpf_get_current_pid_tgid();
 	__u32 Tgid = (__u32)(PidTgid >> 32);
-
 	if (Socket->type != SOCK_STREAM && Socket->type != SOCK_DGRAM)
 	{
 		return WCG_ALLOW;
@@ -35,6 +34,14 @@ int on_sock_create(struct bpf_sock* Socket)
 	{
 		return WCG_ALLOW;
 	}
+	__u64 Key = (__u64)Socket;
+
+	struct WSharedSocketData Data = {};
+	Data.Pid = Tgid;
+	Data.Cookie = Cookie;
+	Data.Family = Socket->family;
+
+	bpf_map_update_elem(&shared_socket_data_map, &Key, &Data, BPF_ANY);
 
 	struct WSocketEvent* SocketEvent = MakeSocketEvent(Cookie, NE_SocketCreate);
 	if (SocketEvent)

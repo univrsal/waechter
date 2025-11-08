@@ -33,11 +33,9 @@ struct WSocketItem : ITrafficItem
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(ItemId, DownloadSpeed, UploadSpeed, TotalDownloadBytes, TotalUploadBytes, ConnectionState, SocketTuple);
+		archive(ItemId, DownloadSpeed, UploadSpeed, TotalDownloadBytes, TotalUploadBytes, ConnectionState, SocketTuple,
+			SocketType);
 	}
 
-	[[nodiscard]] ETrafficItemType GetType() const override
-	{
-		return TI_Socket;
-	}
+	[[nodiscard]] ETrafficItemType GetType() const override { return TI_Socket; }
 };

@@ -41,6 +41,21 @@ struct
 	__uint(max_entries, PACKET_RING_SIZE);
 } socket_event_ring SEC(".maps");
 
+struct WSharedSocketData
+{
+	__u32 Pid;
+	__u32 Family;
+	__u64 Cookie;
+};
+
+struct
+{
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, 65536);
+	__type(key, __u64);
+	__type(value, struct WSharedSocketData); // Socket cookie
+} shared_socket_data_map SEC(".maps");
+
 static __always_inline struct WSocketEvent* MakeSocketEvent(__u64 Cookie, __u8 EventType)
 {
 	if (Cookie == 0)

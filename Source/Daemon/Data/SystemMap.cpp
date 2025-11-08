@@ -168,11 +168,23 @@ void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
 	}
 	else if (Event.EventType == NE_TCPSocketListening)
 	{
-		spdlog::info(
-			"{}: TCP socket listening on port {}", Event.Cookie, Event.Data.TCPSocketEstablishedEventData.UserPort);
+		TrafficItem->ConnectionState = ESocketConnectionState::Connected;
 		TrafficItem->SocketType = ESocketType::Listen;
 		TrafficItem->SocketTuple.LocalEndpoint.Port =
 			static_cast<uint16_t>(Event.Data.TCPSocketEstablishedEventData.UserPort);
+		TrafficItem->SocketTuple.LocalEndpoint.Address.Family = EIPFamily::IPv4;
+
+		// Convert from network byte order to host order, then split into bytes (big-endian order)
+		uint32_t LocalIP = ntohl(Event.Data.TCPSocketEstablishedEventData.Addr4);
+		TrafficItem->SocketTuple.LocalEndpoint.Address.Bytes[0] = static_cast<uint8_t>((LocalIP >> 24) & 0xFF);
+		TrafficItem->SocketTuple.LocalEndpoint.Address.Bytes[1] = static_cast<uint8_t>((LocalIP >> 16) & 0xFF);
+		TrafficItem->SocketTuple.LocalEndpoint.Address.Bytes[2] = static_cast<uint8_t>((LocalIP >> 8) & 0xFF);
+		TrafficItem->SocketTuple.LocalEndpoint.Address.Bytes[3] = static_cast<uint8_t>(LocalIP & 0xFF);
+		WTrafficTreeSocketStateChange StateChange;
+		StateChange.ItemId = TrafficItem->ItemId;
+		StateChange.NewState = ESocketConnectionState::Connected;
+		StateChange.SocketType = TrafficItem->SocketType;
+		GetInstance().AddStateChange(StateChange);
 	}
 }
 
@@ -332,6 +344,7 @@ WTrafficTreeUpdates WSystemMap::GetUpdates()
 
 	Updates.RemovedItems = RemovedItems;
 	Updates.MarkedForRemovalItems = MarkedForRemovalItems;
+	Updates.SocketStateChange = SocketStateChanges;
 
 	if (TrafficCounter.IsActive())
 	{
@@ -414,6 +427,7 @@ WTrafficTreeUpdates WSystemMap::GetUpdates()
 	AddedSockets.clear();
 	RemovedItems.clear();
 	MarkedForRemovalItems.clear();
+	SocketStateChanges.clear();
 	return Updates;
 }
 

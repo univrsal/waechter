@@ -10,20 +10,41 @@
 #define AF_INET6 10
 
 SEC("tracepoint/sock/inet_sock_set_state")
-int on_set_state(struct trace_event_raw_inet_sock_set_state* ctx)
+int tracepoint__inet_sock_set_state(struct trace_event_raw_inet_sock_set_state* ctx)
 {
-	// Only care about TCP
 	if (ctx->protocol != IPPROTO_TCP)
+	{
 		return 0;
-
-	// Only log when entering TCP_LISTEN
+	}
+	// Do we care about other states?
 	if (ctx->newstate != TCP_LISTEN)
+	{
 		return 0;
+	}
+	__u64 Key = (__u64)ctx->skaddr;
 
-	struct WSocketEvent* Event = MakeSocketEvent(0, NE_TCPSocketListening);
+	struct WSharedSocketData* SharedData = bpf_map_lookup_elem(&shared_socket_data_map, &Key);
+
+	if (!SharedData)
+	{
+		return 0;
+	}
+
+	struct WSocketEvent* Event = MakeSocketEvent(SharedData->Cookie, NE_TCPSocketListening);
 	if (Event)
 	{
-		Event->Data.TCPSocketListenEventData.UserPort = bpf_ntohs(ctx->sport);
+		Event->Data.TCPSocketListenEventData.UserPort = ctx->sport;
+
+		if (SharedData->Family == AF_INET)
+		{
+			Event->Data.TCPSocketListenEventData.Addr4 =
+				(__u32)((ctx->saddr[0] << 24) | (ctx->saddr[1] << 16) | (ctx->saddr[2] << 8) | ctx->saddr[3]);
+		}
+		else if (SharedData->Family == AF_INET6)
+		{
+			// Event->Data.TCPSocketListenEventData.Addr6 = ctx->saddr
+		}
+
 		bpf_ringbuf_submit(Event, 0);
 	}
 	return 0;
@@ -67,34 +88,6 @@ int BPF_PROG(on_tcp_set_state, struct sock* Sk, int Newstate)
 				// IPv6 address
 				BPF_CORE_READ_INTO(
 					&Event->Data.TCPSocketEstablishedEventData.Addr6, Sk, __sk_common.skc_v6_rcv_saddr.in6_u.u6_addr32);
-			}
-			bpf_ringbuf_submit(Event, 0);
-		}
-	}
-	else if (Newstate == TCP_LISTEN)
-	{
-		struct WSocketEvent* Event = MakeSocketEvent(bpf_get_socket_cookie(Sk), NE_TCPSocketListening);
-		// Family
-		u16 Family = BPF_CORE_READ(Sk, __sk_common.skc_family);
-
-		// Local port: host-endian
-		u16 Lport = BPF_CORE_READ(Sk, __sk_common.skc_num);
-
-		if (Event)
-		{
-			Event->Data.TCPSocketListenEventData.UserPort = Lport;
-
-			if (Family == AF_INET)
-			{
-				// IPv4 address
-				__u32 Laddr4 = BPF_CORE_READ(Sk, __sk_common.skc_rcv_saddr);
-				Event->Data.TCPSocketListenEventData.Addr4 = Laddr4;
-			}
-			else if (Family == AF_INET6)
-			{
-				// IPv6 address
-				BPF_CORE_READ_INTO(
-					&Event->Data.TCPSocketListenEventData.Addr6, Sk, __sk_common.skc_v6_rcv_saddr.in6_u.u6_addr32);
 			}
 			bpf_ringbuf_submit(Event, 0);
 		}
