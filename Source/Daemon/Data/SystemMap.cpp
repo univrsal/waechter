@@ -85,11 +85,11 @@ std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::MapSocket(
 
 void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
 {
-	// TODO: This is probably not needed
 	if (Event.EventType == NE_SocketConnect_4 && TrafficItem->ConnectionState != ESocketConnectionState::Connecting)
 	{
 		TrafficItem->ConnectionState = ESocketConnectionState::Connecting;
 		TrafficItem->SocketTuple.Protocol = static_cast<EProtocol::Type>(Event.Data.ConnectEventData.Protocol);
+		TrafficItem->SocketType = ESocketType::Connect;
 		TrafficItem->SocketTuple.RemoteEndpoint.Port = static_cast<uint16_t>(Event.Data.ConnectEventData.UserPort);
 
 		TrafficItem->SocketTuple.RemoteEndpoint.Address.Family = EIPFamily::IPv4;
@@ -111,6 +111,7 @@ void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
 	else if (Event.EventType == NE_SocketConnect_6
 		&& TrafficItem->ConnectionState != ESocketConnectionState::Connecting)
 	{
+		TrafficItem->SocketType = ESocketType::Connect;
 		TrafficItem->ConnectionState = ESocketConnectionState::Connecting;
 		TrafficItem->SocketTuple.Protocol = static_cast<EProtocol::Type>(Event.Data.ConnectEventData.Protocol);
 		TrafficItem->SocketTuple.RemoteEndpoint.Port = static_cast<uint16_t>(Event.Data.ConnectEventData.UserPort);
@@ -134,6 +135,8 @@ void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
 	}
 	else if (Event.EventType == NE_TCPSocketEstablished_4)
 	{
+		// Technically we should set the state to connected here instead of constantly setting it to connected
+		// in the traffic counter
 		TrafficItem->SocketTuple.LocalEndpoint.Port =
 			static_cast<uint16_t>(Event.Data.TCPSocketEstablishedEventData.UserPort);
 		TrafficItem->SocketTuple.LocalEndpoint.Address.Family = EIPFamily::IPv4;

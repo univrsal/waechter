@@ -32,6 +32,23 @@ static char const* SocketConnectionStateToString(ESocketConnectionState State)
 	}
 }
 
+static char const* SocketTypeToString(ESocketType Type)
+{
+	switch (Type)
+	{
+		case ESocketType::Unknown:
+			return "Unknown";
+		case ESocketType::Connect:
+			return "Connect";
+		case ESocketType::Listen:
+			return "Listen";
+		case ESocketType::Accept:
+			return "Accept";
+		default:
+			return "Invalid";
+	}
+}
+
 static char const* ProtocolToString(EProtocol::Type Protocol)
 {
 	switch (Protocol)
@@ -129,6 +146,7 @@ void WDetailsWindow::DrawSocketDetails()
 	}
 
 	ImGui::Text("Socket state: %s", SocketConnectionStateToString(Sock->ConnectionState));
+	ImGui::Text("Socket type: %s", SocketTypeToString(Sock->SocketType));
 	ImGui::Separator();
 	ImGui::InputText("Local Endpoint", const_cast<char*>(Sock->SocketTuple.LocalEndpoint.ToString().c_str()), 64,
 		ImGuiInputTextFlags_ReadOnly);
