@@ -128,7 +128,7 @@ void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
 		WTrafficTreeSocketStateChange StateChange;
 		StateChange.ItemId = TrafficItem->ItemId;
 		StateChange.NewState = ESocketConnectionState::Connected;
-		StateChange.SocketType = TrafficItem->SocketType;
+		StateChange.SocketType = ESocketType::Listen;
 		StateChange.SocketTuple = TrafficItem->SocketTuple;
 		GetInstance().AddStateChange(StateChange);
 	}
@@ -139,7 +139,7 @@ void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
 		WTrafficTreeSocketStateChange StateChange;
 		StateChange.ItemId = TrafficItem->ItemId;
 		StateChange.NewState = ESocketConnectionState::Connected;
-		StateChange.SocketType = TrafficItem->SocketType;
+		StateChange.SocketType = ESocketType::Listen;
 		StateChange.SocketTuple = TrafficItem->SocketTuple;
 		GetInstance().AddStateChange(StateChange);
 	}
