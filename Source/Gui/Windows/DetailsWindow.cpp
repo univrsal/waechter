@@ -32,7 +32,7 @@ static char const* SocketConnectionStateToString(ESocketConnectionState State)
 	}
 }
 
-static char const* SocketTypeToString(ESocketType Type)
+static char const* SocketTypeToString(uint8_t Type)
 {
 	switch (Type)
 	{
@@ -42,6 +42,8 @@ static char const* SocketTypeToString(ESocketType Type)
 			return "Connect";
 		case ESocketType::Listen:
 			return "Listen";
+		case ESocketType::Listen | ESocketType::Connect:
+			return "Listen/Connect";
 		case ESocketType::Accept:
 			return "Accept";
 		default:
@@ -148,13 +150,20 @@ void WDetailsWindow::DrawSocketDetails()
 	ImGui::Text("Socket state: %s", SocketConnectionStateToString(Sock->ConnectionState));
 	ImGui::Text("Socket type: %s", SocketTypeToString(Sock->SocketType));
 
-	if (Sock->SocketType == ESocketType::Listen)
+	if (Sock->SocketType & ESocketType::Listen)
 	{
 		ImGui::InputText("Local Endpoint", const_cast<char*>(Sock->SocketTuple.LocalEndpoint.ToString().c_str()), 64,
 			ImGuiInputTextFlags_ReadOnly);
+
+		// UDP sockets can botch be listening and connected at the same time
+		if (Sock->SocketTuple.Protocol == EProtocol::UDP && Sock->SocketType & ESocketType::Connect)
+		{
+			ImGui::InputText("Remote Endpoint", const_cast<char*>(Sock->SocketTuple.RemoteEndpoint.ToString().c_str()),
+				64, ImGuiInputTextFlags_ReadOnly);
+		}
 		ImGui::Text("Protocol: %s", ProtocolToString(Sock->SocketTuple.Protocol));
 	}
-	else
+	else if (Sock->SocketType != ESocketType::Unknown)
 	{
 
 		ImGui::Separator();

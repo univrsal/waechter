@@ -16,18 +16,23 @@ enum class ESocketConnectionState
 	Closed
 };
 
-enum class ESocketType
+namespace ESocketType
 {
-	Unknown,
-	Connect, /* Outgoing tcp/udp */
-	Listen,  /* i.e. tcp server socket */
-	Accept   /* Incoming udp (and tcp?) */
-};
+	// UDP sockets can both be listening and connected at the same time
+	// so we use bitflags here
+	enum Type : uint8_t
+	{
+		Unknown = 0,
+		Connect = 1 << 0, /* Outgoing tcp/udp */
+		Listen = 1 << 1,  /* i.e. tcp server socket */
+		Accept = 1 << 2   /* Incoming udp (and tcp?) */
+	};
+} // namespace ESocketType
 
 struct WSocketItem : ITrafficItem
 {
 	WSocketTuple           SocketTuple{};
-	ESocketType            SocketType{};
+	uint8_t                SocketType{};
 	ESocketConnectionState ConnectionState{};
 
 	template <class Archive>

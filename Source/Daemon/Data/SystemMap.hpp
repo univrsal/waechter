@@ -123,8 +123,15 @@ public:
 			|| !MarkedForRemovalItems.empty() || !SocketStateChanges.empty();
 	}
 
-	void AddStateChange(WTrafficTreeSocketStateChange const& StateChange)
+	void AddStateChange(WTrafficItemId Id, ESocketConnectionState NewState, uint8_t SocketType,
+		std::optional<WSocketTuple> const& SocketTuple = std::nullopt)
 	{
+		WTrafficTreeSocketStateChange StateChange;
+		StateChange.ItemId = Id;
+		StateChange.NewState = NewState;
+		StateChange.SocketType = SocketType;
+		StateChange.SocketTuple = SocketTuple;
+
 		SocketStateChanges.emplace_back(StateChange);
 	}
 

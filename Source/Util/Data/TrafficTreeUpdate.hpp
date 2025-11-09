@@ -48,7 +48,7 @@ struct WTrafficTreeSocketStateChange
 {
 	WTrafficItemId              ItemId{};
 	ESocketConnectionState      NewState{};
-	ESocketType                 SocketType{};
+	uint8_t                     SocketType{};
 	std::optional<WSocketTuple> SocketTuple{};
 
 	template <class Archive>
