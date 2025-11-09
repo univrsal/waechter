@@ -43,6 +43,7 @@ set(BPF_HDR
         ${CMAKE_CURRENT_SOURCE_DIR}/vmlinux.h
         ${CMAKE_CURRENT_SOURCE_DIR}/EBPFConnect.h
         ${CMAKE_CURRENT_SOURCE_DIR}/EBPFTraffic.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/EBPFBind.h
         ${CMAKE_CURRENT_SOURCE_DIR}/EBPFAccept.h
         ${CMAKE_CURRENT_SOURCE_DIR}/EBPFInternal.h
         ${CMAKE_CURRENT_SOURCE_DIR}/EBPFLifetime.h

@@ -4,8 +4,8 @@
 
 #pragma once
 #include <array>
-#include <cstdint>
 #include <string>
+#include <netinet/in.h>
 
 namespace EIPFamily
 {
@@ -38,19 +38,14 @@ struct WIPAddress
 	{
 		if (Family == EIPFamily::IPv4)
 		{
-			return std::to_string(Bytes[0]) + "." + std::to_string(Bytes[1]) + "." + std::to_string(Bytes[2]) + "." + std::to_string(Bytes[3]);
+			return std::to_string(Bytes[0]) + "." + std::to_string(Bytes[1]) + "." + std::to_string(Bytes[2]) + "."
+				+ std::to_string(Bytes[3]);
 		}
 
 		char buffer[40];
-		snprintf(buffer, sizeof(buffer),
-			"%x:%x:%x:%x:%x:%x:%x:%x",
-			(Bytes[0] << 8) | Bytes[1],
-			(Bytes[2] << 8) | Bytes[3],
-			(Bytes[4] << 8) | Bytes[5],
-			(Bytes[6] << 8) | Bytes[7],
-			(Bytes[8] << 8) | Bytes[9],
-			(Bytes[10] << 8) | Bytes[11],
-			(Bytes[12] << 8) | Bytes[13],
+		snprintf(buffer, sizeof(buffer), "%x:%x:%x:%x:%x:%x:%x:%x", (Bytes[0] << 8) | Bytes[1],
+			(Bytes[2] << 8) | Bytes[3], (Bytes[4] << 8) | Bytes[5], (Bytes[6] << 8) | Bytes[7],
+			(Bytes[8] << 8) | Bytes[9], (Bytes[10] << 8) | Bytes[11], (Bytes[12] << 8) | Bytes[13],
 			(Bytes[14] << 8) | Bytes[15]);
 		return { buffer };
 	}
@@ -80,6 +75,28 @@ struct WIPAddress
 	void serialize(Archive& archive)
 	{
 		archive(Bytes, Family);
+	}
+
+	void FromIPv4Uint32(uint32_t IPv4Addr_NetworkByteOrder)
+	{
+		auto IPv4Addr_HostByteOrder = ntohl(IPv4Addr_NetworkByteOrder);
+		Bytes[0] = static_cast<uint8_t>((IPv4Addr_HostByteOrder >> 24) & 0xFF);
+		Bytes[1] = static_cast<uint8_t>((IPv4Addr_HostByteOrder >> 16) & 0xFF);
+		Bytes[2] = static_cast<uint8_t>((IPv4Addr_HostByteOrder >> 8) & 0xFF);
+		Bytes[3] = static_cast<uint8_t>(IPv4Addr_HostByteOrder & 0xFF);
+		Family = EIPFamily::IPv4;
+	}
+
+	void FromIPv6Array(uint const* IPv6Addr_NetworkByteOrder)
+	{
+		for (unsigned long i = 0; i < 4; i++)
+		{
+			Bytes[i * 4 + 0] = static_cast<uint8_t>((IPv6Addr_NetworkByteOrder[i] >> 24) & 0xFF);
+			Bytes[i * 4 + 1] = static_cast<uint8_t>((IPv6Addr_NetworkByteOrder[i] >> 16) & 0xFF);
+			Bytes[i * 4 + 2] = static_cast<uint8_t>((IPv6Addr_NetworkByteOrder[i] >> 8) & 0xFF);
+			Bytes[i * 4 + 3] = static_cast<uint8_t>(IPv6Addr_NetworkByteOrder[i] & 0xFF);
+		}
+		Family = EIPFamily::IPv6;
 	}
 };
 
