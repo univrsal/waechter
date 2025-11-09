@@ -56,11 +56,6 @@ WEbpfObj::~WEbpfObj()
 			bpf_link__destroy(BpfLink);
 		}
 	}
-
-	if (Obj)
-	{
-		bpf_object__close(Obj);
-	}
 }
 
 bool WEbpfObj::FindAndAttachPlainProgram(std::string const& ProgName)
