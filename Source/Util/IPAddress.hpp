@@ -5,6 +5,7 @@
 #pragma once
 #include <array>
 #include <string>
+#include <arpa/inet.h>
 #include <netinet/in.h>
 
 namespace EIPFamily
@@ -38,16 +39,29 @@ struct WIPAddress
 	{
 		if (Family == EIPFamily::IPv4)
 		{
-			return std::to_string(Bytes[0]) + "." + std::to_string(Bytes[1]) + "." + std::to_string(Bytes[2]) + "."
-				+ std::to_string(Bytes[3]);
+			in_addr Addr4{};
+			Addr4.s_addr = htonl((Bytes[0] << 24) | (Bytes[1] << 16) | (Bytes[2] << 8) | Bytes[3]);
+			char        Buffer[INET_ADDRSTRLEN];
+			char const* Result = inet_ntop(AF_INET, &Addr4, Buffer, INET_ADDRSTRLEN);
+			if (Result)
+			{
+				return { Buffer };
+			}
+			return {};
 		}
 
-		char buffer[40];
-		snprintf(buffer, sizeof(buffer), "%x:%x:%x:%x:%x:%x:%x:%x", (Bytes[0] << 8) | Bytes[1],
-			(Bytes[2] << 8) | Bytes[3], (Bytes[4] << 8) | Bytes[5], (Bytes[6] << 8) | Bytes[7],
-			(Bytes[8] << 8) | Bytes[9], (Bytes[10] << 8) | Bytes[11], (Bytes[12] << 8) | Bytes[13],
-			(Bytes[14] << 8) | Bytes[15]);
-		return { buffer };
+		in6_addr Addr6{};
+		for (unsigned long i = 0; i < 16; ++i)
+		{
+			Addr6.s6_addr[i] = Bytes[i];
+		}
+		char        Buffer[INET6_ADDRSTRLEN];
+		char const* Result = inet_ntop(AF_INET6, &Addr6, Buffer, INET6_ADDRSTRLEN);
+		if (Result)
+		{
+			return { Buffer };
+		}
+		return {};
 	}
 
 	[[nodiscard]] bool IsLocalhost() const
