@@ -7,6 +7,7 @@
 // ReSharper disable CppUnusedIncludeDirective
 
 #include <imgui.h>
+#include <cereal/types/optional.hpp>
 #include <cereal/types/array.hpp>
 #include <cereal/types/vector.hpp>
 #include <cereal/types/unordered_map.hpp>
@@ -263,6 +264,10 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 			{
 				SocketItem->ConnectionState = StateChange.NewState;
 				SocketItem->SocketType = StateChange.SocketType;
+				if (StateChange.SocketTuple.has_value())
+				{
+					SocketItem->SocketTuple = StateChange.SocketTuple.value();
+				}
 			}
 		}
 	}

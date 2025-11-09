@@ -150,7 +150,8 @@ void WDetailsWindow::DrawSocketDetails()
 
 	if (Sock->SocketType == ESocketType::Listen)
 	{
-		ImGui::Text("Listening port: %d", Sock->SocketTuple.LocalEndpoint.Port);
+		ImGui::InputText("Local Endpoint", const_cast<char*>(Sock->SocketTuple.LocalEndpoint.ToString().c_str()), 64,
+			ImGuiInputTextFlags_ReadOnly);
 		ImGui::Text("Protocol: %s", ProtocolToString(Sock->SocketTuple.Protocol));
 	}
 	else

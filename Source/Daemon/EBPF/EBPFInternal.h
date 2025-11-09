@@ -35,6 +35,9 @@
 #define EBPF_COMMON
 #include "EBPFCommon.h"
 
+#define AF_INET 2
+#define AF_INET6 10
+
 struct
 {
 	__uint(type, BPF_MAP_TYPE_RINGBUF);
@@ -53,7 +56,7 @@ struct
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(max_entries, 65536);
 	__type(key, __u64);
-	__type(value, struct WSharedSocketData); // Socket cookie
+	__type(value, struct WSharedSocketData);
 } shared_socket_data_map SEC(".maps");
 
 static __always_inline struct WSocketEvent* MakeSocketEvent(__u64 Cookie, __u8 EventType)

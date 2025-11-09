@@ -4,6 +4,7 @@
 #include "EBPFConnect.h"
 #include "EBPFAccept.h"
 #include "EBPFLifetime.h"
+#include "EBPFBind.h"
 
 // Capture UDP destination for unconnected sockets (sendto/sendmsg)
 SEC("cgroup/sendmsg4")

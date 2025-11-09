@@ -6,9 +6,6 @@
 
 #include "EBPFInternal.h"
 
-#define AF_INET 2
-#define AF_INET6 10
-
 SEC("tracepoint/sock/inet_sock_set_state")
 int tracepoint__inet_sock_set_state(struct trace_event_raw_inet_sock_set_state* ctx)
 {
@@ -33,18 +30,6 @@ int tracepoint__inet_sock_set_state(struct trace_event_raw_inet_sock_set_state* 
 	struct WSocketEvent* Event = MakeSocketEvent(SharedData->Cookie, NE_TCPSocketListening);
 	if (Event)
 	{
-		Event->Data.TCPSocketListenEventData.UserPort = ctx->sport;
-
-		if (SharedData->Family == AF_INET)
-		{
-			Event->Data.TCPSocketListenEventData.Addr4 =
-				(__u32)((ctx->saddr[0] << 24) | (ctx->saddr[1] << 16) | (ctx->saddr[2] << 8) | ctx->saddr[3]);
-		}
-		else if (SharedData->Family == AF_INET6)
-		{
-			// Event->Data.TCPSocketListenEventData.Addr6 = ctx->saddr
-		}
-
 		bpf_ringbuf_submit(Event, 0);
 	}
 	return 0;

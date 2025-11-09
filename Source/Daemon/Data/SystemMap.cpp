@@ -121,6 +121,28 @@ void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
 			static_cast<uint16_t>(Event.Data.TCPSocketEstablishedEventData.UserPort);
 		TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv6Array(Event.Data.TCPSocketEstablishedEventData.Addr6);
 	}
+	else if (Event.EventType == NE_SocketBind_4)
+	{
+		TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv4Uint32(Event.Data.SocketBindEventData.Addr4);
+		TrafficItem->SocketTuple.LocalEndpoint.Port = static_cast<uint16_t>(Event.Data.SocketBindEventData.UserPort);
+		WTrafficTreeSocketStateChange StateChange;
+		StateChange.ItemId = TrafficItem->ItemId;
+		StateChange.NewState = ESocketConnectionState::Connected;
+		StateChange.SocketType = TrafficItem->SocketType;
+		StateChange.SocketTuple = TrafficItem->SocketTuple;
+		GetInstance().AddStateChange(StateChange);
+	}
+	else if (Event.EventType == NE_SocketBind_6)
+	{
+		TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv6Array(Event.Data.SocketBindEventData.Addr6);
+		TrafficItem->SocketTuple.LocalEndpoint.Port = static_cast<uint16_t>(Event.Data.SocketBindEventData.UserPort);
+		WTrafficTreeSocketStateChange StateChange;
+		StateChange.ItemId = TrafficItem->ItemId;
+		StateChange.NewState = ESocketConnectionState::Connected;
+		StateChange.SocketType = TrafficItem->SocketType;
+		StateChange.SocketTuple = TrafficItem->SocketTuple;
+		GetInstance().AddStateChange(StateChange);
+	}
 	else if (Event.EventType == NE_TCPSocketListening)
 	{
 		TrafficItem->ConnectionState = ESocketConnectionState::Connected;

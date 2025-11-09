@@ -3,6 +3,8 @@
 //
 
 #pragma once
+#include <optional>
+
 #include "IPAddress.hpp"
 #include "SocketItem.hpp"
 #include "TrafficItem.hpp"
@@ -44,14 +46,15 @@ struct WTrafficTreeSocketAddition
 
 struct WTrafficTreeSocketStateChange
 {
-	WTrafficItemId         ItemId{};
-	ESocketConnectionState NewState{};
-	ESocketType            SocketType{};
+	WTrafficItemId              ItemId{};
+	ESocketConnectionState      NewState{};
+	ESocketType                 SocketType{};
+	std::optional<WSocketTuple> SocketTuple{};
 
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(ItemId, NewState, SocketType);
+		archive(ItemId, NewState, SocketType, SocketTuple);
 	}
 };
 
