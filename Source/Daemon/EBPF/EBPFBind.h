@@ -15,6 +15,11 @@ int BPF_PROG(socket_bind, struct socket* Sock, struct sockaddr* Addr, int Addrle
 		return WLSM_ALLOW;
 	}
 
+	if (Sock->type != SOCK_STREAM && Sock->type != SOCK_DGRAM)
+	{
+		return WLSM_ALLOW;
+	}
+
 	struct sockaddr_in  Sa = {};
 	struct sockaddr_in6 Sa6 = {};
 
