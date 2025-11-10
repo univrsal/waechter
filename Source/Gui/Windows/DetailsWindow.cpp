@@ -148,7 +148,10 @@ void WDetailsWindow::DrawSocketDetails()
 	}
 
 	ImGui::Text("Socket state: %s", SocketConnectionStateToString(Sock->ConnectionState));
-	ImGui::Text("Socket type: %s", SocketTypeToString(Sock->SocketType));
+	if (Sock->SocketType != ESocketType::Unknown)
+	{
+		ImGui::Text("Socket type: %s", SocketTypeToString(Sock->SocketType));
+	}
 
 	if (Sock->SocketType & ESocketType::Listen)
 	{
@@ -182,6 +185,10 @@ void WDetailsWindow::DrawSocketDetails()
 			IpQueryIntegration.Draw(Sock);
 		}
 #endif
+	}
+	else if (Sock->SocketType == ESocketType::Unknown)
+	{
+		ImGui::Text("Protocol: %s", ProtocolToString(Sock->SocketTuple.Protocol));
 	}
 }
 
