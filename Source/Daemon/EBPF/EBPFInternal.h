@@ -71,7 +71,6 @@ static __always_inline struct WSocketEvent* MakeSocketEvent(__u64 Cookie, __u8 E
 		(struct WSocketEvent*)bpf_ringbuf_reserve(&socket_event_ring, sizeof(struct WSocketEvent), 0);
 	if (!SocketEvent)
 	{
-		bpf_printk("push_socket_event: reserve NULL cookie=%llu event=%u\n", Cookie, EventType);
 		return NULL;
 	}
 	__builtin_memset(&SocketEvent->Data, 0, sizeof(struct WSocketEventData));
