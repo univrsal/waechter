@@ -110,6 +110,17 @@ void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
 	{
 		TrafficItem->ConnectionState = ESocketConnectionState::Created;
 		TrafficItem->SocketTuple.Protocol = static_cast<EProtocol::Type>(Event.Data.SocketCreateEventData.Protocol);
+
+		if (Event.Data.SocketCreateEventData.Family == AF_INET)
+		{
+			TrafficItem->SocketTuple.LocalEndpoint.Address.Family = EIPFamily::IPv4;
+		}
+		else if (Event.Data.SocketCreateEventData.Family == AF_INET6)
+		{
+			TrafficItem->SocketTuple.LocalEndpoint.Address.Family = EIPFamily::IPv6;
+		}
+		GetInstance().AddStateChange(
+			TrafficItem->ItemId, ESocketConnectionState::Created, TrafficItem->SocketType, TrafficItem->SocketTuple);
 	}
 	else if (Event.EventType == NE_TCPSocketEstablished_4)
 	{

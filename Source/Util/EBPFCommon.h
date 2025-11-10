@@ -82,6 +82,8 @@ struct WSocketTrafficEventData
 struct WSocketCreateEventData
 {
 	__u32 Protocol;
+	__u32 Family;
+	__u32 Type;
 };
 
 struct WSocketEventData
