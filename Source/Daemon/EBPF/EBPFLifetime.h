@@ -47,6 +47,8 @@ int on_sock_create(struct bpf_sock* Socket)
 	if (SocketEvent)
 	{
 		SocketEvent->Data.SocketCreateEventData.Protocol = Socket->protocol;
+		SocketEvent->Data.SocketCreateEventData.Family = Socket->family;
+		SocketEvent->Data.SocketCreateEventData.Type = Socket->type;
 
 		bpf_ringbuf_submit(SocketEvent, 0);
 	}
