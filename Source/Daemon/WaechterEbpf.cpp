@@ -137,6 +137,8 @@ void WWaechterEbpf::UpdateData()
 
 		switch (SocketEvent.EventType)
 		{
+			case NE_SocketAccept_4:
+			case NE_SocketAccept_6:
 			case NE_TCPSocketListening:
 			case NE_SocketBind_4:
 			case NE_SocketBind_6:

@@ -32,7 +32,8 @@ enum ENetEventType
 	NE_TCPSocketEstablished_4,
 	NE_TCPSocketEstablished_6,
 	NE_TCPSocketListening,
-	NE_SocketAccept,
+	NE_SocketAccept_4,
+	NE_SocketAccept_6,
 	NE_SocketClosed,
 	NE_SocketSendmsg_4,
 	NE_SocketSendmsg_6,
@@ -86,6 +87,25 @@ struct WSocketCreateEventData
 	__u32 Type;
 };
 
+struct WSocketAcceptEventData
+{
+	__u32 SourcePort;
+	__u32 DestinationPort;
+	__u32 Family;
+	__u32 Type;
+	union
+	{
+		__u32 SourceAddr4;
+		__u32 SourceAddr6[4];
+	};
+
+	union
+	{
+		__u32 DestinationAddr4;
+		__u32 DestinationAddr6[4];
+	};
+};
+
 struct WSocketEventData
 {
 	union
@@ -95,6 +115,7 @@ struct WSocketEventData
 		struct WSocketCreateEventData         SocketCreateEventData;
 		struct WSocketTCPEstablishedEventData TCPSocketEstablishedEventData;
 		struct WSocketBindEventData           SocketBindEventData;
+		struct WSocketAcceptEventData         SocketAcceptEventData;
 	};
 };
 

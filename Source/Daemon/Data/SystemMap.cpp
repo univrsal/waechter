@@ -163,6 +163,46 @@ void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
 		GetInstance().AddStateChange(
 			TrafficItem->ItemId, ESocketConnectionState::Connected, TrafficItem->SocketType, TrafficItem->SocketTuple);
 	}
+	else if (Event.EventType == NE_SocketAccept_4)
+	{
+		TrafficItem->ConnectionState = ESocketConnectionState::Connected;
+		TrafficItem->SocketType = ESocketType::Accept;
+		if (Event.Data.SocketAcceptEventData.Type == SOCK_STREAM)
+		{
+			TrafficItem->SocketTuple.Protocol = EProtocol::TCP;
+		}
+		else if (Event.Data.SocketAcceptEventData.Type == SOCK_DGRAM)
+		{
+			TrafficItem->SocketTuple.Protocol = EProtocol::UDP;
+		}
+		TrafficItem->SocketTuple.RemoteEndpoint.Port = Event.Data.SocketAcceptEventData.DestinationPort;
+		TrafficItem->SocketTuple.RemoteEndpoint.Address.FromIPv4Uint32(
+			Event.Data.SocketAcceptEventData.DestinationAddr4);
+		TrafficItem->SocketTuple.LocalEndpoint.Port = Event.Data.SocketAcceptEventData.SourcePort;
+		TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv4Uint32(
+			Event.Data.SocketAcceptEventData.DestinationAddr4);
+		GetInstance().AddStateChange(
+			TrafficItem->ItemId, ESocketConnectionState::Connected, TrafficItem->SocketType, TrafficItem->SocketTuple);
+	}
+	else if (Event.EventType == NE_SocketAccept_6)
+	{
+		TrafficItem->ConnectionState = ESocketConnectionState::Connected;
+		TrafficItem->SocketType = ESocketType::Accept;
+		if (Event.Data.SocketAcceptEventData.Type == SOCK_STREAM)
+		{
+			TrafficItem->SocketTuple.Protocol = EProtocol::TCP;
+		}
+		else if (Event.Data.SocketAcceptEventData.Type == SOCK_DGRAM)
+		{
+			TrafficItem->SocketTuple.Protocol = EProtocol::UDP;
+		}
+		TrafficItem->SocketTuple.RemoteEndpoint.Port = Event.Data.SocketAcceptEventData.SourcePort;
+		TrafficItem->SocketTuple.RemoteEndpoint.Address.FromIPv6Array(Event.Data.SocketAcceptEventData.SourceAddr6);
+		TrafficItem->SocketTuple.LocalEndpoint.Port = Event.Data.SocketAcceptEventData.DestinationPort;
+		TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv6Array(Event.Data.SocketAcceptEventData.DestinationAddr6);
+		GetInstance().AddStateChange(
+			TrafficItem->ItemId, ESocketConnectionState::Connected, TrafficItem->SocketType, TrafficItem->SocketTuple);
+	}
 }
 
 std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::FindOrMapSocket(
