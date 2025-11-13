@@ -7,39 +7,39 @@
 
 #ifdef HAVE_VMLINUX
 SEC("lsm/sock_graft")
-int BPF_PROG(sock_graft, struct sock* sk, struct socket* parent)
+int BPF_PROG(sock_graft, struct sock* Sk, struct socket* Parent)
 {
-	if (!sk)
+	if (!Sk)
 		return WLSM_ALLOW;
 
-	__u64                cookie = bpf_get_socket_cookie(sk);
-	struct WSocketEvent* evt = MakeSocketEvent(cookie, NE_SocketAccept_4);
-	if (!evt)
+	__u64                Socket = bpf_get_socket_cookie(Sk);
+	struct WSocketEvent* Event = MakeSocketEvent(Socket, NE_SocketAccept_4);
+	if (!Event)
 		return WLSM_ALLOW;
 
-	__u16 const family = sk->__sk_common.skc_family;
-	evt->Data.SocketAcceptEventData.Family = family;
-	evt->Data.SocketAcceptEventData.Type = parent ? parent->type : 0;
+	__u16 const Family = Sk->__sk_common.skc_family;
+	Event->Data.SocketAcceptEventData.Family = Family;
+	Event->Data.SocketAcceptEventData.Type = Parent ? Parent->type : 0;
 
-	if (family == AF_INET)
+	if (Family == AF_INET)
 	{
-		evt->Data.SocketAcceptEventData.SourceAddr4 = sk->__sk_common.skc_rcv_saddr;
-		evt->Data.SocketAcceptEventData.DestinationAddr4 = sk->__sk_common.skc_daddr;
-		evt->Data.SocketAcceptEventData.SourcePort = bpf_ntohs(sk->__sk_common.skc_num);
-		evt->Data.SocketAcceptEventData.DestinationPort = bpf_ntohs(sk->__sk_common.skc_dport);
+		Event->Data.SocketAcceptEventData.SourceAddr4 = Sk->__sk_common.skc_rcv_saddr;
+		Event->Data.SocketAcceptEventData.DestinationAddr4 = Sk->__sk_common.skc_daddr;
+		Event->Data.SocketAcceptEventData.SourcePort = bpf_ntohs(Sk->__sk_common.skc_num);
+		Event->Data.SocketAcceptEventData.DestinationPort = bpf_ntohs(Sk->__sk_common.skc_dport);
 	}
-	else if (family == AF_INET6)
+	else if (Family == AF_INET6)
 	{
-		evt->EventType = NE_SocketAccept_6;
+		Event->EventType = NE_SocketAccept_6;
 		BPF_CORE_READ_INTO(
-			&evt->Data.SocketAcceptEventData.SourceAddr6, sk, __sk_common.skc_v6_rcv_saddr.in6_u.u6_addr32);
+			&Event->Data.SocketAcceptEventData.SourceAddr6, Sk, __sk_common.skc_v6_rcv_saddr.in6_u.u6_addr32);
 		BPF_CORE_READ_INTO(
-			&evt->Data.SocketAcceptEventData.DestinationAddr6, sk, __sk_common.skc_v6_daddr.in6_u.u6_addr32);
-		evt->Data.SocketAcceptEventData.SourcePort = bpf_ntohs(sk->__sk_common.skc_num);
-		evt->Data.SocketAcceptEventData.DestinationPort = bpf_ntohs(sk->__sk_common.skc_dport);
+			&Event->Data.SocketAcceptEventData.DestinationAddr6, Sk, __sk_common.skc_v6_daddr.in6_u.u6_addr32);
+		Event->Data.SocketAcceptEventData.SourcePort = bpf_ntohs(Sk->__sk_common.skc_num);
+		Event->Data.SocketAcceptEventData.DestinationPort = bpf_ntohs(Sk->__sk_common.skc_dport);
 	}
 
-	bpf_ringbuf_submit(evt, 0);
+	bpf_ringbuf_submit(Event, 0);
 	return WLSM_ALLOW;
 }
 
