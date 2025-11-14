@@ -38,6 +38,14 @@
 #define AF_INET 2
 #define AF_INET6 10
 
+// EtherType values for IPv4/IPv6 when checking __sk_buff->protocol
+#ifndef ETH_P_IP
+	#define ETH_P_IP 0x0800
+#endif
+#ifndef ETH_P_IPV6
+	#define ETH_P_IPV6 0x86DD
+#endif
+
 struct
 {
 	__uint(type, BPF_MAP_TYPE_RINGBUF);

@@ -10,6 +10,13 @@
 SEC("cgroup_skb/ingress")
 int cgskb_ingress(struct __sk_buff* Skb)
 {
+	// Only process IPv4 or IPv6
+	__u16 Proto = Skb->protocol;
+	if (Proto != bpf_htons(ETH_P_IP) && Proto != bpf_htons(ETH_P_IPV6))
+	{
+		return SK_PASS;
+	}
+
 	__u64                Cookie = bpf_get_socket_cookie(Skb);
 	struct WSocketEvent* SocketEvent = MakeSocketEvent(Cookie, NE_Traffic);
 
@@ -44,6 +51,12 @@ int cgskb_ingress(struct __sk_buff* Skb)
 SEC("cgroup_skb/egress")
 int cgskb_egress(struct __sk_buff* Skb)
 {
+	// Only process IPv4 or IPv6
+	__u16 proto = Skb->protocol;
+	if (proto != bpf_htons(ETH_P_IP) && proto != bpf_htons(ETH_P_IPV6))
+	{
+		return SK_PASS;
+	}
 	__u64 Cookie = bpf_get_socket_cookie(Skb);
 
 	struct WSocketEvent* SocketEvent = MakeSocketEvent(Cookie, NE_Traffic);

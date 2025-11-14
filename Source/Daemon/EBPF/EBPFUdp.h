@@ -53,7 +53,20 @@ static __always_inline int EmitIfBound(struct sock* Sk, __u64 Cookie)
 		return 0; // still not bound
 	}
 
-	struct WSocketEvent* Event = MakeSocketEvent(Cookie, Family ? NE_SocketBind_4 : NE_SocketBind_6);
+	__u8 EventType = 0;
+	switch (Family)
+	{
+		case AF_INET:
+			EventType = NE_SocketBind_4;
+			break;
+		case AF_INET6:
+			EventType = NE_SocketBind_6;
+			break;
+		default:
+			return 0;
+	}
+
+	struct WSocketEvent* Event = MakeSocketEvent(Cookie, EventType);
 
 	if (!Event)
 	{

@@ -20,6 +20,11 @@ int BPF_PROG(socket_bind, struct socket* Sock, struct sockaddr* Addr, int Addrle
 		return WLSM_ALLOW;
 	}
 
+	if (Addr && Addr->sa_family != AF_INET && Addr->sa_family != AF_INET6)
+	{
+		return WLSM_ALLOW;
+	}
+
 	struct sockaddr_in  Sa = {};
 	struct sockaddr_in6 Sa6 = {};
 

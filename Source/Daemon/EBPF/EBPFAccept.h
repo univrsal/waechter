@@ -10,14 +10,24 @@ SEC("lsm/sock_graft")
 int BPF_PROG(sock_graft, struct sock* Sk, struct socket* Parent)
 {
 	if (!Sk)
+	{
 		return WLSM_ALLOW;
+	}
+
+	// Only care about IP socket families
+	__u16 Family = Sk->__sk_common.skc_family;
+	if (Family != AF_INET && Family != AF_INET6)
+	{
+		return WLSM_ALLOW;
+	}
 
 	__u64                Socket = bpf_get_socket_cookie(Sk);
 	struct WSocketEvent* Event = MakeSocketEvent(Socket, NE_SocketAccept_4);
 	if (!Event)
+	{
 		return WLSM_ALLOW;
+	}
 
-	__u16 const Family = Sk->__sk_common.skc_family;
 	Event->Data.SocketAcceptEventData.Family = Family;
 	Event->Data.SocketAcceptEventData.Type = Parent ? Parent->type : 0;
 

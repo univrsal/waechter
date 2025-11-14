@@ -30,6 +30,12 @@ int on_sock_create(struct bpf_sock* Socket)
 		return WCG_ALLOW;
 	}
 
+	// Only consider IP families
+	if (Socket->family != AF_INET && Socket->family != AF_INET6)
+	{
+		return WCG_ALLOW;
+	}
+
 	if (Tgid == 0)
 	{
 		return WCG_ALLOW;
