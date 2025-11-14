@@ -77,7 +77,7 @@ ssize_t WClientSocket::Send(WBuffer const& Buf)
 		{
 			if (errno == EINTR)
 				continue; // retry
-			if (!bBlocking && (errno == EAGAIN || errno == EWOULDBLOCK))
+			if (!bBlocking && (errno == EWOULDBLOCK))
 				break; // return partial in non-blocking mode
 			MarkStateForError(errno);
 			return (Total > 0) ? static_cast<ssize_t>(Total) : -1;
