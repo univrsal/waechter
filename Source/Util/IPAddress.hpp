@@ -85,6 +85,26 @@ struct WIPAddress
 		return false;
 	}
 
+	bool IsZero() const
+	{
+		if (Family == EIPFamily::IPv4)
+		{
+			return (Bytes[0] == 0 && Bytes[1] == 0 && Bytes[2] == 0 && Bytes[3] == 0);
+		}
+
+		if (Family == EIPFamily::IPv6)
+		{
+			for (unsigned long i = 0; i < 16; ++i)
+			{
+				if (Bytes[i] != 0)
+					return false;
+			}
+			return true;
+		}
+
+		return true;
+	}
+
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
