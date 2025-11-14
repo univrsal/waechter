@@ -22,21 +22,12 @@ protected:
 	int         SocketFd{ -1 };
 	std::string SocketPath{};
 
-	explicit WSocket(int SocketFd_)
-		: SocketFd(SocketFd_)
-	{
-	}
+	explicit WSocket(int SocketFd_) : SocketFd(SocketFd_) {}
 
 public:
-	explicit WSocket(std::string SocketPath_)
-		: SocketPath(std::move(SocketPath_))
-	{
-	}
+	explicit WSocket(std::string SocketPath_) : SocketPath(std::move(SocketPath_)) {}
 
-	[[nodiscard]] int GetFd() const
-	{
-		return SocketFd;
-	}
+	[[nodiscard]] int GetFd() const { return SocketFd; }
 };
 
 enum ESocketState
@@ -53,21 +44,11 @@ class WClientSocket : public WSocket
 	bool                      bBlocking{ true };
 
 public:
-	explicit WClientSocket(int SocketFd_)
-		: WSocket(SocketFd_)
-	{
-		assert(SocketFd_ > 0);
-	}
+	explicit WClientSocket(int SocketFd_) : WSocket(SocketFd_) { assert(SocketFd_ > 0); }
 
-	explicit WClientSocket(std::string const& SocketPath_)
-		: WSocket(SocketPath_)
-	{
-	}
+	explicit WClientSocket(std::string const& SocketPath_) : WSocket(SocketPath_) {}
 
-	~WClientSocket()
-	{
-		Close();
-	}
+	~WClientSocket() { Close(); }
 
 	void Close();
 
@@ -81,15 +62,9 @@ public:
 
 	bool Receive(WBuffer& Buf, bool* bDataToRead = nullptr);
 
-	[[nodiscard]] ESocketState GetState() const
-	{
-		return State.load(std::memory_order_acquire);
-	}
+	[[nodiscard]] ESocketState GetState() const { return State.load(std::memory_order_acquire); }
 
-	void SetState(ESocketState NewState)
-	{
-		State.store(NewState, std::memory_order_release);
-	}
+	void SetState(ESocketState NewState) { State.store(NewState, std::memory_order_release); }
 
 	void SetNonBlocking(bool bNonBlocking)
 	{
@@ -110,15 +85,9 @@ public:
 class WServerSocket : public WSocket
 {
 public:
-	explicit WServerSocket(std::string const& SocketPath_)
-		: WSocket(SocketPath_)
-	{
-	}
+	explicit WServerSocket(std::string const& SocketPath_) : WSocket(SocketPath_) {}
 
-	~WServerSocket()
-	{
-		Close();
-	}
+	~WServerSocket() { Close(); }
 
 	void Close()
 	{
@@ -144,7 +113,7 @@ public:
 		Addr.sun_family = AF_UNIX;
 		strncpy(Addr.sun_path, SocketPath.c_str(), sizeof(Addr.sun_path) - 1);
 
-		if (bind(SocketFd, (sockaddr*)&Addr, sizeof(Addr)) < 0)
+		if (bind(SocketFd, reinterpret_cast<sockaddr*>(&Addr), sizeof(Addr)) < 0)
 		{
 			return false;
 		}
