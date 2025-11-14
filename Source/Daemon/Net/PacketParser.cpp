@@ -46,7 +46,7 @@ static bool ParseIPv4(uint8_t const* Buffer, std::size_t Length, WPacketHeaderPa
 
 	Out.Src.Address.Family = EIPFamily::IPv4;
 	Out.Dst.Address.Family = EIPFamily::IPv4;
-	Out.L4Proto = Buffer[9];
+	Out.L4Proto = static_cast<EProtocol::Type>(Buffer[9]);
 
 	// src/dst
 	for (unsigned long i = 0; i < 4; ++i)
@@ -111,7 +111,7 @@ static bool ParseIPv6(uint8_t const* Buffer, std::size_t Length, WPacketHeaderPa
 			break;
 		if (Next == EIPv6ExtensionHeaders::NO_NEXT_HEADER)
 		{
-			Out.L4Proto = EIPv6ExtensionHeaders::NO_NEXT_HEADER;
+			Out.L4Proto = EProtocol::Unknown;
 			return false;
 		}
 
@@ -149,7 +149,7 @@ static bool ParseIPv6(uint8_t const* Buffer, std::size_t Length, WPacketHeaderPa
 		if (Next == EIPv6ExtensionHeaders::ESP)
 		{
 			// ESP: can’t safely find ports beyond this
-			Out.L4Proto = 50;
+			Out.L4Proto = EProtocol::ESP;
 			return false;
 		}
 
@@ -171,7 +171,7 @@ static bool ParseIPv6(uint8_t const* Buffer, std::size_t Length, WPacketHeaderPa
 		Offset += HdrLen;
 	}
 
-	Out.L4Proto = Next;
+	Out.L4Proto = EProtocol::Unknown;
 	L4Offset = Offset;
 	return true;
 }
@@ -248,12 +248,12 @@ inline bool ParsePacketL3(uint8_t const* Data, std::size_t Length, WPacketHeader
 	return true;
 }
 
-bool WPacketHeaderParser::ParsePacketHeader(uint8_t* Data, std::size_t Length, WPacketHeaderParser& outPacketKey)
+bool WPacketHeaderParser::ParsePacketHeader(uint8_t const* Data, std::size_t Length, WPacketHeaderParser& outPacketKey)
 {
 	return ParsePacketL3(Data, Length, outPacketKey);
 }
 
-bool WPacketHeaderParser::ParsePacket(uint8_t* Data, std::size_t Length)
+bool WPacketHeaderParser::ParsePacket(uint8_t const* Data, std::size_t Length)
 {
 	return ParsePacketL3(Data, Length, *this);
 }

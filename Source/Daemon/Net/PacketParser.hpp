@@ -8,12 +8,12 @@
 
 struct WPacketHeaderParser
 {
-	uint8_t L4Proto{ 0 };
+	EProtocol::Type L4Proto{ 0 };
 
 	WEndpoint Src;
 	WEndpoint Dst;
 
-	static bool ParsePacketHeader(uint8_t* Data, std::size_t Length, WPacketHeaderParser& OutHeader);
+	static bool ParsePacketHeader(uint8_t const* Data, std::size_t Length, WPacketHeaderParser& OutHeader);
 
-	bool ParsePacket(uint8_t* Data, std::size_t Length);
+	bool ParsePacket(uint8_t const* Data, std::size_t Length);
 };
