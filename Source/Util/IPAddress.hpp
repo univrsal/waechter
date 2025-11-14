@@ -24,9 +24,11 @@ namespace EProtocol
 {
 	enum Type : uint8_t
 	{
+		Unknown = 0,
 		TCP = 6,
 		UDP = 17,
 		ICMP = 1,
+		ESP = 50,
 		ICMPv6 = 58
 	};
 } // namespace EProtocol
