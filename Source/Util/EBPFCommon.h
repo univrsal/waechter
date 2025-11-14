@@ -35,14 +35,13 @@ enum ENetEventType
 	NE_SocketAccept_4,
 	NE_SocketAccept_6,
 	NE_SocketClosed,
-	NE_SocketSendmsg_4,
-	NE_SocketSendmsg_6,
 	NE_Traffic
 };
 
 struct WSocketBindEventData
 {
 	__u32 UserPort;
+	__u8  bImplicitBind;
 	union
 	{
 		__u32 Addr4;

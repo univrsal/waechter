@@ -144,7 +144,14 @@ void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
 	{
 		TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv4Uint32(Event.Data.SocketBindEventData.Addr4);
 		TrafficItem->SocketTuple.LocalEndpoint.Port = static_cast<uint16_t>(Event.Data.SocketBindEventData.UserPort);
-		TrafficItem->SocketType |= ESocketType::Listen;
+		if (Event.Data.SocketBindEventData.bImplicitBind)
+		{
+			TrafficItem->SocketType |= ESocketType::Connect;
+		}
+		else
+		{
+			TrafficItem->SocketType |= ESocketType::Listen;
+		}
 		GetInstance().AddStateChange(
 			TrafficItem->ItemId, ESocketConnectionState::Connected, TrafficItem->SocketType, TrafficItem->SocketTuple);
 	}
@@ -152,7 +159,14 @@ void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
 	{
 		TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv6Array(Event.Data.SocketBindEventData.Addr6);
 		TrafficItem->SocketTuple.LocalEndpoint.Port = static_cast<uint16_t>(Event.Data.SocketBindEventData.UserPort);
-		TrafficItem->SocketType |= ESocketType::Listen;
+		if (Event.Data.SocketBindEventData.bImplicitBind)
+		{
+			TrafficItem->SocketType |= ESocketType::Connect;
+		}
+		else
+		{
+			TrafficItem->SocketType |= ESocketType::Listen;
+		}
 		GetInstance().AddStateChange(
 			TrafficItem->ItemId, ESocketConnectionState::Connected, TrafficItem->SocketType, TrafficItem->SocketTuple);
 	}
