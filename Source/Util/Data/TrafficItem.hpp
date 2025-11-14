@@ -29,13 +29,7 @@ struct ITrafficItem
 
 	[[nodiscard]] virtual ETrafficItemType GetType() const = 0;
 
-	virtual bool RemoveChild(WTrafficItemId)
-	{
-		return false;
-	}
+	virtual bool RemoveChild(WTrafficItemId) { return false; }
 
-	virtual bool NoChildren()
-	{
-		return true;
-	}
+	virtual bool NoChildren() { return true; }
 };
