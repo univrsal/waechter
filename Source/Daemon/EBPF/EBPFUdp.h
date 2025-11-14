@@ -67,6 +67,11 @@ static __always_inline int EmitIfBound(struct sock* Sk, __u64 Cookie)
 	{
 		// Note: for unconnected sockets, inet_saddr can remain 0 (INADDR_ANY)
 		__u32 SAddr = BPF_CORE_READ((struct inet_sock*)Sk, inet_saddr);
+		if (SAddr == 0)
+		{
+			// Set it to localhost
+			SAddr = __bpf_htonl(0x7F000001);
+		}
 		Event->Data.SocketBindEventData.Addr4 = SAddr;
 	}
 	else if (Family == AF_INET6)
