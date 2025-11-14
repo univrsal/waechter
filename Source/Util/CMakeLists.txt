@@ -23,11 +23,13 @@ target_link_libraries(util PRIVATE
 )
 
 target_compile_options(util PRIVATE
-        -Wall -Wextra -Wpedantic
+        -Wall -Wextra
         -Wshadow -Wformat=2 -Wconversion -Wsign-conversion
         -Wnull-dereference -Wdouble-promotion -Wcast-align
         -Wduplicated-cond -Wredundant-decls -Wpointer-arith
-        -Werror
+        -Werror -Wold-style-cast -Wcast-align -Wunused -Woverloaded-virtual
+        -Wnon-virtual-dtor -pedantic -Wmisleading-indentation -Wduplicated-branches -Wlogical-op -Wformat=2
+        -Wuseless-cast -Wimplicit-fallthrough
 )
 
 add_subdirectory(Data)

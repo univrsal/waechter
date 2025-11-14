@@ -28,11 +28,13 @@ target_link_libraries(waechter PRIVATE
 target_include_directories(waechter PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_compile_options(waechter PRIVATE
-        -Wall -Wextra -Wpedantic
+        -Wall -Wextra
         -Wshadow -Wformat=2 -Wconversion -Wsign-conversion
         -Wnull-dereference -Wdouble-promotion -Wcast-align
         -Wduplicated-cond -Wredundant-decls -Wpointer-arith
-        -Werror
+        -Werror -Wold-style-cast -Wcast-align -Wunused -Woverloaded-virtual
+        -Wnon-virtual-dtor -pedantic -Wmisleading-indentation -Wduplicated-branches -Wlogical-op -Wformat=2
+        -Wuseless-cast -Wimplicit-fallthrough
 )
 
 file(GLOB thirdparty_dirs RELATIVE "${CMAKE_SOURCE_DIR}/Thirdparty" "${CMAKE_SOURCE_DIR}/Thirdparty/*")
