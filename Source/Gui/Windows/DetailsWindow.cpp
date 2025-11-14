@@ -191,7 +191,7 @@ void WDetailsWindow::DrawSocketDetails()
 		}
 #endif
 	}
-	else if (Sock->SocketType == ESocketType::Unknown)
+	else if (Sock->SocketType != ESocketType::Unknown)
 	{
 		ImGui::Text("Protocol: %s", ProtocolToString(Sock->SocketTuple.Protocol));
 	}
