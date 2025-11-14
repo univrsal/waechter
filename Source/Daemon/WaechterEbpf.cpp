@@ -155,13 +155,11 @@ void WWaechterEbpf::UpdateData()
 			case NE_Traffic:
 				if (SocketEvent.Data.TrafficEventData.Direction == PD_Incoming)
 				{
-					WSystemMap::GetInstance().PushIncomingTraffic(
-						SocketEvent.Data.TrafficEventData.Bytes, SocketEvent.Cookie);
+					WSystemMap::GetInstance().PushIncomingTraffic(SocketEvent);
 				}
 				else if (SocketEvent.Data.TrafficEventData.Direction == PD_Outgoing)
 				{
-					WSystemMap::GetInstance().PushOutgoingTraffic(
-						SocketEvent.Data.TrafficEventData.Bytes, SocketEvent.Cookie);
+					WSystemMap::GetInstance().PushOutgoingTraffic(SocketEvent);
 				}
 				break;
 			case NE_SocketClosed:

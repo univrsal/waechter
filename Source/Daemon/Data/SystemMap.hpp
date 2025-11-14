@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <mutex>
 #include <atomic>
+#include <spdlog/spdlog.h>
 
 #include "EBPFCommon.h"
 #include "Types.hpp"
@@ -14,7 +15,7 @@
 #include "TrafficCounter.hpp"
 #include "Data/SystemItem.hpp"
 #include "Data/TrafficTreeUpdate.hpp"
-#include "spdlog/spdlog.h"
+#include "Net/SocketStateParser.hpp"
 
 /**
  * Both the client and the daemon need a tree of applications, processes, and sockets
@@ -52,12 +53,14 @@ public:
 		{
 		}
 
-		void ProcessSocketEvent(WSocketEvent const& Event);
+		void ProcessSocketEvent(WSocketEvent const& Event) const;
 
 		std::shared_ptr<WProcessCounter> ParentProcess;
 	};
 
 private:
+	WSocketStateParser SocketStateParser{};
+
 	std::atomic<WTrafficItemId>  NextItemId{ 1 }; // 0 is the root item
 	std::shared_ptr<WSystemItem> SystemItem = std::make_shared<WSystemItem>();
 	TTrafficCounter<WSystemItem> TrafficCounter{ SystemItem };
@@ -86,6 +89,8 @@ private:
 		return Result;
 	}
 
+	void DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSocketItem> const& Item);
+
 public:
 	WSystemMap();
 	~WSystemMap() override = default;
@@ -96,9 +101,9 @@ public:
 
 	void RefreshAllTrafficCounters();
 
-	void PushIncomingTraffic(WBytes Bytes, WSocketCookie SocketCookie);
+	void PushIncomingTraffic(WSocketEvent const& Event);
 
-	void PushOutgoingTraffic(WBytes Bytes, WSocketCookie SocketCookie);
+	void PushOutgoingTraffic(WSocketEvent const& Event);
 
 	void MarkSocketForRemoval(WSocketCookie SocketCookie)
 	{

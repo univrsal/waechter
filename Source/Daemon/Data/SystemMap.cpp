@@ -6,9 +6,73 @@
 
 #include <spdlog/spdlog.h>
 #include <ranges>
-#include <arpa/inet.h> // for ntohl
 
 #include "Filesystem.hpp"
+#include "Net/PacketParser.hpp"
+
+void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSocketItem> const& Item)
+{
+	// if this socket doesn't already have a local/remote endpoint, try to infer from traffic
+	bool const bHaveRemoteEndpoint = !Item->SocketTuple.LocalEndpoint.Address.IsZero();
+	bool const bHaveLocalEndpoint = !Item->SocketTuple.RemoteEndpoint.Address.IsZero();
+	bool const bIsUdp = Item->SocketTuple.Protocol == EProtocol::UDP;
+
+	if (bHaveLocalEndpoint && (bHaveRemoteEndpoint || bIsUdp))
+	{
+		// both endpoints are already known (udp doesn't get a remote endpoint from parsing, only from connect()
+		return;
+	}
+
+	WPacketHeaderParser PacketHeader{};
+
+	if (PacketHeader.ParsePacket(Event.Data.TrafficEventData.RawData, PACKET_HEADER_SIZE))
+	{
+		WEndpoint LocalEndpoint{};
+		WEndpoint RemoteEndpoint{};
+
+		if (Event.Data.TrafficEventData.Direction == PD_Outgoing)
+		{
+			LocalEndpoint = PacketHeader.Src;
+			RemoteEndpoint = PacketHeader.Dst;
+		}
+		else if (Event.Data.TrafficEventData.Direction == PD_Incoming)
+		{
+			LocalEndpoint = PacketHeader.Dst;
+			RemoteEndpoint = PacketHeader.Src;
+		}
+
+		if (!bHaveRemoteEndpoint)
+		{
+			Item->SocketTuple.LocalEndpoint = LocalEndpoint;
+		}
+
+		if (Item->SocketTuple.Protocol == EProtocol::TCP && !bHaveRemoteEndpoint)
+		{
+			Item->SocketTuple.RemoteEndpoint = RemoteEndpoint;
+		}
+
+		Item->SocketTuple.Protocol = PacketHeader.L4Proto;
+
+		if (Item->SocketType == ESocketType::Unknown)
+		{
+			if (Item->SocketTuple.Protocol == EProtocol::ICMP || Item->SocketTuple.Protocol == EProtocol::ICMPv6)
+			{
+				Item->SocketType = ESocketType::Connect;
+			}
+			else
+			{
+				Item->SocketType =
+					SocketStateParser.DetermineSocketType(Item->SocketTuple.LocalEndpoint, Item->SocketTuple.Protocol);
+			}
+		}
+
+		AddStateChange(Item->ItemId, ESocketConnectionState::Connected, Item->SocketType, Item->SocketTuple);
+	}
+	else
+	{
+		spdlog::warn("Packet header parsing failed");
+	}
+}
 
 WSystemMap::WSystemMap()
 {
@@ -83,7 +147,7 @@ std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::MapSocket(
 	return FindOrMapSocket(SocketCookie, Process);
 }
 
-void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event)
+void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 {
 	if (Event.EventType == NE_SocketConnect_4 && TrafficItem->ConnectionState != ESocketConnectionState::Connecting)
 	{
@@ -324,8 +388,10 @@ void WSystemMap::RefreshAllTrafficCounters()
 	Cleanup();
 }
 
-void WSystemMap::PushIncomingTraffic(WBytes Bytes, WSocketCookie SocketCookie)
+void WSystemMap::PushIncomingTraffic(WSocketEvent const& Event)
 {
+	auto            Bytes = Event.Data.TrafficEventData.Bytes;
+	auto            SocketCookie = Event.Cookie;
 	std::lock_guard Lock(DataMutex);
 	TrafficCounter.PushIncomingTraffic(Bytes);
 
@@ -336,11 +402,15 @@ void WSystemMap::PushIncomingTraffic(WBytes Bytes, WSocketCookie SocketCookie)
 		Socket->TrafficItem->ConnectionState = ESocketConnectionState::Connected;
 		Socket->ParentProcess->PushIncomingTraffic(Bytes);
 		Socket->ParentProcess->ParentApp->PushIncomingTraffic(Bytes);
+
+		DoPacketParsing(Event, Socket->TrafficItem);
 	}
 }
 
-void WSystemMap::PushOutgoingTraffic(WBytes Bytes, WSocketCookie SocketCookie)
+void WSystemMap::PushOutgoingTraffic(WSocketEvent const& Event)
 {
+	auto            Bytes = Event.Data.TrafficEventData.Bytes;
+	auto            SocketCookie = Event.Cookie;
 	std::lock_guard Lock(DataMutex);
 	TrafficCounter.PushOutgoingTraffic(Bytes);
 
@@ -351,6 +421,8 @@ void WSystemMap::PushOutgoingTraffic(WBytes Bytes, WSocketCookie SocketCookie)
 		Socket->TrafficItem->ConnectionState = ESocketConnectionState::Connected;
 		Socket->ParentProcess->PushOutgoingTraffic(Bytes);
 		Socket->ParentProcess->ParentApp->PushOutgoingTraffic(Bytes);
+
+		DoPacketParsing(Event, Socket->TrafficItem);
 	}
 }
 
