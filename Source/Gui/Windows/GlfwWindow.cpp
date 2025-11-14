@@ -5,6 +5,7 @@
 #include "GlfwWindow.hpp"
 #define STB_IMAGE_IMPLEMENTATION
 
+#define INCBIN_PREFIX G
 #include <spdlog/spdlog.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
@@ -88,7 +89,7 @@ bool WGlfwWindow::Init()
 	}
 	glfwMakeContextCurrent(Window);
 
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+	if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
 	{
 		glfwDestroyWindow(Window);
 		glfwTerminate();
@@ -98,7 +99,7 @@ bool WGlfwWindow::Init()
 
 	int            Width, Height, Channels;
 	unsigned char* Pixels =
-		stbi_load_from_memory(gIconData, static_cast<int>(gIconSize), &Width, &Height, &Channels, 4);
+		stbi_load_from_memory(GIconData, static_cast<int>(GIconSize), &Width, &Height, &Channels, 4);
 	if (Pixels)
 	{
 		GLFWimage Image{};
@@ -135,8 +136,11 @@ bool WGlfwWindow::Init()
 	Cfg.PixelSnapH = true;
 	Cfg.FontDataOwnedByAtlas = false; // font data comes from static incbin; do not let ImGui free it
 
-	auto  FontSize = std::round(16.0f * MainScale);
-	auto* FontData = Io.Fonts->AddFontFromMemoryTTF((void*)gFontData, static_cast<int>(gFontSize), FontSize, &Cfg);
+	auto FontSize = std::round(16.0f * MainScale);
+	auto NonConstFontData = const_cast<unsigned char*>(GFontData);
+
+	auto* FontData = Io.Fonts->AddFontFromMemoryTTF(
+		static_cast<void*>(NonConstFontData), static_cast<int>(GFontSize), FontSize, &Cfg);
 	Io.FontDefault = FontData;
 	// Setup Dear ImGui style
 	ImGui::StyleColorsLight();
