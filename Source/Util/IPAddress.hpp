@@ -5,6 +5,8 @@
 #pragma once
 #include <array>
 #include <string>
+#include <cstring>
+#include <functional>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
@@ -32,8 +34,8 @@ namespace EProtocol
 struct WIPAddress
 {
 	// IPv4: first 4 bytes used; IPv6: all 16 bytes used.
-	std::array<uint8_t, 16> Bytes;
-	EIPFamily::Type         Family;
+	std::array<uint8_t, 16> Bytes{};
+	EIPFamily::Type         Family{};
 
 	[[nodiscard]] std::string ToString() const
 	{
@@ -134,6 +136,16 @@ struct WIPAddress
 	}
 };
 
+inline bool operator==(WIPAddress const& Lhs, WIPAddress const& Rhs)
+{
+	return Lhs.Bytes == Rhs.Bytes && Lhs.Family == Rhs.Family;
+}
+
+inline bool operator!=(WIPAddress const& Lhs, WIPAddress const& Rhs)
+{
+	return !(Lhs == Rhs);
+}
+
 struct WEndpoint
 {
 	WIPAddress Address{};
@@ -155,6 +167,16 @@ struct WEndpoint
 	}
 };
 
+inline bool operator==(WEndpoint const& lhs, WEndpoint const& rhs)
+{
+	return lhs.Address == rhs.Address && lhs.Port == rhs.Port;
+}
+
+inline bool operator!=(WEndpoint const& lhs, WEndpoint const& rhs)
+{
+	return !(lhs == rhs);
+}
+
 struct WSocketTuple
 {
 	WEndpoint       LocalEndpoint{};
@@ -167,3 +189,44 @@ struct WSocketTuple
 		archive(LocalEndpoint, RemoteEndpoint, Protocol);
 	}
 };
+
+struct ByteArray16Hash
+{
+	size_t operator()(std::array<uint8_t, 16> const& A) const noexcept
+	{
+		uint64_t P1, P2;
+		std::memcpy(&P1, A.data(), 8);
+		std::memcpy(&P2, A.data() + 8, 8);
+		uint64_t Hash = P1 ^ (P2 + 0x9e3779b97f4a7c15ULL + (P1 << 6) + (P1 >> 2));
+		return Hash;
+	}
+};
+
+struct WEndpointHash
+{
+	size_t operator()(WEndpoint const& Endpoint) const noexcept
+	{
+		ByteArray16Hash ByteArrayHash;
+
+		size_t H1 = ByteArrayHash(Endpoint.Address.Bytes);
+		size_t H2 = std::hash<uint8_t>{}(Endpoint.Address.Family);
+		size_t H3 = std::hash<uint16_t>{}(Endpoint.Port);
+		size_t Combined = H1;
+		Combined = Combined * 31 + H2;
+		Combined = Combined * 31 + H3;
+		return Combined;
+	}
+};
+
+namespace std
+{
+	template <>
+	struct hash<WEndpoint>
+	{
+		size_t operator()(WEndpoint const& ep) const noexcept
+		{
+			WEndpointHash h;
+			return h(ep);
+		}
+	};
+} // namespace std
