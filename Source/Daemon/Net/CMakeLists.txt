@@ -1,4 +1,5 @@
 target_sources(waechterd
-    PRIVATE
+        PRIVATE
         PacketParser.cpp
+        SocketStateParser.cpp
 )
