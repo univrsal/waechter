@@ -273,6 +273,23 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 	}
 }
 
+static std::string GetSocketName(WSocketItem* Socket)
+{
+	if (Socket->SocketType == ESocketType::Listen && !Socket->SocketTuple.LocalEndpoint.Address.IsZero())
+	{
+		return fmt::format("● {}", Socket->SocketTuple.LocalEndpoint.ToString());
+	}
+	if (Socket->SocketType == ESocketType::Connect && !Socket->SocketTuple.LocalEndpoint.Address.IsZero())
+	{
+		return fmt::format("→ {}", Socket->SocketTuple.RemoteEndpoint.ToString());
+	}
+	if (Socket->SocketType == ESocketType::Accept)
+	{
+		return fmt::format("← {}", Socket->SocketTuple.RemoteEndpoint.ToString());
+	}
+	return fmt::format("Socket {}", Socket->ItemId);
+}
+
 void WTrafficTree::Draw(ImGuiID MainID)
 {
 	auto UnitText = [this] {
@@ -402,7 +419,9 @@ void WTrafficTree::Draw(ImGuiID MainID)
 				std::string sockId = std::string("sock:") + std::to_string(SocketCookie);
 				ImGui::PushID(sockId.c_str());
 				ImGuiTreeNodeFlags socketFlags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-				RenderItem(fmt::format("Socket {}", SocketCookie), Socket.get(), socketFlags, TI_Socket);
+				auto               SocketName = GetSocketName(Socket.get());
+
+				RenderItem(SocketName, Socket.get(), socketFlags, TI_Socket);
 				ImGui::PopID();
 				// No TreePop() here because NoTreePushOnOpen prevents a push
 			}
