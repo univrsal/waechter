@@ -47,6 +47,12 @@ void WTrafficTree::RemoveTrafficItem(WTrafficItemId TrafficItemId)
 
 	for (auto& App : Root.Applications | std::views::values)
 	{
+		assert(App);
+		if (!App)
+		{
+			continue;
+		}
+
 		if (App->RemoveChild(TrafficItemId))
 		{
 			return;
@@ -134,6 +140,20 @@ void WTrafficTree::LoadFromBuffer(WBuffer const& Buffer)
 		ss.seekg(1); // Skip message type
 		cereal::BinaryInputArchive iar(ss);
 		iar(Root);
+	}
+
+	// Remove any NULL entries that may have been deserialized
+	for (auto It = Root.Applications.begin(); It != Root.Applications.end();)
+	{
+		if (!It->second)
+		{
+			spdlog::warn("Found NULL application '{}' in deserialized data, removing", It->first);
+			It = Root.Applications.erase(It);
+		}
+		else
+		{
+			++It;
+		}
 	}
 
 	for (auto const& App : Root.Applications | std::views::values)
