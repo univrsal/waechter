@@ -27,6 +27,7 @@ class WTrafficTree
 
 	bool RenderItem(
 		std::string const& Name, ITrafficItem const* Item, ImGuiTreeNodeFlags NodeFlags, ETrafficItemType Type);
+	std::mutex DataMutex;
 
 public:
 	WTrafficTree() = default;

@@ -126,6 +126,7 @@ bool WTrafficTree::RenderItem(
 
 void WTrafficTree::LoadFromBuffer(WBuffer const& Buffer)
 {
+	std::lock_guard Lock(DataMutex);
 	TrafficItems.clear();
 	std::stringstream ss;
 	ss.write(Buffer.GetData(), static_cast<long int>(Buffer.GetWritePos()));
@@ -315,6 +316,8 @@ static std::string GetSocketName(WSocketItem* Socket)
 
 void WTrafficTree::Draw(ImGuiID MainID)
 {
+	std::lock_guard Lock(DataMutex);
+
 	auto UnitText = [this] {
 		switch (Unit)
 		{
