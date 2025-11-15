@@ -12,7 +12,8 @@ enum ETrafficItemType : uint8_t
 	TI_System,
 	TI_Application,
 	TI_Process,
-	TI_Socket
+	TI_Socket,
+	TI_Tuple
 };
 
 struct ITrafficItem

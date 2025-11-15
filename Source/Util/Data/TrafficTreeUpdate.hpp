@@ -44,6 +44,19 @@ struct WTrafficTreeSocketAddition
 	}
 };
 
+struct WTrafficTreeTupleAddition
+{
+	WTrafficItemId ItemId{};
+	WTrafficItemId SocketItemId{};
+	WSocketTuple   SocketTuple{};
+
+	template <class Archive>
+	void serialize(Archive& archive)
+	{
+		archive(ItemId, SocketItemId, SocketTuple);
+	}
+};
+
 struct WTrafficTreeSocketStateChange
 {
 	WTrafficItemId              ItemId{};
@@ -64,11 +77,12 @@ struct WTrafficTreeUpdates
 	std::vector<WTrafficItemId>                RemovedItems;
 	std::vector<WTrafficTreeTrafficUpdate>     UpdatedItems;
 	std::vector<WTrafficTreeSocketAddition>    AddedSockets;
+	std::vector<WTrafficTreeTupleAddition>     AddedTuples;
 	std::vector<WTrafficTreeSocketStateChange> SocketStateChange;
 
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(RemovedItems, MarkedForRemovalItems, UpdatedItems, AddedSockets, SocketStateChange);
+		archive(RemovedItems, MarkedForRemovalItems, UpdatedItems, AddedSockets, AddedTuples, SocketStateChange);
 	}
 };

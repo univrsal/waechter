@@ -10,16 +10,19 @@
 #include "Filesystem.hpp"
 #include "Net/PacketParser.hpp"
 
-void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSocketItem> const& Item)
+void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSocketCounter> const& SockCounter)
 {
+	auto Item = SockCounter->TrafficItem;
 	// if this socket doesn't already have a local/remote endpoint, try to infer from traffic
 	bool const bHaveRemoteEndpoint = !Item->SocketTuple.LocalEndpoint.Address.IsZero();
 	bool const bHaveLocalEndpoint = !Item->SocketTuple.RemoteEndpoint.Address.IsZero();
-	bool const bIsUdp = Item->SocketTuple.Protocol == EProtocol::UDP;
+	bool const bIsTcp = Item->SocketTuple.Protocol == EProtocol::TCP;
 
-	if (bHaveLocalEndpoint && (bHaveRemoteEndpoint || bIsUdp))
+	if (bHaveLocalEndpoint && bHaveRemoteEndpoint && bIsTcp)
 	{
-		// both endpoints are already known (udp doesn't get a remote endpoint from parsing, only from connect()
+		// both endpoints are already known
+		// so in the case of TCP there's nothing to do
+		// udp has to always be parsed because it can send/receive from/to multiple endpoints
 		return;
 	}
 
@@ -27,6 +30,7 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 
 	if (PacketHeader.ParsePacket(Event.Data.TrafficEventData.RawData, PACKET_HEADER_SIZE))
 	{
+		Item->SocketTuple.Protocol = PacketHeader.L4Proto;
 		WEndpoint LocalEndpoint{};
 		WEndpoint RemoteEndpoint{};
 
@@ -35,13 +39,13 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 			LocalEndpoint = PacketHeader.Src;
 			RemoteEndpoint = PacketHeader.Dst;
 		}
-		else if (Event.Data.TrafficEventData.Direction == PD_Incoming)
+		else
 		{
 			LocalEndpoint = PacketHeader.Dst;
 			RemoteEndpoint = PacketHeader.Src;
 		}
 
-		if (!bHaveRemoteEndpoint)
+		if (!bHaveLocalEndpoint)
 		{
 			Item->SocketTuple.LocalEndpoint = LocalEndpoint;
 		}
@@ -50,8 +54,6 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 		{
 			Item->SocketTuple.RemoteEndpoint = RemoteEndpoint;
 		}
-
-		Item->SocketTuple.Protocol = PacketHeader.L4Proto;
 
 		if (Item->SocketType == ESocketType::Unknown)
 		{
@@ -66,12 +68,49 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 			}
 		}
 
+		if (Item->SocketTuple.Protocol == EProtocol::UDP)
+		{
+			bool bTupleExists = Item->UDPPerConnectionTraffic.contains(RemoteEndpoint);
+			auto TupleCounter = GetOrCreateUDPTupleCounter(SockCounter, RemoteEndpoint);
+			if (Event.Data.TrafficEventData.Direction == PD_Outgoing)
+			{
+				TupleCounter->PushOutgoingTraffic(Event.Data.TrafficEventData.Bytes);
+			}
+			else
+			{
+				TupleCounter->PushIncomingTraffic(Event.Data.TrafficEventData.Bytes);
+			}
+
+			if (!bTupleExists)
+			{
+				AddedTuples.emplace_back(TupleCounter);
+			}
+		}
+
 		AddStateChange(Item->ItemId, ESocketConnectionState::Connected, Item->SocketType, Item->SocketTuple);
 	}
 	else
 	{
 		spdlog::warn("Packet header parsing failed");
 	}
+}
+std::shared_ptr<WSystemMap::WTupleCounter> WSystemMap::GetOrCreateUDPTupleCounter(
+	std::shared_ptr<WSocketCounter> const& SockCounter, WEndpoint const& Endpoint)
+{
+	auto Item = SockCounter->TrafficItem;
+	if (auto It = SockCounter->UDPPerConnectionCounters.find(Endpoint);
+		It != SockCounter->UDPPerConnectionCounters.end())
+	{
+		return It->second;
+	}
+
+	auto NewItem = std::make_shared<WTupleItem>();
+	NewItem->ItemId = GetNextItemId();
+	Item->UDPPerConnectionTraffic[Endpoint] = NewItem;
+
+	auto TupleCounter = std::make_shared<WTupleCounter>(NewItem, SockCounter);
+	SockCounter->UDPPerConnectionCounters[Endpoint] = TupleCounter;
+	return TupleCounter;
 }
 
 WSystemMap::WSystemMap()
@@ -403,7 +442,7 @@ void WSystemMap::PushIncomingTraffic(WSocketEvent const& Event)
 		Socket->ParentProcess->PushIncomingTraffic(Bytes);
 		Socket->ParentProcess->ParentApp->PushIncomingTraffic(Bytes);
 
-		DoPacketParsing(Event, Socket->TrafficItem);
+		DoPacketParsing(Event, Socket);
 	}
 }
 
@@ -422,7 +461,7 @@ void WSystemMap::PushOutgoingTraffic(WSocketEvent const& Event)
 		Socket->ParentProcess->PushOutgoingTraffic(Bytes);
 		Socket->ParentProcess->ParentApp->PushOutgoingTraffic(Bytes);
 
-		DoPacketParsing(Event, Socket->TrafficItem);
+		DoPacketParsing(Event, Socket);
 	}
 }
 
@@ -499,6 +538,24 @@ WTrafficTreeUpdates WSystemMap::GetUpdates()
 				Socket->TrafficItem->TotalDownloadBytes,
 				Socket->TrafficItem->TotalUploadBytes,
 			});
+
+			if (Socket->TrafficItem->SocketTuple.Protocol == EProtocol::UDP)
+			{
+				for (auto const& TupleCounter : Socket->UDPPerConnectionCounters | std::views::values)
+				{
+					if (TupleCounter->IsActive())
+					{
+						auto TupleItem = TupleCounter->TrafficItem;
+						Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{
+							TupleItem->ItemId,
+							TupleItem->DownloadSpeed,
+							TupleItem->UploadSpeed,
+							TupleItem->TotalDownloadBytes,
+							TupleItem->TotalUploadBytes,
+						});
+					}
+				}
+			}
 		}
 	}
 
@@ -527,7 +584,23 @@ WTrafficTreeUpdates WSystemMap::GetUpdates()
 		Updates.AddedSockets.emplace_back(Addition);
 	}
 
+	for (auto const& Tuple : AddedTuples)
+	{
+		if (Tuple->ParentSocket->GetState() == CS_PendingRemoval)
+		{
+			// No point in sending additions for tuples whose parent socket is being removed
+			continue;
+		}
+
+		WTrafficTreeTupleAddition Addition{};
+		Addition.ItemId = Tuple->TrafficItem->ItemId;
+		Addition.SocketItemId = Tuple->ParentSocket->TrafficItem->ItemId;
+		Addition.SocketTuple = Tuple->ParentSocket->TrafficItem->SocketTuple;
+		Updates.AddedTuples.emplace_back(Addition);
+	}
+
 	AddedSockets.clear();
+	AddedTuples.clear();
 	RemovedItems.clear();
 	MarkedForRemovalItems.clear();
 	SocketStateChanges.clear();

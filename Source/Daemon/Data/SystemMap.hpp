@@ -44,6 +44,7 @@ public:
 		std::shared_ptr<WAppCounter> ParentApp;
 	};
 
+	struct WTupleCounter;
 	struct WSocketCounter : TTrafficCounter<WSocketItem>
 	{
 		explicit WSocketCounter(
@@ -54,7 +55,19 @@ public:
 
 		void ProcessSocketEvent(WSocketEvent const& Event) const;
 
-		std::shared_ptr<WProcessCounter> ParentProcess;
+		std::shared_ptr<WProcessCounter>                              ParentProcess;
+		std::unordered_map<WEndpoint, std::shared_ptr<WTupleCounter>> UDPPerConnectionCounters{};
+	};
+
+	struct WTupleCounter : TTrafficCounter<WTupleItem>
+	{
+		explicit WTupleCounter(
+			std::shared_ptr<WTupleItem> const& Item, std::shared_ptr<WSocketCounter> const& ParentSocket_)
+			: TTrafficCounter(Item), ParentSocket(ParentSocket_)
+		{
+		}
+
+		std::shared_ptr<WSocketCounter> ParentSocket;
 	};
 
 private:
@@ -78,6 +91,7 @@ private:
 	std::vector<WTrafficItemId>                  RemovedItems{};
 	std::vector<WTrafficTreeSocketStateChange>   SocketStateChanges{};
 	std::vector<std::shared_ptr<WSocketCounter>> AddedSockets{};
+	std::vector<std::shared_ptr<WTupleCounter>>  AddedTuples{};
 
 	void Cleanup();
 
@@ -88,7 +102,10 @@ private:
 		return Result;
 	}
 
-	void DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSocketItem> const& Item);
+	void DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSocketCounter> const& SockCounter);
+
+	std::shared_ptr<WTupleCounter> GetOrCreateUDPTupleCounter(
+		std::shared_ptr<WSocketCounter> const& SockCounter, WEndpoint const& Endpoint);
 
 public:
 	WSystemMap();

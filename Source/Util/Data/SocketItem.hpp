@@ -29,7 +29,16 @@ namespace ESocketType
 
 struct WTupleItem : ITrafficItem
 {
-	// This is essentially just a traffic counter
+	WTupleItem() = default;
+	// This is essentially just a traffic item
+
+	[[nodiscard]] ETrafficItemType GetType() const override { return TI_Tuple; }
+
+	template <class Archive>
+	void serialize(Archive& archive)
+	{
+		archive(ItemId, DownloadSpeed, UploadSpeed, TotalDownloadBytes, TotalUploadBytes);
+	}
 };
 
 struct WSocketItem : ITrafficItem

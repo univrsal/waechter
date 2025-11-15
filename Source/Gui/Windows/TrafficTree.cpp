@@ -190,23 +190,6 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 		RemoveTrafficItem(RemovedId);
 	}
 
-	for (auto const& Update : Updates.UpdatedItems)
-	{
-		if (auto const It = TrafficItems.find(Update.ItemId); It != TrafficItems.end())
-		{
-			It->second->DownloadSpeed = Update.NewDownloadSpeed;
-			It->second->UploadSpeed = Update.NewUploadSpeed;
-			It->second->TotalDownloadBytes = Update.TotalDownloadBytes;
-			It->second->TotalUploadBytes = Update.TotalUploadBytes;
-
-			if (Update.ItemId == 0)
-			{
-				WGlfwWindow::GetInstance().GetMainWindow()->GetNetworkGraphWindow().AddData(
-					It->second->UploadSpeed, It->second->DownloadSpeed);
-			}
-		}
-	}
-
 	for (auto const& Addition : Updates.AddedSockets)
 	{
 		// Check if the socket already exists
@@ -254,6 +237,30 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 		TrafficItems[Addition.ItemId] = NewSocket.get();
 	}
 
+	for (auto const& Addition : Updates.AddedTuples)
+	{
+		// Check if the tuple already exists
+		if (TrafficItems.contains(Addition.ItemId))
+		{
+			spdlog::warn("{} already exists in traffic tree, skipping addition", Addition.ItemId);
+			continue;
+		}
+
+		auto SockIt = TrafficItems.find(Addition.SocketItemId);
+		if (SockIt == TrafficItems.end() || SockIt->second->GetType() != TI_Socket)
+		{
+			spdlog::warn(
+				"Parent socket {} for tuple {} not found, skipping addition", Addition.SocketItemId, Addition.ItemId);
+			continue;
+		}
+
+		auto SocketItem = dynamic_cast<WSocketItem*>(SockIt->second);
+		auto NewTuple = std::make_shared<WTupleItem>();
+		NewTuple->ItemId = Addition.ItemId;
+		SocketItem->UDPPerConnectionTraffic[Addition.SocketTuple.RemoteEndpoint] = NewTuple;
+		TrafficItems[Addition.ItemId] = NewTuple.get();
+	}
+
 	for (auto const& StateChange : Updates.SocketStateChange)
 	{
 		auto It = TrafficItems.find(StateChange.ItemId);
@@ -267,6 +274,23 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 				{
 					SocketItem->SocketTuple = StateChange.SocketTuple.value();
 				}
+			}
+		}
+	}
+
+	for (auto const& Update : Updates.UpdatedItems)
+	{
+		if (auto const It = TrafficItems.find(Update.ItemId); It != TrafficItems.end())
+		{
+			It->second->DownloadSpeed = Update.NewDownloadSpeed;
+			It->second->UploadSpeed = Update.NewUploadSpeed;
+			It->second->TotalDownloadBytes = Update.TotalDownloadBytes;
+			It->second->TotalUploadBytes = Update.TotalUploadBytes;
+
+			if (Update.ItemId == 0)
+			{
+				WGlfwWindow::GetInstance().GetMainWindow()->GetNetworkGraphWindow().AddData(
+					It->second->UploadSpeed, It->second->DownloadSpeed);
 			}
 		}
 	}
@@ -378,6 +402,12 @@ void WTrafficTree::Draw(ImGuiID MainID)
 
 	for (auto const& [Name, Child] : Root.Applications)
 	{
+		if (!Child)
+		{
+			spdlog::warn("Invalid app {} in traffic tree", Name);
+			continue;
+		}
+
 		if (Child->NoChildren())
 		{
 			continue;
@@ -415,14 +445,39 @@ void WTrafficTree::Draw(ImGuiID MainID)
 			{
 				ImGui::TableNextRow();
 				// Use string ID for potentially wide cookies
-				std::string sockId = std::string("sock:") + std::to_string(SocketCookie);
-				ImGui::PushID(sockId.c_str());
-				ImGuiTreeNodeFlags socketFlags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+				std::string SockId = std::string("sock:") + std::to_string(SocketCookie);
+				ImGui::PushID(SockId.c_str());
+				ImGuiTreeNodeFlags SocketFlags = 0;
 				auto               SocketName = GetSocketName(Socket.get());
 
-				RenderItem(SocketName, Socket.get(), socketFlags, TI_Socket);
+				if (Socket->UDPPerConnectionTraffic.empty())
+				{
+					SocketFlags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+				}
+
+				bOpened = RenderItem(SocketName, Socket.get(), SocketFlags, TI_Socket);
+
+				if (!bOpened)
+				{
+					ImGui::PopID();
+					continue;
+				}
+
+				for (auto const& [TupleKey, Tuple] : Socket->UDPPerConnectionTraffic)
+				{
+					ImGui::TableNextRow();
+					std::string tupleId = std::string("tuple:") + TupleKey.ToString();
+					ImGui::PushID(tupleId.c_str());
+					ImGuiTreeNodeFlags tupleFlags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+					RenderItem(fmt::format("{}", TupleKey.ToString()), Tuple.get(), tupleFlags, TI_Tuple);
+					ImGui::PopID();
+				}
 				ImGui::PopID();
-				// No TreePop() here because NoTreePushOnOpen prevents a push
+
+				if (!Socket->UDPPerConnectionTraffic.empty())
+				{
+					ImGui::TreePop();
+				}
 			}
 			ImGui::TreePop();
 			ImGui::PopID(); // PID

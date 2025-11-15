@@ -218,6 +218,8 @@ void WDetailsWindow::Draw()
 			case TI_Socket:
 				DrawSocketDetails();
 				break;
+			case TI_Tuple:
+				break; // TODO
 		}
 	}
 	ImGui::End();
