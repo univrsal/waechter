@@ -6,6 +6,8 @@ target_sources(waechterd
         IconResolver.hpp
         AppIconAtlasBuilder.cpp
         AppIconAtlasBuilder.hpp
+        MapUpdate.cpp
+        MapUpdate.hpp
         Counters.hpp
         Counters.cpp
 )

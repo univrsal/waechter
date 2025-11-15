@@ -95,7 +95,7 @@ void WDaemonSocket::BroadcastTrafficUpdate()
 		return;
 	}
 
-	WTrafficTreeUpdates Updates = SystemMap.GetUpdates();
+	WTrafficTreeUpdates const& Updates = SystemMap.GetUpdates();
 
 	std::stringstream Os{};
 	{

@@ -4,6 +4,7 @@
 
 #include "Counters.hpp"
 
+#include "MapUpdate.hpp"
 #include "SystemMap.hpp"
 
 void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
@@ -124,6 +125,7 @@ void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 		TrafficItem->SocketTuple.LocalEndpoint.Port = Event.Data.SocketAcceptEventData.DestinationPort;
 		TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv6Array(Event.Data.SocketAcceptEventData.DestinationAddr6);
 	}
-	WSystemMap::GetInstance().AddStateChange(
+
+	WSystemMap::GetInstance().GetMapUpdate().AddStateChange(
 		TrafficItem->ItemId, TrafficItem->ConnectionState, TrafficItem->SocketType, TrafficItem->SocketTuple);
 }

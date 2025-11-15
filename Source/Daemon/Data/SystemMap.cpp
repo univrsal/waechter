@@ -83,11 +83,11 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 
 			if (!bTupleExists)
 			{
-				AddedTuples.emplace_back(TupleCounter);
+				MapUpdate.AddTupleAddition(TupleCounter);
 			}
 		}
 
-		AddStateChange(Item->ItemId, ESocketConnectionState::Connected, Item->SocketType, Item->SocketTuple);
+		MapUpdate.AddStateChange(Item->ItemId, ESocketConnectionState::Connected, Item->SocketType, Item->SocketTuple);
 	}
 	else
 	{
@@ -200,7 +200,7 @@ std::shared_ptr<WSocketCounter> WSystemMap::FindOrMapSocket(
 	Sockets[SocketCookie] = Socket;
 	ParentProcess->TrafficItem->Sockets[SocketCookie] = SocketItem;
 
-	AddedSockets.emplace_back(Socket);
+	MapUpdate.AddSocketAddition(Socket);
 
 	return Socket;
 }
@@ -343,133 +343,6 @@ std::vector<std::string> WSystemMap::GetActiveApplicationPaths()
 	return ActiveApps;
 }
 
-WTrafficTreeUpdates WSystemMap::GetUpdates()
-{
-	WTrafficTreeUpdates Updates{};
-
-	Updates.RemovedItems = RemovedItems;
-	Updates.MarkedForRemovalItems = MarkedForRemovalItems;
-	Updates.SocketStateChange = SocketStateChanges;
-
-	if (TrafficCounter.IsActive())
-	{
-		Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{
-			SystemItem->ItemId,
-			SystemItem->DownloadSpeed,
-			SystemItem->UploadSpeed,
-			SystemItem->TotalDownloadBytes,
-			SystemItem->TotalUploadBytes,
-		});
-	}
-
-	for (auto const& App : Applications | std::views::values)
-	{
-		if (App->IsActive())
-		{
-			Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{
-				App->TrafficItem->ItemId,
-				App->TrafficItem->DownloadSpeed,
-				App->TrafficItem->UploadSpeed,
-				App->TrafficItem->TotalDownloadBytes,
-				App->TrafficItem->TotalUploadBytes,
-			});
-		}
-	}
-
-	for (auto const& Process : Processes | std::views::values)
-	{
-		if (Process->IsActive())
-		{
-			Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{
-				Process->TrafficItem->ItemId,
-				Process->TrafficItem->DownloadSpeed,
-				Process->TrafficItem->UploadSpeed,
-				Process->TrafficItem->TotalDownloadBytes,
-				Process->TrafficItem->TotalUploadBytes,
-			});
-		}
-	}
-
-	for (auto const& Socket : Sockets | std::views::values)
-	{
-		if (Socket->IsActive())
-		{
-			Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{
-				Socket->TrafficItem->ItemId,
-				Socket->TrafficItem->DownloadSpeed,
-				Socket->TrafficItem->UploadSpeed,
-				Socket->TrafficItem->TotalDownloadBytes,
-				Socket->TrafficItem->TotalUploadBytes,
-			});
-
-			if (Socket->TrafficItem->SocketTuple.Protocol == EProtocol::UDP)
-			{
-				for (auto const& TupleCounter : Socket->UDPPerConnectionCounters | std::views::values)
-				{
-					if (TupleCounter->IsActive())
-					{
-						auto TupleItem = TupleCounter->TrafficItem;
-						Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{
-							TupleItem->ItemId,
-							TupleItem->DownloadSpeed,
-							TupleItem->UploadSpeed,
-							TupleItem->TotalDownloadBytes,
-							TupleItem->TotalUploadBytes,
-						});
-					}
-				}
-			}
-		}
-	}
-
-	for (auto const& Socket : AddedSockets)
-	{
-		if (Socket->GetState() == CS_PendingRemoval)
-		{
-			// No point in sending additions for sockets that are being removed
-			continue;
-		}
-
-		WTrafficTreeSocketAddition Addition{};
-
-		auto const PPTI = Socket->ParentProcess->TrafficItem;
-		auto const PATI = Socket->ParentProcess->ParentApp->TrafficItem;
-
-		Addition.ItemId = Socket->TrafficItem->ItemId;
-		Addition.ProcessItemId = PPTI->ItemId;
-		Addition.ApplicationItemId = PATI->ItemId;
-		Addition.ProcessId = PPTI->ProcessId;
-		Addition.ApplicationPath = PATI->ApplicationPath;
-		Addition.ApplicationName = PATI->ApplicationName;
-		Addition.ApplicationCommandLine = PATI->ApplicationCommandLine;
-		Addition.SocketTuple = Socket->TrafficItem->SocketTuple;
-		Addition.ConnectionState = Socket->TrafficItem->ConnectionState;
-		Updates.AddedSockets.emplace_back(Addition);
-	}
-
-	for (auto const& Tuple : AddedTuples)
-	{
-		if (Tuple->ParentSocket->GetState() == CS_PendingRemoval)
-		{
-			// No point in sending additions for tuples whose parent socket is being removed
-			continue;
-		}
-
-		WTrafficTreeTupleAddition Addition{};
-		Addition.ItemId = Tuple->TrafficItem->ItemId;
-		Addition.SocketItemId = Tuple->ParentSocket->TrafficItem->ItemId;
-		Addition.SocketTuple = Tuple->ParentSocket->TrafficItem->SocketTuple;
-		Updates.AddedTuples.emplace_back(Addition);
-	}
-
-	AddedSockets.clear();
-	AddedTuples.clear();
-	RemovedItems.clear();
-	MarkedForRemovalItems.clear();
-	SocketStateChanges.clear();
-	return Updates;
-}
-
 void WSystemMap::Cleanup()
 {
 	bool bRemovedAny{ false };
@@ -480,7 +353,7 @@ void WSystemMap::Cleanup()
 		if (!WFilesystem::IsProcessRunning(PID) && !ProcessIt->second->IsMarkedForRemoval())
 		{
 			ProcessIt->second->MarkForRemoval();
-			MarkedForRemovalItems.emplace_back(ProcessIt->second->TrafficItem->ItemId);
+			MapUpdate.MarkItemForRemoval(ProcessIt->second->TrafficItem->ItemId);
 		}
 
 		if (auto const& Process = ProcessIt->second; Process->DueForRemoval())
@@ -497,11 +370,11 @@ void WSystemMap::Cleanup()
 			for (auto const& [SocketCookie, Socket] : Process->TrafficItem->Sockets)
 			{
 				Sockets.erase(SocketCookie);
-				RemovedItems.emplace_back(Socket->ItemId);
+				MapUpdate.AddItemRemoval(Socket->ItemId);
 			}
 
 			Process->ParentApp->TrafficItem->Processes.erase(ProcessIt->first);
-			RemovedItems.emplace_back(ProcessIt->second->TrafficItem->ItemId);
+			MapUpdate.AddItemRemoval(ProcessIt->second->TrafficItem->ItemId);
 			ProcessIt = Processes.erase(ProcessIt);
 		}
 		else
@@ -520,7 +393,7 @@ void WSystemMap::Cleanup()
 			//  - Remove it from its parent process's Sockets map
 			//  - Remove it from the Sockets map
 			Socket->ParentProcess->TrafficItem->Sockets.erase(SocketIt->first);
-			RemovedItems.emplace_back(Socket->TrafficItem->ItemId);
+			MapUpdate.AddItemRemoval(Socket->TrafficItem->ItemId);
 			SocketIt = Sockets.erase(SocketIt);
 		}
 		else

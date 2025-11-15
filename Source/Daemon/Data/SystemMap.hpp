@@ -15,6 +15,7 @@
 #include "Data/SystemItem.hpp"
 #include "Data/TrafficTreeUpdate.hpp"
 #include "Data/Counters.hpp"
+#include "Data/MapUpdate.hpp"
 #include "Net/SocketStateParser.hpp"
 
 /**
@@ -29,9 +30,9 @@
  */
 class WSystemMap : public TSingleton<WSystemMap>
 {
-public:
-private:
+	friend class WMapUpdate;
 	WSocketStateParser SocketStateParser{};
+	WMapUpdate         MapUpdate{};
 
 	std::atomic<WTrafficItemId>  NextItemId{ 1 }; // 0 is the root item
 	std::shared_ptr<WSystemItem> SystemItem = std::make_shared<WSystemItem>();
@@ -40,12 +41,6 @@ private:
 	std::unordered_map<std::string, std::shared_ptr<WAppCounter>>      Applications{};
 	std::unordered_map<WProcessId, std::shared_ptr<WProcessCounter>>   Processes{};
 	std::unordered_map<WSocketCookie, std::shared_ptr<WSocketCounter>> Sockets{};
-
-	std::vector<WTrafficItemId>                  MarkedForRemovalItems{};
-	std::vector<WTrafficItemId>                  RemovedItems{};
-	std::vector<WTrafficTreeSocketStateChange>   SocketStateChanges{};
-	std::vector<std::shared_ptr<WSocketCounter>> AddedSockets{};
-	std::vector<std::shared_ptr<WTupleCounter>>  AddedTuples{};
 
 	std::shared_ptr<WSocketCounter> FindOrMapSocket(
 		WSocketCookie SocketCookie, std::shared_ptr<WProcessCounter> const& ParentProcess);
@@ -87,7 +82,7 @@ public:
 		{
 			It->second->MarkForRemoval();
 			It->second->TrafficItem->ConnectionState = ESocketConnectionState::Closed;
-			MarkedForRemovalItems.emplace_back(It->second->TrafficItem->ItemId);
+			MapUpdate.MarkItemForRemoval(It->second->TrafficItem->ItemId);
 			It->second->ParentProcess->PushIncomingTraffic(0); // Force state update
 			It->second->ParentProcess->ParentApp->PushOutgoingTraffic(0);
 			TrafficCounter.PushIncomingTraffic(0);
@@ -98,27 +93,13 @@ public:
 
 	double GetUploadSpeed() const { return SystemItem->UploadSpeed; }
 
-	bool HasNewData() const
-	{
-		return TrafficCounter.GetState() == CS_Active || !AddedSockets.empty() || !RemovedItems.empty()
-			|| !MarkedForRemovalItems.empty() || !SocketStateChanges.empty();
-	}
-
-	void AddStateChange(WTrafficItemId Id, ESocketConnectionState NewState, uint8_t SocketType,
-		std::optional<WSocketTuple> const& SocketTuple = std::nullopt)
-	{
-		WTrafficTreeSocketStateChange StateChange;
-		StateChange.ItemId = Id;
-		StateChange.NewState = NewState;
-		StateChange.SocketType = SocketType;
-		StateChange.SocketTuple = SocketTuple;
-
-		SocketStateChanges.emplace_back(StateChange);
-	}
+	bool HasNewData() const { return TrafficCounter.GetState() == CS_Active || MapUpdate.HasUpdates(); }
 
 	std::shared_ptr<WSystemItem> GetSystemItem() { return SystemItem; }
 
 	std::vector<std::string> GetActiveApplicationPaths();
 
-	WTrafficTreeUpdates GetUpdates();
+	WTrafficTreeUpdates const& GetUpdates() { return MapUpdate.GetUpdates(); }
+
+	WMapUpdate& GetMapUpdate() { return MapUpdate; }
 };

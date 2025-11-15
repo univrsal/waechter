@@ -17,6 +17,17 @@ struct WTrafficTreeTrafficUpdate
 	WBytes          TotalDownloadBytes{};
 	WBytes          TotalUploadBytes{};
 
+	WTrafficTreeTrafficUpdate() = default;
+
+	explicit WTrafficTreeTrafficUpdate(ITrafficItem const& Item)
+		: ItemId(Item.ItemId)
+		, NewDownloadSpeed(Item.DownloadSpeed)
+		, NewUploadSpeed(Item.UploadSpeed)
+		, TotalDownloadBytes(Item.TotalDownloadBytes)
+		, TotalUploadBytes(Item.TotalUploadBytes)
+	{
+	}
+
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
@@ -84,5 +95,15 @@ struct WTrafficTreeUpdates
 	void serialize(Archive& archive)
 	{
 		archive(RemovedItems, MarkedForRemovalItems, UpdatedItems, AddedSockets, AddedTuples, SocketStateChange);
+	}
+
+	void Reset()
+	{
+		MarkedForRemovalItems.clear();
+		RemovedItems.clear();
+		UpdatedItems.clear();
+		AddedSockets.clear();
+		AddedTuples.clear();
+		SocketStateChange.clear();
 	}
 };
