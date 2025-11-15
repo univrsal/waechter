@@ -35,7 +35,10 @@ void WDaemonSocket::ListenThreadFunction()
 
 			// create a binary stream for cereal to write to
 			auto& SystemMap = WSystemMap::GetInstance();
-			NewClient->SendMessage(MT_TrafficTree, *SystemMap.GetSystemItem());
+			{
+				std::lock_guard Lock(SystemMap.DataMutex);
+				NewClient->SendMessage(MT_TrafficTree, *SystemMap.GetSystemItem());
+			}
 
 			// Send app icon atlas
 			auto              ActiveApps = SystemMap.GetActiveApplicationPaths();
