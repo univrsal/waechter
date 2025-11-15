@@ -10,6 +10,12 @@
 
 #include "Socket.hpp"
 #include "Windows/TrafficTree.hpp"
+#include "TrafficCounter.hpp"
+
+struct WClientItem : ITrafficItem
+{
+	[[nodiscard]] ETrafficItemType GetType() const override { return TI_Application; }
+};
 
 class WClient
 {
@@ -20,11 +26,16 @@ class WClient
 	std::atomic<bool>  Running{ true };
 	WTrafficTree       TrafficTree{};
 
+	TTrafficCounter<WClientItem> TrafficCounter{ std::make_shared<WClientItem>() };
+
 	void ConnectionThreadFunction();
 
 	bool EnsureConnected();
 
 public:
+	std::atomic<WBytesPerSecond> DaemonToClientTrafficRate{ 0 };
+	std::atomic<WBytesPerSecond> ClientToDaemonTrafficRate{ 0 };
+
 	void Start()
 	{
 		Socket = std::make_unique<WClientSocket>("/var/run/waechterd.sock");
@@ -51,8 +62,5 @@ public:
 		return Socket && Socket->GetState() == ES_Connected;
 	}
 
-	WTrafficTree& GetTrafficTree()
-	{
-		return TrafficTree;
-	}
+	WTrafficTree& GetTrafficTree() { return TrafficTree; }
 };

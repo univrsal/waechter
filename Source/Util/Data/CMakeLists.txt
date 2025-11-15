@@ -5,4 +5,6 @@ target_sources(util
         ApplicationItem.hpp
         ProcessItem.hpp
         SocketItem.hpp
+        AppIconAtlasData.hpp
+        TrafficTreeUpdate.hpp
 )

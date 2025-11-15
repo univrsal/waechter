@@ -39,7 +39,20 @@ void WMainWindow::DrawConnectionIndicator()
 
 	if (ImGui::IsItemHovered())
 	{
-		ImGui::SetTooltip(Client.IsConnected() ? "Connected to daemon" : "Not connected to daemon");
+		std::string Tooltip;
+		if (Client.IsConnected())
+		{
+			Tooltip = fmt::format("Connected to daemon\n"
+								  "Download rate: {}\n"
+								  "Upload rate: {}",
+				WTrafficFormat::AutoFormat(Client.DaemonToClientTrafficRate.load()),
+				WTrafficFormat::AutoFormat(Client.ClientToDaemonTrafficRate.load()));
+		}
+		else
+		{
+			Tooltip = "Not connected to daemon";
+		}
+		ImGui::SetTooltip("%s", Tooltip.c_str());
 	}
 }
 

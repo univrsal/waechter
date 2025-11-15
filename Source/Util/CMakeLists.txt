@@ -8,9 +8,7 @@ add_library(util STATIC
         ClientSocket.cpp
         Json.hpp
         Format.hpp
-        Data/TrafficTreeUpdate.hpp
         Time.cpp
-        Data/AppIconAtlasData.hpp
 )
 add_library(waechter::util ALIAS util)
 

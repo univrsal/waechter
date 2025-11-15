@@ -56,6 +56,9 @@ void WClient::ConnectionThreadFunction()
 
 		// Append received chunk to accumulator
 		Accum.Write(Buf.GetData(), Buf.GetWritePos());
+		TrafficCounter.PushIncomingTraffic(Buf.GetWritePos());
+		TrafficCounter.Refresh();
+		DaemonToClientTrafficRate = TrafficCounter.TrafficItem->DownloadSpeed;
 
 		// Try to parse as many frames as we can
 		for (;;)
