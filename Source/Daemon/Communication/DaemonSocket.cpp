@@ -98,10 +98,10 @@ void WDaemonSocket::BroadcastTrafficUpdate()
 		return;
 	}
 
-	WTrafficTreeUpdates const& Updates = SystemMap.GetUpdates();
-
 	std::stringstream Os{};
 	{
+		std::lock_guard            DataLock(SystemMap.DataMutex);
+		WTrafficTreeUpdates const& Updates = SystemMap.GetUpdates();
 		Os << MT_TrafficTreeUpdate;
 		cereal::BinaryOutputArchive Archive(Os);
 		Archive(Updates);
