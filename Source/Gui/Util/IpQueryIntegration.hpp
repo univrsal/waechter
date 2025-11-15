@@ -38,6 +38,8 @@ class WIpQueryIntegration
 	std::unordered_map<std::string, WIpInfoData> IpInfoCache;
 	WIpInfoData const*                           CurrentIpInfo{};
 
+	WTrafficItemId CurrentSocketItemId{};
+
 public:
 	WIpInfoData const* GetIpInfo(std::string const& IP);
 

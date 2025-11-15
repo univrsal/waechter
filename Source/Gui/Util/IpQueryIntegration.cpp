@@ -73,11 +73,17 @@ void WIpQueryIntegration::Draw(WSocketItem const* Sock)
 {
 	if (HasIpInfoForIp(Sock->SocketTuple.RemoteEndpoint.Address.ToString()))
 	{
+		if (CurrentSocketItemId != Sock->ItemId)
+		{
+			CurrentIpInfo = GetIpInfo(Sock->SocketTuple.RemoteEndpoint.Address.ToString());
+			CurrentSocketItemId = Sock->ItemId;
+		}
+
 		if (CurrentIpInfo->bIsPendingRequest)
 		{
 			ImGui::Text("Ip lookup pending...");
 		}
-		else
+		else if (CurrentIpInfo->Asn != "AS0") // That's the value when it fails to lookup
 		{
 			WGlfwWindow::GetInstance().GetMainWindow()->GetFlagAtlas().DrawFlag(
 				CurrentIpInfo->CountryCode, ImVec2(24, 18));
@@ -99,9 +105,14 @@ void WIpQueryIntegration::Draw(WSocketItem const* Sock)
 
 			ImGui::TextLinkOpenURL("View on Google Maps", CurrentIpInfo->MapsLink.c_str());
 		}
+		else
+		{
+			ImGui::Text("No information found for this IP.");
+		}
 	}
 	else if (ImGui::Button("ipquery.io lookup"))
 	{
 		CurrentIpInfo = GetIpInfo(Sock->SocketTuple.RemoteEndpoint.Address.ToString());
+		CurrentSocketItemId = Sock->ItemId;
 	}
 }
