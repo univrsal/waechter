@@ -2,12 +2,9 @@
 
 #include <filesystem>
 #include <spdlog/spdlog.h>
+#include <cstdint>
 
 // ReSharper disable CppUnusedIncludeDirective
-#include "DaemonConfig.hpp"
-#include "ErrnoUtil.hpp"
-#include "Filesystem.hpp"
-
 #include <cereal/types/array.hpp>
 #include <cereal/types/vector.hpp>
 #include <cereal/types/optional.hpp>
@@ -15,11 +12,14 @@
 #include <cereal/types/memory.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/archives/binary.hpp>
+// ReSharper restore CppUnusedIncludeDirective
 
+#include "DaemonConfig.hpp"
+#include "ErrnoUtil.hpp"
+#include "Filesystem.hpp"
 #include "Messages.hpp"
 #include "Data/AppIconAtlasBuilder.hpp"
 #include "Data/SystemMap.hpp"
-#include <cstdint>
 
 void WDaemonSocket::ListenThreadFunction()
 {

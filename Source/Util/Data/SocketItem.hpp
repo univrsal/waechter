@@ -2,8 +2,6 @@
 // Created by usr on 30/10/2025.
 //
 #pragma once
-
-#pragma once
 #include "TrafficItem.hpp"
 #include "IPAddress.hpp"
 
@@ -29,9 +27,17 @@ namespace ESocketType
 	};
 } // namespace ESocketType
 
+struct WTupleItem : ITrafficItem
+{
+	// This is essentially just a traffic counter
+};
+
 struct WSocketItem : ITrafficItem
 {
-	WSocketTuple           SocketTuple{};
+	WSocketTuple SocketTuple{};
+	std::unordered_map<WEndpoint, std::shared_ptr<WTupleItem>>
+		UDPPerConnectionTraffic; // Only for UDP sockets, since they can send/receive no many addresses
+
 	uint8_t                SocketType{};
 	ESocketConnectionState ConnectionState{};
 
@@ -39,7 +45,7 @@ struct WSocketItem : ITrafficItem
 	void serialize(Archive& archive)
 	{
 		archive(ItemId, DownloadSpeed, UploadSpeed, TotalDownloadBytes, TotalUploadBytes, ConnectionState, SocketTuple,
-			SocketType);
+			SocketType, UDPPerConnectionTraffic);
 	}
 
 	[[nodiscard]] ETrafficItemType GetType() const override { return TI_Socket; }

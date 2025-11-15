@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Buffer.hpp"
 
 enum EMessageType : int8_t

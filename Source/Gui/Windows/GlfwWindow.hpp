@@ -3,7 +3,6 @@
 //
 
 #pragma once
-
 // ReSharper disable once CppUnusedIncludeDirective
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -30,10 +29,7 @@ public:
 
 	~WGlfwWindow() override = default;
 
-	WMainWindow* GetMainWindow()
-	{
-		return MainWindow.get();
-	}
+	WMainWindow* GetMainWindow() { return MainWindow.get(); }
 
 	void Destroy();
 };

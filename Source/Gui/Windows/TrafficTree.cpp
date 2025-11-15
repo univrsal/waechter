@@ -5,8 +5,9 @@
 #include "TrafficTree.hpp"
 
 // ReSharper disable CppUnusedIncludeDirective
-
 #include <imgui.h>
+#include <ranges>
+#include <spdlog/spdlog.h>
 #include <cereal/types/optional.hpp>
 #include <cereal/types/array.hpp>
 #include <cereal/types/vector.hpp>
@@ -19,8 +20,6 @@
 #include "GlfwWindow.hpp"
 #include "Messages.hpp"
 #include "Data/TrafficTreeUpdate.hpp"
-
-#include <ranges>
 
 template <class K, class V>
 static bool TryRemoveFromMap(std::unordered_map<K, V>& Map, WTrafficItemId TrafficItemId)

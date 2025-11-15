@@ -3,7 +3,7 @@
 //
 
 // Ingress/Egress Traffic measuring and shaping
-
+#pragma once
 #include "EBPFInternal.h"
 
 // cgroup_skb ingress: capture incoming packet information

@@ -5,11 +5,8 @@
 #include "WaechterEbpf.hpp"
 
 #include <bpf/bpf.h>
-#include <linux/if_link.h>
-#include <net/if.h>
 #include <spdlog/spdlog.h>
 
-#include "DaemonConfig.hpp"
 #include "EbpfData.hpp"
 #include "EBPFCommon.h"
 #include "Types.hpp"

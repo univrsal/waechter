@@ -1,12 +1,10 @@
 #pragma once
 
-#include "spdlog/sinks/base_sink.h"
-
 #include <deque>
 #include <memory>
 #include <mutex>
 #include <string>
-#include <spdlog/spdlog.h>
+#include <spdlog/sinks/base_sink.h>
 
 struct WLogEntry
 {

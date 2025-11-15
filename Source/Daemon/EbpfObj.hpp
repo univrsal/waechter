@@ -13,6 +13,7 @@
 
 struct bpf_object;
 struct bpf_program;
+struct bpf_link;
 
 struct WFdCloser
 {
@@ -29,8 +30,8 @@ struct WFdCloser
 class WEbpfObj
 {
 protected:
-	std::vector<std::tuple<bpf_program*, bpf_attach_type>>         Programs{}; // attached programs
-	std::vector<std::tuple<struct bpf_link*, struct bpf_program*>> Links{};
+	std::vector<std::tuple<bpf_program*, bpf_attach_type>> Programs{}; // attached programs
+	std::vector<std::tuple<bpf_link*, bpf_program*>>       Links{};
 
 	bpf_object*                     Obj{};
 	std::unique_ptr<int, WFdCloser> CGroupFd{};

@@ -4,12 +4,11 @@
 
 #include "Client.hpp"
 
-#include "AppIconAtlas.hpp"
-
+#include <cstdint>
 #include <spdlog/spdlog.h>
 
+#include "AppIconAtlas.hpp"
 #include "Messages.hpp"
-#include <cstdint>
 
 inline bool ReadU32(char const* DataPtr, size_t N, uint32_t& outI32)
 {

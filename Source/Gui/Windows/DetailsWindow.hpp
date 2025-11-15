@@ -3,7 +3,6 @@
 //
 
 #pragma once
-
 #include <string>
 
 #if WAECHTER_WITH_IPQUERY_IO_API

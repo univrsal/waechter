@@ -4,13 +4,12 @@
 
 #include "DetailsWindow.hpp"
 
-#include "AppIconAtlas.hpp"
-
 #include <imgui.h>
 #include <sys/sysinfo.h>
 
 #include "GlfwWindow.hpp"
 #include "Time.hpp"
+#include "AppIconAtlas.hpp"
 #include "Data/SystemItem.hpp"
 
 static char const* SocketConnectionStateToString(ESocketConnectionState State)

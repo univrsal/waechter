@@ -1,5 +1,4 @@
 #pragma once
-
 #include <poll.h>
 #include <string>
 #include <sys/socket.h>
@@ -10,11 +9,10 @@
 #include <cassert>
 #include <utility>
 #include <atomic>
+#include <fcntl.h>
 
 #include "Buffer.hpp"
 #include "Types.hpp"
-
-#include <fcntl.h>
 
 class WSocket
 {

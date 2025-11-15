@@ -6,7 +6,6 @@
 
 #include <dlfcn.h>
 #include <string>
-
 #include <spdlog/spdlog.h>
 
 namespace

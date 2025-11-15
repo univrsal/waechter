@@ -3,10 +3,9 @@
 //
 
 #pragma once
+#include <spdlog/fmt/fmt.h>
 
 #include "Types.hpp"
-
-#include <spdlog/fmt/fmt.h>
 
 enum ETrafficUnit
 {

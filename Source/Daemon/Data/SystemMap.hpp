@@ -7,7 +7,6 @@
 #include <unordered_map>
 #include <mutex>
 #include <atomic>
-#include <spdlog/spdlog.h>
 
 #include "EBPFCommon.h"
 #include "Types.hpp"

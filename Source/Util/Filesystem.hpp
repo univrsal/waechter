@@ -3,15 +3,11 @@
 //
 
 #pragma once
-
-#include "ErrnoUtil.hpp"
-#include "Types.hpp"
-
 #include <filesystem>
 #include <fstream>
 #include <algorithm>
 #include <pwd.h>
-#include <signal.h>
+#include <csignal>
 #include <sys/stat.h>
 #include <spdlog/spdlog.h>
 #include <grp.h>
@@ -20,20 +16,22 @@
 #include <sys/types.h>
 #include <vector>
 
+#include "ErrnoUtil.hpp"
+#include "Types.hpp"
+
 namespace stdfs = std::filesystem;
 
 class WFilesystem
 {
 public:
-	static bool Exists(stdfs::path const& p)
-	{
-		return stdfs::exists(p);
-	}
+	static bool Exists(stdfs::path const& p) { return stdfs::exists(p); }
 
 	static bool Writable(stdfs::path const& p)
 	{
 		stdfs::perms pms = stdfs::status(p).permissions();
-		return ((pms & stdfs::perms::owner_write) != stdfs::perms::none) || ((pms & stdfs::perms::group_write) != stdfs::perms::none) || ((pms & stdfs::perms::others_write) != stdfs::perms::none);
+		return ((pms & stdfs::perms::owner_write) != stdfs::perms::none)
+			|| ((pms & stdfs::perms::group_write) != stdfs::perms::none)
+			|| ((pms & stdfs::perms::others_write) != stdfs::perms::none);
 	}
 
 	static std::string ReadProc(std::string const& Path)
@@ -195,7 +193,8 @@ public:
 		return IsProcessRunningByProc(PID);
 	}
 
-	static bool SetSocketOwnerAndPermsByName(std::string const& Path, std::string const& User, std::string const& Group, mode_t Mode)
+	static bool SetSocketOwnerAndPermsByName(
+		std::string const& Path, std::string const& User, std::string const& Group, mode_t Mode)
 	{
 		uid_t Uid{};
 		gid_t Gid{};

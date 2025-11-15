@@ -3,11 +3,9 @@
 //
 
 #pragma once
-
 #include <unordered_map>
 #include <bpf/bpf.h>
 #include <cstdint>
-#include <spdlog/spdlog.h>
 
 template <typename T>
 class TEbpfMap
@@ -17,17 +15,11 @@ class TEbpfMap
 	std::unordered_map<uint32_t, T> Elements{};
 
 public:
-	explicit TEbpfMap(int MapFd)
-		: MapFd(MapFd)
-	{
-	}
+	explicit TEbpfMap(int MapFd) : MapFd(MapFd) {}
 
 	std::unordered_map<uint32_t, T> const& GetMap() const { return Elements; }
 
-	bool IsValid() const
-	{
-		return MapFd >= 0;
-	}
+	bool IsValid() const { return MapFd >= 0; }
 
 	bool Lookup(T& OutValue, uint32_t& Key)
 	{

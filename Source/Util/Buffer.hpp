@@ -1,5 +1,4 @@
 #pragma once
-
 #include <cstddef>
 #include <cstring>
 #include <vector>
@@ -34,10 +33,7 @@ class WBuffer
 	}
 
 public:
-	explicit WBuffer(std::size_t Size = 1024)
-		: Data(Size)
-	{
-	}
+	explicit WBuffer(std::size_t Size = 1024) : Data(Size) {}
 
 	~WBuffer() = default;
 

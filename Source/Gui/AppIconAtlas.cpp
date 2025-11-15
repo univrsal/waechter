@@ -5,20 +5,18 @@
 #include "AppIconAtlas.hpp"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
-
 #define INCBIN_PREFIX G
-#include "stb_image.h"
-
+#include <stb_image_write.h>
+#include <stb_image.h>
 #include <incbin.h>
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/unordered_map.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
 #include <sstream>
+#include <spdlog/spdlog.h>
 
 #include "Data/AppIconAtlasData.hpp"
-#include "spdlog/spdlog.h"
 
 INCBIN(NoIconImage, NO_ICON_IMAGE);
 INCBIN(ProcessIconImage, PROCESS_ICON_IMAGE);

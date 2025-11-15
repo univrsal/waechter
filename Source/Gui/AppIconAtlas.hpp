@@ -3,16 +3,16 @@
 //
 
 #pragma once
-#include "Buffer.hpp"
-#include "Singleton.hpp"
-#include "Data/AppIconAtlasData.hpp"
-
 #include <imgui.h>
 #include <glad/glad.h>
 #include <mutex>
 #include <string>
 #include <unordered_map>
 #include <optional>
+
+#include "Buffer.hpp"
+#include "Singleton.hpp"
+#include "Data/AppIconAtlasData.hpp"
 
 class WAppIconAtlas : public TSingleton<WAppIconAtlas>
 {
@@ -25,10 +25,7 @@ public:
 	WAppIconAtlas() = default;
 	~WAppIconAtlas() = default;
 
-	std::mutex& GetMutex()
-	{
-		return Mutex;
-	}
+	std::mutex& GetMutex() { return Mutex; }
 
 	void Init();
 

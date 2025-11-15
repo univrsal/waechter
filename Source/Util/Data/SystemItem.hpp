@@ -3,15 +3,13 @@
 //
 
 #pragma once
-
 #include <string>
 #include <unordered_map>
 #include <memory>
+#include <ranges>
 
 #include "TrafficItem.hpp"
 #include "ApplicationItem.hpp"
-
-#include <ranges>
 
 struct WSystemItem : ITrafficItem
 {
@@ -25,10 +23,7 @@ struct WSystemItem : ITrafficItem
 		archive(ItemId, DownloadSpeed, UploadSpeed, HostName, TotalDownloadBytes, TotalUploadBytes, Applications);
 	}
 
-	[[nodiscard]] ETrafficItemType GetType() const override
-	{
-		return TI_System;
-	}
+	[[nodiscard]] ETrafficItemType GetType() const override { return TI_System; }
 
 	bool NoChildren() override
 	{

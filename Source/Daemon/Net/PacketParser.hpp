@@ -2,8 +2,6 @@
 // Created by usr on 23/10/2025.
 
 #pragma once
-#include <cstdint>
-
 #include "IPAddress.hpp"
 
 struct WPacketHeaderParser

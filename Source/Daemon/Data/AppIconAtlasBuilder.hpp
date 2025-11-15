@@ -4,7 +4,6 @@
 
 #pragma once
 #include "IconResolver.hpp"
-
 #include "Data/AppIconAtlasData.hpp"
 #include "Singleton.hpp"
 
@@ -13,5 +12,6 @@ class WAppIconAtlasBuilder : public TSingleton<WAppIconAtlasBuilder>
 	WIconResolver Resolver;
 
 public:
-	bool GetAtlasData(WAppIconAtlasData& outData, std::vector<std::string> const& BinaryNames, std::size_t AtlasSize = 256, std::size_t IconSize = 32);
+	bool GetAtlasData(WAppIconAtlasData& outData, std::vector<std::string> const& BinaryNames,
+		std::size_t AtlasSize = 256, std::size_t IconSize = 32);
 };

@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Types.hpp"
 #include "Time.hpp"
 
@@ -25,8 +24,7 @@ protected:
 public:
 	std::shared_ptr<T> TrafficItem;
 
-	explicit TTrafficCounter(std::shared_ptr<T> const& TrafficItem_)
-		: TrafficItem(TrafficItem_)
+	explicit TTrafficCounter(std::shared_ptr<T> const& TrafficItem_) : TrafficItem(TrafficItem_)
 	{
 		TimeWindowStart = WTime::GetEpochMs();
 	}
@@ -48,10 +46,7 @@ public:
 		State = CS_Active;
 	}
 
-	bool IsActive() const
-	{
-		return State == CS_Active;
-	}
+	bool IsActive() const { return State == CS_Active; }
 
 	void Refresh()
 	{
@@ -64,7 +59,8 @@ public:
 
 		if (auto const TimeStampMS = WTime::GetEpochMs(); TimeStampMS - TimeWindowStart >= RecentTrafficTimeWindow)
 		{
-			auto NewDownloadSpeed = static_cast<double>(RecentDownload) / (static_cast<double>(RecentTrafficTimeWindow) / 1000.0);
+			auto NewDownloadSpeed =
+				static_cast<double>(RecentDownload) / (static_cast<double>(RecentTrafficTimeWindow) / 1000.0);
 			auto NewUploadSpeed = static_cast<double>(RecentUpload) / (RecentTrafficTimeWindow / 1000.0);
 
 			if (std::abs(NewDownloadSpeed - TrafficItem->DownloadSpeed) > 0.01)
@@ -97,15 +93,9 @@ public:
 		}
 	}
 
-	[[nodiscard]] ECounterState GetState() const
-	{
-		return State;
-	}
+	[[nodiscard]] ECounterState GetState() const { return State; }
 
-	bool IsMarkedForRemoval() const
-	{
-		return State == CS_PendingRemoval;
-	}
+	bool IsMarkedForRemoval() const { return State == CS_PendingRemoval; }
 
 	void MarkForRemoval()
 	{
@@ -119,8 +109,5 @@ public:
 		RemovalTimeStamp = WTime::GetEpochMs() + RemovalTimeWindow;
 	}
 
-	bool DueForRemoval()
-	{
-		return State == CS_PendingRemoval && WTime::GetEpochMs() >= RemovalTimeStamp;
-	}
+	bool DueForRemoval() { return State == CS_PendingRemoval && WTime::GetEpochMs() >= RemovalTimeStamp; }
 };

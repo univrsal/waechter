@@ -5,7 +5,6 @@
 #include "IconResolver.hpp"
 
 #include <fstream>
-#include <cstdlib>
 #include <vector>
 
 #include "Filesystem.hpp"

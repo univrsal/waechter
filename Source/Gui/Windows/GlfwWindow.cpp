@@ -3,9 +3,9 @@
 //
 
 #include "GlfwWindow.hpp"
-#define STB_IMAGE_IMPLEMENTATION
 
 #define INCBIN_PREFIX G
+#define STB_IMAGE_IMPLEMENTATION
 #include <spdlog/spdlog.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>

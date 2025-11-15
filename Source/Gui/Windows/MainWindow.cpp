@@ -4,8 +4,7 @@
 
 #include "MainWindow.hpp"
 
-#include "imgui_internal.h"
-
+#include <imgui_internal.h>
 #include <imgui.h>
 #include <fstream>
 #include <string>

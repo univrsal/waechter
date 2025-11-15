@@ -1,5 +1,4 @@
 #pragma once
-
 #include <thread>
 #include <atomic>
 #include <vector>
@@ -24,9 +23,7 @@ class WDaemonSocket
 	void ListenThreadFunction();
 
 public:
-	explicit WDaemonSocket(const std::string& Path)
-		: Socket(Path)
-		, SocketPath(Path)
+	explicit WDaemonSocket(std::string const& Path) : Socket(Path), SocketPath(Path)
 	{
 		char hostname[HOST_NAME_MAX];
 		if (gethostname(hostname, HOST_NAME_MAX) == 0)
@@ -49,25 +46,16 @@ public:
 		}
 	}
 
-	~WDaemonSocket()
-	{
-		Stop();
-	}
+	~WDaemonSocket() { Stop(); }
 
 	bool StartListenThread();
 
-	std::vector<std::shared_ptr<WDaemonClient>>& GetClients()
-	{
-		return Clients;
-	}
+	std::vector<std::shared_ptr<WDaemonClient>>& GetClients() { return Clients; }
 
 	void RemoveInactiveClients()
 	{
 		ClientsMutex.lock();
-		Clients.erase(std::remove_if(Clients.begin(), Clients.end(),
-						  [](auto& Client) {
-							  return !Client->IsRunning();
-						  }),
+		Clients.erase(std::remove_if(Clients.begin(), Clients.end(), [](auto& Client) { return !Client->IsRunning(); }),
 			Clients.end());
 		ClientsMutex.unlock();
 	}

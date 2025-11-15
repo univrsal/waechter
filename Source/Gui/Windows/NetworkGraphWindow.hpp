@@ -3,11 +3,11 @@
 //
 
 #pragma once
-#include "Types.hpp"
-
 #include <cmath>
 #include <imgui.h>
 #include <mutex>
+
+#include "Types.hpp"
 
 struct WScrollingBuffer
 {
@@ -53,7 +53,7 @@ class WNetworkGraphWindow
 public:
 	struct WUnitFmt
 	{
-		const char* Label{ "B/s" }; // e.g., "KiB/s"
+		char const* Label{ "B/s" }; // e.g., "KiB/s"
 		double      Factor{ 1.0 };  // 1, 1024, 1024^2, ...
 	} TrafficFmt{};
 
@@ -71,10 +71,10 @@ public:
 		DownloadBuffer.AddPoint(static_cast<float>(Time), static_cast<float>(Download));
 
 		CurrentMaxRateInGraph = 0.0;
-		const double T0 = Time - History;
+		double const T0 = Time - History;
 
-		auto CalcMaxRate = [&](const auto& Buffer) {
-			for (const auto& Point : Buffer.Data)
+		auto CalcMaxRate = [&](auto const& Buffer) {
+			for (auto const& Point : Buffer.Data)
 			{
 				if (std::isfinite(static_cast<double>(Point.y)) && static_cast<double>(Point.x) >= T0)
 				{

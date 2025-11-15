@@ -3,11 +3,10 @@
 //
 
 #pragma once
-#include "Format.hpp"
-
 #include <imgui.h>
 #include <unordered_set>
 
+#include "Format.hpp"
 #include "Buffer.hpp"
 #include "Data/SystemItem.hpp"
 
@@ -26,7 +25,8 @@ class WTrafficTree
 
 	void RemoveTrafficItem(WTrafficItemId TrafficItemId);
 
-	bool RenderItem(std::string const& Name, ITrafficItem const* Item, ImGuiTreeNodeFlags NodeFlags, ETrafficItemType Type);
+	bool RenderItem(
+		std::string const& Name, ITrafficItem const* Item, ImGuiTreeNodeFlags NodeFlags, ETrafficItemType Type);
 
 public:
 	WTrafficTree() = default;

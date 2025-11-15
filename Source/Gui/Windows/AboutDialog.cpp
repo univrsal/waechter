@@ -4,6 +4,7 @@
 #define INCBIN_PREFIX G
 
 #include "AboutDialog.hpp"
+
 #include <imgui.h>
 #include <incbin.h>
 #include <spdlog/fmt/fmt.h>

@@ -3,10 +3,9 @@
 //
 
 #pragma once
-
 #include <memory>
-#include <WaechterEBPF.skel.h>
 
+#include "WaechterEBPF.skel.h"
 #include "EbpfObj.hpp"
 #include "Types.hpp"
 
@@ -36,6 +35,6 @@ public:
 
 	std::shared_ptr<WEbpfData> GetData() { return Data; }
 
-	void PrintStats();
-	void UpdateData();
+	static void PrintStats();
+	void        UpdateData();
 };

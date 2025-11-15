@@ -3,12 +3,11 @@
 //
 
 #pragma once
-
 #include <string>
 
 #include "Singleton.hpp"
 
-struct WDaemonConfig : public TSingleton<WDaemonConfig>
+struct WDaemonConfig final : TSingleton<WDaemonConfig>
 {
 	std::string NetworkInterfaceName{};
 	std::string CGroupPath{ "/sys/fs/cgroup" };

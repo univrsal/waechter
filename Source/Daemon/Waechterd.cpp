@@ -9,11 +9,9 @@
 
 #include "SignalHandler.hpp"
 #include "DaemonConfig.hpp"
-#include "EbpfData.hpp"
 #include "ErrnoUtil.hpp"
 #include "WaechterEbpf.hpp"
 #include "Communication/DaemonSocket.hpp"
-#include "Data/AppIconAtlasBuilder.hpp"
 #include "Data/SystemMap.hpp"
 
 int Run()

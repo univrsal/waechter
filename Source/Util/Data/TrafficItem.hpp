@@ -3,7 +3,6 @@
 //
 
 #pragma once
-
 #include "Types.hpp"
 
 using WTrafficItemId = unsigned long long;

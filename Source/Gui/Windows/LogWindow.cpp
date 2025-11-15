@@ -2,7 +2,7 @@
 
 #include <imgui.h>
 #include <imgui_internal.h>
-#include <spdlog/sinks/base_sink.h>
+#include <spdlog/spdlog.h>
 
 void WImGuiLogSink::sink_it_(spdlog::details::log_msg const& Message)
 {

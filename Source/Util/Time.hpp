@@ -1,5 +1,4 @@
 #pragma once
-
 #include <chrono>
 #include <spdlog/fmt/fmt.h>
 #include <functional>
@@ -14,7 +13,9 @@ namespace WTime
 {
 	static WMsec GetEpochMs()
 	{
-		return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+		return std::chrono::duration_cast<std::chrono::milliseconds>(
+			std::chrono::system_clock::now().time_since_epoch())
+			.count();
 	}
 
 	static std::string FormatTime(long Time)
@@ -58,9 +59,6 @@ public:
 		Timers.push_back(Timer);
 	}
 
-	void Start(double CurrentTime)
-	{
-		LastUpdateTime = CurrentTime;
-	}
+	void Start(double CurrentTime) { LastUpdateTime = CurrentTime; }
 	void UpdateTimers(double CurrentTime);
 };

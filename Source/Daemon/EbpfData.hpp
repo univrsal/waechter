@@ -3,12 +3,10 @@
 //
 
 #pragma once
-
 #include <memory>
 
 #include "EbpfRingBuffer.hpp"
 #include "WaechterEbpf.hpp"
-
 #include "EBPFCommon.h"
 
 class WEbpfData
@@ -17,10 +15,7 @@ class WEbpfData
 public:
 	std::unique_ptr<TEbpfRingBuffer<WSocketEvent>> SocketEvents;
 
-	[[nodiscard]] bool IsValid() const
-	{
-		return SocketEvents && SocketEvents->IsValid();
-	}
+	[[nodiscard]] bool IsValid() const { return SocketEvents && SocketEvents->IsValid(); }
 
 	void UpdateData() const
 	{

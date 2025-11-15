@@ -7,7 +7,6 @@
 #include <spdlog/spdlog.h>
 #include <mutex>
 #include <deque>
-#include <functional>
 
 template <typename T>
 class TEbpfRingBuffer

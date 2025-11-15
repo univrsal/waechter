@@ -3,7 +3,7 @@
 //
 
 // Tracks sockets connecting
-
+#pragma once
 #include "EBPFInternal.h"
 
 SEC("tracepoint/sock/inet_sock_set_state")

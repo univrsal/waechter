@@ -3,17 +3,12 @@
 //
 
 #pragma once
-
 #include <cerrno>
 #include <cstring>
 #include <string>
 
 class WErrnoUtil
 {
-	public:
-
-	static std::string StrError()
-	{
-		return std::string(strerror(errno));
-	}
+public:
+	static std::string StrError() { return std::string(strerror(errno)); }
 };

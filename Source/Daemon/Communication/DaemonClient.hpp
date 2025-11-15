@@ -1,11 +1,12 @@
 #pragma once
-
 #include "Messages.hpp"
 
-// ReSharper disable CppUnusedIncludeDirective
 #include <atomic>
 #include <utility>
 #include <thread>
+#include <spdlog/spdlog.h>
+
+// ReSharper disable CppUnusedIncludeDirective
 #include <cereal/types/array.hpp>
 #include <cereal/types/vector.hpp>
 #include <cereal/types/unordered_set.hpp>
@@ -13,7 +14,7 @@
 #include <cereal/types/memory.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/archives/binary.hpp>
-#include <spdlog/spdlog.h>
+// ReSharper restore CppUnusedIncludeDirective
 
 #include "Socket.hpp"
 
@@ -33,9 +34,7 @@ class WDaemonClient
 	void ListenThreadFunction();
 
 public:
-	WDaemonClient(std::shared_ptr<WClientSocket> CS, WDaemonSocket* PS)
-		: ClientSocket(std::move(CS))
-		, ParentSocket(PS)
+	WDaemonClient(std::shared_ptr<WClientSocket> CS, WDaemonSocket* PS) : ClientSocket(std::move(CS)), ParentSocket(PS)
 	{
 	}
 
@@ -51,30 +50,15 @@ public:
 
 	void StartListenThread();
 
-	[[nodiscard]] WProcessId GetPid() const
-	{
-		return ClientPid;
-	}
+	[[nodiscard]] WProcessId GetPid() const { return ClientPid; }
 
-	[[nodiscard]] bool IsRunning() const
-	{
-		return Running;
-	}
+	[[nodiscard]] bool IsRunning() const { return Running; }
 
-	[[nodiscard]] std::shared_ptr<WClientSocket> GetSocket() const
-	{
-		return ClientSocket;
-	}
+	[[nodiscard]] std::shared_ptr<WClientSocket> GetSocket() const { return ClientSocket; }
 
-	ssize_t SendData(WBuffer& Buffer) const
-	{
-		return ClientSocket->Send(Buffer);
-	}
+	ssize_t SendData(WBuffer& Buffer) const { return ClientSocket->Send(Buffer); }
 
-	ssize_t SendFramedData(std::string const& Data) const
-	{
-		return ClientSocket->SendFramed(Data);
-	}
+	ssize_t SendFramedData(std::string const& Data) const { return ClientSocket->SendFramed(Data); }
 
 	template <class T>
 	void SendMessage(EMessageType Type, T const& Data)
