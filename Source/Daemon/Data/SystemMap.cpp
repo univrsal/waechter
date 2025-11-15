@@ -94,7 +94,7 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 		spdlog::warn("Packet header parsing failed");
 	}
 }
-std::shared_ptr<WSystemMap::WTupleCounter> WSystemMap::GetOrCreateUDPTupleCounter(
+std::shared_ptr<WTupleCounter> WSystemMap::GetOrCreateUDPTupleCounter(
 	std::shared_ptr<WSocketCounter> const& SockCounter, WEndpoint const& Endpoint)
 {
 	auto Item = SockCounter->TrafficItem;
@@ -122,8 +122,7 @@ WSystemMap::WSystemMap()
 	}
 }
 
-std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::MapSocket(
-	WSocketCookie SocketCookie, WProcessId PID, bool bSilentFail)
+std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketCookie SocketCookie, WProcessId PID, bool bSilentFail)
 {
 	if (PID == 0)
 	{
@@ -186,143 +185,7 @@ std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::MapSocket(
 	return FindOrMapSocket(SocketCookie, Process);
 }
 
-void WSystemMap::WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
-{
-	if (Event.EventType == NE_SocketConnect_4 && TrafficItem->ConnectionState != ESocketConnectionState::Connecting)
-	{
-		TrafficItem->ConnectionState = ESocketConnectionState::Connecting;
-		TrafficItem->SocketTuple.Protocol = static_cast<EProtocol::Type>(Event.Data.ConnectEventData.Protocol);
-		TrafficItem->SocketType |= ESocketType::Connect;
-		TrafficItem->SocketTuple.RemoteEndpoint.Port = static_cast<uint16_t>(Event.Data.ConnectEventData.UserPort);
-		TrafficItem->SocketTuple.RemoteEndpoint.Address.FromIPv4Uint32(Event.Data.ConnectEventData.Addr4);
-		GetInstance().AddStateChange(
-			TrafficItem->ItemId, ESocketConnectionState::Connecting, TrafficItem->SocketType, TrafficItem->SocketTuple);
-	}
-	else if (Event.EventType == NE_SocketConnect_6
-		&& TrafficItem->ConnectionState != ESocketConnectionState::Connecting)
-	{
-		TrafficItem->SocketType |= ESocketType::Connect;
-		TrafficItem->ConnectionState = ESocketConnectionState::Connecting;
-		TrafficItem->SocketTuple.Protocol = static_cast<EProtocol::Type>(Event.Data.ConnectEventData.Protocol);
-		TrafficItem->SocketTuple.RemoteEndpoint.Port = static_cast<uint16_t>(Event.Data.ConnectEventData.UserPort);
-		TrafficItem->SocketTuple.RemoteEndpoint.Address.FromIPv6Array(Event.Data.ConnectEventData.Addr6);
-		GetInstance().AddStateChange(
-			TrafficItem->ItemId, ESocketConnectionState::Connecting, TrafficItem->SocketType, TrafficItem->SocketTuple);
-	}
-	else if (Event.EventType == NE_SocketCreate)
-	{
-		TrafficItem->ConnectionState = ESocketConnectionState::Created;
-		TrafficItem->SocketTuple.Protocol = static_cast<EProtocol::Type>(Event.Data.SocketCreateEventData.Protocol);
-
-		if (Event.Data.SocketCreateEventData.Family == AF_INET)
-		{
-			TrafficItem->SocketTuple.LocalEndpoint.Address.Family = EIPFamily::IPv4;
-		}
-		else if (Event.Data.SocketCreateEventData.Family == AF_INET6)
-		{
-			TrafficItem->SocketTuple.LocalEndpoint.Address.Family = EIPFamily::IPv6;
-		}
-		GetInstance().AddStateChange(
-			TrafficItem->ItemId, ESocketConnectionState::Created, TrafficItem->SocketType, TrafficItem->SocketTuple);
-	}
-	else if (Event.EventType == NE_TCPSocketEstablished_4)
-	{
-		// Technically we should set the state to connected here instead of constantly setting it to connected
-		// in the traffic counter
-		TrafficItem->SocketTuple.LocalEndpoint.Port =
-			static_cast<uint16_t>(Event.Data.TCPSocketEstablishedEventData.UserPort);
-		TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv4Uint32(Event.Data.TCPSocketEstablishedEventData.Addr4);
-		GetInstance().AddStateChange(
-			TrafficItem->ItemId, ESocketConnectionState::Connected, TrafficItem->SocketType, TrafficItem->SocketTuple);
-	}
-	else if (Event.EventType == NE_TCPSocketEstablished_6)
-	{
-		TrafficItem->SocketTuple.LocalEndpoint.Port =
-			static_cast<uint16_t>(Event.Data.TCPSocketEstablishedEventData.UserPort);
-		TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv6Array(Event.Data.TCPSocketEstablishedEventData.Addr6);
-		GetInstance().AddStateChange(
-			TrafficItem->ItemId, ESocketConnectionState::Connected, TrafficItem->SocketType, TrafficItem->SocketTuple);
-	}
-	else if (Event.EventType == NE_SocketBind_4)
-	{
-		TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv4Uint32(Event.Data.SocketBindEventData.Addr4);
-		TrafficItem->SocketTuple.LocalEndpoint.Port = static_cast<uint16_t>(Event.Data.SocketBindEventData.UserPort);
-		if (Event.Data.SocketBindEventData.bImplicitBind)
-		{
-			TrafficItem->SocketType |= ESocketType::Connect;
-		}
-		else
-		{
-			TrafficItem->SocketType |= ESocketType::Listen;
-		}
-		GetInstance().AddStateChange(
-			TrafficItem->ItemId, ESocketConnectionState::Connected, TrafficItem->SocketType, TrafficItem->SocketTuple);
-	}
-	else if (Event.EventType == NE_SocketBind_6)
-	{
-		TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv6Array(Event.Data.SocketBindEventData.Addr6);
-		TrafficItem->SocketTuple.LocalEndpoint.Port = static_cast<uint16_t>(Event.Data.SocketBindEventData.UserPort);
-		if (Event.Data.SocketBindEventData.bImplicitBind)
-		{
-			TrafficItem->SocketType |= ESocketType::Connect;
-		}
-		else
-		{
-			TrafficItem->SocketType |= ESocketType::Listen;
-		}
-		GetInstance().AddStateChange(
-			TrafficItem->ItemId, ESocketConnectionState::Connected, TrafficItem->SocketType, TrafficItem->SocketTuple);
-	}
-	else if (Event.EventType == NE_TCPSocketListening)
-	{
-		TrafficItem->ConnectionState = ESocketConnectionState::Connected;
-		TrafficItem->SocketType |= ESocketType::Listen;
-		GetInstance().AddStateChange(
-			TrafficItem->ItemId, ESocketConnectionState::Connected, TrafficItem->SocketType, TrafficItem->SocketTuple);
-	}
-	else if (Event.EventType == NE_SocketAccept_4)
-	{
-		TrafficItem->ConnectionState = ESocketConnectionState::Connected;
-		TrafficItem->SocketType = ESocketType::Accept;
-		if (Event.Data.SocketAcceptEventData.Type == SOCK_STREAM)
-		{
-			TrafficItem->SocketTuple.Protocol = EProtocol::TCP;
-		}
-		else if (Event.Data.SocketAcceptEventData.Type == SOCK_DGRAM)
-		{
-			TrafficItem->SocketTuple.Protocol = EProtocol::UDP;
-		}
-		TrafficItem->SocketTuple.RemoteEndpoint.Port = Event.Data.SocketAcceptEventData.DestinationPort;
-		TrafficItem->SocketTuple.RemoteEndpoint.Address.FromIPv4Uint32(
-			Event.Data.SocketAcceptEventData.DestinationAddr4);
-		TrafficItem->SocketTuple.LocalEndpoint.Port = Event.Data.SocketAcceptEventData.SourcePort;
-		TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv4Uint32(
-			Event.Data.SocketAcceptEventData.DestinationAddr4);
-		GetInstance().AddStateChange(
-			TrafficItem->ItemId, ESocketConnectionState::Connected, TrafficItem->SocketType, TrafficItem->SocketTuple);
-	}
-	else if (Event.EventType == NE_SocketAccept_6)
-	{
-		TrafficItem->ConnectionState = ESocketConnectionState::Connected;
-		TrafficItem->SocketType = ESocketType::Accept;
-		if (Event.Data.SocketAcceptEventData.Type == SOCK_STREAM)
-		{
-			TrafficItem->SocketTuple.Protocol = EProtocol::TCP;
-		}
-		else if (Event.Data.SocketAcceptEventData.Type == SOCK_DGRAM)
-		{
-			TrafficItem->SocketTuple.Protocol = EProtocol::UDP;
-		}
-		TrafficItem->SocketTuple.RemoteEndpoint.Port = Event.Data.SocketAcceptEventData.SourcePort;
-		TrafficItem->SocketTuple.RemoteEndpoint.Address.FromIPv6Array(Event.Data.SocketAcceptEventData.SourceAddr6);
-		TrafficItem->SocketTuple.LocalEndpoint.Port = Event.Data.SocketAcceptEventData.DestinationPort;
-		TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv6Array(Event.Data.SocketAcceptEventData.DestinationAddr6);
-		GetInstance().AddStateChange(
-			TrafficItem->ItemId, ESocketConnectionState::Connected, TrafficItem->SocketType, TrafficItem->SocketTuple);
-	}
-}
-
-std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::FindOrMapSocket(
+std::shared_ptr<WSocketCounter> WSystemMap::FindOrMapSocket(
 	WSocketCookie SocketCookie, std::shared_ptr<WProcessCounter> const& ParentProcess)
 {
 	if (auto const It = Sockets.find(SocketCookie); It != Sockets.end())
@@ -342,7 +205,7 @@ std::shared_ptr<WSystemMap::WSocketCounter> WSystemMap::FindOrMapSocket(
 	return Socket;
 }
 
-std::shared_ptr<WSystemMap::WProcessCounter> WSystemMap::FindOrMapProcess(
+std::shared_ptr<WProcessCounter> WSystemMap::FindOrMapProcess(
 	WProcessId const PID, std::shared_ptr<WAppCounter> const& ParentApp)
 {
 	if (auto const It = Processes.find(PID); It != Processes.end())
@@ -360,7 +223,7 @@ std::shared_ptr<WSystemMap::WProcessCounter> WSystemMap::FindOrMapProcess(
 	return Process;
 }
 
-std::shared_ptr<WSystemMap::WAppCounter> WSystemMap::FindOrMapApplication(
+std::shared_ptr<WAppCounter> WSystemMap::FindOrMapApplication(
 	std::string const& ExePath, std::string const& CommandLine, std::string const& AppName)
 {
 	// Prefer the resolved exe path as key if available; otherwise fall back to argv[0] from CommandLine's first token

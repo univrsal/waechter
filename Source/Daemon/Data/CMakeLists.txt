@@ -2,5 +2,10 @@ target_sources(waechterd
         PRIVATE
         SystemMap.cpp
         SystemMap.hpp
-        TrafficCounter.hpp
+        IconResolver.cpp
+        IconResolver.hpp
+        AppIconAtlasBuilder.cpp
+        AppIconAtlasBuilder.hpp
+        Counters.hpp
+        Counters.cpp
 )
