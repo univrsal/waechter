@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <memory>
 #include <ranges>
+#include <cassert>
 
 #include "TrafficItem.hpp"
 #include "ApplicationItem.hpp"
@@ -34,7 +35,8 @@ struct WSystemItem : ITrafficItem
 
 		for (auto const& App : Applications | std::views::values)
 		{
-			if (!App->NoChildren())
+			assert(App);
+			if (App && !App->NoChildren())
 			{
 				return false;
 			}
@@ -46,7 +48,8 @@ struct WSystemItem : ITrafficItem
 	{
 		for (auto It = Applications.begin(); It != Applications.end(); ++It)
 		{
-			if (It->second->ItemId == TrafficItemId)
+			assert(It->second);
+			if (It->second && It->second->ItemId == TrafficItemId)
 			{
 				Applications.erase(It);
 				return true;
