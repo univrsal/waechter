@@ -47,7 +47,7 @@ void WSettings::Load()
 	{
 		cereal::JSONInputArchive ar(ifs);
 		ar(*this);
-		spdlog::info("Loaded settings from '{}'", Path);
+		spdlog::debug("Loaded settings from '{}'", Path);
 	}
 	catch (std::exception const& e)
 	{
@@ -67,8 +67,8 @@ void WSettings::Save()
 	try
 	{
 		cereal::JSONOutputArchive ar(ofs);
-		ar.ar(*this);
-		spdlog::info("Saved settings to '{}'", Path);
+		ar(*this);
+		spdlog::debug("Saved settings to '{}'", Path);
 	}
 	catch (std::exception const& e)
 	{
