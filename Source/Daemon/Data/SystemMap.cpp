@@ -345,7 +345,7 @@ std::vector<std::string> WSystemMap::GetActiveApplicationPaths()
 	std::lock_guard          Lock(DataMutex);
 	std::vector<std::string> ActiveApps{};
 
-	for (auto const& [AppPath, App] : Applications)
+	for (auto const& App : Applications | std::views::values)
 	{
 		if (!App->TrafficItem->Processes.empty())
 		{
