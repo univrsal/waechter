@@ -361,6 +361,11 @@ static std::string GetSocketName(WSocketItem* Socket)
 	{
 		return fmt::format("← {}", Socket->SocketTuple.RemoteEndpoint.ToString());
 	}
+
+	if (!Socket->SocketTuple.LocalEndpoint.Address.IsZero() && Socket->SocketTuple.Protocol == EProtocol::UDP)
+	{
+		return fmt::format("○ {}", Socket->SocketTuple.LocalEndpoint.ToString());
+	}
 	return fmt::format("Socket {}", Socket->ItemId);
 }
 
