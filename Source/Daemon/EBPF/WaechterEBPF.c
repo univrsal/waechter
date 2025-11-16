@@ -7,4 +7,4 @@
 #include "EBPFBind.h"
 #include "EBPFUdp.h"
 
-char LICENSE[] SEC("license") = "GPLv3+";
+char LICENSE[] SEC("license") = "GPL";
