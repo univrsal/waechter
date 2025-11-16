@@ -79,7 +79,7 @@ long GetUptimeSeconds()
 
 void WDetailsWindow::DrawSystemDetails()
 {
-	auto const* System = Tree->GetSeletedTrafficItem<WSystemItem>();
+	auto const System = Tree->GetSeletedTrafficItem<WSystemItem>();
 
 	if (System == nullptr)
 	{
@@ -95,7 +95,7 @@ void WDetailsWindow::DrawSystemDetails()
 
 void WDetailsWindow::DrawApplicationDetails()
 {
-	auto const* App = Tree->GetSeletedTrafficItem<WApplicationItem>();
+	auto const App = Tree->GetSeletedTrafficItem<WApplicationItem>();
 	if (App == nullptr)
 	{
 		return;
@@ -123,7 +123,7 @@ void WDetailsWindow::DrawApplicationDetails()
 
 void WDetailsWindow::DrawProcessDetails()
 {
-	auto const* Proc = Tree->GetSeletedTrafficItem<WProcessItem>();
+	auto const Proc = Tree->GetSeletedTrafficItem<WProcessItem>();
 	if (Proc == nullptr)
 	{
 		return;
@@ -140,7 +140,7 @@ void WDetailsWindow::DrawProcessDetails()
 
 void WDetailsWindow::DrawSocketDetails()
 {
-	auto const* Sock = Tree->GetSeletedTrafficItem<WSocketItem>();
+	auto const Sock = Tree->GetSeletedTrafficItem<WSocketItem>();
 	if (Sock == nullptr)
 	{
 		return;
@@ -190,8 +190,8 @@ void WDetailsWindow::DrawSocketDetails()
 
 void WDetailsWindow::DrawTupleDetails()
 {
-	auto const* Tuple = Tree->GetSeletedTrafficItem<WTupleItem>();
-	auto const  Endpoint = Tree->GetSelectedTupleEndpoint();
+	auto const Tuple = Tree->GetSeletedTrafficItem<WTupleItem>();
+	auto const Endpoint = Tree->GetSelectedTupleEndpoint();
 	if (!Tuple || !Endpoint.has_value())
 	{
 		return;

@@ -69,7 +69,7 @@ WIpInfoData const* WIpQueryIntegration::GetIpInfo(std::string const& IP)
 	return &IpInfoCache[IP];
 }
 
-void WIpQueryIntegration::Draw(WSocketItem const* Sock)
+void WIpQueryIntegration::Draw(std::shared_ptr<WSocketItem> Sock)
 {
 	if (HasIpInfoForIp(Sock->SocketTuple.RemoteEndpoint.Address.ToString()))
 	{

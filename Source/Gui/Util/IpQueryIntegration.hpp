@@ -49,5 +49,5 @@ public:
 		return IpInfoCache.contains(IP);
 	}
 
-	void Draw(WSocketItem const* Item);
+	void Draw(std::shared_ptr<WSocketItem> Item);
 };

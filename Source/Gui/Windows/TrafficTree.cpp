@@ -69,7 +69,7 @@ void WTrafficTree::RemoveTrafficItem(WTrafficItemId TrafficItemId)
 	}
 }
 
-bool WTrafficTree::RenderItem(std::string const& Name, ITrafficItem const* Item, ImGuiTreeNodeFlags NodeFlags,
+bool WTrafficTree::RenderItem(std::string const& Name, std::shared_ptr<ITrafficItem> Item, ImGuiTreeNodeFlags NodeFlags,
 	ETrafficItemType Type, WEndpoint const* TupleEndpoint)
 {
 	NodeFlags |= ImGuiTreeNodeFlags_SpanFullWidth;
@@ -447,7 +447,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 
 	// start first data row for the root item
 	ImGui::TableNextRow();
-	bOpened = RenderItem(Root->HostName, Root.get(), ImGuiTreeNodeFlags_DefaultOpen, TI_System);
+	bOpened = RenderItem(Root->HostName, Root, ImGuiTreeNodeFlags_DefaultOpen, TI_System);
 	bool rootOpened = bOpened;
 
 	if (!bOpened)
@@ -474,7 +474,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 		ImGui::TableNextRow();
 		// Stable ID: application name within root
 		ImGui::PushID(Name.c_str());
-		bOpened = RenderItem(Child->ApplicationName, Child.get(), ImGuiTreeNodeFlags_DefaultOpen, TI_Application);
+		bOpened = RenderItem(Child->ApplicationName, Child, ImGuiTreeNodeFlags_DefaultOpen, TI_Application);
 
 		if (!bOpened)
 		{
@@ -491,7 +491,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 
 			ImGui::TableNextRow();
 			ImGui::PushID(PID); // PID fits in int on Linux
-			bOpened = RenderItem(fmt::format("Process {}", PID), Process.get(), 0, TI_Process);
+			bOpened = RenderItem(fmt::format("Process {}", PID), Process, 0, TI_Process);
 
 			if (!bOpened)
 			{
@@ -518,7 +518,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 					SocketFlags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 				}
 
-				bOpened = RenderItem(SocketName, Socket.get(), SocketFlags, TI_Socket);
+				bOpened = RenderItem(SocketName, Socket, SocketFlags, TI_Socket);
 
 				if (!bOpened)
 				{
@@ -532,7 +532,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 					std::string tupleId = std::string("tuple:") + TupleKey.ToString();
 					ImGui::PushID(tupleId.c_str());
 					ImGuiTreeNodeFlags tupleFlags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-					RenderItem(fmt::format("↔ {}", TupleKey.ToString()), Tuple.get(), tupleFlags, TI_Tuple, &TupleKey);
+					RenderItem(fmt::format("↔ {}", TupleKey.ToString()), Tuple, tupleFlags, TI_Tuple, &TupleKey);
 					ImGui::PopID();
 				}
 				ImGui::PopID();

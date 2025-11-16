@@ -19,15 +19,16 @@ class WTrafficTree
 	std::unordered_map<WTrafficItemId, std::shared_ptr<ITrafficItem>> TrafficItems;
 	std::unordered_set<WTrafficItemId>                                MarkedForRemovalItems;
 
-	std::optional<WEndpoint> SelectedTupleEndpoint{};
-	WTrafficItemId           SelectedItemId = std::numeric_limits<WTrafficItemId>::max();
-	ETrafficItemType         SelectedItemType = TI_System;
-	ITrafficItem const*      SelectedItem = nullptr;
+	std::optional<WEndpoint>    SelectedTupleEndpoint{};
+	WTrafficItemId              SelectedItemId{ std::numeric_limits<WTrafficItemId>::max() };
+	ETrafficItemType            SelectedItemType{ TI_System };
+	std::weak_ptr<ITrafficItem> SelectedItem{};
 
 	void RemoveTrafficItem(WTrafficItemId TrafficItemId);
 
-	bool       RenderItem(std::string const& Name, ITrafficItem const* Item, ImGuiTreeNodeFlags NodeFlags,
-			  ETrafficItemType Type, WEndpoint const* ParentItem = nullptr);
+	bool RenderItem(std::string const& Name, std::shared_ptr<ITrafficItem> Item, ImGuiTreeNodeFlags NodeFlags,
+		ETrafficItemType Type, WEndpoint const* ParentItem = nullptr);
+
 	std::mutex DataMutex;
 
 public:
@@ -39,13 +40,13 @@ public:
 	void Draw(ImGuiID MainID);
 
 	template <class T>
-	T const* GetSeletedTrafficItem()
+	std::shared_ptr<T> const GetSeletedTrafficItem()
 	{
-		if (SelectedItem != nullptr)
+		if (auto const Ptr = SelectedItem.lock())
 		{
-			return dynamic_cast<T const*>(SelectedItem);
+			return std::dynamic_pointer_cast<T>(Ptr);
 		}
-		return nullptr;
+		return {};
 	}
 
 	std::optional<WEndpoint> GetSelectedTupleEndpoint() const { return SelectedTupleEndpoint; }
