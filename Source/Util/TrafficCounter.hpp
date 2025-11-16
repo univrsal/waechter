@@ -21,6 +21,8 @@ protected:
 
 	ECounterState State{ CS_Inactive };
 
+	uint8_t InactiveCounter{ 0 };
+
 public:
 	std::shared_ptr<T> TrafficItem;
 
@@ -38,12 +40,14 @@ public:
 	{
 		RecentUpload += Bytes;
 		State = CS_Active;
+		InactiveCounter = 0;
 	}
 
 	void PushIncomingTraffic(WBytes Bytes)
 	{
 		RecentDownload += Bytes;
 		State = CS_Active;
+		InactiveCounter = 0;
 	}
 
 	bool IsActive() const { return State == CS_Active; }
@@ -83,6 +87,19 @@ public:
 			if (TrafficItem->UploadSpeed < 1)
 			{
 				TrafficItem->UploadSpeed = 0;
+			}
+
+			if (TrafficItem->DownloadSpeed == 0 && TrafficItem->UploadSpeed == 0 && State == CS_Active)
+			{
+				InactiveCounter++;
+			}
+
+			// We don't set it to inactive immediately
+			// because the inactive state determines whether clients receive updates about this item,
+			// and we also need to send an update when the download speed reaches 0
+			if (InactiveCounter >= 3)
+			{
+				State = CS_Inactive;
 			}
 
 			TrafficItem->TotalDownloadBytes += RecentDownload;
