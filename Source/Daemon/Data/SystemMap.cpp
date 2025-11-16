@@ -67,10 +67,11 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 					SocketStateParser.DetermineSocketType(Item->SocketTuple.LocalEndpoint, Item->SocketTuple.Protocol);
 			}
 		}
+
 		if (Item->SocketTuple.Protocol == EProtocol::UDP)
 		{
-			// Add a new UDP per-connection tuple if the remote endpoind isn't the same as the socket's main one
-			if (Item->SocketTuple.RemoteEndpoint != RemoteEndpoint)
+			// Add a new UDP per-connection tuple if the remote endpoint isn't the same as the socket's main one
+			if (!RemoteEndpoint.Address.IsZero())
 			{
 				bool bTupleExists = Item->UDPPerConnectionTraffic.contains(RemoteEndpoint);
 				auto TupleCounter = GetOrCreateUDPTupleCounter(SockCounter, RemoteEndpoint);
