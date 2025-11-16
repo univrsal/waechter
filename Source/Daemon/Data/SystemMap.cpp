@@ -290,7 +290,15 @@ void WSystemMap::RefreshAllTrafficCounters()
 	for (auto const& Socket : Sockets | std::views::values)
 	{
 		Socket->Refresh();
+		if (Socket->TrafficItem->SocketTuple.Protocol == EProtocol::UDP)
+		{
+			for (auto const& TupleCounter : Socket->UDPPerConnectionCounters | std::views::values)
+			{
+				TupleCounter->Refresh();
+			}
+		}
 	}
+
 	Cleanup();
 }
 
