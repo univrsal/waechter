@@ -31,8 +31,8 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 	if (PacketHeader.ParsePacket(Event.Data.TrafficEventData.RawData, PACKET_HEADER_SIZE))
 	{
 		Item->SocketTuple.Protocol = PacketHeader.L4Proto;
-		WEndpoint LocalEndpoint{};
-		WEndpoint RemoteEndpoint{};
+		WEndpoint LocalEndpoint;
+		WEndpoint RemoteEndpoint;
 
 		if (Event.Data.TrafficEventData.Direction == PD_Outgoing)
 		{
