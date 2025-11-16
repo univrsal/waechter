@@ -50,7 +50,7 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 			Item->SocketTuple.LocalEndpoint = LocalEndpoint;
 		}
 
-		if (Item->SocketTuple.Protocol == EProtocol::TCP && !bHaveRemoteEndpoint)
+		if (!bHaveRemoteEndpoint)
 		{
 			Item->SocketTuple.RemoteEndpoint = RemoteEndpoint;
 		}
