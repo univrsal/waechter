@@ -197,8 +197,10 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 
 			if (Item->GetType() == TI_Socket)
 			{
-				auto SocketItem = dynamic_cast<WSocketItem*>(Item.get());
-				SocketItem->ConnectionState = ESocketConnectionState::Closed;
+				if (auto SocketItem = std::dynamic_pointer_cast<WSocketItem>(Item))
+				{
+					SocketItem->ConnectionState = ESocketConnectionState::Closed;
+				}
 			}
 		}
 	}
@@ -279,11 +281,13 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 			continue;
 		}
 
-		auto SocketItem = dynamic_cast<WSocketItem*>(SockIt->second.get());
-		auto NewTuple = std::make_shared<WTupleItem>();
-		NewTuple->ItemId = Addition.ItemId;
-		SocketItem->UDPPerConnectionTraffic[Addition.SocketTuple.RemoteEndpoint] = NewTuple;
-		TrafficItems[Addition.ItemId] = NewTuple;
+		if (auto SocketItem = std::dynamic_pointer_cast<WSocketItem>(SockIt->second))
+		{
+			auto NewTuple = std::make_shared<WTupleItem>();
+			NewTuple->ItemId = Addition.ItemId;
+			SocketItem->UDPPerConnectionTraffic[Addition.SocketTuple.RemoteEndpoint] = NewTuple;
+			TrafficItems[Addition.ItemId] = NewTuple;
+		}
 	}
 
 	for (auto const& StateChange : Updates.SocketStateChange)
@@ -291,7 +295,7 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 		auto It = TrafficItems.find(StateChange.ItemId);
 		if (It != TrafficItems.end() && It->second->GetType() == TI_Socket)
 		{
-			if (auto SocketItem = dynamic_cast<WSocketItem*>(It->second.get()))
+			if (auto SocketItem = std::dynamic_pointer_cast<WSocketItem>(It->second))
 			{
 				SocketItem->ConnectionState = StateChange.NewState;
 				SocketItem->SocketType = StateChange.SocketType;
