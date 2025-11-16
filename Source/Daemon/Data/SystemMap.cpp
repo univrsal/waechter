@@ -67,23 +67,26 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 					SocketStateParser.DetermineSocketType(Item->SocketTuple.LocalEndpoint, Item->SocketTuple.Protocol);
 			}
 		}
-
 		if (Item->SocketTuple.Protocol == EProtocol::UDP)
 		{
-			bool bTupleExists = Item->UDPPerConnectionTraffic.contains(RemoteEndpoint);
-			auto TupleCounter = GetOrCreateUDPTupleCounter(SockCounter, RemoteEndpoint);
-			if (Event.Data.TrafficEventData.Direction == PD_Outgoing)
+			// Add a new UDP per-connection tuple if the remote endpoind isn't the same as the socket's main one
+			if (Item->SocketTuple.RemoteEndpoint != RemoteEndpoint)
 			{
-				TupleCounter->PushOutgoingTraffic(Event.Data.TrafficEventData.Bytes);
-			}
-			else
-			{
-				TupleCounter->PushIncomingTraffic(Event.Data.TrafficEventData.Bytes);
-			}
+				bool bTupleExists = Item->UDPPerConnectionTraffic.contains(RemoteEndpoint);
+				auto TupleCounter = GetOrCreateUDPTupleCounter(SockCounter, RemoteEndpoint);
+				if (Event.Data.TrafficEventData.Direction == PD_Outgoing)
+				{
+					TupleCounter->PushOutgoingTraffic(Event.Data.TrafficEventData.Bytes);
+				}
+				else
+				{
+					TupleCounter->PushIncomingTraffic(Event.Data.TrafficEventData.Bytes);
+				}
 
-			if (!bTupleExists)
-			{
-				MapUpdate.AddTupleAddition(TupleCounter);
+				if (!bTupleExists)
+				{
+					MapUpdate.AddTupleAddition(TupleCounter);
+				}
 			}
 		}
 
