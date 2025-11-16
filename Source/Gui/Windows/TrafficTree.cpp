@@ -20,6 +20,7 @@
 #include "GlfwWindow.hpp"
 #include "Messages.hpp"
 #include "Data/TrafficTreeUpdate.hpp"
+#include "Util/Settings.hpp"
 
 template <class K, class V>
 static bool TryRemoveFromMap(std::unordered_map<K, V>& Map, WTrafficItemId TrafficItemId)
@@ -68,8 +69,8 @@ void WTrafficTree::RemoveTrafficItem(WTrafficItemId TrafficItemId)
 	}
 }
 
-bool WTrafficTree::RenderItem(
-	std::string const& Name, ITrafficItem const* Item, ImGuiTreeNodeFlags NodeFlags, ETrafficItemType Type)
+bool WTrafficTree::RenderItem(std::string const& Name, ITrafficItem const* Item, ImGuiTreeNodeFlags NodeFlags,
+	ETrafficItemType Type, WEndpoint const* TupleEndpoint)
 {
 	NodeFlags |= ImGuiTreeNodeFlags_SpanFullWidth;
 	NodeFlags |= ImGuiTreeNodeFlags_OpenOnArrow;
@@ -97,6 +98,14 @@ bool WTrafficTree::RenderItem(
 		SelectedItemId = Item->ItemId;
 		SelectedItem = Item;
 		SelectedItemType = Type;
+		if (TupleEndpoint)
+		{
+			SelectedTupleEndpoint = *TupleEndpoint;
+		}
+		else
+		{
+			SelectedTupleEndpoint = std::nullopt;
+		}
 	}
 
 #if WDEBUG
@@ -331,9 +340,22 @@ static std::string GetSocketName(WSocketItem* Socket)
 	{
 		return fmt::format("● {}", Socket->SocketTuple.LocalEndpoint.ToString());
 	}
-	if (Socket->SocketType == ESocketType::Connect && !Socket->SocketTuple.LocalEndpoint.Address.IsZero())
+	if (Socket->SocketType & ESocketType::Listen && Socket->SocketType & ESocketType::Connect
+		&& !Socket->SocketTuple.LocalEndpoint.Address.IsZero() && !Socket->SocketTuple.RemoteEndpoint.Address.IsZero())
 	{
-		return fmt::format("→ {}", Socket->SocketTuple.RemoteEndpoint.ToString());
+		return fmt::format(
+			"● {} -> {}", Socket->SocketTuple.LocalEndpoint.ToString(), Socket->SocketTuple.RemoteEndpoint.ToString());
+	}
+	if (Socket->SocketType == ESocketType::Connect)
+	{
+		if (!Socket->SocketTuple.RemoteEndpoint.Address.IsZero())
+		{
+			return fmt::format("→ {}", Socket->SocketTuple.RemoteEndpoint.ToString());
+		}
+		if (!Socket->SocketTuple.LocalEndpoint.Address.IsZero())
+		{
+			return fmt::format("{}", Socket->SocketTuple.LocalEndpoint.ToString());
+		}
 	}
 	if (Socket->SocketType == ESocketType::Accept)
 	{

@@ -24,6 +24,7 @@ class WDetailsWindow
 	void DrawApplicationDetails();
 	void DrawProcessDetails();
 	void DrawSocketDetails();
+	void DrawTupleDetails();
 
 	std::string FormattedUptime{};
 

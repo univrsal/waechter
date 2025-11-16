@@ -165,7 +165,9 @@ void WDetailsWindow::DrawSocketDetails()
 		}
 		ImGui::Text("Protocol: %s", ProtocolToString(Sock->SocketTuple.Protocol));
 	}
+#ifndef WDEBUG
 	else if (Sock->SocketType != ESocketType::Unknown)
+#endif
 	{
 
 		ImGui::Separator();
@@ -190,6 +192,21 @@ void WDetailsWindow::DrawSocketDetails()
 		}
 #endif
 	}
+}
+
+void WDetailsWindow::DrawTupleDetails()
+{
+	auto const* Tuple = Tree->GetSeletedTrafficItem<WTupleItem>();
+	auto const  Endpoint = Tree->GetSelectedTupleEndpoint();
+	if (!Tuple || !Endpoint.has_value())
+	{
+		return;
+	}
+	auto const& Ep = Endpoint.value();
+	ImGui::Text("Remote Endpoint: %s", Ep.ToString().c_str());
+	ImGui::Separator();
+	ImGui::Text("Total Downloaded: %s", WStorageFormat::AutoFormat(Tuple->TotalDownloadBytes).c_str());
+	ImGui::Text("Total Uploaded: %s", WStorageFormat::AutoFormat(Tuple->TotalUploadBytes).c_str());
 }
 
 WDetailsWindow::WDetailsWindow(WTrafficTree* Tree_) : Tree(Tree_)
@@ -219,7 +236,8 @@ void WDetailsWindow::Draw()
 				DrawSocketDetails();
 				break;
 			case TI_Tuple:
-				break; // TODO
+				DrawTupleDetails();
+				break;
 		}
 	}
 	ImGui::End();

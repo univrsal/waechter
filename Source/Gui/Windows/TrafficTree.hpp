@@ -19,14 +19,15 @@ class WTrafficTree
 	std::unordered_map<WTrafficItemId, std::shared_ptr<ITrafficItem>> TrafficItems;
 	std::unordered_set<WTrafficItemId>                                MarkedForRemovalItems;
 
-	WTrafficItemId      SelectedItemId = std::numeric_limits<WTrafficItemId>::max();
-	ETrafficItemType    SelectedItemType = TI_System;
-	ITrafficItem const* SelectedItem = nullptr;
+	std::optional<WEndpoint> SelectedTupleEndpoint{};
+	WTrafficItemId           SelectedItemId = std::numeric_limits<WTrafficItemId>::max();
+	ETrafficItemType         SelectedItemType = TI_System;
+	ITrafficItem const*      SelectedItem = nullptr;
 
 	void RemoveTrafficItem(WTrafficItemId TrafficItemId);
 
-	bool RenderItem(
-		std::string const& Name, ITrafficItem const* Item, ImGuiTreeNodeFlags NodeFlags, ETrafficItemType Type);
+	bool       RenderItem(std::string const& Name, ITrafficItem const* Item, ImGuiTreeNodeFlags NodeFlags,
+			  ETrafficItemType Type, WEndpoint const* ParentItem = nullptr);
 	std::mutex DataMutex;
 
 public:
@@ -42,10 +43,12 @@ public:
 	{
 		if (SelectedItem != nullptr)
 		{
-			return static_cast<T const*>(SelectedItem);
+			return dynamic_cast<T const*>(SelectedItem);
 		}
 		return nullptr;
 	}
+
+	std::optional<WEndpoint> GetSelectedTupleEndpoint() const { return SelectedTupleEndpoint; }
 
 	ETrafficItemType GetSelectedItemType() const { return SelectedItemType; }
 };
