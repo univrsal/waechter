@@ -496,6 +496,11 @@ void WTrafficTree::Draw(ImGuiID MainID)
 
 			for (auto const& [SocketCookie, Socket] : Process->Sockets)
 			{
+				if (Socket->SocketType == ESocketType::Unknown && !WSettings::GetInstance().bShowUninitalizedSockets)
+				{
+					continue;
+				}
+
 				ImGui::TableNextRow();
 				// Use string ID for potentially wide cookies
 				std::string SockId = std::string("sock:") + std::to_string(SocketCookie);
@@ -522,7 +527,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 					std::string tupleId = std::string("tuple:") + TupleKey.ToString();
 					ImGui::PushID(tupleId.c_str());
 					ImGuiTreeNodeFlags tupleFlags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-					RenderItem(fmt::format("{}", TupleKey.ToString()), Tuple.get(), tupleFlags, TI_Tuple);
+					RenderItem(fmt::format("{}", TupleKey.ToString()), Tuple.get(), tupleFlags, TI_Tuple, &TupleKey);
 					ImGui::PopID();
 				}
 				ImGui::PopID();

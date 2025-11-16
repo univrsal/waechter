@@ -4,9 +4,10 @@
 
 #include "MainWindow.hpp"
 
+#include "Util/Settings.hpp"
+
 #include <imgui_internal.h>
 #include <imgui.h>
-#include <fstream>
 #include <string>
 
 void WMainWindow::DrawConnectionIndicator()
@@ -98,6 +99,15 @@ void WMainWindow::Draw()
 
 	if (ImGui::BeginMainMenuBar())
 	{
+		if (ImGui::BeginMenu("View"))
+		{
+			if (ImGui::MenuItem("Show Uninitialized Sockets", "", &WSettings::GetInstance().bShowUninitalizedSockets))
+			{
+				WSettings::GetInstance().Save();
+			}
+			ImGui::EndMenu();
+		}
+
 		if (ImGui::BeginMenu("Help"))
 		{
 			if (ImGui::MenuItem("About"))
