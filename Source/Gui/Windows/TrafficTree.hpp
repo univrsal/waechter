@@ -12,12 +12,12 @@
 
 class WTrafficTree
 {
-	WSystemItem Root{};
+	std::shared_ptr<WSystemItem> Root = std::make_shared<WSystemItem>();
 
 	ETrafficUnit Unit = TU_MiBps;
 
-	std::unordered_map<WTrafficItemId, ITrafficItem*> TrafficItems;
-	std::unordered_set<WTrafficItemId>                MarkedForRemovalItems;
+	std::unordered_map<WTrafficItemId, std::shared_ptr<ITrafficItem>> TrafficItems;
+	std::unordered_set<WTrafficItemId>                                MarkedForRemovalItems;
 
 	WTrafficItemId      SelectedItemId = std::numeric_limits<WTrafficItemId>::max();
 	ETrafficItemType    SelectedItemType = TI_System;

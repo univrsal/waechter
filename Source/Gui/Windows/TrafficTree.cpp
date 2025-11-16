@@ -40,12 +40,12 @@ static bool TryRemoveFromMap(std::unordered_map<K, V>& Map, WTrafficItemId Traff
 void WTrafficTree::RemoveTrafficItem(WTrafficItemId TrafficItemId)
 {
 	MarkedForRemovalItems.erase(TrafficItemId);
-	if (Root.RemoveChild(TrafficItemId))
+	if (Root->RemoveChild(TrafficItemId))
 	{
 		return;
 	}
 
-	for (auto& App : Root.Applications | std::views::values)
+	for (auto& App : Root->Applications | std::views::values)
 	{
 		assert(App);
 		if (!App)
@@ -139,16 +139,16 @@ void WTrafficTree::LoadFromBuffer(WBuffer const& Buffer)
 	{
 		ss.seekg(1); // Skip message type
 		cereal::BinaryInputArchive iar(ss);
-		iar(Root);
+		iar(*Root.get());
 	}
 
 	// Remove any NULL entries that may have been deserialized
-	for (auto It = Root.Applications.begin(); It != Root.Applications.end();)
+	for (auto It = Root->Applications.begin(); It != Root->Applications.end();)
 	{
 		if (!It->second)
 		{
 			spdlog::warn("Found NULL application '{}' in deserialized data, removing", It->first);
-			It = Root.Applications.erase(It);
+			It = Root->Applications.erase(It);
 		}
 		else
 		{
@@ -156,24 +156,25 @@ void WTrafficTree::LoadFromBuffer(WBuffer const& Buffer)
 		}
 	}
 
-	for (auto const& App : Root.Applications | std::views::values)
+	for (auto const& App : Root->Applications | std::views::values)
 	{
-		TrafficItems[App->ItemId] = App.get();
+		TrafficItems[App->ItemId] = App;
 		for (auto const& Proc : App->Processes | std::views::values)
 		{
-			TrafficItems[Proc->ItemId] = Proc.get();
+			TrafficItems[Proc->ItemId] = Proc;
 			for (auto const& Sock : Proc->Sockets | std::views::values)
 			{
-				TrafficItems[Sock->ItemId] = Sock.get();
+				TrafficItems[Sock->ItemId] = Sock;
 			}
 		}
 	}
 
-	TrafficItems[0] = &Root;
+	TrafficItems[0] = Root;
 }
 
 void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 {
+	std::lock_guard     Lock(DataMutex);
 	WTrafficTreeUpdates Updates{};
 	std::stringstream   ss;
 	ss.write(Buffer.GetData(), static_cast<long int>(Buffer.GetWritePos()));
@@ -196,7 +197,7 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 
 			if (Item->GetType() == TI_Socket)
 			{
-				auto SocketItem = static_cast<WSocketItem*>(Item);
+				auto SocketItem = dynamic_cast<WSocketItem*>(Item.get());
 				SocketItem->ConnectionState = ESocketConnectionState::Closed;
 			}
 		}
@@ -220,19 +221,22 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 			continue;
 		}
 		// Find parent application
-		auto AppIt = Root.Applications.find(Addition.ApplicationPath);
-		if (AppIt == Root.Applications.end())
+		auto                              AppIt = Root->Applications.find(Addition.ApplicationPath);
+		std::shared_ptr<WApplicationItem> App;
+		if (AppIt == Root->Applications.end())
 		{
 			// Add new application if not found
-			auto NewApp = std::make_shared<WApplicationItem>();
-			NewApp->ApplicationName = Addition.ApplicationName;
-			NewApp->ItemId = Addition.ApplicationItemId;
-			NewApp->ApplicationPath = Addition.ApplicationPath;
-			Root.Applications[Addition.ApplicationPath] = NewApp;
-			AppIt = Root.Applications.find(Addition.ApplicationPath);
-			TrafficItems[NewApp->ItemId] = NewApp.get();
+			App = std::make_shared<WApplicationItem>();
+			App->ApplicationName = Addition.ApplicationName;
+			App->ItemId = Addition.ApplicationItemId;
+			App->ApplicationPath = Addition.ApplicationPath;
+			Root->Applications[Addition.ApplicationPath] = App;
+			TrafficItems[App->ItemId] = App;
 		}
-		auto& App = AppIt->second;
+		else
+		{
+			App = AppIt->second;
+		}
 
 		// Find parent process
 		auto ProcIt = App->Processes.find(Addition.ProcessId);
@@ -244,7 +248,7 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 			NewProc->ItemId = Addition.ProcessItemId;
 			App->Processes[Addition.ProcessId] = NewProc;
 			ProcIt = App->Processes.find(Addition.ProcessId);
-			TrafficItems[NewProc->ItemId] = NewProc.get();
+			TrafficItems[NewProc->ItemId] = NewProc;
 		}
 
 		auto const& Proc = ProcIt->second;
@@ -255,7 +259,7 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 		NewSocket->SocketTuple = Addition.SocketTuple;
 		NewSocket->ConnectionState = Addition.ConnectionState;
 		Proc->Sockets[Addition.ItemId] = NewSocket;
-		TrafficItems[Addition.ItemId] = NewSocket.get();
+		TrafficItems[Addition.ItemId] = NewSocket;
 	}
 
 	for (auto const& Addition : Updates.AddedTuples)
@@ -275,11 +279,11 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 			continue;
 		}
 
-		auto SocketItem = dynamic_cast<WSocketItem*>(SockIt->second);
+		auto SocketItem = dynamic_cast<WSocketItem*>(SockIt->second.get());
 		auto NewTuple = std::make_shared<WTupleItem>();
 		NewTuple->ItemId = Addition.ItemId;
 		SocketItem->UDPPerConnectionTraffic[Addition.SocketTuple.RemoteEndpoint] = NewTuple;
-		TrafficItems[Addition.ItemId] = NewTuple.get();
+		TrafficItems[Addition.ItemId] = NewTuple;
 	}
 
 	for (auto const& StateChange : Updates.SocketStateChange)
@@ -287,7 +291,7 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 		auto It = TrafficItems.find(StateChange.ItemId);
 		if (It != TrafficItems.end() && It->second->GetType() == TI_Socket)
 		{
-			if (auto SocketItem = dynamic_cast<WSocketItem*>(It->second))
+			if (auto SocketItem = dynamic_cast<WSocketItem*>(It->second.get()))
 			{
 				SocketItem->ConnectionState = StateChange.NewState;
 				SocketItem->SocketType = StateChange.SocketType;
@@ -412,7 +416,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 
 	// start first data row for the root item
 	ImGui::TableNextRow();
-	bOpened = RenderItem(Root.HostName, &Root, ImGuiTreeNodeFlags_DefaultOpen, TI_System);
+	bOpened = RenderItem(Root->HostName, Root.get(), ImGuiTreeNodeFlags_DefaultOpen, TI_System);
 	bool rootOpened = bOpened;
 
 	if (!bOpened)
@@ -423,7 +427,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 		return;
 	}
 
-	for (auto const& [Name, Child] : Root.Applications)
+	for (auto const& [Name, Child] : Root->Applications)
 	{
 		if (!Child)
 		{
