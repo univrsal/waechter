@@ -16,6 +16,7 @@
 #include "Filesystem.hpp"
 #include "Time.hpp"
 #include "AppIconAtlas.hpp"
+#include "Util/Settings.hpp"
 
 INCBIN(Icon, ICON_PATH);
 INCBIN(Font, FONT_PATH);
@@ -23,46 +24,6 @@ INCBIN(Font, FONT_PATH);
 static void GlfwErrorCallback(int Error, char const* Description)
 {
 	spdlog::error("GLFW Error {}: {}", Error, Description);
-}
-
-static stdfs::path GetConfigFolder()
-{
-	char const* Xdg = std::getenv("XDG_CONFIG_HOME");
-	stdfs::path Base;
-	if (Xdg && Xdg[0] != '\0')
-	{
-		Base = stdfs::path(Xdg);
-	}
-	else
-	{
-		char const* Home = std::getenv("HOME");
-		if (!Home || Home[0] == '\0')
-		{
-			spdlog::warn("Neither XDG_CONFIG_HOME nor HOME are set; cannot determine config folder");
-			return {};
-		}
-		Base = stdfs::path(Home) / ".config";
-	}
-
-	stdfs::path Appdir = Base / "waechter";
-
-	std::error_code ec;
-	if (!stdfs::exists(Appdir))
-	{
-		if (!stdfs::create_directories(Appdir, ec))
-		{
-			spdlog::error("Failed to create config directory {}: {}", Appdir.string(), ec.message());
-			return { "." };
-		}
-	}
-
-	if (!WFilesystem::Writable(Appdir))
-	{
-		spdlog::warn("Config directory {} is not writable", Appdir.string());
-		return { "." };
-	}
-
-	return Appdir;
 }
 
 bool WGlfwWindow::Init()
@@ -114,7 +75,7 @@ bool WGlfwWindow::Init()
 	ImGui::CreateContext();
 	ImPlot::CreateContext();
 	ImGuiIO& Io = ImGui::GetIO();
-	auto     Path = GetConfigFolder() / "imgui.ini";
+	auto     Path = WSettings::GetConfigFolder() / "imgui.ini";
 
 	if (!Path.empty())
 	{
@@ -198,6 +159,7 @@ void WGlfwWindow::RunLoop()
 void WGlfwWindow::Destroy()
 {
 	MainWindow = nullptr;
+	WSettings::GetInstance().Save();
 	WAppIconAtlas::GetInstance().Cleanup();
 	if (ImGui::GetCurrentContext())
 	{

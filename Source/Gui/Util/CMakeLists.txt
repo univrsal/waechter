@@ -4,6 +4,8 @@ target_sources(waechter
         FlagAtlas.hpp
         LibCurl.cpp
         LibCurl.hpp
+        Settings.cpp
+        Settings.hpp
 )
 
 if (WAECHTER_WITH_IPQUERY_IO_API)
