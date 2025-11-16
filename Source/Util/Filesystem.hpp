@@ -12,7 +12,6 @@
 #include <spdlog/spdlog.h>
 #include <grp.h>
 #include <unistd.h>
-#include <cstdlib>
 #include <sys/types.h>
 #include <vector>
 
