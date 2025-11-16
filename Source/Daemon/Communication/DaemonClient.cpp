@@ -34,7 +34,9 @@ void WDaemonClient::ListenThreadFunction()
 			uint32_t FrameLength = 0;
 			std::memcpy(&FrameLength, Accum.PeekReadPtr(), 4);
 			if (Accum.GetReadableSize() < static_cast<size_t>(4 + FrameLength))
+			{
 				break;
+			}
 			Accum.Consume(4);
 			Msg.Resize(FrameLength);
 			std::memcpy(Msg.GetData(), Accum.PeekReadPtr(), FrameLength);
