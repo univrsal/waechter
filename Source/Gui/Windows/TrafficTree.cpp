@@ -294,7 +294,7 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 		{
 			auto NewTuple = std::make_shared<WTupleItem>();
 			NewTuple->ItemId = Addition.ItemId;
-			SocketItem->UDPPerConnectionTraffic[Addition.SocketTuple.RemoteEndpoint] = NewTuple;
+			SocketItem->UDPPerConnectionTraffic[Addition.Endpoint] = NewTuple;
 			TrafficItems[Addition.ItemId] = NewTuple;
 		}
 	}

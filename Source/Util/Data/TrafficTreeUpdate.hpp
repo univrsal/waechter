@@ -59,12 +59,12 @@ struct WTrafficTreeTupleAddition
 {
 	WTrafficItemId ItemId{};
 	WTrafficItemId SocketItemId{};
-	WSocketTuple   SocketTuple{};
+	WEndpoint      Endpoint{};
 
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(ItemId, SocketItemId, SocketTuple);
+		archive(ItemId, SocketItemId, Endpoint);
 	}
 };
 

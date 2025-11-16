@@ -11,11 +11,11 @@
 
 class WMapUpdate
 {
-	std::vector<WTrafficItemId>                  MarkedForRemovalItems{};
-	std::vector<WTrafficItemId>                  RemovedItems{};
-	std::vector<WTrafficTreeSocketStateChange>   SocketStateChanges{};
-	std::vector<std::shared_ptr<WSocketCounter>> AddedSockets{};
-	std::vector<std::shared_ptr<WTupleCounter>>  AddedTuples{};
+	std::vector<WTrafficItemId>                                       MarkedForRemovalItems{};
+	std::vector<WTrafficItemId>                                       RemovedItems{};
+	std::vector<WTrafficTreeSocketStateChange>                        SocketStateChanges{};
+	std::vector<std::shared_ptr<WSocketCounter>>                      AddedSockets{};
+	std::vector<std::pair<WEndpoint, std::shared_ptr<WTupleCounter>>> AddedTuples{};
 
 	WTrafficTreeUpdates Updates;
 
@@ -42,7 +42,10 @@ public:
 	void AddStateChange(WTrafficItemId Id, ESocketConnectionState NewState, uint8_t SocketType,
 		std::optional<WSocketTuple> const& SocketTuple = std::nullopt);
 
-	void AddTupleAddition(std::shared_ptr<WTupleCounter> const& Tuple) { AddedTuples.emplace_back(Tuple); }
+	void AddTupleAddition(WEndpoint const& Endpoint, std::shared_ptr<WTupleCounter> const& Tuple)
+	{
+		AddedTuples.emplace_back(std::make_pair(Endpoint, Tuple));
+	}
 
 	void AddSocketAddition(std::shared_ptr<WSocketCounter> const& Socket) { AddedSockets.emplace_back(Socket); }
 

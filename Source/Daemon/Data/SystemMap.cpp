@@ -85,7 +85,7 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 
 				if (!bTupleExists)
 				{
-					MapUpdate.AddTupleAddition(TupleCounter);
+					MapUpdate.AddTupleAddition(RemoteEndpoint, TupleCounter);
 				}
 			}
 		}
