@@ -17,13 +17,13 @@
 WDaemonConfig::WDaemonConfig()
 {
 	SetDefaults();
-	if (WFilesystem::Exists("./waechter.ini"))
+	if (WFilesystem::Exists("./waechterd.ini"))
 	{
-		Load("./waechter.ini");
+		Load("./waechterd.ini");
 	}
-	else if (WFilesystem::Exists("/etc/waechter/waechter.ini"))
+	else if (WFilesystem::Exists("/etc/waechter/waechterd.ini"))
 	{
-		Load("/etc/waechter/waechter.ini");
+		Load("/etc/waechter/waechterd.ini");
 	}
 	else
 	{
