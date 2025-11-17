@@ -12,6 +12,7 @@ receiver.settimeout(3.0)
 # Sender will send to the bound receiver
 dest = ("127.0.0.1", 55511)
 sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+time.sleep(10)
 
 sent = sender.sendto("Test".encode("utf-8"), dest)
 print(f"Sent {sent} bytes to {dest}")
