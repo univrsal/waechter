@@ -147,8 +147,13 @@ void WDetailsWindow::DrawSocketDetails()
 	}
 
 	ImGui::Text("Socket state: %s", SocketConnectionStateToString(Sock->ConnectionState));
+
+	if (Sock->SocketType == ESocketType::Unknown)
+	{
+		ImGui::Text("Protocol: %s", ProtocolToString(Sock->SocketTuple.Protocol));
+	}
 #ifndef WDEBUG
-	if (Sock->SocketType != ESocketType::Unknown)
+	else
 #endif
 	{
 		ImGui::Text("Socket type: %s", SocketTypeToString(Sock->SocketType));
