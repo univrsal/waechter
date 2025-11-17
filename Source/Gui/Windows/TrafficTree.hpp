@@ -26,8 +26,8 @@ class WTrafficTree
 
 	void RemoveTrafficItem(WTrafficItemId TrafficItemId);
 
-	bool RenderItem(std::string const& Name, std::shared_ptr<ITrafficItem> Item, ImGuiTreeNodeFlags NodeFlags,
-		ETrafficItemType Type, WEndpoint const* ParentItem = nullptr);
+	bool RenderItem(std::string const& Name, std::shared_ptr<ITrafficItem> const& Item, ImGuiTreeNodeFlags NodeFlags,
+		bool bMarkedForRemoval = false, WEndpoint const* ParentItem = nullptr);
 
 	std::mutex DataMutex;
 

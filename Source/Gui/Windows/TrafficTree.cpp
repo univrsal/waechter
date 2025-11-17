@@ -21,6 +21,7 @@
 #include "Messages.hpp"
 #include "Data/TrafficTreeUpdate.hpp"
 #include "Util/Settings.hpp"
+#include "spdlog/fmt/bundled/chrono.h"
 
 template <class K, class V>
 static bool TryRemoveFromMap(std::unordered_map<K, V>& Map, WTrafficItemId TrafficItemId)
@@ -69,14 +70,15 @@ void WTrafficTree::RemoveTrafficItem(WTrafficItemId TrafficItemId)
 	}
 }
 
-bool WTrafficTree::RenderItem(std::string const& Name, std::shared_ptr<ITrafficItem> Item, ImGuiTreeNodeFlags NodeFlags,
-	ETrafficItemType Type, WEndpoint const* TupleEndpoint)
+bool WTrafficTree::RenderItem(std::string const& Name, std::shared_ptr<ITrafficItem> const& Item,
+	ImGuiTreeNodeFlags NodeFlags, bool const bMarkedForRemoval, WEndpoint const* TupleEndpoint)
 {
+	auto Type = Item->GetType();
 	NodeFlags |= ImGuiTreeNodeFlags_SpanFullWidth;
 	NodeFlags |= ImGuiTreeNodeFlags_OpenOnArrow;
 	ImGui::TableSetColumnIndex(0);
 
-	if (MarkedForRemovalItems.contains(Item->ItemId))
+	if (bMarkedForRemoval)
 	{
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{ 1.0f, 0.4f, 0.4f, 1.0f });
 	}
@@ -88,7 +90,7 @@ bool WTrafficTree::RenderItem(std::string const& Name, std::shared_ptr<ITrafficI
 
 	auto bNodeOpen = ImGui::TreeNodeEx(Name.c_str(), NodeFlags);
 
-	if (MarkedForRemovalItems.contains(Item->ItemId))
+	if (bMarkedForRemoval)
 	{
 		ImGui::PopStyleColor();
 	}
@@ -447,7 +449,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 
 	// start first data row for the root item
 	ImGui::TableNextRow();
-	bOpened = RenderItem(Root->HostName, Root, ImGuiTreeNodeFlags_DefaultOpen, TI_System);
+	bOpened = RenderItem(Root->HostName, Root, ImGuiTreeNodeFlags_DefaultOpen);
 	bool rootOpened = bOpened;
 
 	if (!bOpened)
@@ -474,7 +476,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 		ImGui::TableNextRow();
 		// Stable ID: application name within root
 		ImGui::PushID(Name.c_str());
-		bOpened = RenderItem(Child->ApplicationName, Child, ImGuiTreeNodeFlags_DefaultOpen, TI_Application);
+		bOpened = RenderItem(Child->ApplicationName, Child, ImGuiTreeNodeFlags_DefaultOpen);
 
 		if (!bOpened)
 		{
@@ -491,7 +493,8 @@ void WTrafficTree::Draw(ImGuiID MainID)
 
 			ImGui::TableNextRow();
 			ImGui::PushID(PID); // PID fits in int on Linux
-			bOpened = RenderItem(fmt::format("Process {}", PID), Process, 0, TI_Process);
+			bOpened =
+				RenderItem(fmt::format("Process {}", PID), Process, 0, MarkedForRemovalItems.contains(Process->ItemId));
 
 			if (!bOpened)
 			{
@@ -518,8 +521,8 @@ void WTrafficTree::Draw(ImGuiID MainID)
 					SocketFlags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 				}
 
-				bOpened = RenderItem(SocketName, Socket, SocketFlags, TI_Socket);
-
+				auto const bPendingRemoval = MarkedForRemovalItems.contains(Socket->ItemId);
+				bOpened = RenderItem(SocketName, Socket, SocketFlags, bPendingRemoval);
 				if (!bOpened)
 				{
 					ImGui::PopID();
@@ -532,7 +535,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 					std::string tupleId = std::string("tuple:") + TupleKey.ToString();
 					ImGui::PushID(tupleId.c_str());
 					ImGuiTreeNodeFlags tupleFlags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-					RenderItem(fmt::format("↔ {}", TupleKey.ToString()), Tuple, tupleFlags, TI_Tuple, &TupleKey);
+					RenderItem(fmt::format("↔ {}", TupleKey.ToString()), Tuple, tupleFlags, bPendingRemoval, &TupleKey);
 					ImGui::PopID();
 				}
 				ImGui::PopID();
