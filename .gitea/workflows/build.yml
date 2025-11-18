@@ -3,11 +3,16 @@ on: [ push, pull_request ]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: [ self-hosted, linux, x64 ]
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Build
+      - name: Manual checkout
+        run: |
+          rm -rf ./repo || true
+          git init .
+          git remote add origin "${{ gitea.repository.clone_url }}"
+          git fetch --depth=1 origin "${{ gitea.ref }}"
+          git checkout FETCH_HEAD
+      - name: Configure & Build
         run: |
           cmake -B build -G Ninja
           cmake --build build
