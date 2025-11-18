@@ -19,6 +19,18 @@ void WMapUpdate::AddStateChange(WTrafficItemId const Id, ESocketConnectionState 
 	SocketStateChanges.emplace_back(StateChange);
 }
 
+template <typename K, typename V, typename U>
+void FetchActiveCounters(std::unordered_map<K, std::shared_ptr<V>> const& Counters, std::vector<U>& OutUpdatedItems)
+{
+	for (auto const& CounterPair : Counters | std::views::values)
+	{
+		if (CounterPair->IsActive())
+		{
+			OutUpdatedItems.emplace_back(*CounterPair->TrafficItem);
+		}
+	}
+}
+
 WTrafficTreeUpdates const& WMapUpdate::GetUpdates()
 {
 	auto& SM = WSystemMap::GetInstance();
@@ -32,21 +44,8 @@ WTrafficTreeUpdates const& WMapUpdate::GetUpdates()
 		Updates.UpdatedItems.emplace_back(*SM.SystemItem);
 	}
 
-	for (auto const& App : SM.Applications | std::views::values)
-	{
-		if (App->IsActive())
-		{
-			Updates.UpdatedItems.emplace_back(*App->TrafficItem);
-		}
-	}
-
-	for (auto const& Process : SM.Processes | std::views::values)
-	{
-		if (Process->IsActive())
-		{
-			Updates.UpdatedItems.emplace_back(*Process->TrafficItem);
-		}
-	}
+	FetchActiveCounters(SM.Applications, Updates.UpdatedItems);
+	FetchActiveCounters(SM.Processes, Updates.UpdatedItems);
 
 	for (auto const& Socket : SM.Sockets | std::views::values)
 	{
