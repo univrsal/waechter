@@ -7,10 +7,14 @@ jobs:
     steps:
       - name: Manual checkout
         run: |
-          rm -rf ./repo || true
+          set -e
+          ref="${GITEA_REF:-$GITEA_SHA}"
+          repo="$GITEA_REPOSITORY"
+          server="$GITEA_SERVER_URL"
+          test -n "$repo" && test -n "$ref" || { echo "Missing repo/ref env"; exit 1; }
           git init .
-          git remote add origin "${{ gitea.repository.clone_url }}"
-          git fetch --depth=1 origin "${{ gitea.ref }}"
+          git remote add origin "${server}/${repo}.git"
+          git fetch --depth=1 origin "$ref"
           git checkout FETCH_HEAD
       - name: Configure & Build
         run: |
