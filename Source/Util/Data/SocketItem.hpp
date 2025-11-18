@@ -2,6 +2,9 @@
 // Created by usr on 30/10/2025.
 //
 #pragma once
+#include <memory>
+#include <unordered_map>
+
 #include "TrafficItem.hpp"
 #include "IPAddress.hpp"
 
