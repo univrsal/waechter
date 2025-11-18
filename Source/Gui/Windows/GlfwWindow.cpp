@@ -16,6 +16,7 @@
 #include "Filesystem.hpp"
 #include "Time.hpp"
 #include "AppIconAtlas.hpp"
+#include "Icons/IconAtlas.hpp"
 #include "Util/Settings.hpp"
 
 INCBIN(Icon, ICON_PATH);
@@ -114,6 +115,7 @@ bool WGlfwWindow::Init()
 
 	WTimerManager::GetInstance().Start(glfwGetTime());
 	WAppIconAtlas::GetInstance().Init();
+	WIconAtlas::GetInstance().Load();
 	MainWindow->GetClient().Start();
 	return true;
 }
@@ -161,6 +163,7 @@ void WGlfwWindow::Destroy()
 	MainWindow = nullptr;
 	WSettings::GetInstance().Save();
 	WAppIconAtlas::GetInstance().Cleanup();
+	WIconAtlas::GetInstance().Unload();
 	if (ImGui::GetCurrentContext())
 	{
 		ImGuiIO& io = ImGui::GetIO();

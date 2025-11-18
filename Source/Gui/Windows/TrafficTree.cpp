@@ -5,6 +5,8 @@
 #include "TrafficTree.hpp"
 
 // ReSharper disable CppUnusedIncludeDirective
+#include "AppIconAtlas.hpp"
+
 #include <imgui.h>
 #include <ranges>
 #include <spdlog/spdlog.h>
@@ -70,6 +72,41 @@ void WTrafficTree::RemoveTrafficItem(WTrafficItemId TrafficItemId)
 	}
 }
 
+inline bool DrawIcon(
+	bool& bNodeOpen, std::string const& Name, std::shared_ptr<ITrafficItem> const& Item, ImGuiTreeNodeFlags NodeFlags)
+{
+	// For applications with icons: use TreeNodeEx with pointer ID and empty label,
+	// then draw icon and text inline. This puts icon after the arrow.
+	bNodeOpen = ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<intptr_t>(Item->ItemId)), NodeFlags, "%s", "");
+
+	// Store the clicked state immediately after TreeNodeEx, before drawing icon/text
+	bool bClicked = ImGui::IsItemClicked();
+
+	// Reduce spacing between arrow and icon
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, ImGui::GetStyle().ItemSpacing.y));
+	ImGui::SameLine();
+	if (Item->GetType() == TI_Application)
+	{
+		std::lock_guard Lock(WAppIconAtlas::GetInstance().GetMutex());
+		WAppIconAtlas::GetInstance().DrawIconForApplication(
+			std::dynamic_pointer_cast<WApplicationItem>(Item)->ApplicationName, ImVec2{ 16, 16 });
+	}
+	else if (Item->GetType() == TI_Process)
+	{
+		WAppIconAtlas::GetInstance().DrawProcessIcon(ImVec2{ 16, 16 });
+	}
+	else
+	{
+		WAppIconAtlas::GetInstance().DrawSystemIcon(ImVec2{ 16, 16 });
+	}
+	ImGui::SameLine();
+	ImGui::TextUnformatted(Name.c_str());
+	ImGui::PopStyleVar();
+
+	// Also check if icon or text was clicked
+	return bClicked || ImGui::IsItemClicked();
+}
+
 bool WTrafficTree::RenderItem(std::string const& Name, std::shared_ptr<ITrafficItem> const& Item,
 	ImGuiTreeNodeFlags NodeFlags, bool const bMarkedForRemoval, WEndpoint const* TupleEndpoint)
 {
@@ -88,14 +125,25 @@ bool WTrafficTree::RenderItem(std::string const& Name, std::shared_ptr<ITrafficI
 		NodeFlags |= ImGuiTreeNodeFlags_Selected;
 	}
 
-	auto bNodeOpen = ImGui::TreeNodeEx(Name.c_str(), NodeFlags);
+	bool bNodeOpen = false;
+	bool bItemClicked = false;
+
+	if (Item->GetType() <= TI_Process)
+	{
+		bItemClicked = DrawIcon(bNodeOpen, Name, Item, NodeFlags);
+	}
+	else
+	{
+		bNodeOpen = ImGui::TreeNodeEx(Name.c_str(), NodeFlags);
+		bItemClicked = ImGui::IsItemClicked();
+	}
 
 	if (bMarkedForRemoval)
 	{
 		ImGui::PopStyleColor();
 	}
 
-	if (ImGui::IsItemClicked())
+	if (bItemClicked)
 	{
 		SelectedItemId = Item->ItemId;
 		SelectedItem = Item;

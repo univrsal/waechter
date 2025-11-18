@@ -6,8 +6,15 @@ add_executable(waechter
         AppIconAtlas.hpp
 )
 
+target_compile_definitions(waechter PRIVATE
+        "COUNTRY_FLAG_ATLAS_IMAGE=\"${CMAKE_SOURCE_DIR}/Thirdparty/flags/atlas.png\""
+        "ICON_ATLAS_IMAGE=\"${CMAKE_SOURCE_DIR}/Meta/atlas.png\""
+        "LOGO_IMAGE=\"${CMAKE_SOURCE_DIR}/Meta/logo.png\""
+)
+
 add_subdirectory(Windows)
 add_subdirectory(Util)
+add_subdirectory(Icons)
 
 target_link_libraries(waechter PRIVATE
         thirdparty::spdlog
@@ -61,12 +68,6 @@ if (_license_defs)
     message(STATUS "Added licenses for ${_thirdparty_libs}")
     target_compile_definitions(waechter PRIVATE ${_license_defs})
 endif ()
-
-target_compile_definitions(waechter PRIVATE
-        "NO_ICON_IMAGE=\"${CMAKE_SOURCE_DIR}/Meta/noicon.png\""
-        "PROCESS_ICON_IMAGE=\"${CMAKE_SOURCE_DIR}/Meta/process.png\""
-        "COUNTRY_FLAG_ATLAS_IMAGE=\"${CMAKE_SOURCE_DIR}/Thirdparty/flags/atlas.png\""
-)
 
 install(TARGETS waechter
         RUNTIME DESTINATION bin)

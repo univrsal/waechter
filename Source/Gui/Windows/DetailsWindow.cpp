@@ -86,6 +86,10 @@ void WDetailsWindow::DrawSystemDetails()
 		return;
 	}
 
+	WAppIconAtlas::GetInstance().DrawSystemIcon(ImVec2(16, 16));
+
+	ImGui::SameLine();
+
 	ImGui::Text("Hostname: %s", System->HostName.c_str());
 	ImGui::Separator();
 	ImGui::Text("Uptime: %s", FormattedUptime.c_str());

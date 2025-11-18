@@ -28,25 +28,13 @@ class WMainWindow
 public:
 	void Draw();
 
-	WLibCurl& GetLibCurl()
-	{
-		return LibCurl;
-	}
+	WLibCurl& GetLibCurl() { return LibCurl; }
 
-	WNetworkGraphWindow& GetNetworkGraphWindow()
-	{
-		return NetworkGraphWindow;
-	}
+	WNetworkGraphWindow& GetNetworkGraphWindow() { return NetworkGraphWindow; }
 
-	WClient& GetClient()
-	{
-		return Client;
-	}
+	WClient& GetClient() { return Client; }
 
-	WFlagAtlas& GetFlagAtlas()
-	{
-		return FlagAtlas;
-	}
+	WFlagAtlas& GetFlagAtlas() { return FlagAtlas; }
 
 	~WMainWindow() = default;
 };

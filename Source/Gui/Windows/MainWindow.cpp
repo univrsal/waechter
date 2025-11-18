@@ -4,11 +4,11 @@
 
 #include "MainWindow.hpp"
 
-#include "Util/Settings.hpp"
-
 #include <imgui_internal.h>
 #include <imgui.h>
 #include <string>
+
+#include "Util/Settings.hpp"
 
 void WMainWindow::DrawConnectionIndicator()
 {
