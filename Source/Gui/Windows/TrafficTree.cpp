@@ -245,6 +245,10 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 			App->ApplicationPath = Addition.ApplicationPath;
 			Root->Applications[Addition.ApplicationPath] = App;
 			TrafficItems[App->ItemId] = App;
+			if (!ResolvedAddresses.contains(Addition.SocketTuple.RemoteEndpoint.Address))
+			{
+				ResolvedAddresses[Addition.SocketTuple.RemoteEndpoint.Address] = Addition.ResolvedAddress;
+			}
 		}
 		else
 		{
@@ -298,6 +302,11 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 			NewTuple->ItemId = Addition.ItemId;
 			SocketItem->UDPPerConnectionTraffic[Addition.Endpoint] = NewTuple;
 			TrafficItems[Addition.ItemId] = NewTuple;
+
+			if (!ResolvedAddresses.contains(Addition.Endpoint.Address))
+			{
+				ResolvedAddresses[Addition.Endpoint.Address] = Addition.ResolvedAddress;
+			}
 		}
 	}
 
@@ -560,4 +569,18 @@ void WTrafficTree::Draw(ImGuiID MainID)
 	ImGui::EndTable();
 	ImGui::EndChild();
 	ImGui::End();
+}
+
+void WTrafficTree::SetResolvedAddresses(WBuffer const& Buffer)
+{
+	std::unordered_map<WIPAddress, std::string> NewResolvedAddresses{};
+	std::stringstream                           SS;
+	SS.write(Buffer.GetData(), static_cast<long int>(Buffer.GetWritePos()));
+	{
+		SS.seekg(1); // Skip message type
+		cereal::BinaryInputArchive Iar(SS);
+		Iar(NewResolvedAddresses);
+	}
+	std::lock_guard Lock(DataMutex);
+	ResolvedAddresses = std::move(NewResolvedAddresses);
 }

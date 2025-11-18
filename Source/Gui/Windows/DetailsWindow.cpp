@@ -179,6 +179,14 @@ void WDetailsWindow::DrawSocketDetails()
 			ImGui::InputText("Remote Endpoint", const_cast<char*>(Sock->SocketTuple.RemoteEndpoint.ToString().c_str()),
 				64, ImGuiInputTextFlags_ReadOnly);
 		}
+		if (auto It = Tree->GetResolvedAddresses().find(Sock->SocketTuple.RemoteEndpoint.Address);
+			It != Tree->GetResolvedAddresses().end())
+		{
+			if (!It->second.empty())
+			{
+				ImGui::InputText("Hostname", const_cast<char*>(It->second.c_str()), 128, ImGuiInputTextFlags_ReadOnly);
+			}
+		}
 		ImGui::Text("Protocol: %s", ProtocolToString(Sock->SocketTuple.Protocol));
 		ImGui::Separator();
 		ImGui::Text("Total Downloaded: %s", WStorageFormat::AutoFormat(Sock->TotalDownloadBytes).c_str());

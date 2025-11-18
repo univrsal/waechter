@@ -20,6 +20,7 @@
 #include "Messages.hpp"
 #include "Data/AppIconAtlasBuilder.hpp"
 #include "Data/SystemMap.hpp"
+#include "Net/Resolver.hpp"
 
 void WDaemonSocket::ListenThreadFunction()
 {
@@ -38,6 +39,10 @@ void WDaemonSocket::ListenThreadFunction()
 			{
 				std::lock_guard Lock(SystemMap.DataMutex);
 				NewClient->SendMessage(MT_TrafficTree, *SystemMap.GetSystemItem());
+			}
+			{
+				std::lock_guard Lock(WResolver::GetInstance().ResolvedAddressesMutex);
+				NewClient->SendMessage(MT_ResolvedAddresses, WResolver::GetInstance().GetResolvedAddresses());
 			}
 
 			// Send app icon atlas

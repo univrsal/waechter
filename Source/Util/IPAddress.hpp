@@ -15,7 +15,7 @@ namespace EIPFamily
 	enum Type : uint8_t
 	{
 		Unknown = 0,
-		IPv4 = 4,
+		IPv4 = 4, // don't set this to AF_INET(6) packet header parsing depends on the values being 4 and 6
 		IPv6 = 6
 	};
 } // namespace EIPFamily
@@ -89,7 +89,7 @@ struct WIPAddress
 		return false;
 	}
 
-	bool IsZero() const
+	[[nodiscard]] bool IsZero() const
 	{
 		if (Family == EIPFamily::IPv4)
 		{
@@ -204,6 +204,19 @@ struct ByteArray16Hash
 	}
 };
 
+struct WIPAddressHash
+{
+	size_t operator()(WIPAddress const& Ip) const noexcept
+	{
+		ByteArray16Hash ByteHash;
+		// Hash the 16-byte array (for IPv4 only first 4 are meaningful, rest typically zeroed)
+		size_t Hbytes = ByteHash(Ip.Bytes);
+		size_t Hfamily = std::hash<uint8_t>{}(Ip.Family);
+		// Mix (simple multiplicative + xor)
+		return (Hbytes ^ (Hfamily + 0x9e3779b97f4a7c15ULL + (Hbytes << 6) + (Hbytes >> 2)));
+	}
+};
+
 struct WEndpointHash
 {
 	size_t operator()(WEndpoint const& Endpoint) const noexcept
@@ -222,6 +235,17 @@ struct WEndpointHash
 
 namespace std
 {
+	// Added: std::hash specialization for WIPAddress
+	template <>
+	struct hash<WIPAddress>
+	{
+		size_t operator()(WIPAddress const& Ip) const noexcept
+		{
+			WIPAddressHash Hash;
+			return Hash(Ip);
+		}
+	};
+
 	template <>
 	struct hash<WEndpoint>
 	{

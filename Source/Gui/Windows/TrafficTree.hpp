@@ -19,6 +19,8 @@ class WTrafficTree
 	std::unordered_map<WTrafficItemId, std::shared_ptr<ITrafficItem>> TrafficItems;
 	std::unordered_set<WTrafficItemId>                                MarkedForRemovalItems;
 
+	std::unordered_map<WIPAddress, std::string> ResolvedAddresses{};
+
 	std::optional<WEndpoint>    SelectedTupleEndpoint{};
 	WTrafficItemId              SelectedItemId{ std::numeric_limits<WTrafficItemId>::max() };
 	ETrafficItemType            SelectedItemType{ TI_System };
@@ -39,8 +41,12 @@ public:
 	void UpdateFromBuffer(WBuffer const& Buffer);
 	void Draw(ImGuiID MainID);
 
+	void SetResolvedAddresses(WBuffer const& Buffer);
+
+	std::unordered_map<WIPAddress, std::string> const& GetResolvedAddresses() const { return ResolvedAddresses; }
+
 	template <class T>
-	std::shared_ptr<T> const GetSeletedTrafficItem()
+	std::shared_ptr<T> GetSeletedTrafficItem()
 	{
 		if (auto const Ptr = SelectedItem.lock())
 		{

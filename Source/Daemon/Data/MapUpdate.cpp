@@ -5,6 +5,7 @@
 #include "MapUpdate.hpp"
 
 #include "SystemMap.hpp"
+#include "Net/Resolver.hpp"
 
 void WMapUpdate::AddStateChange(WTrafficItemId const Id, ESocketConnectionState const NewState,
 	uint8_t const SocketType, std::optional<WSocketTuple> const& SocketTuple)
@@ -28,14 +29,14 @@ WTrafficTreeUpdates const& WMapUpdate::GetUpdates()
 
 	if (SM.TrafficCounter.IsActive())
 	{
-		Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{ *SM.SystemItem });
+		Updates.UpdatedItems.emplace_back(*SM.SystemItem);
 	}
 
 	for (auto const& App : SM.Applications | std::views::values)
 	{
 		if (App->IsActive())
 		{
-			Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{ *App->TrafficItem });
+			Updates.UpdatedItems.emplace_back(*App->TrafficItem);
 		}
 	}
 
@@ -43,7 +44,7 @@ WTrafficTreeUpdates const& WMapUpdate::GetUpdates()
 	{
 		if (Process->IsActive())
 		{
-			Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{ *Process->TrafficItem });
+			Updates.UpdatedItems.emplace_back(*Process->TrafficItem);
 		}
 	}
 
@@ -54,7 +55,7 @@ WTrafficTreeUpdates const& WMapUpdate::GetUpdates()
 			continue;
 		}
 
-		Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{ *Socket->TrafficItem });
+		Updates.UpdatedItems.emplace_back(*Socket->TrafficItem);
 
 		if (Socket->TrafficItem->SocketTuple.Protocol == EProtocol::UDP)
 		{
@@ -62,7 +63,7 @@ WTrafficTreeUpdates const& WMapUpdate::GetUpdates()
 			{
 				if (TupleCounter->IsActive())
 				{
-					Updates.UpdatedItems.emplace_back(WTrafficTreeTrafficUpdate{ *TupleCounter->TrafficItem });
+					Updates.UpdatedItems.emplace_back(*TupleCounter->TrafficItem);
 				}
 			}
 		}
@@ -88,6 +89,8 @@ WTrafficTreeUpdates const& WMapUpdate::GetUpdates()
 		Addition.ApplicationPath = PATI->ApplicationPath;
 		Addition.ApplicationName = PATI->ApplicationName;
 		Addition.ApplicationCommandLine = PATI->ApplicationCommandLine;
+		Addition.ResolvedAddress =
+			WResolver::GetInstance().Resolve(Socket->TrafficItem->SocketTuple.RemoteEndpoint.Address);
 		Addition.SocketTuple = Socket->TrafficItem->SocketTuple;
 		Addition.ConnectionState = Socket->TrafficItem->ConnectionState;
 		Updates.AddedSockets.emplace_back(Addition);
@@ -106,7 +109,7 @@ WTrafficTreeUpdates const& WMapUpdate::GetUpdates()
 		Addition.ItemId = TupleCounter.second->TrafficItem->ItemId;
 		Addition.SocketItemId = TupleCounter.second->ParentSocket->TrafficItem->ItemId;
 		Addition.Endpoint = TupleCounter.first;
-		Updates.AddedTuples.emplace_back(Addition);
+		Addition.ResolvedAddress = WResolver::GetInstance().Resolve(Addition.Endpoint.Address);
 	}
 
 	Clear();

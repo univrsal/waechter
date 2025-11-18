@@ -9,6 +9,7 @@
 
 #include "Filesystem.hpp"
 #include "Net/PacketParser.hpp"
+#include "Net/Resolver.hpp"
 
 void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSocketCounter> const& SockCounter)
 {
@@ -44,6 +45,8 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 			LocalEndpoint = PacketHeader.Dst;
 			RemoteEndpoint = PacketHeader.Src;
 		}
+
+		WResolver::GetInstance().Resolve(RemoteEndpoint.Address);
 
 		if (!bHaveLocalEndpoint)
 		{

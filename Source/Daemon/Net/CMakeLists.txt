@@ -4,4 +4,6 @@ target_sources(waechterd
         PacketParser.hpp
         SocketStateParser.cpp
         SocketStateParser.hpp
+        Resolver.cpp
+        Resolver.hpp
 )

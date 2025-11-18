@@ -114,6 +114,9 @@ void WClient::ConnectionThreadFunction()
 				case MT_AppIconAtlasData:
 					WAppIconAtlas::GetInstance().FromAtlasData(Msg);
 					break;
+				case MT_ResolvedAddresses:
+					TrafficTree.SetResolvedAddresses(Msg);
+					break;
 				default:
 					spdlog::warn("Received unknown message type from server: {}", static_cast<int>(Type));
 					break;
