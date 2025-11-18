@@ -125,7 +125,7 @@ WJson WLibCurl::GetJson(std::string const& Url, std::string& OutError) const
 	std::string Body;
 
 	auto SetOpt = [&](int Opt, auto Val) -> bool {
-		auto code = curl_easy_setopt_fp(Curl, static_cast<CURLoption>(Opt), Val);
+		auto code = curl_easy_setopt_fp(Curl, Opt, Val);
 		if (code != CURLE_OK)
 		{
 			OutError = curl_easy_strerror_fp ? curl_easy_strerror_fp(code) : "curl_easy_setopt failed";
