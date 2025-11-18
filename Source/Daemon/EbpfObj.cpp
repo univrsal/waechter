@@ -39,14 +39,7 @@ WEbpfObj::~WEbpfObj()
 		auto Type = std::get<1>(Program);
 		if (ProgFd >= 0 && CGroupFd)
 		{
-			if (Type == BPF_XDP)
-			{
-				bpf_xdp_detach(XdpIfIndex, 0, nullptr);
-			}
-			else
-			{
-				bpf_prog_detach2(ProgFd, *CGroupFd, Type);
-			}
+			bpf_prog_detach2(ProgFd, *CGroupFd, Type);
 		}
 	}
 
