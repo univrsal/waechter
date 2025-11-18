@@ -109,36 +109,6 @@ bool WEbpfObj::FindAndAttachProgram(std::string const& ProgName, bpf_attach_type
 	return Result;
 }
 
-bool WEbpfObj::FindAndAttachXdpProgram(std::string const& ProgName, int IfIndex, unsigned int Flags)
-{
-	auto* Prog = bpf_object__find_program_by_name(Obj, ProgName.c_str());
-
-	if (!Prog)
-	{
-		spdlog::critical("Program '{}' not found", ProgName);
-		return false;
-	}
-
-	int ProgFd = bpf_program__fd(Prog);
-
-	if (ProgFd < 0)
-	{
-		spdlog::critical("Program '{}' not open", ProgName);
-		return false;
-	}
-
-	bpf_xdp_detach(IfIndex, Flags, nullptr);
-	auto Result = bpf_xdp_attach(IfIndex, ProgFd, Flags, nullptr);
-
-	if (Result)
-	{
-		Programs.emplace_back(Prog, BPF_XDP);
-	}
-
-	XdpIfIndex = IfIndex;
-	return Result == 0;
-}
-
 int WEbpfObj::FindMapFd(std::string const& MapFdPath) const
 {
 	return bpf_object__find_map_fd_by_name(this->Obj, MapFdPath.c_str());
