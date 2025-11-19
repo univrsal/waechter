@@ -2,6 +2,8 @@ add_executable(waechterd
         Waechterd.cpp
         DaemonConfig.cpp
         DaemonConfig.hpp
+        Daemon.cpp
+        Daemon.hpp
         EbpfObj.cpp
         EbpfObj.hpp
         WaechterEbpf.cpp
