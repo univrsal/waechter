@@ -31,12 +31,15 @@ void WNetworkGraphWindow::Draw()
 			ImPlot::SetupAxes(nullptr, TrafficFmt.Label, 0, ImPlotAxisFlags_AutoFit);
 			ImPlot::SetupAxisFormat(ImAxis_Y1, FormatBandwidth, &TrafficFmt);
 
+			auto const PointCount = std::min(static_cast<int>(History) + 5, UploadBuffer.Data.size());
+			auto       DataStart = std::max(0, UploadBuffer.Data.size() - static_cast<int>(History) - 5);
+
 			ImPlot::SetupAxisLimits(ImAxis_X1, Time - History, Time, ImGuiCond_Always);
 			ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, 0.0, std::numeric_limits<double>::infinity());
-			ImPlot::PlotLine("Upload", &UploadBuffer.Data[0].x, &UploadBuffer.Data[0].y, UploadBuffer.Data.size(), 0,
+			ImPlot::PlotLine("Upload", &UploadBuffer.Data[DataStart].x, &UploadBuffer.Data[DataStart].y, PointCount, 0,
 				UploadBuffer.Offset, 2 * sizeof(float));
-			ImPlot::PlotLine("Download", &DownloadBuffer.Data[0].x, &DownloadBuffer.Data[0].y,
-				DownloadBuffer.Data.size(), 0, DownloadBuffer.Offset, 2 * sizeof(float));
+			ImPlot::PlotLine("Download", &DownloadBuffer.Data[DataStart].x, &DownloadBuffer.Data[DataStart].y,
+				PointCount, 0, DownloadBuffer.Offset, 2 * sizeof(float));
 			ImPlot::EndPlot();
 		}
 	}
