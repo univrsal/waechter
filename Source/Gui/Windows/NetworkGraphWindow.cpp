@@ -28,17 +28,20 @@ void WNetworkGraphWindow::Draw()
 			std::lock_guard Lock(Mutex);
 
 			// Setup axes: show chosen unit on Y axis
-			ImPlot::SetupAxes(nullptr, TrafficFmt.Label, 0, ImPlotAxisFlags_AutoFit);
+			ImPlot::SetupAxes(nullptr, TrafficFmt.Label, 0, 0);
 			ImPlot::SetupAxisFormat(ImAxis_Y1, FormatBandwidth, &TrafficFmt);
 
 			auto const PointCount = std::min(static_cast<int>(History) + 5, UploadBuffer.Data.size());
 			auto       DataStart = std::max(0, UploadBuffer.Data.size() - static_cast<int>(History) - 5);
 
-			ImPlot::SetupAxisLimits(ImAxis_X1, Time - History, Time, ImGuiCond_Always);
+			ImPlot::SetupAxisLimits(ImAxis_X1, Time - History, Time - 1.1, ImGuiCond_Always);
+			ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, static_cast<double>(CurrentMaxRateInGraph) * 1.1, ImGuiCond_Always);
 			ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, 0.0, std::numeric_limits<double>::infinity());
-			ImPlot::PlotLine("Upload", &UploadBuffer.Data[DataStart].x, &UploadBuffer.Data[DataStart].y, PointCount, 0,
-				UploadBuffer.Offset, 2 * sizeof(float));
-			ImPlot::PlotLine("Download", &DownloadBuffer.Data[DataStart].x, &DownloadBuffer.Data[DataStart].y,
+			ImPlot::SetNextLineStyle(ImVec4(0.9f, 0.3f, 0.05f, 1.0f), 2.f);
+			ImPlot::PlotStairs("Upload", &UploadBuffer.Data[DataStart].x, &UploadBuffer.Data[DataStart].y, PointCount,
+				0, UploadBuffer.Offset, 2 * sizeof(float));
+			ImPlot::SetNextLineStyle(ImVec4(0.2f, 0.4f, 0.8f, 1.0f), 2.f);
+			ImPlot::PlotStairs("Download", &DownloadBuffer.Data[DataStart].x, &DownloadBuffer.Data[DataStart].y,
 				PointCount, 0, DownloadBuffer.Offset, 2 * sizeof(float));
 			ImPlot::EndPlot();
 		}
