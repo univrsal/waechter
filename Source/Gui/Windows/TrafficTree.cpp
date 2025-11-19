@@ -484,11 +484,12 @@ void WTrafficTree::Draw(ImGuiID MainID)
 	}
 
 	ImGui::Separator();
-	ImGui::BeginChild("TreeRegion", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
+	ImGui::BeginChild("TreeRegion", ImVec2(0, 0), false);
 
 	// 5 columns: Name | upload | download | upload limit | download limit
-	if (!ImGui::BeginTable(
-			"TrafficTable", 5, ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV))
+	if (!ImGui::BeginTable("TrafficTable", 5,
+			ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV
+				| ImGuiTableFlags_ScrollY))
 	{
 		ImGui::EndChild();
 		ImGui::End();
@@ -502,6 +503,8 @@ void WTrafficTree::Draw(ImGuiID MainID)
 	ImGui::TableSetupColumn("Ul. limit", ImGuiTableColumnFlags_WidthFixed, 100.0f);
 
 	bool bOpened{};
+
+	ImGui::TableSetupScrollFreeze(0, 1);
 	ImGui::TableHeadersRow();
 
 	// start first data row for the root item
