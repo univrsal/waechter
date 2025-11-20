@@ -129,8 +129,9 @@ void WWaechterEbpf::UpdateData()
 		 So for traffic events we fail silently if no matching socket is found because it usually just means
 		 we weren't around to capture the socket creation/connection.
 		*/
-		auto const bSilentFail = SocketEvent.EventType == NE_Traffic || SocketEvent.EventType == NE_SocketClosed;
-		auto       SocketInfo = WSystemMap::GetInstance().MapSocket(SocketEvent.Cookie, Tgid, bSilentFail);
+		auto const bSilentFail = SocketEvent.EventType == NE_Traffic || SocketEvent.EventType == NE_SocketClosed
+			|| SocketEvent.EventType == NE_TCPSocketEstablished_4 || SocketEvent.EventType == NE_TCPSocketEstablished_6;
+		auto SocketInfo = WSystemMap::GetInstance().MapSocket(SocketEvent, Tgid, bSilentFail);
 
 		switch (SocketEvent.EventType)
 		{
