@@ -1,6 +1,4 @@
-## Wächter [*/ˈvɛçtɐ/*]
-
-[![Build (Ubuntu)](https://github.com/univrsal/Waechter/actions/workflows/build.yml/badge.svg)](https://github.com/univrsal/Waechter/actions/workflows/build.yml)
+![header](Meta/header.png)
 
 ![Demo](Meta/Demo.png)
 
