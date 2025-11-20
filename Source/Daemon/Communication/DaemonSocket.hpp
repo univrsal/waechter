@@ -52,6 +52,12 @@ public:
 
 	std::vector<std::shared_ptr<WDaemonClient>>& GetClients() { return Clients; }
 
+	bool HasClients()
+	{
+		std::lock_guard Lock(ClientsMutex);
+		return !Clients.empty();
+	}
+
 	void RemoveInactiveClients()
 	{
 		ClientsMutex.lock();

@@ -28,6 +28,8 @@ class WMapUpdate
 		SocketStateChanges.clear();
 	}
 
+	static bool TrackUpdates();
+
 public:
 	WMapUpdate() = default;
 
@@ -44,12 +46,30 @@ public:
 
 	void AddTupleAddition(WEndpoint const& Endpoint, std::shared_ptr<WTupleCounter> const& Tuple)
 	{
-		AddedTuples.emplace_back(std::make_pair(Endpoint, Tuple));
+		if (!TrackUpdates())
+		{
+			return;
+		}
+		AddedTuples.emplace_back(Endpoint, Tuple);
 	}
 
-	void AddSocketAddition(std::shared_ptr<WSocketCounter> const& Socket) { AddedSockets.emplace_back(Socket); }
+	void AddSocketAddition(std::shared_ptr<WSocketCounter> const& Socket)
+	{
+		if (!TrackUpdates())
+		{
+			return;
+		}
+		AddedSockets.emplace_back(Socket);
+	}
 
-	void AddItemRemoval(WTrafficItemId ItemId) { RemovedItems.emplace_back(ItemId); }
+	void AddItemRemoval(WTrafficItemId ItemId)
+	{
+		if (!TrackUpdates())
+		{
+			return;
+		}
+		RemovedItems.emplace_back(ItemId);
+	}
 
 	WTrafficTreeUpdates const& GetUpdates();
 };

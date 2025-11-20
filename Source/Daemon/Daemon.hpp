@@ -19,4 +19,6 @@ public:
 	bool InitSocket();
 
 	void RunLoop();
+
+	std::shared_ptr<WDaemonSocket> const& GetDaemonSocket() const { return DaemonSocket; }
 };

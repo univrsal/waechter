@@ -4,12 +4,28 @@
 
 #include "MapUpdate.hpp"
 
+#include "Daemon.hpp"
 #include "SystemMap.hpp"
 #include "Net/Resolver.hpp"
+
+bool WMapUpdate::TrackUpdates()
+{
+	// When there are no clients there is no point in tracking updates
+	// as the first client that connects gets the entire tree sent anyway
+	if (auto const Sock = WDaemon::GetInstance().GetDaemonSocket(); Sock && Sock->HasClients())
+	{
+		return true;
+	}
+	return false;
+}
 
 void WMapUpdate::AddStateChange(WTrafficItemId const Id, ESocketConnectionState const NewState,
 	uint8_t const SocketType, std::optional<WSocketTuple> const& SocketTuple)
 {
+	if (!TrackUpdates())
+	{
+		return;
+	}
 	WTrafficTreeSocketStateChange StateChange;
 	StateChange.ItemId = Id;
 	StateChange.NewState = NewState;
