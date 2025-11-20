@@ -68,7 +68,7 @@ public:
 
 	std::mutex DataMutex;
 
-	std::shared_ptr<WSocketCounter> MapSocket(WSocketCookie SocketCookie, WProcessId PID, bool bSilentFail = false);
+	std::shared_ptr<WSocketCounter> MapSocket(WSocketEvent const& Event, WProcessId PID, bool bSilentFail = false);
 
 	void RefreshAllTrafficCounters();
 

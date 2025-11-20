@@ -129,13 +129,14 @@ WSystemMap::WSystemMap()
 	}
 }
 
-std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketCookie SocketCookie, WProcessId PID, bool bSilentFail)
+std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketEvent const& Event, WProcessId PID, bool bSilentFail)
 {
+	auto SocketCookie = Event.Cookie;
 	if (PID == 0)
 	{
 		if (!bSilentFail)
 		{
-			spdlog::warn("{}: Attempted to map socket cookie {} to PID 0", __FUNCTION__, SocketCookie);
+			spdlog::warn("Attempted to map socket cookie {} to PID 0 for event {}", SocketCookie, Event.EventType);
 		}
 		return {};
 	}
