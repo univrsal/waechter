@@ -11,8 +11,12 @@
 
 std::string const& WResolver::Resolve(WIPAddress const& Address)
 {
-	std::lock_guard    Lock(ResolvedAddressesMutex);
 	static std::string Empty = {};
+	if (Address.IsZero())
+	{
+		return Empty;
+	}
+	std::lock_guard Lock(ResolvedAddressesMutex);
 
 	if (auto It = ResolvedAddresses.find(Address); It != ResolvedAddresses.end())
 	{
