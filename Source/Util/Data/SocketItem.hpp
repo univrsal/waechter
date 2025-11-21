@@ -50,14 +50,15 @@ struct WSocketItem : ITrafficItem
 	std::unordered_map<WEndpoint, std::shared_ptr<WTupleItem>>
 		UDPPerConnectionTraffic; // Only for UDP sockets, since they can send/receive no many addresses
 
+	WSocketCookie          Cookie{};
 	uint8_t                SocketType{};
 	ESocketConnectionState ConnectionState{};
 
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(ItemId, DownloadSpeed, UploadSpeed, TotalDownloadBytes, TotalUploadBytes, ConnectionState, SocketTuple,
-			SocketType, UDPPerConnectionTraffic);
+		archive(ItemId, DownloadSpeed, UploadSpeed, TotalDownloadBytes, TotalUploadBytes, ConnectionState, Cookie,
+			SocketTuple, SocketType, UDPPerConnectionTraffic);
 	}
 
 	[[nodiscard]] ETrafficItemType GetType() const override { return TI_Socket; }

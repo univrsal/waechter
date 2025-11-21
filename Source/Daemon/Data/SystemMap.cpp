@@ -204,7 +204,7 @@ std::shared_ptr<WSocketCounter> WSystemMap::FindOrMapSocket(
 	auto SocketItem = std::make_shared<WSocketItem>();
 	auto Socket = std::make_shared<WSocketCounter>(SocketItem, ParentProcess);
 	SocketItem->ItemId = NextItemId++;
-
+	SocketItem->Cookie = SocketCookie;
 	Sockets[SocketCookie] = Socket;
 	ParentProcess->TrafficItem->Sockets[SocketCookie] = SocketItem;
 
