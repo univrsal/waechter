@@ -4,6 +4,8 @@
 
 #include "IpQueryIntegration.hpp"
 
+#include "Icons/IconAtlas.hpp"
+
 #include <algorithm>
 
 #include "Windows/GlfwWindow.hpp"
@@ -97,11 +99,30 @@ void WIpQueryIntegration::Draw(std::shared_ptr<WSocketItem> Sock)
 			ImGui::Text("Latitude: %.6f", CurrentIpInfo->Latitude);
 			ImGui::Text("Longitude: %.6f", CurrentIpInfo->Longitude);
 			ImGui::Text("Risk Score: %d", CurrentIpInfo->RiskScore);
-			ImGui::Text("Is VPN: %s", CurrentIpInfo->bIsVPN ? "Yes" : "No");
-			ImGui::Text("Is Proxy: %s", CurrentIpInfo->bIsProxy ? "Yes" : "No");
-			ImGui::Text("Is Tor: %s", CurrentIpInfo->bIsTor ? "Yes" : "No");
-			ImGui::Text("Is Datacenter: %s", CurrentIpInfo->bIsDatacenter ? "Yes" : "No");
-			ImGui::Text("Is Mobile: %s", CurrentIpInfo->bIsMobile ? "Yes" : "No");
+
+			bool bDrewStatusIcon = false;
+			auto DrawStatusIcon = [&bDrewStatusIcon](bool bCondition, char const* IconName, char const* Tooltip) {
+				if (!bCondition)
+				{
+					return;
+				}
+				if (bDrewStatusIcon)
+				{
+					ImGui::SameLine();
+				}
+				WIconAtlas::GetInstance().DrawIcon(IconName, ImVec2(16, 16));
+				if (ImGui::IsItemHovered() && Tooltip)
+				{
+					ImGui::SetTooltip("%s", Tooltip);
+				}
+				bDrewStatusIcon = true;
+			};
+
+			DrawStatusIcon(CurrentIpInfo->bIsVPN, "vpn", "Likely a VPN connection");
+			DrawStatusIcon(CurrentIpInfo->bIsProxy, "proxy", "Likely a Proxy connection");
+			DrawStatusIcon(CurrentIpInfo->bIsTor, "tor", "Likely a Tor exit node");
+			DrawStatusIcon(CurrentIpInfo->bIsDatacenter, "server", "Likely a datacenter IP");
+			DrawStatusIcon(CurrentIpInfo->bIsMobile, "mobile", "Likely a mobile IP");
 
 			ImGui::TextLinkOpenURL("View on Google Maps", CurrentIpInfo->MapsLink.c_str());
 		}
