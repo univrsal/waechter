@@ -35,7 +35,7 @@ void WNetworkGraphWindow::Draw()
 			auto       DataStart = std::max(0, UploadBuffer.Data.size() - static_cast<int>(History) - 5);
 
 			ImPlot::SetupAxisLimits(ImAxis_X1, Time - History, Time - 1.1, ImGuiCond_Always);
-			ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, static_cast<double>(CurrentMaxRateInGraph) * 1.1, ImGuiCond_Always);
+			ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, CurrentMaxRateInGraph * 1.1, ImGuiCond_Always);
 			ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, 0.0, std::numeric_limits<double>::infinity());
 			ImPlot::SetNextLineStyle(ImVec4(0.9f, 0.3f, 0.05f, 1.0f), 2.f);
 			ImPlot::PlotStairs("Upload", &UploadBuffer.Data[DataStart].x, &UploadBuffer.Data[DataStart].y, PointCount,
