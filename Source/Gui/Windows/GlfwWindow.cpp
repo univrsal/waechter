@@ -116,7 +116,7 @@ bool WGlfwWindow::Init()
 	WTimerManager::GetInstance().Start(glfwGetTime());
 	WAppIconAtlas::GetInstance().Init();
 	WIconAtlas::GetInstance().Load();
-	MainWindow->GetClient().Start();
+	WClient::GetInstance().Start();
 	return true;
 }
 

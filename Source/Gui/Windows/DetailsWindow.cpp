@@ -220,8 +220,9 @@ void WDetailsWindow::DrawTupleDetails()
 	ImGui::Text("Total Uploaded: %s", WStorageFormat::AutoFormat(Tuple->TotalUploadBytes).c_str());
 }
 
-WDetailsWindow::WDetailsWindow(WTrafficTree* Tree_) : Tree(Tree_)
+WDetailsWindow::WDetailsWindow()
 {
+	Tree = WClient::GetInstance().GetTrafficTree();
 	WTimerManager::GetInstance().AddTimer(1.0, [this] {
 		long UptimeSeconds = GetUptimeSeconds();
 		FormattedUptime = WTime::FormatTime(UptimeSeconds);

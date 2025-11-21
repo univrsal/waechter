@@ -13,7 +13,7 @@ class WTrafficTree;
 
 class WDetailsWindow
 {
-	WTrafficTree* Tree;
+	std::shared_ptr<WTrafficTree> Tree{};
 
 #if WAECHTER_WITH_IPQUERY_IO_API
 	WIpQueryIntegration IpQueryIntegration{};
@@ -29,6 +29,6 @@ class WDetailsWindow
 	std::string FormattedUptime{};
 
 public:
-	explicit WDetailsWindow(WTrafficTree* Tree_);
+	explicit WDetailsWindow();
 	void Draw();
 };

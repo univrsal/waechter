@@ -35,19 +35,19 @@ void WMainWindow::DrawConnectionIndicator()
 	ImVec2 Center = ImVec2((Min.x + Max.x) * 0.5f, (Min.y + Max.y) * 0.5f);
 
 	ImDrawList* DL = ImGui::GetWindowDrawList();
-	ImU32       Col = Client.IsConnected() ? IM_COL32(0, 200, 0, 255) : IM_COL32(200, 0, 0, 255);
+	ImU32       Col = WClient::GetInstance().IsConnected() ? IM_COL32(0, 200, 0, 255) : IM_COL32(200, 0, 0, 255);
 	DL->AddCircleFilled(Center, Radius, Col);
 
 	if (ImGui::IsItemHovered())
 	{
 		std::string Tooltip;
-		if (Client.IsConnected())
+		if (WClient::GetInstance().IsConnected())
 		{
 			Tooltip = fmt::format("Connected to daemon\n"
 								  "Download rate: {}\n"
 								  "Upload rate: {}",
-				WTrafficFormat::AutoFormat(Client.DaemonToClientTrafficRate.load()),
-				WTrafficFormat::AutoFormat(Client.ClientToDaemonTrafficRate.load()));
+				WTrafficFormat::AutoFormat(WClient::GetInstance().DaemonToClientTrafficRate.load()),
+				WTrafficFormat::AutoFormat(WClient::GetInstance().ClientToDaemonTrafficRate.load()));
 		}
 		else
 		{
@@ -128,7 +128,7 @@ void WMainWindow::Draw()
 	}
 
 	// Create windows so they can be saved/restored by ImGui ini
-	Client.GetTrafficTree().Draw(Main);
+	WClient::GetInstance().GetTrafficTree()->Draw(Main);
 	LogWindow.Draw();
 	NetworkGraphWindow.Draw();
 	DetailsWindow.Draw();

@@ -14,10 +14,9 @@
 class WMainWindow
 {
 	WAboutDialog        AboutDialog{};
-	WClient             Client{};
 	WLogWindow          LogWindow{};
 	WNetworkGraphWindow NetworkGraphWindow{};
-	WDetailsWindow      DetailsWindow{ &Client.GetTrafficTree() };
+	WDetailsWindow      DetailsWindow{};
 	WFlagAtlas          FlagAtlas{};
 	WLibCurl            LibCurl{};
 
@@ -31,8 +30,6 @@ public:
 	WLibCurl& GetLibCurl() { return LibCurl; }
 
 	WNetworkGraphWindow& GetNetworkGraphWindow() { return NetworkGraphWindow; }
-
-	WClient& GetClient() { return Client; }
 
 	WFlagAtlas& GetFlagAtlas() { return FlagAtlas; }
 
