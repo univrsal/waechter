@@ -14,11 +14,11 @@ find_program(CLANG_EXECUTABLE NAMES clang REQUIRED)
 
 find_program(BPFTTOOL_EXECUTABLE bpftool)
 
+set(VMLINUX_SRC "/sys/kernel/btf/vmlinux")
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/vmlinux")
+set(VMLINUX_OUT "${CMAKE_CURRENT_BINARY_DIR}/vmlinux/vmlinux.h")
 if (BPFTTOOL_EXECUTABLE)
     message(STATUS "Found bpftool: ${BPFTTOOL_EXECUTABLE}")
-
-    set(VMLINUX_SRC "/sys/kernel/btf/vmlinux")
-    set(VMLINUX_OUT "${CMAKE_CURRENT_SOURCE_DIR}/vmlinux.h")
 
     if (EXISTS ${VMLINUX_SRC})
         add_custom_command(
@@ -40,7 +40,7 @@ endif ()
 # Build eBPF object
 set(BPF_SRC ${CMAKE_CURRENT_SOURCE_DIR}/WaechterEBPF.c)
 set(BPF_HDR
-        ${CMAKE_CURRENT_SOURCE_DIR}/vmlinux.h
+        ${VMLINUX_OUT}
         ${CMAKE_CURRENT_SOURCE_DIR}/EBPFConnect.h
         ${CMAKE_CURRENT_SOURCE_DIR}/EBPFTraffic.h
         ${CMAKE_CURRENT_SOURCE_DIR}/EBPFBind.h
@@ -65,6 +65,7 @@ add_custom_command(
         OUTPUT ${BPF_OBJ} ${SKELETON_OUT}
         COMMAND ${CLANG_EXECUTABLE} -O2 -g -target bpf -D__TARGET_ARCH_${BPF_TARGET_ARCH} -Wall -Wno-unused-value -Wno-pointer-sign -Wno-compare-distinct-pointer-types -Werror
         -I/usr/include -I/usr/include/bpf
+        -I${CMAKE_CURRENT_BINARY_DIR}/vmlinux
         -I${CMAKE_SOURCE_DIR}/Source/Util
         -c ${BPF_SRC} -o ${BPF_OBJ}
         COMMAND ${BPFTTOOL_EXECUTABLE} gen skeleton ${BPF_OBJ} > ${SKELETON_OUT}
@@ -74,9 +75,9 @@ add_custom_command(
 )
 
 add_custom_target(bpfobj ALL DEPENDS ${BPF_OBJ})
-add_dependencies(bpfobj generate_vmlinux_h)
+if (TARGET generate_vmlinux_h)
+    add_dependencies(bpfobj generate_vmlinux_h)
+endif ()
 add_dependencies(waechterd bpfobj)
 
 message(STATUS "EBPF object is build to " ${BPF_OBJ})
-
-install(FILES ${BPF_OBJ} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
