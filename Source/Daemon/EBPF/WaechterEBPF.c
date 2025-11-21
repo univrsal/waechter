@@ -6,6 +6,5 @@
 #include "EBPFLifetime.h"
 #include "EBPFBind.h"
 #include "EBPFUdp.h"
-#include "EBPFRules.h"
 
 char LICENSE[] SEC("license") = "GPL";

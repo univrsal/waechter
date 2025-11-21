@@ -48,6 +48,14 @@
 
 struct
 {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__type(key, __u64); // Socket cookie
+	__type(value, struct WSocketRules);
+	__uint(max_entries, 0xffff);
+} socket_rules SEC(".maps");
+
+struct
+{
 	__uint(type, BPF_MAP_TYPE_RINGBUF);
 	__uint(max_entries, PACKET_RING_SIZE);
 } socket_event_ring SEC(".maps");
@@ -89,4 +97,10 @@ static __always_inline struct WSocketEvent* MakeSocketEvent(__u64 Cookie, __u8 E
 	SocketEvent->EventType = EventType;
 
 	return SocketEvent;
+}
+
+static __always_inline struct WSocketRules* GetSocketRules(__u64 Cookie)
+{
+	struct WSocketRules* Rules = bpf_map_lookup_elem(&socket_rules, &Cookie);
+	return Rules;
 }

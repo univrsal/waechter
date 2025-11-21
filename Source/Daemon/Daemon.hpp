@@ -18,6 +18,8 @@ public:
 	bool InitEbpfObj();
 	bool InitSocket();
 
+	WWaechterEbpf& GetEbpfObj() { return EbpfObj; }
+
 	void RunLoop();
 
 	std::shared_ptr<WDaemonSocket> const& GetDaemonSocket() const { return DaemonSocket; }

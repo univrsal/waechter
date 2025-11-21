@@ -5,6 +5,7 @@
 // Ingress/Egress Traffic measuring and shaping
 #pragma once
 #include "EBPFInternal.h"
+#include "EBPFCommon.h"
 
 // cgroup_skb ingress: capture incoming packet information
 SEC("cgroup_skb/ingress")
@@ -17,7 +18,14 @@ int cgskb_ingress(struct __sk_buff* Skb)
 		return SK_PASS;
 	}
 
-	__u64                Cookie = bpf_get_socket_cookie(Skb);
+	__u64 Cookie = bpf_get_socket_cookie(Skb);
+
+	struct WSocketRules* Rules = GetSocketRules(Cookie);
+	if (Rules && Rules->bDownloadBlocked)
+	{
+		return SK_DROP;
+	}
+
 	struct WSocketEvent* SocketEvent = MakeSocketEvent(Cookie, NE_Traffic);
 
 	if (SocketEvent)
@@ -58,6 +66,13 @@ int cgskb_egress(struct __sk_buff* Skb)
 		return SK_PASS;
 	}
 	__u64 Cookie = bpf_get_socket_cookie(Skb);
+
+	struct WSocketRules* Rules = GetSocketRules(Cookie);
+	if (Rules && Rules->bUploadBlocked)
+	{
+		bpf_printk("upload for cookie %llu blocked", Cookie, Skb->len);
+		return SK_DROP;
+	}
 
 	struct WSocketEvent* SocketEvent = MakeSocketEvent(Cookie, NE_Traffic);
 	if (SocketEvent)
