@@ -12,10 +12,15 @@
 INCBIN(IconAtlas, ICON_ATLAS_IMAGE);
 INCBIN(Logo, LOGO_IMAGE);
 
-std::unordered_map<std::string, std::pair<int, int>> const ICON_ATLAS_POS = {
-	{ "computer", std::make_pair(0, 0) },
-	{ "noicon", std::make_pair(32, 0) },
-	{ "process", std::make_pair(0, 32) },
+std::unordered_map<std::string, std::pair<ImVec2, ImVec2>> const ICON_ATLAS_UV = {
+	{ "computer", std::make_pair(ImVec2(0.000000f, 0.000000f), ImVec2(0.250000f, 0.250000f)) },
+	{ "noicon", std::make_pair(ImVec2(0.250000f, 0.000000f), ImVec2(0.500000f, 0.250000f)) },
+	{ "phone", std::make_pair(ImVec2(0.500000f, 0.000000f), ImVec2(0.750000f, 0.250000f)) },
+	{ "process", std::make_pair(ImVec2(0.750000f, 0.000000f), ImVec2(1.000000f, 0.250000f)) },
+	{ "proxy", std::make_pair(ImVec2(0.000000f, 0.250000f), ImVec2(0.250000f, 0.500000f)) },
+	{ "server", std::make_pair(ImVec2(0.250000f, 0.250000f), ImVec2(0.500000f, 0.500000f)) },
+	{ "tor", std::make_pair(ImVec2(0.500000f, 0.250000f), ImVec2(0.750000f, 0.500000f)) },
+	{ "vpn", std::make_pair(ImVec2(0.750000f, 0.250000f), ImVec2(1.000000f, 0.500000f)) },
 };
 
 void WIconAtlas::Load()

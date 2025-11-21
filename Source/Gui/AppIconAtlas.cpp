@@ -13,34 +13,14 @@
 
 #include "Data/AppIconAtlasData.hpp"
 
-void WAppIconAtlas::Init()
-{
-	auto NoIconUvs = WIconAtlas::GetInstance().ComputeUvCoords(
-		ICON_ATLAS_POS.at("noicon").first, ICON_ATLAS_POS.at("noicon").second);
-	auto ProcessIconUvs = WIconAtlas::GetInstance().ComputeUvCoords(
-		ICON_ATLAS_POS.at("process").first, ICON_ATLAS_POS.at("process").second);
-	auto SystemIconUvs = WIconAtlas::GetInstance().ComputeUvCoords(
-		ICON_ATLAS_POS.at("computer").first, ICON_ATLAS_POS.at("computer").second);
-
-	NoIconUv1 = std::get<0>(NoIconUvs);
-	NoIconUv2 = std::get<1>(NoIconUvs);
-	ProcessIconUv1 = std::get<0>(ProcessIconUvs);
-	ProcessIconUv2 = std::get<1>(ProcessIconUvs);
-	SystemIconUv1 = std::get<0>(SystemIconUvs);
-	SystemIconUv2 = std::get<1>(SystemIconUvs);
-}
-
-void WAppIconAtlas::DrawProcessIcon(ImVec2 Size) const
-{
-	ImGui::Image(WIconAtlas::GetInstance().IconAtlasTextureId, Size, ProcessIconUv1, ProcessIconUv2);
-}
+void WAppIconAtlas::Init() {}
 
 void WAppIconAtlas::DrawIconForApplication(std::string const& BinaryName, ImVec2 Size)
 {
 	if (!UvData.contains(BinaryName) || TextureId == 0)
 	{
 		// Draw no-icon placeholder
-		ImGui::Image(WIconAtlas::GetInstance().IconAtlasTextureId, Size, NoIconUv1, NoIconUv2);
+		WIconAtlas::GetInstance().DrawIcon("noicon", Size);
 		return;
 	}
 

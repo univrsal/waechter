@@ -56,15 +56,21 @@ def generate_cpp_header(mapping, atlas_size, icon_size, header_path, atlas_filen
     header_lines.append("#include <unordered_map>")
     header_lines.append("#include <string>")
     header_lines.append("#include <utility>")
+    header_lines.append("#include <imgui.h>")
     header_lines.append("")
     header_lines.append(f"// Atlas size: {atlas_size} x {atlas_size}")
     header_lines.append(f"// Icon size: {icon_size} x {icon_size}")
     header_lines.append(f"// Atlas image file: \"{atlas_filename}\"")
     header_lines.append("// Icons were aspect-ratio preserved and letterboxed (no upscaling)")
     header_lines.append("")
-    header_lines.append("static const std::unordered_map<std::string, std::pair<int,int>> ICON_ATLAS_POS = {")
+    header_lines.append("static const std::unordered_map<std::string, std::pair<ImVec2, ImVec2>> ICON_ATLAS_UV = {")
     for name, x, y in sorted(mapping, key=lambda t: t[0]):
-        header_lines.append(f'    {{ "{name}", std::make_pair({x}, {y}) }},')
+        tl_u = x / atlas_size
+        tl_v = y / atlas_size
+        bl_u = (x + icon_size) / atlas_size
+        bl_v = (y + icon_size) / atlas_size
+        header_lines.append(
+            f'    {{ "{name}", std::make_pair(ImVec2({tl_u:.6f}f, {tl_v:.6f}f), ImVec2({bl_u:.6f}f, {bl_v:.6f}f)) }},')
     header_lines.append("};")
     header_lines.append("")
     header_lines.append(f"static const int ICON_ATLAS_SIZE = {atlas_size};")

@@ -8,26 +8,24 @@
 
 #include "Singleton.hpp"
 
-extern std::unordered_map<std::string, std::pair<int, int>> const ICON_ATLAS_POS;
+extern std::unordered_map<std::string, std::pair<ImVec2, ImVec2>> const ICON_ATLAS_UV;
 
-static constexpr int ICON_ATLAS_SIZE = 64;
-static constexpr int ICON_SIZE = 32;
-
-class WIconAtlas : public TSingleton<WIconAtlas>
+class WIconAtlas final : public TSingleton<WIconAtlas>
 {
-
 public:
 	GLuint IconAtlasTextureId{ 0 };
 	GLuint LogoTextureId{ 0 };
 	void   Load();
 	void   Unload();
 
-	std::tuple<ImVec2, ImVec2> ComputeUvCoords(int X, int Y)
+	void DrawIcon(std::string const& Name, ImVec2 Size) const
 	{
-		float U1 = static_cast<float>(X) / ICON_ATLAS_SIZE;
-		float V1 = static_cast<float>(Y) / ICON_ATLAS_SIZE;
-		float U2 = U1 + static_cast<float>(ICON_SIZE) / ICON_ATLAS_SIZE;
-		float V2 = V1 + static_cast<float>(ICON_SIZE) / ICON_ATLAS_SIZE;
-		return { ImVec2(U1, V1), ImVec2(U2, V2) };
+		auto const It = ICON_ATLAS_UV.find(Name);
+		if (It == ICON_ATLAS_UV.end())
+		{
+			return;
+		}
+
+		ImGui::Image(IconAtlasTextureId, Size, It->second.first, It->second.second);
 	}
 };

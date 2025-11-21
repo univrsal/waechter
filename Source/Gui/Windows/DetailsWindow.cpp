@@ -86,7 +86,7 @@ void WDetailsWindow::DrawSystemDetails()
 		return;
 	}
 
-	WAppIconAtlas::GetInstance().DrawSystemIcon(ImVec2(16, 16));
+	WIconAtlas::GetInstance().DrawIcon("computer", ImVec2(16, 16));
 
 	ImGui::SameLine();
 
@@ -133,7 +133,7 @@ void WDetailsWindow::DrawProcessDetails()
 		return;
 	}
 
-	WAppIconAtlas::GetInstance().DrawProcessIcon(ImVec2(16, 16));
+	WIconAtlas::GetInstance().DrawIcon("process", ImVec2(16, 16));
 	ImGui::SameLine();
 
 	ImGui::Text("Process ID : %d", Proc->ProcessId);
