@@ -188,16 +188,28 @@ bool WTrafficTree::RenderItem(std::string const& Name, std::shared_ptr<ITrafficI
 	}
 #endif
 
+	ImGui::TableSetColumnIndex(1);
 	if (Item->DownloadSpeed > 0)
 	{
-		ImGui::TableSetColumnIndex(1);
 		ImGui::Text("%s", WTrafficFormat::Format(Item->DownloadSpeed, Unit).c_str());
 	}
+	else
+	{
+		ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+		ImGui::Text("%s", "0.00 B/s");
+		ImGui::PopStyleColor();
+	}
 
+	ImGui::TableSetColumnIndex(2);
 	if (Item->UploadSpeed > 0)
 	{
-		ImGui::TableSetColumnIndex(2);
 		ImGui::Text("%s", WTrafficFormat::Format(Item->UploadSpeed, Unit).c_str());
+	}
+	else
+	{
+		ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+		ImGui::Text("%s", "0.00 B/s");
+		ImGui::PopStyleColor();
 	}
 
 	ImGui::TableSetColumnIndex(3);
