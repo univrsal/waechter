@@ -8,12 +8,12 @@
 #include <linux/bpf.h>
 #include <cstdint>
 
-template <typename T>
+template <typename K, typename T>
 class TEbpfMap
 {
 	int MapFd{ -1 };
 
-	std::unordered_map<uint32_t, T> Elements{};
+	std::unordered_map<K, T> Elements{};
 
 public:
 	explicit TEbpfMap(bpf_map const* Map)
@@ -24,11 +24,11 @@ public:
 		}
 	}
 
-	std::unordered_map<uint32_t, T> const& GetMap() const { return Elements; }
+	std::unordered_map<K, T> const& GetMap() const { return Elements; }
 
 	[[nodiscard]] bool IsValid() const { return MapFd >= 0; }
 
-	bool Lookup(T& OutValue, uint32_t& Key)
+	bool Lookup(T& OutValue, K& Key)
 	{
 		if (bpf_map_lookup_elem(MapFd, &Key, &OutValue) == 0)
 		{
@@ -38,7 +38,7 @@ public:
 		return false;
 	}
 
-	bool Update(uint32_t const& Key, T const& Value, uint64_t Flags = BPF_ANY) const
+	bool Update(K const& Key, T const& Value, uint64_t Flags = BPF_ANY) const
 	{
 		return bpf_map_update_elem(MapFd, &Key, &Value, Flags) == 0;
 	}
