@@ -5,6 +5,7 @@
 #pragma once
 #include <unordered_map>
 #include <bpf/bpf.h>
+#include <linux/bpf.h>
 #include <cstdint>
 
 template <typename T>
@@ -15,11 +16,17 @@ class TEbpfMap
 	std::unordered_map<uint32_t, T> Elements{};
 
 public:
-	explicit TEbpfMap(int MapFd) : MapFd(MapFd) {}
+	explicit TEbpfMap(bpf_map const* Map)
+	{
+		if (Map)
+		{
+			MapFd = bpf_map__fd(Map);
+		}
+	}
 
 	std::unordered_map<uint32_t, T> const& GetMap() const { return Elements; }
 
-	bool IsValid() const { return MapFd >= 0; }
+	[[nodiscard]] bool IsValid() const { return MapFd >= 0; }
 
 	bool Lookup(T& OutValue, uint32_t& Key)
 	{
@@ -29,6 +36,11 @@ public:
 		}
 
 		return false;
+	}
+
+	bool Update(uint32_t const& Key, T const& Value, uint64_t Flags = BPF_ANY) const
+	{
+		return bpf_map_update_elem(MapFd, &Key, &Value, Flags) == 0;
 	}
 
 	// Fetch all elements from the bpf map into the local cache
