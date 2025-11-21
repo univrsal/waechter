@@ -63,7 +63,7 @@ public:
 		}
 	}
 	WClient();
-	~WClient() { Stop(); }
+	~WClient() override = default;
 
 	// Return whether client socket is currently connected
 	[[nodiscard]] bool IsConnected() const

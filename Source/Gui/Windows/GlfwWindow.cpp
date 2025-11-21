@@ -155,6 +155,7 @@ void WGlfwWindow::RunLoop()
 		glfwSwapBuffers(Window);
 		WTimerManager::GetInstance().UpdateTimers(glfwGetTime());
 	}
+	WClient::GetInstance().Stop();
 	MainWindow = nullptr;
 }
 
