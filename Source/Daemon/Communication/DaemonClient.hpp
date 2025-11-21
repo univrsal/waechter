@@ -17,6 +17,7 @@
 // ReSharper restore CppUnusedIncludeDirective
 
 #include "Socket.hpp"
+#include "ErrnoUtil.hpp"
 
 class WDaemonSocket;
 
@@ -58,7 +59,7 @@ public:
 
 	ssize_t SendData(WBuffer& Buffer) const { return ClientSocket->Send(Buffer); }
 
-	ssize_t SendFramedData(std::string const& Data) const { return ClientSocket->SendFramed(Data); }
+	[[nodiscard]] ssize_t SendFramedData(std::string const& Data) const { return ClientSocket->SendFramed(Data); }
 
 	template <class T>
 	void SendMessage(EMessageType Type, T const& Data)
@@ -72,11 +73,8 @@ public:
 		auto Sent = SendFramedData(AtlasOs.str());
 		if (Sent < 0)
 		{
-			spdlog::error("Failed to send app icon atlas data to client");
-		}
-		else
-		{
-			spdlog::info("Sent app icon atlas data ({} bytes) to client", Sent);
+			spdlog::error(
+				"Failed to send message of type {} to client: {}", static_cast<int>(Type), WErrnoUtil::StrError());
 		}
 	}
 };

@@ -4,6 +4,8 @@ add_executable(waechter
         Waechter.cpp
         AppIconAtlas.cpp
         AppIconAtlas.hpp
+        ClientRuleManager.cpp
+        ClientRuleManager.hpp
 )
 
 target_compile_definitions(waechter PRIVATE

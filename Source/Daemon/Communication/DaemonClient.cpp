@@ -4,6 +4,7 @@
 
 #include "Messages.hpp"
 #include "DaemonSocket.hpp"
+#include "Rules/RuleManager.hpp"
 
 void WDaemonClient::ListenThreadFunction()
 {
@@ -38,6 +39,7 @@ void WDaemonClient::ListenThreadFunction()
 				break;
 			}
 			Accum.Consume(4);
+			Msg.Reset(); // reuse buffer per frame to reset read/write cursors
 			Msg.Resize(FrameLength);
 			std::memcpy(Msg.GetData(), Accum.PeekReadPtr(), FrameLength);
 			Msg.SetWritingPos(FrameLength);
@@ -55,8 +57,11 @@ void WDaemonClient::ListenThreadFunction()
 				case MT_SetTcpLimit:
 				{
 					// TODO: implement
-					break;
 				}
+				break;
+				case MT_RuleUpdate:
+					WRuleManager::GetInstance().HandleRuleChange(Msg);
+					break;
 				default:
 					break;
 			}

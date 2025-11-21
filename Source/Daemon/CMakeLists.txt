@@ -37,6 +37,7 @@ add_subdirectory(EBPF)
 add_subdirectory(Net)
 add_subdirectory(Data)
 add_subdirectory(Communication)
+add_subdirectory(Rules)
 
 install(TARGETS waechterd
         RUNTIME DESTINATION bin)

@@ -38,6 +38,20 @@ enum ENetEventType
 	NE_Traffic
 };
 
+struct WSocketRules
+{
+	__u8 bDownloadBlocked;
+	__u8 bUploadBlocked;
+
+#if __cplusplus
+	template <class Archive>
+	void serialize(Archive& archive)
+	{
+		archive(bDownloadBlocked, bUploadBlocked);
+	}
+#endif
+};
+
 struct WSocketBindEventData
 {
 	__u32 UserPort;

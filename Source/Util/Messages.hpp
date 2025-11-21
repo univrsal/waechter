@@ -9,6 +9,7 @@ enum EMessageType : int8_t
 	MT_TrafficTreeUpdate,
 	MT_AppIconAtlasData,
 	MT_SetTcpLimit,
+	MT_RuleUpdate,
 };
 
 #pragma GCC diagnostic push
