@@ -206,6 +206,7 @@ std::shared_ptr<WSocketCounter> WSystemMap::FindOrMapSocket(
 	SocketItem->ItemId = NextItemId++;
 	SocketItem->Cookie = SocketCookie;
 	Sockets[SocketCookie] = Socket;
+	TrafficItems[Socket->TrafficItem->ItemId] = SocketItem;
 	ParentProcess->TrafficItem->Sockets[SocketCookie] = SocketItem;
 
 	MapUpdate.AddSocketAddition(Socket);
@@ -228,6 +229,7 @@ std::shared_ptr<WProcessCounter> WSystemMap::FindOrMapProcess(
 
 	ParentApp->TrafficItem->Processes[PID] = ProcessItem;
 	Processes[PID] = Process;
+	TrafficItems[Process->TrafficItem->ItemId] = ProcessItem;
 	return Process;
 }
 
@@ -274,6 +276,7 @@ std::shared_ptr<WAppCounter> WSystemMap::FindOrMapApplication(
 
 	SystemItem->Applications[Key] = AppItem;
 	Applications[Key] = App;
+	TrafficItems[AppItem->ItemId] = AppItem;
 	return App;
 }
 
@@ -386,11 +389,13 @@ void WSystemMap::Cleanup()
 			for (auto const& [SocketCookie, Socket] : Process->TrafficItem->Sockets)
 			{
 				Sockets.erase(SocketCookie);
+				TrafficItems.erase(Socket->ItemId);
 				MapUpdate.AddItemRemoval(Socket->ItemId);
 			}
 
 			Process->ParentApp->TrafficItem->Processes.erase(ProcessIt->first);
 			MapUpdate.AddItemRemoval(ProcessIt->second->TrafficItem->ItemId);
+			TrafficItems.erase(Process->TrafficItem->ItemId);
 			ProcessIt = Processes.erase(ProcessIt);
 		}
 		else
@@ -409,6 +414,7 @@ void WSystemMap::Cleanup()
 			//  - Remove it from its parent process's Sockets map
 			//  - Remove it from the Sockets map
 			Socket->ParentProcess->TrafficItem->Sockets.erase(SocketIt->first);
+			TrafficItems.erase(Socket->TrafficItem->ItemId);
 			MapUpdate.AddItemRemoval(Socket->TrafficItem->ItemId);
 			SocketIt = Sockets.erase(SocketIt);
 		}

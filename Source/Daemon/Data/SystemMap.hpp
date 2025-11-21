@@ -41,6 +41,7 @@ class WSystemMap : public TSingleton<WSystemMap>
 	std::unordered_map<std::string, std::shared_ptr<WAppCounter>>      Applications{};
 	std::unordered_map<WProcessId, std::shared_ptr<WProcessCounter>>   Processes{};
 	std::unordered_map<WSocketCookie, std::shared_ptr<WSocketCounter>> Sockets{};
+	std::unordered_map<WTrafficItemId, std::shared_ptr<ITrafficItem>>  TrafficItems{};
 
 	std::shared_ptr<WSocketCounter> FindOrMapSocket(
 		WSocketCookie SocketCookie, std::shared_ptr<WProcessCounter> const& ParentProcess);
@@ -102,4 +103,14 @@ public:
 	WTrafficTreeUpdates const& GetUpdates() { return MapUpdate.GetUpdates(); }
 
 	WMapUpdate& GetMapUpdate() { return MapUpdate; }
+
+	std::shared_ptr<ITrafficItem> GetTrafficItemById(WTrafficItemId ItemId)
+	{
+		auto It = TrafficItems.find(ItemId);
+		if (It != TrafficItems.end())
+		{
+			return It->second;
+		}
+		return {};
+	}
 };
