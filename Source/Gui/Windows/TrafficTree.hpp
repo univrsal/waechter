@@ -14,7 +14,7 @@ class WTrafficTree
 {
 	std::shared_ptr<WSystemItem> Root = std::make_shared<WSystemItem>();
 
-	ETrafficUnit Unit = TU_MiBps;
+	ETrafficUnit Unit = TU_Auto;
 
 	std::unordered_map<WTrafficItemId, std::shared_ptr<ITrafficItem>> TrafficItems;
 	std::unordered_set<WTrafficItemId>                                MarkedForRemovalItems;
