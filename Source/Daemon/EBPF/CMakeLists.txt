@@ -48,6 +48,7 @@ set(BPF_HDR
         ${CMAKE_CURRENT_SOURCE_DIR}/EBPFInternal.h
         ${CMAKE_CURRENT_SOURCE_DIR}/EBPFLifetime.h
         ${CMAKE_CURRENT_SOURCE_DIR}/EBPFUdp.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/EBPFRules.h
         ${CMAKE_SOURCE_DIR}/Source/Util/EBPFCommon.h
 )
 set(BPF_OBJ ${CMAKE_CURRENT_BINARY_DIR}/waechter-ebpf.o)

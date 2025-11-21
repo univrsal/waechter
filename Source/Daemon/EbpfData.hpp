@@ -8,12 +8,14 @@
 #include "EbpfRingBuffer.hpp"
 #include "WaechterEbpf.hpp"
 #include "EBPFCommon.h"
+#include "EbpfMap.hpp"
 
 class WEbpfData
 {
 
 public:
 	std::unique_ptr<TEbpfRingBuffer<WSocketEvent>> SocketEvents;
+	std::unique_ptr<TEbpfMap<WSocketRules>>        SocketRules;
 
 	[[nodiscard]] bool IsValid() const { return SocketEvents && SocketEvents->IsValid(); }
 
