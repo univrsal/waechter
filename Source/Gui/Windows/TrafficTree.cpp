@@ -143,7 +143,7 @@ bool WTrafficTree::RenderItem(std::string const& Name, std::shared_ptr<ITrafficI
 	{
 		// Create a unique popup id per item so popups don't collide
 		char PopupId[64];
-		snprintf(PopupId, sizeof(PopupId), "item_context_%llu", static_cast<unsigned long long>(Item->ItemId));
+		snprintf(PopupId, sizeof(PopupId), "item_context_%llu", Item->ItemId);
 		if (ImGui::BeginPopupContextItem(PopupId, ImGuiMouseButton_Right))
 		{
 			// Ensure an entry exists
