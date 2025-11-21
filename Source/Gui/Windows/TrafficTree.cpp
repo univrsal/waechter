@@ -116,6 +116,14 @@ bool WTrafficTree::RenderItem(std::string const& Name, std::shared_ptr<ITrafficI
 	NodeFlags |= ImGuiTreeNodeFlags_OpenOnArrow;
 	ImGui::TableSetColumnIndex(0);
 
+	bool bRowSelected = SelectedItemId == Item->ItemId;
+	if (bRowSelected)
+	{
+		ImU32 RowColor = ImGui::GetColorU32(ImGuiCol_Header);
+		ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, RowColor);
+		ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, RowColor);
+	}
+
 	if (bMarkedForRemoval)
 	{
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{ 1.0f, 0.4f, 0.4f, 1.0f });
