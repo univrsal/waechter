@@ -14,6 +14,8 @@
 #include "Data/RuleUpdate.hpp"
 #include "Data/TrafficItem.hpp"
 
+struct WSocketCounter;
+
 enum WSocketRuleLevel : uint8_t
 {
 	SRL_None = 0,
@@ -33,17 +35,24 @@ class WRuleManager : public TSingleton<WRuleManager>
 
 	std::mutex Mutex;
 
-	std::unordered_map<WSocketCookie, WSocketRulesEntry> Rules;
+	// All rules of all levels get flattened into this map and synced to the eBPF map
+	// since ultimately all rules are applied at the socket level in eBPF
+	std::unordered_map<WSocketCookie, WSocketRulesEntry> SocketRulesMap;
+
+	// we keep track of application and process level rules so that newly created
+	// sockets can inherit them
+	std::unordered_map<WTrafficItemId, WNetworkItemRules> ApplicationRules;
+	std::unordered_map<WTrafficItemId, WNetworkItemRules> ProcessRules;
 
 	void UpdateLocalRuleCache(WRuleUpdate const& Update);
 	void SyncWithEbpfMap();
 	void HandleSocketRuleUpdate(
-		std::shared_ptr<ITrafficItem> Item, WRuleUpdate const& Update, WSocketRuleLevel Level = SRL_Socket);
-	void HandleProcessRuleUpdate(
-		std::shared_ptr<ITrafficItem> Item, WRuleUpdate const& Update, WSocketRuleLevel Level = SRL_Process);
-	void HandleApplicationRuleUpdate(std::shared_ptr<ITrafficItem> Item, WRuleUpdate const& Update);
+		std::shared_ptr<ITrafficItem> Item, WNetworkItemRules const& Rules, WSocketRuleLevel Level = SRL_Socket);
+	void HandleProcessRuleUpdate(std::shared_ptr<ITrafficItem> const& Item, WNetworkItemRules const& Rules,
+		WSocketRuleLevel Level = SRL_Process);
+	void HandleApplicationRuleUpdate(std::shared_ptr<ITrafficItem> const& Item, WNetworkItemRules const& Rules);
 
-	void OnSocketCreated(std::shared_ptr<ITrafficItem> Item);
+	void OnSocketCreated(std::shared_ptr<WSocketCounter> const& Socket);
 
 public:
 	void RegisterSignalHandlers();

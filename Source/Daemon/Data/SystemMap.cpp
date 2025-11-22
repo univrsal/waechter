@@ -210,7 +210,7 @@ std::shared_ptr<WSocketCounter> WSystemMap::FindOrMapSocket(
 	TrafficItems[Socket->TrafficItem->ItemId] = SocketItem;
 	ParentProcess->TrafficItem->Sockets[SocketCookie] = SocketItem;
 
-	WNetworkEvents::GetInstance().OnSocketCreated(SocketItem);
+	WNetworkEvents::GetInstance().OnSocketCreated(Socket);
 
 	MapUpdate.AddSocketAddition(Socket);
 

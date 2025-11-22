@@ -23,13 +23,13 @@ void WRuleManager::UpdateLocalRuleCache(WRuleUpdate const& Update)
 	switch (Item->GetType())
 	{
 		case TI_Socket:
-			HandleSocketRuleUpdate(Item, Update);
+			HandleSocketRuleUpdate(Item, Update.Rules);
 			break;
 		case TI_Process:
-			HandleProcessRuleUpdate(Item, Update);
+			HandleProcessRuleUpdate(Item, Update.Rules);
 			break;
 		case TI_Application:
-			HandleApplicationRuleUpdate(Item, Update);
+			HandleApplicationRuleUpdate(Item, Update.Rules);
 			break;
 		case TI_System:
 			// todo
@@ -42,7 +42,7 @@ void WRuleManager::SyncWithEbpfMap()
 {
 	auto EbpfData = WDaemon::GetInstance().GetEbpfObj().GetData();
 
-	for (auto const& [Cookie, Entry] : Rules)
+	for (auto const& [Cookie, Entry] : SocketRulesMap)
 	{
 		spdlog::info("Setting rule for cookie {}: {:08b}", Cookie, Entry.Rules.SwitchFlags);
 		if (!EbpfData->SocketRules->Update(Cookie, Entry.Rules))
@@ -53,7 +53,7 @@ void WRuleManager::SyncWithEbpfMap()
 }
 
 void WRuleManager::HandleSocketRuleUpdate(
-	std::shared_ptr<ITrafficItem> Item, WRuleUpdate const& Update, WSocketRuleLevel Level)
+	std::shared_ptr<ITrafficItem> Item, WNetworkItemRules const& Rules, WSocketRuleLevel Level)
 {
 	auto Socket = std::dynamic_pointer_cast<WSocketItem>(Item);
 	if (!Socket)
@@ -66,9 +66,9 @@ void WRuleManager::HandleSocketRuleUpdate(
 		return;
 	}
 
-	if (Rules.contains(Socket->Cookie))
+	if (SocketRulesMap.contains(Socket->Cookie))
 	{
-		auto& ExistingEntry = Rules[Socket->Cookie];
+		auto& ExistingEntry = SocketRulesMap[Socket->Cookie];
 		if (ExistingEntry.Level > Level)
 		{
 			spdlog::info(
@@ -78,29 +78,33 @@ void WRuleManager::HandleSocketRuleUpdate(
 	}
 
 	WSocketRulesEntry NewEntry{};
-	NewEntry.Rules = Update.Rules;
+	NewEntry.Rules = Rules;
 	NewEntry.Level = Level;
-	Rules[Socket->Cookie] = NewEntry;
+	SocketRulesMap[Socket->Cookie] = NewEntry;
 }
 
 void WRuleManager::HandleProcessRuleUpdate(
-	std::shared_ptr<ITrafficItem> Item, WRuleUpdate const& Update, WSocketRuleLevel Level)
+	std::shared_ptr<ITrafficItem> const& Item, WNetworkItemRules const& Rules, WSocketRuleLevel Level)
 {
 	auto Process = std::dynamic_pointer_cast<WProcessItem>(Item);
 	if (!Process)
 	{
 		return;
 	}
+
+	ProcessRules[Process->ItemId] = Rules;
+
 	for (auto const& SocketItem : Process->Sockets | std::views::values)
 	{
 		if (SocketItem)
 		{
-			HandleSocketRuleUpdate(SocketItem, Update, Level);
+			HandleSocketRuleUpdate(SocketItem, Rules, Level);
 		}
 	}
 }
 
-void WRuleManager::HandleApplicationRuleUpdate(std::shared_ptr<ITrafficItem> Item, WRuleUpdate const& Update)
+void WRuleManager::HandleApplicationRuleUpdate(
+	std::shared_ptr<ITrafficItem> const& Item, WNetworkItemRules const& Rules)
 {
 	auto App = std::dynamic_pointer_cast<WApplicationItem>(Item);
 	if (!App)
@@ -108,18 +112,42 @@ void WRuleManager::HandleApplicationRuleUpdate(std::shared_ptr<ITrafficItem> Ite
 		return;
 	}
 
+	ApplicationRules[App->ItemId] = Rules;
+	spdlog::info("Storing application level rules for app {}: {:08b}", App->ApplicationName, Rules.SwitchFlags);
+
 	for (auto const& ProcessItem : App->Processes | std::views::values)
 	{
 		if (ProcessItem)
 		{
-			HandleProcessRuleUpdate(ProcessItem, Update, SRL_Application);
+			HandleProcessRuleUpdate(ProcessItem, Rules, SRL_Application);
 		}
 	}
 }
 
-void WRuleManager::OnSocketCreated(std::shared_ptr<ITrafficItem>)
+void WRuleManager::OnSocketCreated(std::shared_ptr<WSocketCounter> const& Socket)
 {
-	spdlog::info("Socket created");
+	// Apply any existing rules for this socket
+	auto Process = Socket->ParentProcess;
+	auto App = Process->ParentApp;
+	if (!Process || !App)
+	{
+		return;
+	}
+
+	std::lock_guard Lock(Mutex);
+	// Prioritize process rules over application rules
+	if (ProcessRules.contains(App->TrafficItem->ItemId))
+	{
+		auto const& ProcRules = ProcessRules[App->TrafficItem->ItemId];
+		HandleSocketRuleUpdate(Socket->TrafficItem, ProcRules, SRL_Process);
+		SyncWithEbpfMap();
+	}
+	else if (ApplicationRules.contains(App->TrafficItem->ItemId))
+	{
+		auto const& AppRules = ApplicationRules[App->TrafficItem->ItemId];
+		HandleSocketRuleUpdate(Socket->TrafficItem, AppRules, SRL_Application);
+		SyncWithEbpfMap();
+	}
 }
 
 void WRuleManager::RegisterSignalHandlers()
@@ -140,5 +168,6 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 	}
 	spdlog::info("Update for {}, {:08b}", Update.TrafficItemId, Update.Rules.SwitchFlags);
 	UpdateLocalRuleCache(Update);
+	std::lock_guard Lock(Mutex);
 	SyncWithEbpfMap();
 }

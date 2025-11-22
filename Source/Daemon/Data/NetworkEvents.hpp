@@ -7,10 +7,10 @@
 
 #include "Singleton.hpp"
 
-struct ITrafficItem;
+struct WSocketCounter;
 
 class WNetworkEvents final : public TSingleton<WNetworkEvents>
 {
 public:
-	sigslot::signal<std::shared_ptr<ITrafficItem>> OnSocketCreated;
+	sigslot::signal<std::shared_ptr<WSocketCounter>> OnSocketCreated;
 };
