@@ -226,12 +226,8 @@ bool WTrafficTree::RenderItem(std::string const& Name, std::shared_ptr<ITrafficI
 	}
 
 	ImGui::TableSetColumnIndex(3);
-	// placeholder: add a DownloadLimit field to WSystemItem to show real values
 	ImGui::TextDisabled("-");
 
-	ImGui::TableSetColumnIndex(4);
-	// placeholder: add a UploadLimit field to WSystemItem to show real values
-	ImGui::TextDisabled("-");
 	return bNodeOpen;
 }
 
@@ -532,8 +528,8 @@ void WTrafficTree::Draw(ImGuiID MainID)
 	ImGui::Separator();
 	ImGui::BeginChild("TreeRegion", ImVec2(0, 0), false);
 
-	// 5 columns: Name | upload | download | upload limit | download limit
-	if (!ImGui::BeginTable("TrafficTable", 5,
+	// 5 columns: Name | upload | download | rule widget
+	if (!ImGui::BeginTable("TrafficTable", 4,
 			ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV
 				| ImGuiTableFlags_ScrollY))
 	{
@@ -545,8 +541,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 	ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch);
 	ImGui::TableSetupColumn("Dl.", ImGuiTableColumnFlags_WidthFixed, 100.0f);
 	ImGui::TableSetupColumn("Ul.", ImGuiTableColumnFlags_WidthFixed, 100.0f);
-	ImGui::TableSetupColumn("Dl. limit", ImGuiTableColumnFlags_WidthFixed, 100.0f);
-	ImGui::TableSetupColumn("Ul. limit", ImGuiTableColumnFlags_WidthFixed, 100.0f);
+	ImGui::TableSetupColumn("Rules", ImGuiTableColumnFlags_WidthFixed, 100.0f);
 
 	bool bOpened{};
 
