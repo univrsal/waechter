@@ -20,8 +20,8 @@ int cgskb_ingress(struct __sk_buff* Skb)
 
 	__u64 Cookie = bpf_get_socket_cookie(Skb);
 
-	struct WSocketRules* Rules = GetSocketRules(Cookie);
-	if (Rules && Rules->bDownloadBlocked)
+	struct WNetworkItemRules* Rules = GetSocketRules(Cookie);
+	if (Rules && Rules->SwitchFlags & SS_DenyDownload)
 	{
 		return SK_DROP;
 	}
@@ -67,10 +67,9 @@ int cgskb_egress(struct __sk_buff* Skb)
 	}
 	__u64 Cookie = bpf_get_socket_cookie(Skb);
 
-	struct WSocketRules* Rules = GetSocketRules(Cookie);
-	if (Rules && Rules->bUploadBlocked)
+	struct WNetworkItemRules* Rules = GetSocketRules(Cookie);
+	if (Rules && Rules->SwitchFlags & SS_DenyUpload)
 	{
-		bpf_printk("upload for cookie %llu blocked", Cookie, Skb->len);
 		return SK_DROP;
 	}
 

@@ -39,6 +39,8 @@ enum ENetEventType
 };
 
 struct WSocketRules
+
+struct WNetworkItemRules
 {
 	__u8 bDownloadBlocked;
 	__u8 bUploadBlocked;

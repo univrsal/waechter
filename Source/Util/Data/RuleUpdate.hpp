@@ -8,7 +8,7 @@
 
 struct WRuleUpdate
 {
-	WSocketRules   Rules{};
+	WNetworkItemRules   Rules{};
 	WTrafficItemId TrafficItemId{ 0 };
 
 	template <class Archive>

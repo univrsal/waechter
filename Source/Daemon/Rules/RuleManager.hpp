@@ -24,8 +24,8 @@ enum WSocketRuleLevel : uint8_t
 
 struct WSocketRulesEntry
 {
-	WSocketRules     Rules;
-	WSocketRuleLevel Level{ SRL_None };
+	WNetworkItemRules Rules{};
+	WSocketRuleLevel  Level{ SRL_None };
 };
 
 class WRuleManager : public TSingleton<WRuleManager>

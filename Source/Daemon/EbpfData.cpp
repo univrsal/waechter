@@ -7,5 +7,5 @@
 WEbpfData::WEbpfData(WWaechterEbpf const& EbpfObj)
 {
 	SocketEvents = std::make_unique<TEbpfRingBuffer<WSocketEvent>>(EbpfObj.Skeleton->maps.socket_event_ring);
-	SocketRules = std::make_unique<TEbpfMap<WSocketCookie, WSocketRules>>(EbpfObj.Skeleton->maps.socket_rules);
+	SocketRules = std::make_unique<TEbpfMap<WSocketCookie, WNetworkItemRules>>(EbpfObj.Skeleton->maps.socket_rules);
 }

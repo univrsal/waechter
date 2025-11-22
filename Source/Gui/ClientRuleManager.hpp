@@ -17,13 +17,13 @@ class WClientRuleManager : public TSingleton<WClientRuleManager>
 {
 	std::mutex Mutex;
 
-	std::unordered_map<WTrafficItemId, WSocketRules> Rules;
+	std::unordered_map<WTrafficItemId, WNetworkItemRules> Rules;
 
 public:
-	WSocketRules& GetOrCreateRules(WTrafficItemId TrafficItemId)
+	WNetworkItemRules& GetOrCreateRules(WTrafficItemId TrafficItemId)
 	{
 		std::lock_guard lock(Mutex);
 		return Rules[TrafficItemId];
 	}
-	static void SendRuleStateUpdate(WTrafficItemId TrafficItemId, WSocketRules const& ChangedRule);
+	static void SendRuleStateUpdate(WTrafficItemId TrafficItemId, WNetworkItemRules const& ChangedRule);
 };
