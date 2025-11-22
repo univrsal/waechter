@@ -6,11 +6,17 @@ on:
     paths:
       - 'Source/**'
       - 'Thirdparty/**'
+      - 'CMakeLists.txt'
+      - '**/CMakeLists.txt'
+      - '**/*.cmake'
   pull_request:
     branches: [ main, master ]
     paths:
       - 'Source/**'
       - 'Thirdparty/**'
+      - 'CMakeLists.txt'
+      - '**/CMakeLists.txt'
+      - '**/*.cmake'
   workflow_dispatch:
 
 jobs:
@@ -55,7 +61,7 @@ jobs:
         with:
           # caching the entire build dir can speed up incremental builds but may be fragile across toolchain changes
           path: build
-          key: ${{ runner.os }}-cmake-build-${{ hashFiles('**/CMakeLists.txt', 'Source/**', 'Thirdparty/**') }}
+          key: ${{ runner.os }}-cmake-build-${{ hashFiles('CMakeLists.txt', '**/CMakeLists.txt', '**/*.cmake', 'Source/**', 'Thirdparty/**') }}
           restore-keys: |
             ${{ runner.os }}-cmake-build-
 
