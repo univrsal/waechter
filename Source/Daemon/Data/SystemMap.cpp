@@ -8,6 +8,7 @@
 #include <ranges>
 
 #include "Filesystem.hpp"
+#include "NetworkEvents.hpp"
 #include "Net/PacketParser.hpp"
 #include "Net/Resolver.hpp"
 
@@ -208,6 +209,8 @@ std::shared_ptr<WSocketCounter> WSystemMap::FindOrMapSocket(
 	Sockets[SocketCookie] = Socket;
 	TrafficItems[Socket->TrafficItem->ItemId] = SocketItem;
 	ParentProcess->TrafficItem->Sockets[SocketCookie] = SocketItem;
+
+	WNetworkEvents::GetInstance().OnSocketCreated(SocketItem);
 
 	MapUpdate.AddSocketAddition(Socket);
 

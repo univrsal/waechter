@@ -15,12 +15,13 @@ class WDaemon : public TSingleton<WDaemon>
 
 public:
 	WDaemon();
-	bool InitEbpfObj();
-	bool InitSocket();
+	bool        InitEbpfObj();
+	bool        InitSocket();
+	static void RegisterSignalHandlers();
 
 	WWaechterEbpf& GetEbpfObj() { return EbpfObj; }
 
 	void RunLoop();
 
-	std::shared_ptr<WDaemonSocket> const& GetDaemonSocket() const { return DaemonSocket; }
+	[[nodiscard]] std::shared_ptr<WDaemonSocket> const& GetDaemonSocket() const { return DaemonSocket; }
 };

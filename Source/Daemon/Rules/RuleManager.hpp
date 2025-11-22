@@ -43,6 +43,9 @@ class WRuleManager : public TSingleton<WRuleManager>
 		std::shared_ptr<ITrafficItem> Item, WRuleUpdate const& Update, WSocketRuleLevel Level = SRL_Process);
 	void HandleApplicationRuleUpdate(std::shared_ptr<ITrafficItem> Item, WRuleUpdate const& Update);
 
+	void OnSocketCreated(std::shared_ptr<ITrafficItem> Item);
+
 public:
+	void RegisterSignalHandlers();
 	void HandleRuleChange(WBuffer const& Buf);
 };

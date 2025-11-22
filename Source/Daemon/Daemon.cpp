@@ -10,6 +10,7 @@
 #include "ErrnoUtil.hpp"
 #include "SignalHandler.hpp"
 #include "Data/SystemMap.hpp"
+#include "Rules/RuleManager.hpp"
 
 WDaemon::WDaemon()
 {
@@ -38,6 +39,11 @@ bool WDaemon::InitSocket()
 	}
 
 	return true;
+}
+
+void WDaemon::RegisterSignalHandlers()
+{
+	WRuleManager::GetInstance().RegisterSignalHandlers();
 }
 
 void WDaemon::RunLoop()

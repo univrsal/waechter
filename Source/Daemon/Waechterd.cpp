@@ -34,6 +34,8 @@ int main()
 		return -1;
 	}
 
+	WDaemon::RegisterSignalHandlers();
+
 	spdlog::info("Ebpf programs loaded and attached");
 	WDaemon::GetInstance().RunLoop();
 	spdlog::info("Waechter daemon stopped");

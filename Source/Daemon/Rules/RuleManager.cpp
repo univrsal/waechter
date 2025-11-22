@@ -117,6 +117,17 @@ void WRuleManager::HandleApplicationRuleUpdate(std::shared_ptr<ITrafficItem> Ite
 	}
 }
 
+void WRuleManager::OnSocketCreated(std::shared_ptr<ITrafficItem>)
+{
+	spdlog::info("Socket created");
+}
+
+void WRuleManager::RegisterSignalHandlers()
+{
+	WNetworkEvents::GetInstance().OnSocketCreated.connect(
+		std::bind(&WRuleManager::OnSocketCreated, this, std::placeholders::_1));
+}
+
 void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 {
 	WRuleUpdate       Update{};

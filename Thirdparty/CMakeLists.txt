@@ -9,6 +9,7 @@ add_subdirectory(stb)
 add_subdirectory(json11)
 add_subdirectory(cereal)
 add_subdirectory(flags)
+add_subdirectory(sigslot)
 
 add_library(deps_includes INTERFACE
         flags/CountryFlags.cpp)
@@ -24,4 +25,5 @@ target_include_directories(deps_includes SYSTEM INTERFACE
         ${CMAKE_SOURCE_DIR}/Thirdparty/stb
         ${CMAKE_SOURCE_DIR}/Thirdparty/spdlog/include
         ${CMAKE_SOURCE_DIR}/Thirdparty/cereal/include
+        ${CMAKE_SOURCE_DIR}/Thirdparty/sigslot/include
 )
