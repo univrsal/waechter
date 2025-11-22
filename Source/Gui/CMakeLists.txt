@@ -30,6 +30,7 @@ target_link_libraries(waechter PRIVATE
         thirdparty::deps_includes
         thirdparty::json11
         thirdparty::flags
+        thirdparty::sigslot
         waechter::util
         dl
 )
@@ -46,30 +47,8 @@ target_compile_options(waechter PRIVATE
         -Wuseless-cast -Wimplicit-fallthrough
 )
 
-file(GLOB thirdparty_dirs RELATIVE "${CMAKE_SOURCE_DIR}/Thirdparty" "${CMAKE_SOURCE_DIR}/Thirdparty/*")
-
-set(_license_defs)
-set(_thirdparty_libs)
-foreach (dir IN LISTS thirdparty_dirs)
-    if (IS_DIRECTORY "${CMAKE_SOURCE_DIR}/Thirdparty/${dir}")
-        set(license_rel "${CMAKE_SOURCE_DIR}/Thirdparty/${dir}/LICENSE.txt")
-        if (EXISTS "${license_rel}")
-            get_filename_component(license_abs "${license_rel}" ABSOLUTE)
-            file(TO_CMAKE_PATH "${license_abs}" license_path)  # normalize separators
-
-            string(TOUPPER "${dir}" _name_upper)
-            string(REGEX REPLACE "[^A-Z0-9]" "_" _name_sanitized "${_name_upper}")
-
-            list(APPEND _thirdparty_libs ${dir})
-            list(APPEND _license_defs "THIRD_PARTY_${_name_sanitized}_LICENSE_PATH=\"${license_path}\" ")
-        endif ()
-    endif ()
-endforeach ()
-
-if (_license_defs)
-    message(STATUS "Added licenses for ${_thirdparty_libs}")
-    target_compile_definitions(waechter PRIVATE ${_license_defs})
-endif ()
+include("${CMAKE_SOURCE_DIR}/Meta/Licenses.cmake")
+add_thirdparty_licenses(waechter)
 
 install(TARGETS waechter
         RUNTIME DESTINATION bin)
