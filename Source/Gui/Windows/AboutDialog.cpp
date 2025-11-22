@@ -21,6 +21,7 @@ INCBIN(JetbrainsMonoLicense, THIRD_PARTY_JETBRAINS_MONO_LICENSE_PATH);
 INCBIN(CerealLicense, THIRD_PARTY_CEREAL_LICENSE_PATH);
 INCBIN(ImPlotLicense, THIRD_PARTY_IMPLOT_LICENSE_PATH);
 INCBIN(FlagsLicense, THIRD_PARTY_FLAGS_LICENSE_PATH);
+INCBIN(SigSlotLicense, THIRD_PARTY_SIGSLOT_LICENSE_PATH);
 
 WAboutDialog::WAboutDialog()
 {
@@ -46,6 +47,8 @@ WAboutDialog::WAboutDialog()
 		"implot", "https://github.com/epezent/implot", GImPlotLicenseData, GImPlotLicenseSize);
 	ThirdPartyLibraries.emplace_back(
 		"flag-icons", "https://github.com/lipis/flag-icons", GFlagsLicenseData, GFlagsLicenseSize);
+	ThirdPartyLibraries.emplace_back(
+		"sigslot", "https://github.com/palacaze/sigslot", GSigSlotLicenseData, GSigSlotLicenseSize);
 
 	VersionString = fmt::format(
 		"Version {}, commit {}@{}\nCompiled at {}", WAECHTER_VERSION, GIT_COMMIT_HASH, GIT_BRANCH, BUILD_TIME);
