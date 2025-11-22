@@ -28,6 +28,8 @@ class WTrafficTree
 	ETrafficItemType            SelectedItemType{ TI_System };
 	std::weak_ptr<ITrafficItem> SelectedItem{};
 
+	char SearchBuffer[256] = "";
+
 	void RemoveTrafficItem(WTrafficItemId TrafficItemId);
 
 	bool RenderItem(std::string const& Name, std::shared_ptr<ITrafficItem> const& Item, ImGuiTreeNodeFlags NodeFlags,

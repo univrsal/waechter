@@ -10,6 +10,7 @@
 
 #include <imgui.h>
 #include <ranges>
+#include <algorithm>
 #include <spdlog/spdlog.h>
 #include <cereal/types/optional.hpp>
 #include <cereal/types/array.hpp>
@@ -502,6 +503,10 @@ void WTrafficTree::Draw(ImGuiID MainID)
 		ImGui::EndCombo();
 	}
 
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(200.0f);
+	ImGui::InputTextWithHint("##search", "Search applications...", SearchBuffer, sizeof(SearchBuffer));
+
 	ImGui::Separator();
 	ImGui::BeginChild("TreeRegion", ImVec2(0, 0), false);
 
@@ -549,6 +554,23 @@ void WTrafficTree::Draw(ImGuiID MainID)
 		if (Child->NoChildren())
 		{
 			continue;
+		}
+
+		// Filter by search term
+		if (SearchBuffer[0] != '\0')
+		{
+			std::string AppNameLower = Child->ApplicationName;
+			std::string SearchLower = SearchBuffer;
+
+			// Convert both to lowercase for case-insensitive search
+			std::transform(AppNameLower.begin(), AppNameLower.end(), AppNameLower.begin(), ::tolower);
+			std::transform(SearchLower.begin(), SearchLower.end(), SearchLower.begin(), ::tolower);
+
+			// Skip this application if it doesn't match the search
+			if (AppNameLower.find(SearchLower) == std::string::npos)
+			{
+				continue;
+			}
 		}
 
 		ImGui::TableNextRow();
