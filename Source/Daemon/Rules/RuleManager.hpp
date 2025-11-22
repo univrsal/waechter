@@ -26,13 +26,13 @@ enum WSocketRuleLevel : uint8_t
 
 struct WSocketRulesEntry
 {
+	bool              bDirty{ false };
 	WNetworkItemRules Rules{};
 	WSocketRuleLevel  Level{ SRL_None };
 };
 
 class WRuleManager : public TSingleton<WRuleManager>
 {
-
 	std::mutex Mutex;
 
 	// All rules of all levels get flattened into this map and synced to the eBPF map
@@ -47,7 +47,7 @@ class WRuleManager : public TSingleton<WRuleManager>
 	void UpdateLocalRuleCache(WRuleUpdate const& Update);
 	void SyncWithEbpfMap();
 	void HandleSocketRuleUpdate(
-		std::shared_ptr<ITrafficItem> Item, WNetworkItemRules const& Rules, WSocketRuleLevel Level = SRL_Socket);
+		std::shared_ptr<ITrafficItem> const& Item, WNetworkItemRules const& Rules, WSocketRuleLevel Level = SRL_Socket);
 	void HandleProcessRuleUpdate(std::shared_ptr<ITrafficItem> const& Item, WNetworkItemRules const& Rules,
 		WSocketRuleLevel Level = SRL_Process);
 	void HandleApplicationRuleUpdate(std::shared_ptr<ITrafficItem> const& Item, WNetworkItemRules const& Rules);

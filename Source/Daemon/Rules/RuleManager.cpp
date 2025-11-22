@@ -42,10 +42,19 @@ void WRuleManager::SyncWithEbpfMap()
 {
 	auto EbpfData = WDaemon::GetInstance().GetEbpfObj().GetData();
 
-	for (auto const& [Cookie, Entry] : SocketRulesMap)
+	for (auto& [Cookie, Entry] : SocketRulesMap)
 	{
+		if (!Entry.bDirty)
+		{
+			continue;
+		}
+
 		spdlog::info("Setting rule for cookie {}: {:08b}", Cookie, Entry.Rules.SwitchFlags);
-		if (!EbpfData->SocketRules->Update(Cookie, Entry.Rules))
+		if (EbpfData->SocketRules->Update(Cookie, Entry.Rules))
+		{
+			Entry.bDirty = false;
+		}
+		else
 		{
 			spdlog::error("Failed to update socket rules in eBPF map for cookie {}", Cookie);
 		}
@@ -53,7 +62,7 @@ void WRuleManager::SyncWithEbpfMap()
 }
 
 void WRuleManager::HandleSocketRuleUpdate(
-	std::shared_ptr<ITrafficItem> Item, WNetworkItemRules const& Rules, WSocketRuleLevel Level)
+	std::shared_ptr<ITrafficItem> const& Item, WNetworkItemRules const& Rules, WSocketRuleLevel Level)
 {
 	auto Socket = std::dynamic_pointer_cast<WSocketItem>(Item);
 	if (!Socket)
@@ -80,6 +89,7 @@ void WRuleManager::HandleSocketRuleUpdate(
 	WSocketRulesEntry NewEntry{};
 	NewEntry.Rules = Rules;
 	NewEntry.Level = Level;
+	NewEntry.bDirty = true;
 	SocketRulesMap[Socket->Cookie] = NewEntry;
 }
 
@@ -139,14 +149,25 @@ void WRuleManager::OnSocketCreated(std::shared_ptr<WSocketCounter> const& Socket
 	if (ProcessRules.contains(App->TrafficItem->ItemId))
 	{
 		auto const& ProcRules = ProcessRules[App->TrafficItem->ItemId];
-		HandleSocketRuleUpdate(Socket->TrafficItem, ProcRules, SRL_Process);
-		SyncWithEbpfMap();
+		// No point in applying empty rules
+		if (ProcRules.SwitchFlags != 0)
+		{
+			spdlog::info("Applying process rule to newly created socket {} for {}", Socket->TrafficItem->ItemId,
+				App->TrafficItem->ApplicationName);
+			HandleSocketRuleUpdate(Socket->TrafficItem, ProcRules, SRL_Process);
+			SyncWithEbpfMap();
+		}
 	}
 	else if (ApplicationRules.contains(App->TrafficItem->ItemId))
 	{
 		auto const& AppRules = ApplicationRules[App->TrafficItem->ItemId];
-		HandleSocketRuleUpdate(Socket->TrafficItem, AppRules, SRL_Application);
-		SyncWithEbpfMap();
+		if (AppRules.SwitchFlags != 0)
+		{
+			spdlog::info("Applying process rule to newly created socket {} for {}", Socket->TrafficItem->ItemId,
+				App->TrafficItem->ApplicationName);
+			HandleSocketRuleUpdate(Socket->TrafficItem, AppRules, SRL_Application);
+			SyncWithEbpfMap();
+		}
 	}
 }
 
