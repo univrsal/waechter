@@ -6,6 +6,8 @@ target_sources(waechter
         LibCurl.hpp
         Settings.cpp
         Settings.hpp
+        RuleWidget.cpp
+        RuleWidget.hpp
 )
 
 if (WAECHTER_WITH_IPQUERY_IO_API)

@@ -18,6 +18,46 @@ public:
 	void   Load();
 	void   Unload();
 
+	bool DrawIconButton(char const* Id, std::string const& Name, ImVec2 const& Size, bool bNoBackground = true) const
+	{
+		auto const It = ICON_ATLAS_UV.find(Name);
+		if (It == ICON_ATLAS_UV.end())
+		{
+			return false;
+		}
+
+		static ImVec4 const transparent(0.0f, 0.0f, 0.0f, 0.0f);
+		if (bNoBackground)
+		{
+			// Remove frame padding and force transparent button colors to avoid visible background/hover rects
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+			ImGui::PushStyleColor(ImGuiCol_Button, transparent);
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, transparent);
+
+			bool const Result = ImGui::ImageButton(Id, IconAtlasTextureId, Size, It->second.first, It->second.second,
+				transparent, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+
+			ImGui::PopStyleColor(2);
+			ImGui::PopStyleVar();
+			return Result;
+		}
+
+		// Default behavior (with standard styling)
+		return ImGui::ImageButton(Id, IconAtlasTextureId, Size, It->second.first, It->second.second);
+	}
+
+	void DrawIconTint(std::string const& Name, ImVec2 const& Size, ImColor const& Tint = ImColor(1, 1, 1, 1),
+		ImColor Bg = ImColor(0, 0, 0, 0)) const
+	{
+		auto const It = ICON_ATLAS_UV.find(Name);
+		if (It == ICON_ATLAS_UV.end())
+		{
+			return;
+		}
+
+		ImGui::ImageWithBg(IconAtlasTextureId, Size, It->second.first, It->second.second, Bg, Tint);
+	}
+
 	void DrawIcon(std::string const& Name, ImVec2 Size) const
 	{
 		auto const It = ICON_ATLAS_UV.find(Name);

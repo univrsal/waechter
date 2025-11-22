@@ -9,9 +9,11 @@
 #include "Format.hpp"
 #include "Buffer.hpp"
 #include "Data/SystemItem.hpp"
+#include "Util/RuleWidget.hpp"
 
 class WTrafficTree
 {
+	WRuleWidget                  RuleWidget{};
 	std::shared_ptr<WSystemItem> Root = std::make_shared<WSystemItem>();
 
 	ETrafficUnit Unit = TU_Auto;

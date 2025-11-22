@@ -147,31 +147,6 @@ bool WTrafficTree::RenderItem(std::string const& Name, std::shared_ptr<ITrafficI
 		bItemClicked = ImGui::IsItemClicked();
 	}
 
-	// Context menu: right-click on the item to open per-item options
-	{
-		// Create a unique popup id per item so popups don't collide
-		char PopupId[64];
-		snprintf(PopupId, sizeof(PopupId), "item_context_%llu", Item->ItemId);
-		if (ImGui::BeginPopupContextItem(PopupId, ImGuiMouseButton_Right))
-		{
-			// Ensure an entry exists
-			auto& Rule = WClientRuleManager::GetInstance().GetOrCreateRules(Item->ItemId);
-			bool  bUploadBlocked = Rule.SwitchFlags & SS_DenyUpload;
-			bool  bDownloadBlocked = Rule.SwitchFlags & SS_DenyDownload;
-			bool  bChanged = ImGui::MenuItem("Block upload", nullptr, &bUploadBlocked)
-				|| ImGui::MenuItem("Block download", nullptr, &bDownloadBlocked);
-
-			if (bChanged)
-			{
-				Rule.SwitchFlags = 0;
-				Rule.SwitchFlags |= bDownloadBlocked ? SS_DenyDownload : 0;
-				Rule.SwitchFlags |= bUploadBlocked ? SS_DenyUpload : 0;
-				WClientRuleManager::SendRuleStateUpdate(Item->ItemId, Rule);
-			}
-			ImGui::EndPopup();
-		}
-	}
-
 	if (bMarkedForRemoval)
 	{
 		ImGui::PopStyleColor();
@@ -226,7 +201,9 @@ bool WTrafficTree::RenderItem(std::string const& Name, std::shared_ptr<ITrafficI
 	}
 
 	ImGui::TableSetColumnIndex(3);
-	ImGui::TextDisabled("-");
+	ImGui::PushID(Item->ItemId);
+	RuleWidget.Draw(Item, bRowSelected);
+	ImGui::PopID();
 
 	return bNodeOpen;
 }
