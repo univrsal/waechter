@@ -10,7 +10,7 @@
 #include "ClientRuleManager.hpp"
 #include "EBPFCommon.h"
 
-static constexpr ImVec2 kRuleIconSize{ 16, 16 };
+static constexpr ImVec2 GRuleIconSize{ 16, 16 };
 static constexpr float  GIconSpacing = 4.0f;
 
 namespace
@@ -40,7 +40,7 @@ namespace
 		auto DrawOption = [&](char const* IconName, char const* Tooltip, ESwitchState EnableFlag,
 							  ESwitchState DisableFlag) {
 			if (WIconAtlas::GetInstance().DrawIconButton(
-					fmt::format("{}_{}", IconName, Item->ItemId).c_str(), IconName, kRuleIconSize))
+					fmt::format("{}_{}", IconName, Item->ItemId).c_str(), IconName, GRuleIconSize))
 			{
 				FlagField &= ~(EnableFlag | DisableFlag);
 				FlagField |= EnableFlag;
@@ -70,15 +70,15 @@ static bool DrawIconButton(WTrafficItemId Id, uint8_t const& Flags, ESwitchState
 	if (Flags & CheckFlag1)
 	{
 		return WIconAtlas::GetInstance().DrawIconButton(
-			fmt::format("{}_{}", Id, IconName1).c_str(), IconName1, kRuleIconSize, true);
+			fmt::format("{}_{}", Id, IconName1).c_str(), IconName1, GRuleIconSize, true);
 	}
 	if (Flags & CheckFlag2)
 	{
 		return WIconAtlas::GetInstance().DrawIconButton(
-			fmt::format("{}_{}", Id, IconName2).c_str(), IconName2, kRuleIconSize, true);
+			fmt::format("{}_{}", Id, IconName2).c_str(), IconName2, GRuleIconSize, true);
 	}
 	return WIconAtlas::GetInstance().DrawIconButton(
-		fmt::format("{}_{}_placeholder", Id, IconName1).c_str(), "placeholder", kRuleIconSize, true);
+		fmt::format("{}_{}_placeholder", Id, IconName1).c_str(), "placeholder", GRuleIconSize, true);
 }
 
 void WRuleWidget::Draw(std::shared_ptr<ITrafficItem> const& Item, bool)
@@ -110,7 +110,7 @@ void WRuleWidget::Draw(std::shared_ptr<ITrafficItem> const& Item, bool)
 	ImGui::SameLine(0.0f, GIconSpacing);
 
 	// todo limits
-	WIconAtlas::GetInstance().DrawIcon("placeholder", kRuleIconSize);
+	WIconAtlas::GetInstance().DrawIcon("placeholder", GRuleIconSize);
 	ImGui::SameLine(0.0f, GIconSpacing);
-	WIconAtlas::GetInstance().DrawIcon("placeholder", kRuleIconSize);
+	WIconAtlas::GetInstance().DrawIcon("placeholder", GRuleIconSize);
 }
