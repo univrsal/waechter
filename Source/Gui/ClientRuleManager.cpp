@@ -6,7 +6,7 @@
 
 #include "Data/RuleUpdate.hpp"
 
-void WClientRuleManager::SendRuleStateUpdate(WTrafficItemId TrafficItemId, WSocketRules const& ChangedRule)
+void WClientRuleManager::SendRuleStateUpdate(WTrafficItemId TrafficItemId, WNetworkItemRules const& ChangedRule)
 {
 	if (!WClient::GetInstance().IsConnected())
 	{
