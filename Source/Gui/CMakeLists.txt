@@ -31,6 +31,7 @@ target_link_libraries(waechter PRIVATE
         thirdparty::json11
         thirdparty::flags
         thirdparty::sigslot
+        thirdparty::cereal
         waechter::util
         dl
 )
