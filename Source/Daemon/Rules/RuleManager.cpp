@@ -11,6 +11,7 @@
 #include "Data/RuleUpdate.hpp"
 #include "Data/SystemMap.hpp"
 #include "EbpfData.hpp"
+#include "Data/NetworkEvents.hpp"
 
 void WRuleManager::UpdateLocalRuleCache(WRuleUpdate const& Update)
 {
@@ -43,8 +44,7 @@ void WRuleManager::SyncWithEbpfMap()
 
 	for (auto const& [Cookie, Entry] : Rules)
 	{
-		spdlog::info("Setting rule for cookie {}: bDownloadBlocked={}, bUploadBlocked={}", Cookie,
-			Entry.Rules.bDownloadBlocked, Entry.Rules.bUploadBlocked);
+		spdlog::info("Setting rule for cookie {}: {:08b}", Cookie, Entry.Rules.SwitchFlags);
 		if (!EbpfData->SocketRules->Update(Cookie, Entry.Rules))
 		{
 			spdlog::error("Failed to update socket rules in eBPF map for cookie {}", Cookie);
@@ -138,8 +138,7 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 		cereal::BinaryInputArchive iar(ss);
 		iar(Update);
 	}
-	spdlog::info("Update for {}, bDownloadBlocked={}, bUploadBlocked={}", Update.TrafficItemId,
-		Update.Rules.bDownloadBlocked, Update.Rules.bUploadBlocked);
+	spdlog::info("Update for {}, {:08b}", Update.TrafficItemId, Update.Rules.SwitchFlags);
 	UpdateLocalRuleCache(Update);
 	SyncWithEbpfMap();
 }

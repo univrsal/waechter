@@ -156,11 +156,16 @@ bool WTrafficTree::RenderItem(std::string const& Name, std::shared_ptr<ITrafficI
 		{
 			// Ensure an entry exists
 			auto& Rule = WClientRuleManager::GetInstance().GetOrCreateRules(Item->ItemId);
-			bool  bChanged = ImGui::MenuItem("Block upload", nullptr, reinterpret_cast<bool*>(&Rule.bUploadBlocked))
-				|| ImGui::MenuItem("Block download", nullptr, reinterpret_cast<bool*>(&Rule.bDownloadBlocked));
+			bool  bUploadBlocked = Rule.SwitchFlags & SS_DenyUpload;
+			bool  bDownloadBlocked = Rule.SwitchFlags & SS_DenyDownload;
+			bool  bChanged = ImGui::MenuItem("Block upload", nullptr, &bUploadBlocked)
+				|| ImGui::MenuItem("Block download", nullptr, &bDownloadBlocked);
 
 			if (bChanged)
 			{
+				Rule.SwitchFlags = 0;
+				Rule.SwitchFlags |= bDownloadBlocked ? SS_DenyDownload : 0;
+				Rule.SwitchFlags |= bUploadBlocked ? SS_DenyUpload : 0;
 				WClientRuleManager::SendRuleStateUpdate(Item->ItemId, Rule);
 			}
 			ImGui::EndPopup();
