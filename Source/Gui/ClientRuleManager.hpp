@@ -25,5 +25,12 @@ public:
 		std::lock_guard lock(Mutex);
 		return Rules[TrafficItemId];
 	}
+
+	bool HasRules(WTrafficItemId TrafficItemId)
+	{
+		std::lock_guard lock(Mutex);
+		return Rules.find(TrafficItemId) != Rules.end();
+	}
+
 	static void SendRuleStateUpdate(WTrafficItemId TrafficItemId, WNetworkItemRules const& ChangedRule);
 };
