@@ -282,8 +282,8 @@ std::shared_ptr<WAppCounter> WSystemMap::FindOrMapApplication(
 	else
 	{
 		// derive basename
-		auto pos = Key.find_last_of('/');
-		AppItem->ApplicationName = (pos == std::string::npos) ? Key : Key.substr(pos + 1);
+		auto Pos = Key.find_last_of('/');
+		AppItem->ApplicationName = (Pos == std::string::npos) ? Key : Key.substr(Pos + 1);
 	}
 
 	SystemItem->Applications[Key] = AppItem;
