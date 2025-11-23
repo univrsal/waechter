@@ -62,8 +62,6 @@ jobs:
           # caching the entire build dir can speed up incremental builds but may be fragile across toolchain changes
           path: build
           key: ${{ runner.os }}-cmake-build-${{ hashFiles('CMakeLists.txt', '**/CMakeLists.txt', '**/*.cmake', 'Source/**', 'Thirdparty/**') }}
-          restore-keys: |
-            ${{ runner.os }}-cmake-build-
 
       - name: Show ccache stats (before)
         run: |
