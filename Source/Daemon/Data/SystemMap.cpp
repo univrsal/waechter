@@ -12,6 +12,8 @@
 #include "Net/PacketParser.hpp"
 #include "Net/Resolver.hpp"
 
+#include <regex>
+
 void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSocketCounter> const& SockCounter)
 {
 	auto Item = SockCounter->TrafficItem;
@@ -102,6 +104,7 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 		spdlog::warn("Packet header parsing failed");
 	}
 }
+
 std::shared_ptr<WTupleCounter> WSystemMap::GetOrCreateUDPTupleCounter(
 	std::shared_ptr<WSocketCounter> const& SockCounter, WEndpoint const& Endpoint)
 {
@@ -130,6 +133,12 @@ WSystemMap::WSystemMap()
 	}
 }
 
+std::string NormalizeAppImagePaths(std::string const& path)
+{
+	static std::regex const RE(R"(^/tmp/[^/]+/usr/bin/(.*)$)");
+	return std::regex_replace(path, RE, "/tmp/appimage/bin/$1");
+}
+
 std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketEvent const& Event, WProcessId PID, bool bSilentFail)
 {
 	auto SocketCookie = Event.Cookie;
@@ -148,7 +157,7 @@ std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketEvent const& Event,
 	}
 
 	// Build robust process info
-	std::string              ExePath = WFilesystem::GetProcessExePath(PID);
+	std::string              ExePath = NormalizeAppImagePaths(WFilesystem::GetProcessExePath(PID));
 	std::vector<std::string> Argv = WFilesystem::GetProcessCmdlineArgs(PID);
 	std::string              Comm = WFilesystem::ReadProc("/proc/" + std::to_string(PID) + "/comm");
 	if (!Comm.empty() && Comm.back() == '\n')
