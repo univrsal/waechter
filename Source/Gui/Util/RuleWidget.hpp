@@ -9,10 +9,12 @@
 
 struct ITrafficItem;
 
+struct WRenderItemArgs;
+
 class WRuleWidget
 {
 	WNetworkItemRules EmptyDummyRules{};
 
 public:
-	void Draw(std::shared_ptr<ITrafficItem> const& Item, bool bSelected = false);
+	void Draw(WRenderItemArgs const& Args, bool bSelected = false);
 };

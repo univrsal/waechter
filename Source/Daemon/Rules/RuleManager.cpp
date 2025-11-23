@@ -8,165 +8,122 @@
 #include <cereal/archives/binary.hpp>
 
 #include "Daemon.hpp"
+#include "EbpfData.hpp"
 #include "Data/RuleUpdate.hpp"
 #include "Data/SystemMap.hpp"
-#include "EbpfData.hpp"
 #include "Data/NetworkEvents.hpp"
 
-void WRuleManager::UpdateLocalRuleCache(WRuleUpdate const& Update)
+inline ESwitchState GetEffectiveSwitchState(ESwitchState ParentState, ESwitchState ItemState)
 {
-	auto&            Map = WSystemMap::GetInstance();
-	std::scoped_lock Lock(Mutex, Map.DataMutex);
-
-	auto Item = Map.GetTrafficItemById(Update.TrafficItemId);
-
-	switch (Item->GetType())
+	if (ItemState == SS_None)
 	{
-		case TI_Socket:
-			HandleSocketRuleUpdate(Item, Update.Rules);
-			break;
-		case TI_Process:
-			HandleProcessRuleUpdate(Item, Update.Rules);
-			break;
-		case TI_Application:
-			HandleApplicationRuleUpdate(Item, Update.Rules);
-			break;
-		case TI_System:
-			// todo
-			break;
-		default:;
+		return ParentState;
 	}
+	return ItemState;
 }
 
-void WRuleManager::SyncWithEbpfMap()
+inline WNetworkItemRules GetEffectiveRules(WNetworkItemRules const& ParentRules, WNetworkItemRules const& ItemRules)
 {
-	auto EbpfData = WDaemon::GetInstance().GetEbpfObj().GetData();
-
-	for (auto& [Cookie, Entry] : SocketRulesMap)
-	{
-		if (!Entry.bDirty)
-		{
-			continue;
-		}
-
-		spdlog::info("Setting rule for cookie {}: {:08b}", Cookie, Entry.Rules.SwitchFlags);
-		if (EbpfData->SocketRules->Update(Cookie, Entry.Rules))
-		{
-			Entry.bDirty = false;
-		}
-		else
-		{
-			spdlog::error("Failed to update socket rules in eBPF map for cookie {}", Cookie);
-		}
-	}
+	WNetworkItemRules EffectiveRules{};
+	EffectiveRules.UploadSwitch = GetEffectiveSwitchState(ParentRules.UploadSwitch, ItemRules.UploadSwitch);
+	EffectiveRules.DownloadSwitch = GetEffectiveSwitchState(ParentRules.DownloadSwitch, ItemRules.DownloadSwitch);
+	return EffectiveRules;
 }
 
-void WRuleManager::HandleSocketRuleUpdate(
-	std::shared_ptr<ITrafficItem> const& Item, WNetworkItemRules const& Rules, WSocketRuleLevel Level)
+inline bool IsRuleDefault(WNetworkItemRules const& Rules)
 {
-	auto Socket = std::dynamic_pointer_cast<WSocketItem>(Item);
-	if (!Socket)
-	{
-		return;
-	}
-	if (Socket->Cookie == 0)
-	{
-		spdlog::warn("Received rule update for socket item {} with invalid cookie 0", Item->ItemId);
-		return;
-	}
-
-	if (SocketRulesMap.contains(Socket->Cookie))
-	{
-		auto& ExistingEntry = SocketRulesMap[Socket->Cookie];
-		if (ExistingEntry.Level > Level)
-		{
-			spdlog::info(
-				"Skipping rule update for socket item {} since existing rule has higher priority", Item->ItemId);
-			return;
-		}
-	}
-
-	WSocketRulesEntry NewEntry{};
-	NewEntry.Rules = Rules;
-	NewEntry.Level = Level;
-	NewEntry.bDirty = true;
-	SocketRulesMap[Socket->Cookie] = NewEntry;
+	return Rules.UploadSwitch == SS_None && Rules.DownloadSwitch == SS_None;
 }
 
-void WRuleManager::HandleProcessRuleUpdate(
-	std::shared_ptr<ITrafficItem> const& Item, WNetworkItemRules const& Rules, WSocketRuleLevel Level)
+inline bool operator==(WNetworkItemRules const& A, WNetworkItemRules const& B)
 {
-	auto Process = std::dynamic_pointer_cast<WProcessItem>(Item);
-	if (!Process)
-	{
-		return;
-	}
-
-	ProcessRules[Process->ItemId] = Rules;
-
-	for (auto const& SocketItem : Process->Sockets | std::views::values)
-	{
-		if (SocketItem)
-		{
-			HandleSocketRuleUpdate(SocketItem, Rules, Level);
-		}
-	}
+	return A.UploadSwitch == B.UploadSwitch && A.DownloadSwitch == B.DownloadSwitch;
 }
 
-void WRuleManager::HandleApplicationRuleUpdate(
-	std::shared_ptr<ITrafficItem> const& Item, WNetworkItemRules const& Rules)
+void WRuleManager::OnSocketCreated(std::shared_ptr<WSocketCounter> const& Socket)
 {
-	auto App = std::dynamic_pointer_cast<WApplicationItem>(Item);
+	std::lock_guard Lock(Mutex);
+	auto            ProcessItem = Socket->ParentProcess->TrafficItem->ItemId;
+	auto            AppItem = Socket->ParentProcess->ParentApp->TrafficItem->ItemId;
+
+	auto              AppRules = ApplicationRules.contains(AppItem) ? ApplicationRules[AppItem] : WNetworkItemRules{};
+	auto              ProcRules = ProcessRules.contains(ProcessItem) ? ProcessRules[ProcessItem] : WNetworkItemRules{};
+	WNetworkItemRules EffectiveProcRules = GetEffectiveRules(AppRules, ProcRules);
+
+	if (!IsRuleDefault(EffectiveProcRules))
+	{
+		SocketRules[Socket->TrafficItem->ItemId] = ProcRules;
+		SocketCookieRules[Socket->TrafficItem->Cookie] = WSocketRules{ .Rules = EffectiveProcRules, .bDirty = true };
+	}
+	// UpdateRuleCache(Socket->ParentProcess->ParentApp->TrafficItem);
+	SyncToEBPF();
+}
+
+void WRuleManager::UpdateRuleCache(std::shared_ptr<ITrafficItem> const& AppItem)
+{
+	auto App = std::dynamic_pointer_cast<WApplicationItem>(AppItem);
 	if (!App)
 	{
 		return;
 	}
 
-	ApplicationRules[App->ItemId] = Rules;
-	spdlog::info("Storing application level rules for app {}: {:08b}", App->ApplicationName, Rules.SwitchFlags);
+	WNetworkItemRules AppRules =
+		ApplicationRules.contains(App->ItemId) ? ApplicationRules[App->ItemId] : WNetworkItemRules{};
 
-	for (auto const& ProcessItem : App->Processes | std::views::values)
+	for (auto const& Proc : App->Processes | std::views::values)
 	{
-		if (ProcessItem)
+		auto ProcRules = ProcessRules.contains(Proc->ItemId) ? ProcessRules[Proc->ItemId] : WNetworkItemRules{};
+		WNetworkItemRules EffectiveProcRules = GetEffectiveRules(AppRules, ProcRules);
+
+		for (auto const& [Cookie, Sock] : Proc->Sockets)
 		{
-			HandleProcessRuleUpdate(ProcessItem, Rules, SRL_Application);
+			auto SockRules = SocketRules.contains(Sock->ItemId) ? SocketRules[Sock->ItemId] : WNetworkItemRules{};
+			WNetworkItemRules EffectiveSockRules = GetEffectiveRules(EffectiveProcRules, SockRules);
+
+			if (auto SocketCookieRule = SocketCookieRules.find(Cookie); SocketCookieRule != SocketCookieRules.end())
+			{
+				if (SocketCookieRule->second.Rules == EffectiveSockRules)
+				{
+					continue;
+				}
+				SocketCookieRule->second.Rules = EffectiveSockRules;
+				SocketCookieRule->second.bDirty = true;
+			}
+			else
+			{
+				WSocketRules NewRule{};
+				NewRule.Rules = EffectiveSockRules;
+				NewRule.bDirty = true;
+				SocketCookieRules[Cookie] = NewRule;
+			}
 		}
 	}
 }
 
-void WRuleManager::OnSocketCreated(std::shared_ptr<WSocketCounter> const& Socket)
+void WRuleManager::SyncToEBPF()
 {
-	// Apply any existing rules for this socket
-	auto Process = Socket->ParentProcess;
-	auto App = Process->ParentApp;
-	if (!Process || !App)
+	auto EbpfData = WDaemon::GetInstance().GetEbpfObj().GetData();
+	if (!EbpfData)
 	{
 		return;
 	}
 
-	std::lock_guard Lock(Mutex);
-	// Prioritize process rules over application rules
-	if (ProcessRules.contains(App->TrafficItem->ItemId))
+	for (auto& [Cookie, SockRules] : SocketCookieRules)
 	{
-		auto const& ProcRules = ProcessRules[App->TrafficItem->ItemId];
-		// No point in applying empty rules
-		if (ProcRules.SwitchFlags != 0)
+		if (!SockRules.bDirty)
 		{
-			spdlog::info("Applying process rule to newly created socket {} for {}", Socket->TrafficItem->ItemId,
-				App->TrafficItem->ApplicationName);
-			HandleSocketRuleUpdate(Socket->TrafficItem, ProcRules, SRL_Process);
-			SyncWithEbpfMap();
+			continue;
 		}
-	}
-	else if (ApplicationRules.contains(App->TrafficItem->ItemId))
-	{
-		auto const& AppRules = ApplicationRules[App->TrafficItem->ItemId];
-		if (AppRules.SwitchFlags != 0)
+
+		if (!EbpfData->SocketRules->Update(Cookie, SockRules.Rules))
 		{
-			spdlog::info("Applying process rule to newly created socket {} for {}", Socket->TrafficItem->ItemId,
-				App->TrafficItem->ApplicationName);
-			HandleSocketRuleUpdate(Socket->TrafficItem, AppRules, SRL_Application);
-			SyncWithEbpfMap();
+			spdlog::error("Failed to update eBPF rules for socket cookie {}", Cookie);
+		}
+		else
+		{
+			spdlog::info("Updated eBPF rules for socket cookie {}: UploadSwitch={}, DownloadSwitch={}", Cookie,
+				static_cast<int>(SockRules.Rules.UploadSwitch), static_cast<int>(SockRules.Rules.DownloadSwitch));
+			SockRules.bDirty = false;
 		}
 	}
 }
@@ -187,8 +144,32 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 		cereal::BinaryInputArchive iar(ss);
 		iar(Update);
 	}
-	spdlog::info("Update for {}, {:08b}", Update.TrafficItemId, Update.Rules.SwitchFlags);
-	UpdateLocalRuleCache(Update);
+
 	std::lock_guard Lock(Mutex);
-	SyncWithEbpfMap();
+
+	auto Item = WSystemMap::GetInstance().GetTrafficItemById(Update.TrafficItemId);
+	auto AppItem = WSystemMap::GetInstance().GetTrafficItemById(Update.ParentAppId);
+
+	if (!Item || !AppItem)
+	{
+		spdlog::warn("Received rule update for unknown traffic item ID {}", Update.TrafficItemId);
+		return;
+	}
+
+	switch (Item->GetType())
+	{
+		case TI_Application:
+			spdlog::info("Got application rule update for ID {}", Update.TrafficItemId);
+			ApplicationRules[Update.TrafficItemId] = Update.Rules;
+			break;
+		case TI_Process:
+			ProcessRules[Update.TrafficItemId] = Update.Rules;
+			break;
+		case TI_Socket:
+			SocketRules[Update.TrafficItemId] = Update.Rules;
+			break;
+		default:;
+	}
+	UpdateRuleCache(AppItem);
+	SyncToEBPF();
 }

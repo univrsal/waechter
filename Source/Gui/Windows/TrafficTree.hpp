@@ -11,6 +11,16 @@
 #include "Data/SystemItem.hpp"
 #include "Util/RuleWidget.hpp"
 
+struct WRenderItemArgs
+{
+	std::string                   Name{};
+	std::shared_ptr<ITrafficItem> Item{};
+	ImGuiTreeNodeFlags            NodeFlags{};
+	bool                          bMarkedForRemoval{};
+	WEndpoint const*              TupleEndpoint{};
+	std::shared_ptr<ITrafficItem> ParentApp{};
+};
+
 class WTrafficTree
 {
 	WRuleWidget                  RuleWidget{};
@@ -32,8 +42,7 @@ class WTrafficTree
 
 	void RemoveTrafficItem(WTrafficItemId TrafficItemId);
 
-	bool RenderItem(std::string const& Name, std::shared_ptr<ITrafficItem> const& Item, ImGuiTreeNodeFlags NodeFlags,
-		bool bMarkedForRemoval = false, WEndpoint const* ParentItem = nullptr);
+	bool RenderItem(WRenderItemArgs const& Args);
 
 	std::mutex DataMutex;
 

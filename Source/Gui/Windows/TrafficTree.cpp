@@ -111,15 +111,15 @@ inline bool DrawIcon(
 	return bClicked || ImGui::IsItemClicked();
 }
 
-bool WTrafficTree::RenderItem(std::string const& Name, std::shared_ptr<ITrafficItem> const& Item,
-	ImGuiTreeNodeFlags NodeFlags, bool const bMarkedForRemoval, WEndpoint const* TupleEndpoint)
+bool WTrafficTree::RenderItem(WRenderItemArgs const& Args)
 {
-	auto Type = Item->GetType();
+	auto Type = Args.Item->GetType();
+	auto NodeFlags = Args.NodeFlags;
 	NodeFlags |= ImGuiTreeNodeFlags_SpanFullWidth;
 	NodeFlags |= ImGuiTreeNodeFlags_OpenOnArrow;
 	ImGui::TableSetColumnIndex(0);
 
-	bool bRowSelected = SelectedItemId == Item->ItemId;
+	bool bRowSelected = SelectedItemId == Args.Item->ItemId;
 	if (bRowSelected)
 	{
 		ImU32 RowColor = ImGui::GetColorU32(ImGuiCol_Header);
@@ -127,12 +127,12 @@ bool WTrafficTree::RenderItem(std::string const& Name, std::shared_ptr<ITrafficI
 		ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, RowColor);
 	}
 
-	if (bMarkedForRemoval)
+	if (Args.bMarkedForRemoval)
 	{
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{ 1.0f, 0.4f, 0.4f, 1.0f });
 	}
 
-	if (SelectedItemId == Item->ItemId)
+	if (SelectedItemId == Args.Item->ItemId)
 	{
 		NodeFlags |= ImGuiTreeNodeFlags_Selected;
 	}
@@ -140,29 +140,29 @@ bool WTrafficTree::RenderItem(std::string const& Name, std::shared_ptr<ITrafficI
 	bool bNodeOpen = false;
 	bool bItemClicked = false;
 
-	if (Item->GetType() <= TI_Process)
+	if (Args.Item->GetType() <= TI_Process)
 	{
-		bItemClicked = DrawIcon(bNodeOpen, Name, Item, NodeFlags);
+		bItemClicked = DrawIcon(bNodeOpen, Args.Name, Args.Item, NodeFlags);
 	}
 	else
 	{
-		bNodeOpen = ImGui::TreeNodeEx(Name.c_str(), NodeFlags);
+		bNodeOpen = ImGui::TreeNodeEx(Args.Name.c_str(), NodeFlags);
 		bItemClicked = ImGui::IsItemClicked();
 	}
 
-	if (bMarkedForRemoval)
+	if (Args.bMarkedForRemoval)
 	{
 		ImGui::PopStyleColor();
 	}
 
 	if (bItemClicked)
 	{
-		SelectedItemId = Item->ItemId;
-		SelectedItem = Item;
+		SelectedItemId = Args.Item->ItemId;
+		SelectedItem = Args.Item;
 		SelectedItemType = Type;
-		if (TupleEndpoint)
+		if (Args.TupleEndpoint)
 		{
-			SelectedTupleEndpoint = *TupleEndpoint;
+			SelectedTupleEndpoint = *Args.TupleEndpoint;
 		}
 		else
 		{
@@ -174,15 +174,15 @@ bool WTrafficTree::RenderItem(std::string const& Name, std::shared_ptr<ITrafficI
 	if (ImGui::IsItemHovered())
 	{
 		ImGui::BeginTooltip();
-		ImGui::Text("ID: %llu", Item->ItemId);
+		ImGui::Text("ID: %llu", Args.Item->ItemId);
 		ImGui::EndTooltip();
 	}
 #endif
 
 	ImGui::TableSetColumnIndex(1);
-	if (Item->DownloadSpeed > 0)
+	if (Args.Item->DownloadSpeed > 0)
 	{
-		ImGui::Text("%s", WTrafficFormat::Format(Item->DownloadSpeed, Unit).c_str());
+		ImGui::Text("%s", WTrafficFormat::Format(Args.Item->DownloadSpeed, Unit).c_str());
 	}
 	else
 	{
@@ -192,9 +192,9 @@ bool WTrafficTree::RenderItem(std::string const& Name, std::shared_ptr<ITrafficI
 	}
 
 	ImGui::TableSetColumnIndex(2);
-	if (Item->UploadSpeed > 0)
+	if (Args.Item->UploadSpeed > 0)
 	{
-		ImGui::Text("%s", WTrafficFormat::Format(Item->UploadSpeed, Unit).c_str());
+		ImGui::Text("%s", WTrafficFormat::Format(Args.Item->UploadSpeed, Unit).c_str());
 	}
 	else
 	{
@@ -204,8 +204,8 @@ bool WTrafficTree::RenderItem(std::string const& Name, std::shared_ptr<ITrafficI
 	}
 
 	ImGui::TableSetColumnIndex(3);
-	ImGui::PushID(Item->ItemId);
-	RuleWidget.Draw(Item, bRowSelected);
+	ImGui::PushID(Args.Item->ItemId);
+	RuleWidget.Draw(Args, bRowSelected);
 	ImGui::PopID();
 
 	return bNodeOpen;
@@ -534,7 +534,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 
 	// start first data row for the root item
 	ImGui::TableNextRow();
-	bOpened = RenderItem(Root->HostName, Root, ImGuiTreeNodeFlags_DefaultOpen);
+	bOpened = RenderItem({ Root->HostName, Root, ImGuiTreeNodeFlags_DefaultOpen });
 	bool rootOpened = bOpened;
 
 	if (!bOpened)
@@ -578,7 +578,13 @@ void WTrafficTree::Draw(ImGuiID MainID)
 		ImGui::TableNextRow();
 		// Stable ID: application name within root
 		ImGui::PushID(Name.c_str());
-		bOpened = RenderItem(Child->ApplicationName, Child, ImGuiTreeNodeFlags_DefaultOpen);
+
+		WRenderItemArgs Args{};
+		Args.Name = Child->ApplicationName;
+		Args.Item = Child;
+		Args.NodeFlags = ImGuiTreeNodeFlags_DefaultOpen;
+		Args.ParentApp = Child;
+		bOpened = RenderItem(Args);
 
 		if (!bOpened)
 		{
@@ -595,8 +601,12 @@ void WTrafficTree::Draw(ImGuiID MainID)
 
 			ImGui::TableNextRow();
 			ImGui::PushID(PID); // PID fits in int on Linux
-			bOpened =
-				RenderItem(fmt::format("Process {}", PID), Process, 0, MarkedForRemovalItems.contains(Process->ItemId));
+			Args = {};
+			Args.Name = fmt::format("Process {}", PID);
+			Args.Item = Process;
+			Args.bMarkedForRemoval = MarkedForRemovalItems.contains(Process->ItemId);
+			Args.ParentApp = Child;
+			bOpened = RenderItem(Args);
 
 			if (!bOpened)
 			{
@@ -624,7 +634,13 @@ void WTrafficTree::Draw(ImGuiID MainID)
 				}
 
 				auto const bPendingRemoval = MarkedForRemovalItems.contains(Socket->ItemId);
-				bOpened = RenderItem(SocketName, Socket, SocketFlags, bPendingRemoval);
+				Args = {};
+				Args.Name = SocketName;
+				Args.Item = Socket;
+				Args.NodeFlags = SocketFlags;
+				Args.bMarkedForRemoval = bPendingRemoval;
+				Args.ParentApp = Child;
+				bOpened = RenderItem(Args);
 				if (!bOpened)
 				{
 					ImGui::PopID();
@@ -636,8 +652,14 @@ void WTrafficTree::Draw(ImGuiID MainID)
 					ImGui::TableNextRow();
 					std::string tupleId = std::string("tuple:") + TupleKey.ToString();
 					ImGui::PushID(tupleId.c_str());
-					ImGuiTreeNodeFlags tupleFlags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-					RenderItem(fmt::format("↔ {}", TupleKey.ToString()), Tuple, tupleFlags, bPendingRemoval, &TupleKey);
+					Args = {};
+					Args.Name = fmt::format("↔ {}", TupleKey.ToString());
+					Args.Item = Tuple;
+					Args.NodeFlags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+					Args.bMarkedForRemoval = bPendingRemoval;
+					Args.TupleEndpoint = &TupleKey;
+					RenderItem(Args);
+
 					ImGui::PopID();
 				}
 				ImGui::PopID();

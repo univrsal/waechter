@@ -6,12 +6,16 @@
 
 #include "Data/RuleUpdate.hpp"
 
-void WClientRuleManager::SendRuleStateUpdate(WTrafficItemId TrafficItemId, WNetworkItemRules const& ChangedRule)
+void WClientRuleManager::SendRuleStateUpdate(
+	WTrafficItemId TrafficItemId, WTrafficItemId ParentApp, WNetworkItemRules const& ChangedRule)
 {
 	if (!WClient::GetInstance().IsConnected())
 	{
 		return;
 	}
-
-	WClient::GetInstance().SendMessage(MT_RuleUpdate, WRuleUpdate{ ChangedRule, TrafficItemId });
+	WRuleUpdate Update{};
+	Update.TrafficItemId = TrafficItemId;
+	Update.ParentAppId = ParentApp;
+	Update.Rules = ChangedRule;
+	WClient::GetInstance().SendMessage(MT_RuleUpdate, Update);
 }

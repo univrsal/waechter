@@ -8,13 +8,15 @@
 
 struct WRuleUpdate
 {
-	WNetworkItemRules   Rules{};
-	WTrafficItemId TrafficItemId{ 0 };
+	WNetworkItemRules Rules{};
+	WTrafficItemId    TrafficItemId{ 0 };
+	WTrafficItemId    ParentAppId{ 0 }; // Only for socket/process updates
 
 	template <class Archive>
 	void serialize(Archive& Ar)
 	{
 		Ar(Rules);
 		Ar(TrafficItemId);
+		Ar(ParentAppId);
 	}
 };

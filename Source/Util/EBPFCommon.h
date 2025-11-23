@@ -38,24 +38,23 @@ enum ENetEventType
 	NE_Traffic
 };
 
-enum ESwitchState
+enum ESwitchState : __u8
 {
 	SS_None = 0,
-	SS_AllowDownload = 1 << 0,
-	SS_DenyDownload = 1 << 1,
-	SS_AllowUpload = 1 << 2,
-	SS_DenyUpload = 1 << 3,
+	SS_Block = 1,
+	SS_Allow = 2
 };
 
 struct WNetworkItemRules
 {
-	__u8 SwitchFlags;
+	enum ESwitchState UploadSwitch;
+	enum ESwitchState DownloadSwitch;
 
 #if __cplusplus
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(SwitchFlags);
+		archive(UploadSwitch, DownloadSwitch);
 	}
 #endif
 };

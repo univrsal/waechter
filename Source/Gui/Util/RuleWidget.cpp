@@ -15,8 +15,9 @@ static constexpr float  GIconSpacing = 4.0f;
 
 namespace
 {
-	void DrawRuleOptions(std::shared_ptr<ITrafficItem> const& Item, bool bIsUpload)
+	void DrawRuleOptions(WRenderItemArgs const& Args, bool bIsUpload)
 	{
+		auto Item = Args.Item;
 		auto PopupLabel =
 			bIsUpload ? fmt::format("upload_popup_{}", Item->ItemId) : fmt::format("download_popup_{}", Item->ItemId);
 
@@ -32,19 +33,20 @@ namespace
 			return;
 		}
 
-		auto&        Rule = WClientRuleManager::GetInstance().GetOrCreateRules(Item->ItemId);
-		ESwitchState AllowFlag = bIsUpload ? SS_AllowUpload : SS_AllowDownload;
-		ESwitchState BlockFlag = bIsUpload ? SS_DenyUpload : SS_DenyDownload;
-		uint8_t&     FlagField = Rule.SwitchFlags;
+		auto&         Rule = WClientRuleManager::GetInstance().GetOrCreateRules(Item->ItemId);
+		ESwitchState& SwitchState = bIsUpload ? Rule.UploadSwitch : Rule.DownloadSwitch;
 
-		auto DrawOption = [&](char const* IconName, char const* Tooltip, ESwitchState EnableFlag,
-							  ESwitchState DisableFlag) {
+		auto DrawOption = [&](char const* IconName, char const* Tooltip, ESwitchState SetState) {
 			if (WIconAtlas::GetInstance().DrawIconButton(
 					fmt::format("{}_{}", IconName, Item->ItemId).c_str(), IconName, GRuleIconSize))
 			{
-				FlagField &= ~(EnableFlag | DisableFlag);
-				FlagField |= EnableFlag;
-				WClientRuleManager::SendRuleStateUpdate(Item->ItemId, Rule);
+				WTrafficItemId ParentApp = 0;
+				if (Args.ParentApp)
+				{
+					ParentApp = Args.ParentApp->ItemId;
+				}
+				SwitchState = SetState;
+				WClientRuleManager::SendRuleStateUpdate(Args.Item->ItemId, ParentApp, Rule);
 				ImGui::CloseCurrentPopup();
 			}
 			if (ImGui::IsItemHovered())
@@ -54,25 +56,24 @@ namespace
 			ImGui::SameLine();
 		};
 
-		DrawOption("placeholder", "Reset rule", SS_None, static_cast<ESwitchState>(AllowFlag | BlockFlag));
-		DrawOption(bIsUpload ? "uploadblock" : "downloadblock", bIsUpload ? "Block upload" : "Block download",
-			BlockFlag, AllowFlag);
-		DrawOption(bIsUpload ? "uploadallow" : "downloadallow", bIsUpload ? "Allow upload" : "Allow download",
-			AllowFlag, BlockFlag);
+		DrawOption("placeholder", "Reset rule", SS_None);
+		DrawOption(
+			bIsUpload ? "uploadblock" : "downloadblock", bIsUpload ? "Block upload" : "Block download", SS_Block);
+		DrawOption(
+			bIsUpload ? "uploadallow" : "downloadallow", bIsUpload ? "Allow upload" : "Allow download", SS_Allow);
 
 		ImGui::EndPopup();
 	}
 } // namespace
 
-static bool DrawIconButton(WTrafficItemId Id, uint8_t const& Flags, ESwitchState CheckFlag1, ESwitchState CheckFlag2,
-	char const* IconName1, char const* IconName2)
+static bool DrawIconButton(WTrafficItemId Id, ESwitchState const& State, char const* IconName1, char const* IconName2)
 {
-	if (Flags & CheckFlag1)
+	if (State == SS_Allow)
 	{
 		return WIconAtlas::GetInstance().DrawIconButton(
 			fmt::format("{}_{}", Id, IconName1).c_str(), IconName1, GRuleIconSize, true);
 	}
-	if (Flags & CheckFlag2)
+	if (State == SS_Block)
 	{
 		return WIconAtlas::GetInstance().DrawIconButton(
 			fmt::format("{}_{}", Id, IconName2).c_str(), IconName2, GRuleIconSize, true);
@@ -81,9 +82,11 @@ static bool DrawIconButton(WTrafficItemId Id, uint8_t const& Flags, ESwitchState
 		fmt::format("{}_{}_placeholder", Id, IconName1).c_str(), "placeholder", GRuleIconSize, true);
 }
 
-void WRuleWidget::Draw(std::shared_ptr<ITrafficItem> const& Item, bool)
+void WRuleWidget::Draw(WRenderItemArgs const& Args, bool)
 {
+	auto               Item = Args.Item;
 	WNetworkItemRules* Rules{};
+
 	// We do *not* want to create the rule here if it doesn't exist
 	if (WClientRuleManager::GetInstance().HasRules(Item->ItemId))
 	{
@@ -94,19 +97,18 @@ void WRuleWidget::Draw(std::shared_ptr<ITrafficItem> const& Item, bool)
 		Rules = &EmptyDummyRules;
 	}
 
-	if (DrawIconButton(
-			Item->ItemId, Rules->SwitchFlags, SS_AllowDownload, SS_DenyDownload, "downloadallow", "downloadblock"))
+	if (DrawIconButton(Item->ItemId, Rules->DownloadSwitch, "downloadallow", "downloadblock"))
 	{
 		ImGui::OpenPopup(fmt::format("download_popup_{}", Item->ItemId).c_str());
 	}
 	ImGui::SameLine(0.0f, GIconSpacing);
-	DrawRuleOptions(Item, false);
+	DrawRuleOptions(Args, false);
 
-	if (DrawIconButton(Item->ItemId, Rules->SwitchFlags, SS_AllowUpload, SS_DenyUpload, "uploadallow", "uploadblock"))
+	if (DrawIconButton(Item->ItemId, Rules->UploadSwitch, "uploadallow", "uploadblock"))
 	{
 		ImGui::OpenPopup(fmt::format("upload_popup_{}", Item->ItemId).c_str());
 	}
-	DrawRuleOptions(Item, true);
+	DrawRuleOptions(Args, true);
 	ImGui::SameLine(0.0f, GIconSpacing);
 
 	// todo limits

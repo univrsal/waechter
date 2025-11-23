@@ -32,7 +32,8 @@ public:
 		return Rules.find(TrafficItemId) != Rules.end();
 	}
 
-	static void SendRuleStateUpdate(WTrafficItemId TrafficItemId, WNetworkItemRules const& ChangedRule);
+	static void SendRuleStateUpdate(
+		WTrafficItemId TrafficItemId, WTrafficItemId ParentApp, WNetworkItemRules const& ChangedRule);
 
 	void RemoveRules(WTrafficItemId TrafficItemId)
 	{
