@@ -15,6 +15,7 @@
 #include "Data/TrafficItem.hpp"
 
 struct WSocketCounter;
+struct WProcessCounter;
 
 struct WSocketRules
 {
@@ -34,6 +35,8 @@ class WRuleManager : public TSingleton<WRuleManager>
 	std::unordered_map<WSocketCookie, WSocketRules> SocketCookieRules;
 
 	void OnSocketCreated(std::shared_ptr<WSocketCounter> const& Socket);
+	void OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket);
+	void OnProcessRemoved(std::shared_ptr<WProcessCounter> const& ProcessItem);
 
 	void UpdateRuleCache(std::shared_ptr<ITrafficItem> const& AppItem);
 

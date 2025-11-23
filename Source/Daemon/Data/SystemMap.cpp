@@ -391,11 +391,12 @@ void WSystemMap::Cleanup()
 			//  - Remove the process from the Processes map
 			for (auto const& [SocketCookie, Socket] : Process->TrafficItem->Sockets)
 			{
+				WNetworkEvents::GetInstance().OnSocketRemoved(Sockets[SocketCookie]);
 				Sockets.erase(SocketCookie);
 				TrafficItems.erase(Socket->ItemId);
 				MapUpdate.AddItemRemoval(Socket->ItemId);
 			}
-
+			WNetworkEvents::GetInstance().OnProcessRemoved(Process);
 			Process->ParentApp->TrafficItem->Processes.erase(ProcessIt->first);
 			MapUpdate.AddItemRemoval(ProcessIt->second->TrafficItem->ItemId);
 			TrafficItems.erase(Process->TrafficItem->ItemId);
@@ -416,6 +417,7 @@ void WSystemMap::Cleanup()
 			// When cleaning up a socket we have to
 			//  - Remove it from its parent process's Sockets map
 			//  - Remove it from the Sockets map
+			WNetworkEvents::GetInstance().OnSocketRemoved(Socket);
 			Socket->ParentProcess->TrafficItem->Sockets.erase(SocketIt->first);
 			TrafficItems.erase(Socket->TrafficItem->ItemId);
 			MapUpdate.AddItemRemoval(Socket->TrafficItem->ItemId);

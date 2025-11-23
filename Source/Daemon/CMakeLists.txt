@@ -39,5 +39,9 @@ add_subdirectory(Data)
 add_subdirectory(Communication)
 add_subdirectory(Rules)
 
+target_compile_definitions(waechterd PRIVATE
+        $<$<CONFIG:Debug>:WDEBUG>
+)
+
 install(TARGETS waechterd
         RUNTIME DESTINATION bin)

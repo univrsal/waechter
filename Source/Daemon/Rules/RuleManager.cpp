@@ -55,8 +55,33 @@ void WRuleManager::OnSocketCreated(std::shared_ptr<WSocketCounter> const& Socket
 		SocketRules[Socket->TrafficItem->ItemId] = ProcRules;
 		SocketCookieRules[Socket->TrafficItem->Cookie] = WSocketRules{ .Rules = EffectiveProcRules, .bDirty = true };
 	}
-	// UpdateRuleCache(Socket->ParentProcess->ParentApp->TrafficItem);
 	SyncToEBPF();
+}
+
+void WRuleManager::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket)
+{
+	std::lock_guard Lock(Mutex);
+#if WDEBUG
+	if (SocketRules.contains(Socket->TrafficItem->ItemId) || SocketCookieRules.contains(Socket->TrafficItem->Cookie))
+	{
+		spdlog::debug(
+			"Removing rules for socket ID {} cookie {}", Socket->TrafficItem->ItemId, Socket->TrafficItem->Cookie);
+	}
+#endif
+	SocketRules.erase(Socket->TrafficItem->ItemId);
+	SocketCookieRules.erase(Socket->TrafficItem->Cookie);
+}
+
+void WRuleManager::OnProcessRemoved(std::shared_ptr<WProcessCounter> const& ProcessItem)
+{
+	std::lock_guard Lock(Mutex);
+#if WDEBUG
+	if (ProcessRules.contains(ProcessItem->TrafficItem->ItemId))
+	{
+		spdlog::debug("Removing rules for process ID {}", ProcessItem->TrafficItem->ItemId);
+	}
+#endif
+	ProcessRules.erase(ProcessItem->TrafficItem->ItemId);
 }
 
 void WRuleManager::UpdateRuleCache(std::shared_ptr<ITrafficItem> const& AppItem)
@@ -132,6 +157,10 @@ void WRuleManager::RegisterSignalHandlers()
 {
 	WNetworkEvents::GetInstance().OnSocketCreated.connect(
 		std::bind(&WRuleManager::OnSocketCreated, this, std::placeholders::_1));
+	WNetworkEvents::GetInstance().OnSocketRemoved.connect(
+		std::bind(&WRuleManager::OnSocketRemoved, this, std::placeholders::_1));
+	WNetworkEvents::GetInstance().OnProcessRemoved.connect(
+		std::bind(&WRuleManager::OnProcessRemoved, this, std::placeholders::_1));
 }
 
 void WRuleManager::HandleRuleChange(WBuffer const& Buf)
