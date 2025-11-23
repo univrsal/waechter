@@ -58,7 +58,7 @@ void WDaemon::RunLoop()
 	{
 		EbpfObj.UpdateData();
 		auto now = std::chrono::steady_clock::now();
-		if (now - LastPrint >= std::chrono::milliseconds(5000))
+		if (now - LastPrint >= std::chrono::milliseconds(30000))
 		{
 			EbpfObj.PrintStats();
 			LastPrint = now;
