@@ -15,10 +15,10 @@
 
 void WRuleManager::UpdateLocalRuleCache(WRuleUpdate const& Update)
 {
-	auto&           Map = WSystemMap::GetInstance();
-	std::lock_guard MapLock(Map.DataMutex);
-	std::lock_guard Lock(Mutex);
-	auto            Item = Map.GetTrafficItemById(Update.TrafficItemId);
+	auto&            Map = WSystemMap::GetInstance();
+	std::scoped_lock Lock(Mutex, Map.DataMutex);
+
+	auto Item = Map.GetTrafficItemById(Update.TrafficItemId);
 
 	switch (Item->GetType())
 	{
