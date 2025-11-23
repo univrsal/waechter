@@ -25,30 +25,38 @@ INCBIN(SigSlotLicense, THIRD_PARTY_SIGSLOT_LICENSE_PATH);
 
 WAboutDialog::WAboutDialog()
 {
-	ThirdPartyLibraries.clear();
-
-	ThirdPartyLibraries.emplace_back("glad", "https://github.com/Dav1dde/glad", GGladLicenseData, GGladLicenseSize);
-	ThirdPartyLibraries.emplace_back("glfw", "https://www.glfw.org", GGlfwLicenseData, GGlfwLicenseSize);
+	auto MakeString = [](unsigned char const Data[], size_t Size) {
+		if (Data == nullptr || Size == 0)
+		{
+			return std::string("");
+		}
+		return std::string(reinterpret_cast<char const*>(Data), Size);
+	};
 	ThirdPartyLibraries.emplace_back(
-		"Dear ImGui", "https://github.com/ocornut/imgui", GImguiLicenseData, GImguiLicenseSize);
+		"glad", "https://github.com/Dav1dde/glad", MakeString(GGladLicenseData, GGladLicenseSize));
+	ThirdPartyLibraries.emplace_back("glfw", "https://www.glfw.org", MakeString(GGlfwLicenseData, GGlfwLicenseSize));
 	ThirdPartyLibraries.emplace_back(
-		"incbin", "https://github.com/graphitemaster/incbin", GIncbinLicenseData, GIncbinLicenseSize);
-	ThirdPartyLibraries.emplace_back("inih", "https://github.com/benhoyt/inih", GInihLicenseData, GInihLicenseSize);
+		"Dear ImGui", "https://github.com/ocornut/imgui", MakeString(GImguiLicenseData, GImguiLicenseSize));
 	ThirdPartyLibraries.emplace_back(
-		"json11", "https://github.com/dropbox/json11", GJson11LicenseData, GJson11LicenseSize);
+		"incbin", "https://github.com/graphitemaster/incbin", MakeString(GIncbinLicenseData, GIncbinLicenseSize));
 	ThirdPartyLibraries.emplace_back(
-		"spdlog", "https://github.com/gabime/spdlog", GSpdlogLicenseData, GSpdlogLicenseSize);
-	ThirdPartyLibraries.emplace_back("stb", "https://github.com/nothings/stb", GStbLicenseData, GStbLicenseSize);
+		"inih", "https://github.com/benhoyt/inih", MakeString(GInihLicenseData, GInihLicenseSize));
 	ThirdPartyLibraries.emplace_back(
-		"JetBrains Mono", "https://www.jetbrains.com/lp/mono/", GJetbrainsMonoLicenseData, GJetbrainsMonoLicenseSize);
+		"json11", "https://github.com/dropbox/json11", MakeString(GJson11LicenseData, GJson11LicenseSize));
 	ThirdPartyLibraries.emplace_back(
-		"cereal", "https://github.com/USCiLab/cereal", GCerealLicenseData, GCerealLicenseSize);
+		"spdlog", "https://github.com/gabime/spdlog", MakeString(GSpdlogLicenseData, GSpdlogLicenseSize));
 	ThirdPartyLibraries.emplace_back(
-		"implot", "https://github.com/epezent/implot", GImPlotLicenseData, GImPlotLicenseSize);
+		"stb", "https://github.com/nothings/stb", MakeString(GStbLicenseData, GStbLicenseSize));
+	ThirdPartyLibraries.emplace_back("JetBrains Mono", "https://www.jetbrains.com/lp/mono/",
+		MakeString(GJetbrainsMonoLicenseData, GJetbrainsMonoLicenseSize));
 	ThirdPartyLibraries.emplace_back(
-		"flag-icons", "https://github.com/lipis/flag-icons", GFlagsLicenseData, GFlagsLicenseSize);
+		"cereal", "https://github.com/USCiLab/cereal", MakeString(GCerealLicenseData, GCerealLicenseSize));
 	ThirdPartyLibraries.emplace_back(
-		"sigslot", "https://github.com/palacaze/sigslot", GSigSlotLicenseData, GSigSlotLicenseSize);
+		"implot", "https://github.com/epezent/implot", MakeString(GImPlotLicenseData, GImPlotLicenseSize));
+	ThirdPartyLibraries.emplace_back(
+		"flag-icons", "https://github.com/lipis/flag-icons", MakeString(GFlagsLicenseData, GFlagsLicenseSize));
+	ThirdPartyLibraries.emplace_back(
+		"sigslot", "https://github.com/palacaze/sigslot", MakeString(GSigSlotLicenseData, GSigSlotLicenseSize));
 
 	VersionString = fmt::format(
 		"Version {}, commit {}@{}\nCompiled at {}", WAECHTER_VERSION, GIT_COMMIT_HASH, GIT_BRANCH, BUILD_TIME);
