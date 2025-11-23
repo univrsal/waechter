@@ -33,4 +33,10 @@ public:
 	}
 
 	static void SendRuleStateUpdate(WTrafficItemId TrafficItemId, WNetworkItemRules const& ChangedRule);
+
+	void RemoveRules(WTrafficItemId TrafficItemId)
+	{
+		std::lock_guard lock(Mutex);
+		Rules.erase(TrafficItemId);
+	}
 };

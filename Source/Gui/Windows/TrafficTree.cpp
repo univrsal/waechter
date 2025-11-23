@@ -46,6 +46,8 @@ static bool TryRemoveFromMap(std::unordered_map<K, V>& Map, WTrafficItemId Traff
 void WTrafficTree::RemoveTrafficItem(WTrafficItemId TrafficItemId)
 {
 	MarkedForRemovalItems.erase(TrafficItemId);
+	WClientRuleManager::GetInstance().RemoveRules(TrafficItemId);
+
 	if (Root->RemoveChild(TrafficItemId))
 	{
 		return;
