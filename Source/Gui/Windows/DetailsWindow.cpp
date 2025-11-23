@@ -11,6 +11,7 @@
 #include "Time.hpp"
 #include "AppIconAtlas.hpp"
 #include "Data/SystemItem.hpp"
+#include "Util/ProtocolDB.hpp"
 
 static char const* SocketConnectionStateToString(ESocketConnectionState State)
 {
@@ -192,6 +193,12 @@ void WDetailsWindow::DrawSocketDetails()
 			}
 		}
 		ImGui::Text("Protocol: %s", ProtocolToString(Sock->SocketTuple.Protocol));
+		auto ProtocolName = WProtocolDB::GetInstance().GetServiceName(
+			Sock->SocketTuple.Protocol, Sock->SocketTuple.RemoteEndpoint.Port);
+		if (ProtocolName != "unknown")
+		{
+			ImGui::Text("Service: %s", ProtocolName.c_str());
+		}
 		ImGui::Separator();
 		ImGui::Text("Total Downloaded: %s", WStorageFormat::AutoFormat(Sock->TotalDownloadBytes).c_str());
 		ImGui::Text("Total Uploaded: %s", WStorageFormat::AutoFormat(Sock->TotalUploadBytes).c_str());

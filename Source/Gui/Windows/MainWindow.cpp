@@ -4,6 +4,8 @@
 
 #include "MainWindow.hpp"
 
+#include "Util/ProtocolDB.hpp"
+
 #include <imgui_internal.h>
 #include <imgui.h>
 #include <string>
@@ -86,6 +88,7 @@ void WMainWindow::Init(ImGuiID Main)
 	}
 	FlagAtlas.Load();
 	LibCurl.Load();
+	WProtocolDB::GetInstance().Init();
 	bInit = true;
 }
 

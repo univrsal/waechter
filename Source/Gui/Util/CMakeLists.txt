@@ -8,6 +8,8 @@ target_sources(waechter
         Settings.hpp
         RuleWidget.cpp
         RuleWidget.hpp
+        ProtocolDB.cpp
+        ProtocolDB.hpp
 )
 
 if (WAECHTER_WITH_IPQUERY_IO_API)
