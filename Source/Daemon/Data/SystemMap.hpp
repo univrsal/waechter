@@ -51,12 +51,7 @@ class WSystemMap : public TSingleton<WSystemMap>
 
 	void Cleanup();
 
-	WTrafficItemId GetNextItemId()
-	{
-		auto Result = NextItemId.load();
-		++NextItemId;
-		return Result;
-	}
+	WTrafficItemId GetNextItemId() { return NextItemId.fetch_add(1); }
 
 	void DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSocketCounter> const& SockCounter);
 
