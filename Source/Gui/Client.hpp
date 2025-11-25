@@ -47,6 +47,8 @@ class WClient : public TSingleton<WClient>
 
 	bool EnsureConnected();
 
+	void HandleHandshake(WBuffer& Buf);
+
 public:
 	std::atomic<WBytesPerSecond> DaemonToClientTrafficRate{ 0 };
 	std::atomic<WBytesPerSecond> ClientToDaemonTrafficRate{ 0 };

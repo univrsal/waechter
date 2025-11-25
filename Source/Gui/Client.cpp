@@ -9,6 +9,7 @@
 
 #include "AppIconAtlas.hpp"
 #include "Messages.hpp"
+#include "Data/Protocol.hpp"
 
 inline bool ReadU32(char const* DataPtr, size_t N, uint32_t& outI32)
 {
@@ -105,6 +106,9 @@ void WClient::ConnectionThreadFunction()
 			}
 			switch (Type)
 			{
+				case MT_Handshake:
+					HandleHandshake(Msg);
+					break;
 				case MT_TrafficTree:
 					TrafficTree->LoadFromBuffer(Msg);
 					break;
@@ -148,6 +152,38 @@ bool WClient::EnsureConnected()
 		default:;
 	}
 	return Socket->GetState() == ES_Connected;
+}
+
+void WClient::HandleHandshake(WBuffer& Buf)
+{
+
+	WProtocolHandshake Handshake{};
+	std::stringstream  ss;
+	ss.write(Buf.GetData(), static_cast<long int>(Buf.GetWritePos()));
+	{
+		ss.seekg(1); // Skip message type
+		cereal::BinaryInputArchive iar(ss);
+		iar(Handshake);
+	}
+
+#if WDEBUG
+	if (Handshake.ProtocolVersion != WAECHTER_PROTOCOL_VERSION || Handshake.CommitHash != GIT_COMMIT_HASH)
+	{
+		spdlog::error("Daemon protocol version ({}/{}) does not match client version ({}/{})",
+			Handshake.ProtocolVersion, Handshake.CommitHash, WAECHTER_PROTOCOL_VERSION, GIT_COMMIT_HASH);
+	}
+#else
+	if (Handshake.ProtocolVersion != WAECHTER_PROTOCOL_VERSION)
+	{
+		spdlog::warn("Daemon protocol version ({}) does not match client version ({})", Handshake.ProtocolVersion,
+			WAECHTER_PROTOCOL_VERSION);
+	}
+#endif
+	else
+	{
+		spdlog::info(
+			"Connected to daemon (protocol version {}, commit {})", Handshake.ProtocolVersion, Handshake.CommitHash);
+	}
 }
 
 void WClient::Start()
