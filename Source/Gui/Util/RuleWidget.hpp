@@ -4,6 +4,7 @@
 
 #pragma once
 #include "EBPFCommon.h"
+#include "Data/Rule.hpp"
 
 #include <memory>
 
@@ -13,7 +14,7 @@ struct WRenderItemArgs;
 
 class WRuleWidget
 {
-	WTrafficItemRulesBase EmptyDummyRules{};
+	WTrafficItemRules EmptyDummyRules{};
 
 public:
 	void Draw(WRenderItemArgs const& Args, bool bSelected = false);
