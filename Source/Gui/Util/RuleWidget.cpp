@@ -15,7 +15,7 @@ static constexpr float  GIconSpacing = 4.0f;
 
 namespace
 {
-	void DrawRuleOptions(WRenderItemArgs const& Args, bool bIsUpload)
+	void DrawBlockOptionPopup(WRenderItemArgs const& Args, bool bIsUpload)
 	{
 		auto Item = Args.Item;
 		auto PopupLabel =
@@ -64,6 +64,26 @@ namespace
 
 		ImGui::EndPopup();
 	}
+
+	void DrawLimitOptionPopup(WRenderItemArgs const& Args)
+	{
+		auto Item = Args.Item;
+		auto PopupLabel = fmt::format("limit_popup_{}", Item->ItemId);
+
+		// Prevent moving and hide title bar; keep auto-resize for compact popup
+		ImGuiWindowFlags Flags = ImGuiWindowFlags_NoMove;
+
+		ImVec2 AnchorMin = ImGui::GetItemRectMin();
+		ImVec2 AnchorMax = ImGui::GetItemRectMax();
+		ImVec2 PopupPos{ (AnchorMin.x + AnchorMax.x) * 0.5f, AnchorMax.y };      // x = anchor center
+		ImGui::SetNextWindowPos(PopupPos, ImGuiCond_Always, ImVec2(0.5f, 0.0f)); // pivot.x = 0.5 centers it
+		if (!ImGui::BeginPopup(PopupLabel.c_str(), Flags))
+		{
+			return;
+		}
+
+		//
+	}
 } // namespace
 
 static bool DrawIconButton(WTrafficItemId Id, ESwitchState const& State, char const* IconName1, char const* IconName2)
@@ -84,8 +104,8 @@ static bool DrawIconButton(WTrafficItemId Id, ESwitchState const& State, char co
 
 void WRuleWidget::Draw(WRenderItemArgs const& Args, bool)
 {
-	auto               Item = Args.Item;
-	WTrafficItemRules* Rules{};
+	auto                   Item = Args.Item;
+	WTrafficItemRulesBase* Rules{};
 
 	// We do *not* want to create the rule here if it doesn't exist
 	if (WClientRuleManager::GetInstance().HasRules(Item->ItemId))
@@ -102,13 +122,13 @@ void WRuleWidget::Draw(WRenderItemArgs const& Args, bool)
 		ImGui::OpenPopup(fmt::format("download_popup_{}", Item->ItemId).c_str());
 	}
 	ImGui::SameLine(0.0f, GIconSpacing);
-	DrawRuleOptions(Args, false);
+	DrawBlockOptionPopup(Args, false);
 
 	if (DrawIconButton(Item->ItemId, Rules->UploadSwitch, "uploadallow", "uploadblock"))
 	{
 		ImGui::OpenPopup(fmt::format("upload_popup_{}", Item->ItemId).c_str());
 	}
-	DrawRuleOptions(Args, true);
+	DrawBlockOptionPopup(Args, true);
 	ImGui::SameLine(0.0f, GIconSpacing);
 
 	// todo limits

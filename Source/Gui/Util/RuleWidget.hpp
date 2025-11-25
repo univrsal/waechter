@@ -13,7 +13,7 @@ struct WRenderItemArgs;
 
 class WRuleWidget
 {
-	WTrafficItemRules EmptyDummyRules{};
+	WTrafficItemRulesBase EmptyDummyRules{};
 
 public:
 	void Draw(WRenderItemArgs const& Args, bool bSelected = false);

@@ -3,13 +3,12 @@
 //
 
 #pragma once
-#include "Buffer.hpp"
-#include "EBPFCommon.h"
-
 #include <unordered_map>
 #include <mutex>
 #include <memory>
 
+#include "Buffer.hpp"
+#include "Data/Rule.hpp"
 #include "Singleton.hpp"
 #include "Data/RuleUpdate.hpp"
 #include "Data/TrafficItem.hpp"
@@ -19,7 +18,7 @@ struct WProcessCounter;
 
 struct WSocketRules
 {
-	WTrafficItemRules Rules;
+	WTrafficItemRulesBase Rules;
 
 	bool bDirty{ true };
 };

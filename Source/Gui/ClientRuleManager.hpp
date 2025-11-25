@@ -3,15 +3,14 @@
 //
 
 #pragma once
-
-#include "Client.hpp"
-
 #include <unordered_map>
 #include <mutex>
 
+#include "Client.hpp"
 #include "EBPFCommon.h"
 #include "Singleton.hpp"
 #include "Data/TrafficItem.hpp"
+#include "Data/Rule.hpp"
 
 class WClientRuleManager : public TSingleton<WClientRuleManager>
 {

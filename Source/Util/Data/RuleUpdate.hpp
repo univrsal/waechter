@@ -3,7 +3,7 @@
 //
 
 #pragma once
-#include "EBPFCommon.h"
+#include "Data/Rule.hpp"
 #include "TrafficItem.hpp"
 
 struct WRuleUpdate

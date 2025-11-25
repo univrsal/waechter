@@ -45,18 +45,10 @@ enum ESwitchState : __u8
 	SS_Allow = 2
 };
 
-struct WTrafficItemRules
+struct WTrafficItemRulesBase
 {
 	enum ESwitchState UploadSwitch;
 	enum ESwitchState DownloadSwitch;
-
-#if __cplusplus
-	template <class Archive>
-	void serialize(Archive& archive)
-	{
-		archive(UploadSwitch, DownloadSwitch);
-	}
-#endif
 };
 
 struct WSocketBindEventData
