@@ -22,20 +22,20 @@ inline ESwitchState GetEffectiveSwitchState(ESwitchState ParentState, ESwitchSta
 	return ItemState;
 }
 
-inline WNetworkItemRules GetEffectiveRules(WNetworkItemRules const& ParentRules, WNetworkItemRules const& ItemRules)
+inline WTrafficItemRules GetEffectiveRules(WTrafficItemRules const& ParentRules, WTrafficItemRules const& ItemRules)
 {
-	WNetworkItemRules EffectiveRules{};
+	WTrafficItemRules EffectiveRules{};
 	EffectiveRules.UploadSwitch = GetEffectiveSwitchState(ParentRules.UploadSwitch, ItemRules.UploadSwitch);
 	EffectiveRules.DownloadSwitch = GetEffectiveSwitchState(ParentRules.DownloadSwitch, ItemRules.DownloadSwitch);
 	return EffectiveRules;
 }
 
-inline bool IsRuleDefault(WNetworkItemRules const& Rules)
+inline bool IsRuleDefault(WTrafficItemRules const& Rules)
 {
 	return Rules.UploadSwitch == SS_None && Rules.DownloadSwitch == SS_None;
 }
 
-inline bool operator==(WNetworkItemRules const& A, WNetworkItemRules const& B)
+inline bool operator==(WTrafficItemRules const& A, WTrafficItemRules const& B)
 {
 	return A.UploadSwitch == B.UploadSwitch && A.DownloadSwitch == B.DownloadSwitch;
 }
@@ -46,9 +46,9 @@ void WRuleManager::OnSocketCreated(std::shared_ptr<WSocketCounter> const& Socket
 	auto            ProcessItem = Socket->ParentProcess->TrafficItem->ItemId;
 	auto            AppItem = Socket->ParentProcess->ParentApp->TrafficItem->ItemId;
 
-	auto              AppRules = ApplicationRules.contains(AppItem) ? ApplicationRules[AppItem] : WNetworkItemRules{};
-	auto              ProcRules = ProcessRules.contains(ProcessItem) ? ProcessRules[ProcessItem] : WNetworkItemRules{};
-	WNetworkItemRules EffectiveProcRules = GetEffectiveRules(AppRules, ProcRules);
+	auto              AppRules = ApplicationRules.contains(AppItem) ? ApplicationRules[AppItem] : WTrafficItemRules{};
+	auto              ProcRules = ProcessRules.contains(ProcessItem) ? ProcessRules[ProcessItem] : WTrafficItemRules{};
+	WTrafficItemRules EffectiveProcRules = GetEffectiveRules(AppRules, ProcRules);
 
 	if (!IsRuleDefault(EffectiveProcRules))
 	{
@@ -92,18 +92,18 @@ void WRuleManager::UpdateRuleCache(std::shared_ptr<ITrafficItem> const& AppItem)
 		return;
 	}
 
-	WNetworkItemRules AppRules =
-		ApplicationRules.contains(App->ItemId) ? ApplicationRules[App->ItemId] : WNetworkItemRules{};
+	WTrafficItemRules AppRules =
+		ApplicationRules.contains(App->ItemId) ? ApplicationRules[App->ItemId] : WTrafficItemRules{};
 
 	for (auto const& Proc : App->Processes | std::views::values)
 	{
-		auto ProcRules = ProcessRules.contains(Proc->ItemId) ? ProcessRules[Proc->ItemId] : WNetworkItemRules{};
-		WNetworkItemRules EffectiveProcRules = GetEffectiveRules(AppRules, ProcRules);
+		auto ProcRules = ProcessRules.contains(Proc->ItemId) ? ProcessRules[Proc->ItemId] : WTrafficItemRules{};
+		WTrafficItemRules EffectiveProcRules = GetEffectiveRules(AppRules, ProcRules);
 
 		for (auto const& [Cookie, Sock] : Proc->Sockets)
 		{
-			auto SockRules = SocketRules.contains(Sock->ItemId) ? SocketRules[Sock->ItemId] : WNetworkItemRules{};
-			WNetworkItemRules EffectiveSockRules = GetEffectiveRules(EffectiveProcRules, SockRules);
+			auto SockRules = SocketRules.contains(Sock->ItemId) ? SocketRules[Sock->ItemId] : WTrafficItemRules{};
+			WTrafficItemRules EffectiveSockRules = GetEffectiveRules(EffectiveProcRules, SockRules);
 
 			if (auto SocketCookieRule = SocketCookieRules.find(Cookie); SocketCookieRule != SocketCookieRules.end())
 			{

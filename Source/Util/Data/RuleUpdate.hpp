@@ -8,7 +8,7 @@
 
 struct WRuleUpdate
 {
-	WNetworkItemRules Rules{};
+	WTrafficItemRules Rules{};
 	WTrafficItemId    TrafficItemId{ 0 };
 	WTrafficItemId    ParentAppId{ 0 }; // Only for socket/process updates
 

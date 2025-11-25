@@ -17,10 +17,10 @@ class WClientRuleManager : public TSingleton<WClientRuleManager>
 {
 	std::mutex Mutex;
 
-	std::unordered_map<WTrafficItemId, WNetworkItemRules> Rules;
+	std::unordered_map<WTrafficItemId, WTrafficItemRules> Rules;
 
 public:
-	WNetworkItemRules& GetOrCreateRules(WTrafficItemId TrafficItemId)
+	WTrafficItemRules& GetOrCreateRules(WTrafficItemId TrafficItemId)
 	{
 		std::lock_guard lock(Mutex);
 		return Rules[TrafficItemId];
@@ -33,7 +33,7 @@ public:
 	}
 
 	static void SendRuleStateUpdate(
-		WTrafficItemId TrafficItemId, WTrafficItemId ParentApp, WNetworkItemRules const& ChangedRule);
+		WTrafficItemId TrafficItemId, WTrafficItemId ParentApp, WTrafficItemRules const& ChangedRule);
 
 	void RemoveRules(WTrafficItemId TrafficItemId)
 	{

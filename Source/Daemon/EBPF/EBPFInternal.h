@@ -50,7 +50,7 @@ struct
 {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__type(key, __u64); // Socket cookie
-	__type(value, struct WNetworkItemRules);
+	__type(value, struct WTrafficItemRules);
 	__uint(max_entries, 0xffff);
 } socket_rules SEC(".maps");
 
@@ -99,8 +99,8 @@ static __always_inline struct WSocketEvent* MakeSocketEvent(__u64 Cookie, __u8 E
 	return SocketEvent;
 }
 
-static __always_inline struct WNetworkItemRules* GetSocketRules(__u64 Cookie)
+static __always_inline struct WTrafficItemRules* GetSocketRules(__u64 Cookie)
 {
-	struct WNetworkItemRules* Rules = bpf_map_lookup_elem(&socket_rules, &Cookie);
+	struct WTrafficItemRules* Rules = bpf_map_lookup_elem(&socket_rules, &Cookie);
 	return Rules;
 }

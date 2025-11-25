@@ -45,7 +45,7 @@ enum ESwitchState : __u8
 	SS_Allow = 2
 };
 
-struct WNetworkItemRules
+struct WTrafficItemRules
 {
 	enum ESwitchState UploadSwitch;
 	enum ESwitchState DownloadSwitch;

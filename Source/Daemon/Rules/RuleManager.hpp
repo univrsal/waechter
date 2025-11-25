@@ -19,7 +19,7 @@ struct WProcessCounter;
 
 struct WSocketRules
 {
-	WNetworkItemRules Rules;
+	WTrafficItemRules Rules;
 
 	bool bDirty{ true };
 };
@@ -28,9 +28,9 @@ class WRuleManager : public TSingleton<WRuleManager>
 {
 	std::mutex Mutex;
 
-	std::unordered_map<WTrafficItemId, WNetworkItemRules> ApplicationRules;
-	std::unordered_map<WTrafficItemId, WNetworkItemRules> ProcessRules;
-	std::unordered_map<WTrafficItemId, WNetworkItemRules> SocketRules;
+	std::unordered_map<WTrafficItemId, WTrafficItemRules> ApplicationRules;
+	std::unordered_map<WTrafficItemId, WTrafficItemRules> ProcessRules;
+	std::unordered_map<WTrafficItemId, WTrafficItemRules> SocketRules;
 
 	std::unordered_map<WSocketCookie, WSocketRules> SocketCookieRules;
 

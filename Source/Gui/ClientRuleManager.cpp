@@ -7,7 +7,7 @@
 #include "Data/RuleUpdate.hpp"
 
 void WClientRuleManager::SendRuleStateUpdate(
-	WTrafficItemId TrafficItemId, WTrafficItemId ParentApp, WNetworkItemRules const& ChangedRule)
+	WTrafficItemId TrafficItemId, WTrafficItemId ParentApp, WTrafficItemRules const& ChangedRule)
 {
 	if (!WClient::GetInstance().IsConnected())
 	{

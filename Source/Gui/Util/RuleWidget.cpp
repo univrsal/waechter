@@ -85,7 +85,7 @@ static bool DrawIconButton(WTrafficItemId Id, ESwitchState const& State, char co
 void WRuleWidget::Draw(WRenderItemArgs const& Args, bool)
 {
 	auto               Item = Args.Item;
-	WNetworkItemRules* Rules{};
+	WTrafficItemRules* Rules{};
 
 	// We do *not* want to create the rule here if it doesn't exist
 	if (WClientRuleManager::GetInstance().HasRules(Item->ItemId))
