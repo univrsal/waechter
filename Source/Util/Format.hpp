@@ -63,6 +63,24 @@ public:
 				return fmt::format("{:.2f} B/s", Speed);
 		}
 	}
+	static WBytesPerSecond ConvertToBps(double Value, ETrafficUnit ToUnit)
+	{
+		switch (ToUnit)
+		{
+			case TU_Bps:
+				return Value;
+			case TU_KiBps:
+				return Value WKiB;
+			case TU_MiBps:
+				return Value WMiB;
+			case TU_GiBps:
+				return Value WGiB;
+			case TU_Auto:
+			default:
+				assert(false);
+				return Value;
+		}
+	}
 };
 
 class WStorageFormat

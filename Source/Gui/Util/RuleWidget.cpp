@@ -9,9 +9,11 @@
 #include "Icons/IconAtlas.hpp"
 #include "ClientRuleManager.hpp"
 #include "EBPFCommon.h"
+#include "ImGuiUtil.hpp"
 
 static constexpr ImVec2 GRuleIconSize{ 16, 16 };
 static constexpr float  GIconSpacing = 4.0f;
+static WBytesPerSecond  CurrentLimit = 0;
 
 namespace
 {
@@ -65,10 +67,11 @@ namespace
 		ImGui::EndPopup();
 	}
 
-	void DrawLimitOptionPopup(WRenderItemArgs const& Args)
+	void DrawLimitOptionPopup(WRenderItemArgs const& Args, bool bIsUpload)
 	{
-		auto Item = Args.Item;
-		auto PopupLabel = fmt::format("limit_popup_{}", Item->ItemId);
+		static ETrafficUnit SelectedUnit = TU_KiBps;
+		auto                Item = Args.Item;
+		auto PopupLabel = fmt::format("{}_limit_popup_{}", bIsUpload ? "upload" : "download", Item->ItemId);
 
 		// Prevent moving and hide title bar; keep auto-resize for compact popup
 		ImGuiWindowFlags Flags = ImGuiWindowFlags_NoMove;
@@ -81,12 +84,51 @@ namespace
 		{
 			return;
 		}
+		ImGui::SameLine();
+		auto InputFlags = ImGuiInputTextFlags_CharsDecimal;
+		// reduce width of input field
+		ImGui::SetNextItemWidth(70.0f);
+		ImVec4 bg = ImGui::GetStyleColorVec4(ImGuiCol_Button);
 
-		//
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, bg);
+		ImGui::InputDouble("##limit_input", &CurrentLimit, 0.0, 0.0, "%.0f", InputFlags);
+		ImGui::PopStyleColor();
+		CurrentLimit = std::clamp(CurrentLimit, 0.0, 5.0 WGiB);
+		ImGui::SameLine();
+		DrawUnitCombo(SelectedUnit, "##unit_combo", false);
+		ImGui::SameLine();
+		if (ImGui::Button("Ok##limit_ok"))
+		{
+			// send update
+			auto&            Rule = WClientRuleManager::GetInstance().GetOrCreateRules(Item->ItemId);
+			WBytesPerSecond& LimitVal = bIsUpload ? Rule.UploadLimit : Rule.DownloadLimit;
+			LimitVal = WTrafficFormat::ConvertToBps(CurrentLimit, SelectedUnit);
+			WTrafficItemId ParentApp = 0;
+			if (Args.ParentApp)
+			{
+				ParentApp = Args.ParentApp->ItemId;
+			}
+			WClientRuleManager::SendRuleStateUpdate(Args.Item->ItemId, ParentApp, Rule);
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::EndPopup();
 	}
 } // namespace
 
-static bool DrawIconButton(WTrafficItemId Id, ESwitchState const& State, char const* IconName1, char const* IconName2)
+static bool DrawLimitIconButton(WTrafficItemId Id, WBytesPerSecond Limit, char const* IconName)
+{
+	if (Limit > 0)
+	{
+		return WIconAtlas::GetInstance().DrawIconButton(
+			fmt::format("{}_{}", Id, IconName).c_str(), IconName, GRuleIconSize, true);
+	}
+	return WIconAtlas::GetInstance().DrawIconButton(
+		fmt::format("{}_{}_placeholder", Id, IconName).c_str(), "placeholder", GRuleIconSize, true);
+}
+
+static bool DrawBlockIconButton(
+	WTrafficItemId Id, ESwitchState const& State, char const* IconName1, char const* IconName2)
 {
 	if (State == SS_Allow)
 	{
@@ -117,22 +159,49 @@ void WRuleWidget::Draw(WRenderItemArgs const& Args, bool)
 		Rules = &EmptyDummyRules;
 	}
 
-	if (DrawIconButton(Item->ItemId, Rules->DownloadSwitch, "downloadallow", "downloadblock"))
+	if (DrawBlockIconButton(Item->ItemId, Rules->DownloadSwitch, "downloadallow", "downloadblock"))
 	{
 		ImGui::OpenPopup(fmt::format("download_popup_{}", Item->ItemId).c_str());
 	}
-	ImGui::SameLine(0.0f, GIconSpacing);
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::SetTooltip("Block/allow download");
+	}
 	DrawBlockOptionPopup(Args, false);
+	ImGui::SameLine(0.0f, GIconSpacing);
 
-	if (DrawIconButton(Item->ItemId, Rules->UploadSwitch, "uploadallow", "uploadblock"))
+	if (DrawBlockIconButton(Item->ItemId, Rules->UploadSwitch, "uploadallow", "uploadblock"))
 	{
 		ImGui::OpenPopup(fmt::format("upload_popup_{}", Item->ItemId).c_str());
+	}
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::SetTooltip("Block/allow upload");
 	}
 	DrawBlockOptionPopup(Args, true);
 	ImGui::SameLine(0.0f, GIconSpacing);
 
-	// todo limits
-	WIconAtlas::GetInstance().DrawIcon("placeholder", GRuleIconSize);
+	auto Rule = WClientRuleManager::GetInstance().GetOrCreateRules(Item->ItemId);
+	if (DrawLimitIconButton(Item->ItemId, Rule.DownloadLimit, "downloadlimit"))
+	{
+		CurrentLimit = Rule.DownloadLimit;
+		ImGui::OpenPopup(fmt::format("download_limit_popup_{}", Item->ItemId).c_str());
+	}
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::SetTooltip("Limit download");
+	}
+	DrawLimitOptionPopup(Args, false);
 	ImGui::SameLine(0.0f, GIconSpacing);
-	WIconAtlas::GetInstance().DrawIcon("placeholder", GRuleIconSize);
+
+	if (DrawLimitIconButton(Item->ItemId, Rule.UploadLimit, "uploadlimit"))
+	{
+		CurrentLimit = Rule.UploadLimit;
+		ImGui::OpenPopup(fmt::format("upload_limit_popup_{}", Item->ItemId).c_str());
+	}
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::SetTooltip("Limit upload");
+	}
+	DrawLimitOptionPopup(Args, true);
 }

@@ -8,8 +8,8 @@
 
 struct WTrafficItemRules : WTrafficItemRulesBase
 {
-	WBytesPerSecond UploadLimit{ -1 };
-	WBytesPerSecond DownloadLimit{ -1 };
+	WBytesPerSecond UploadLimit{ 0 };
+	WBytesPerSecond DownloadLimit{ 0 };
 
 	template <class Archive>
 	void serialize(Archive& archive)

@@ -5,9 +5,6 @@
 #include "TrafficTree.hpp"
 
 // ReSharper disable CppUnusedIncludeDirective
-#include "AppIconAtlas.hpp"
-#include "ClientRuleManager.hpp"
-
 #include <imgui.h>
 #include <ranges>
 #include <algorithm>
@@ -20,6 +17,9 @@
 #include <cereal/types/string.hpp>
 #include <cereal/archives/binary.hpp>
 
+#include "AppIconAtlas.hpp"
+#include "ClientRuleManager.hpp"
+#include "Util/ImGuiUtil.hpp"
 #include "Format.hpp"
 #include "GlfwWindow.hpp"
 #include "Messages.hpp"
@@ -454,24 +454,6 @@ void WTrafficTree::Draw(ImGuiID MainID)
 {
 	std::lock_guard Lock(DataMutex);
 
-	auto UnitText = [this] {
-		switch (Unit)
-		{
-			case TU_Bps:
-				return "B/s";
-			case TU_KiBps:
-				return "KiB/s";
-			case TU_MiBps:
-				return "MiB/s";
-			case TU_GiBps:
-				return "GiB/s";
-			case TU_Auto:
-				return "Auto";
-			default:
-				return "B/s";
-		}
-	};
-
 	ImGui::SetNextWindowDockID(MainID, ImGuiCond_FirstUseEver);
 	if (!ImGui::Begin("Traffic Tree", nullptr, ImGuiWindowFlags_None))
 	{
@@ -480,31 +462,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 	}
 
 	// Toolbar
-	if (ImGui::BeginCombo("Unit", UnitText(), ImGuiComboFlags_WidthFitPreview))
-	{
-		if (ImGui::Selectable("B/s", Unit == TU_Bps))
-		{
-			Unit = TU_Bps;
-		}
-		if (ImGui::Selectable("KiB/s", Unit == TU_KiBps))
-		{
-			Unit = TU_KiBps;
-		}
-		if (ImGui::Selectable("MiB/s", Unit == TU_MiBps))
-		{
-			Unit = TU_MiBps;
-		}
-		if (ImGui::Selectable("GiB/s", Unit == TU_GiBps))
-		{
-			Unit = TU_GiBps;
-		}
-		if (ImGui::Selectable("Auto", Unit == TU_Auto))
-		{
-			Unit = TU_Auto;
-		}
-		ImGui::EndCombo();
-	}
-
+	DrawUnitCombo(Unit);
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(200.0f);
 	ImGui::InputTextWithHint("##search", "Search applications...", SearchBuffer, sizeof(SearchBuffer));
