@@ -24,7 +24,7 @@ inline ESwitchState GetEffectiveSwitchState(ESwitchState ParentState, ESwitchSta
 
 inline WTrafficItemRules GetEffectiveRules(WTrafficItemRules const& ParentRules, WTrafficItemRules const& ItemRules)
 {
-	WTrafficItemRules EffectiveRules{};
+	WTrafficItemRules EffectiveRules = ItemRules;
 	EffectiveRules.UploadSwitch = GetEffectiveSwitchState(ParentRules.UploadSwitch, ItemRules.UploadSwitch);
 	EffectiveRules.DownloadSwitch = GetEffectiveSwitchState(ParentRules.DownloadSwitch, ItemRules.DownloadSwitch);
 	return EffectiveRules;
@@ -35,7 +35,7 @@ inline bool IsRuleDefault(WTrafficItemRules const& Rules)
 	return Rules.UploadSwitch == SS_None && Rules.DownloadSwitch == SS_None;
 }
 
-inline bool operator==(WTrafficItemRules const& A, WTrafficItemRules const& B)
+inline bool operator==(WTrafficItemRulesBase const& A, WTrafficItemRules const& B)
 {
 	return A.UploadSwitch == B.UploadSwitch && A.DownloadSwitch == B.DownloadSwitch;
 }
@@ -53,9 +53,10 @@ void WRuleManager::OnSocketCreated(std::shared_ptr<WSocketCounter> const& Socket
 	if (!IsRuleDefault(EffectiveProcRules))
 	{
 		SocketRules[Socket->TrafficItem->ItemId] = ProcRules;
-		SocketCookieRules[Socket->TrafficItem->Cookie] = WSocketRules{ .Rules = EffectiveProcRules, .bDirty = true };
+		SocketCookieRules[Socket->TrafficItem->Cookie] =
+			WSocketRules{ .Rules = EffectiveProcRules.AsBase(), .bDirty = true };
+		SyncToEBPF();
 	}
-	SyncToEBPF();
 }
 
 void WRuleManager::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket)
@@ -104,6 +105,7 @@ void WRuleManager::UpdateRuleCache(std::shared_ptr<ITrafficItem> const& AppItem)
 		{
 			auto SockRules = SocketRules.contains(Sock->ItemId) ? SocketRules[Sock->ItemId] : WTrafficItemRules{};
 			WTrafficItemRules EffectiveSockRules = GetEffectiveRules(EffectiveProcRules, SockRules);
+			SocketRules[Sock->ItemId] = SockRules;
 
 			if (auto SocketCookieRule = SocketCookieRules.find(Cookie); SocketCookieRule != SocketCookieRules.end())
 			{
@@ -111,13 +113,13 @@ void WRuleManager::UpdateRuleCache(std::shared_ptr<ITrafficItem> const& AppItem)
 				{
 					continue;
 				}
-				SocketCookieRule->second.Rules = EffectiveSockRules;
+				SocketCookieRule->second.Rules = EffectiveSockRules.AsBase();
 				SocketCookieRule->second.bDirty = true;
 			}
 			else
 			{
 				WSocketRules NewRule{};
-				NewRule.Rules = EffectiveSockRules;
+				NewRule.Rules = EffectiveSockRules.AsBase();
 				NewRule.bDirty = true;
 				SocketCookieRules[Cookie] = NewRule;
 			}

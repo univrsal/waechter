@@ -18,7 +18,7 @@ struct WProcessCounter;
 
 struct WSocketRules
 {
-	WTrafficItemRules Rules;
+	WTrafficItemRulesBase Rules;
 
 	bool bDirty{ true };
 };
