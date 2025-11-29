@@ -3,6 +3,7 @@
 //
 
 #pragma once
+#include "Util/ImageUtil.hpp"
 
 class WRegisterDialog
 {
@@ -14,8 +15,11 @@ class WRegisterDialog
 	bool bValid{};
 	bool bFailedActivation{};
 
+	WTexture Watermark{};
+
 public:
 	void Init();
+	void Unload() { Watermark.Unload(); }
 	void Draw();
 	void Show() { bVisible = true; }
 
