@@ -4,12 +4,12 @@
 
 #include "MainWindow.hpp"
 
-#include "Util/ProtocolDB.hpp"
-
 #include <imgui_internal.h>
 #include <imgui.h>
 #include <string>
 
+#include "Client.hpp"
+#include "Util/ProtocolDB.hpp"
 #include "Util/Settings.hpp"
 
 void WMainWindow::DrawConnectionIndicator()
@@ -89,6 +89,7 @@ void WMainWindow::Init(ImGuiID Main)
 	FlagAtlas.Load();
 	LibCurl.Load();
 	WProtocolDB::GetInstance().Init();
+	RegisterDialog.Init();
 	bInit = true;
 }
 
@@ -113,6 +114,10 @@ void WMainWindow::Draw()
 
 		if (ImGui::BeginMenu("Help"))
 		{
+			if (ImGui::MenuItem("Register..."))
+			{
+				RegisterDialog.Show();
+			}
 			if (ImGui::MenuItem("About"))
 			{
 				AboutDialog.Show();
@@ -136,4 +141,5 @@ void WMainWindow::Draw()
 	NetworkGraphWindow.Draw();
 	DetailsWindow.Draw();
 	AboutDialog.Draw();
+	RegisterDialog.Draw();
 }

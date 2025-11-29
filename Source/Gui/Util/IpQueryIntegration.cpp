@@ -10,6 +10,8 @@
 
 #include "Windows/GlfwWindow.hpp"
 
+#include <thread>
+
 WIpInfoData const* WIpQueryIntegration::GetIpInfo(std::string const& IP)
 {
 	{

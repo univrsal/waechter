@@ -5,6 +5,10 @@
 
 #include "AboutDialog.hpp"
 
+#include "GlfwWindow.hpp"
+#include "RegisterDialog.hpp"
+#include "Util/Settings.hpp"
+
 #include <imgui.h>
 #include <incbin.h>
 #include <spdlog/fmt/fmt.h>
@@ -86,6 +90,14 @@ void WAboutDialog::Draw()
 		ImGui::Spacing();
 		ImGui::PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_TextDisabled]);
 		ImGui::Text("%s", VersionString.c_str());
+		if (WGlfwWindow::GetInstance().GetMainWindow()->IsRegistered())
+		{
+			ImGui::Text("Registered to %s", WSettings::GetInstance().RegisteredUsername.c_str());
+		}
+		else
+		{
+			ImGui::Text("UNREGISTERED VERSION");
+		}
 		ImGui::PopStyleColor();
 
 		ImGui::Spacing();

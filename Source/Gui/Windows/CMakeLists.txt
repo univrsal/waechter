@@ -14,4 +14,6 @@ target_sources(waechter
         LogWindow.hpp
         NetworkGraphWindow.cpp
         NetworkGraphWindow.hpp
+        RegisterDialog.cpp
+        RegisterDialog.hpp
 )

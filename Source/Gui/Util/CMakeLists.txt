@@ -11,7 +11,7 @@ target_sources(waechter
         ProtocolDB.cpp
         ProtocolDB.hpp
 )
-
+add_subdirectory(Keylogic)
 if (WAECHTER_WITH_IPQUERY_IO_API)
     target_compile_definitions(waechter PRIVATE WAECHTER_WITH_IPQUERY_IO_API=1)
     target_sources(waechter

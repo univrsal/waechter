@@ -10,6 +10,9 @@
 #include "GlfwWindow.hpp"
 #include "Time.hpp"
 #include "AppIconAtlas.hpp"
+#include "Client.hpp"
+#include "Format.hpp"
+#include "TrafficTree.hpp"
 #include "Data/SystemItem.hpp"
 #include "Util/ProtocolDB.hpp"
 

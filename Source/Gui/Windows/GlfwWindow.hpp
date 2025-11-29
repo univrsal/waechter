@@ -32,4 +32,6 @@ public:
 	WMainWindow* GetMainWindow() { return MainWindow.get(); }
 
 	void Destroy();
+
+	void SetTitle(std::string const& Title);
 };

@@ -16,6 +16,7 @@
 #include "Filesystem.hpp"
 #include "Time.hpp"
 #include "AppIconAtlas.hpp"
+#include "Client.hpp"
 #include "Icons/IconAtlas.hpp"
 #include "Util/Settings.hpp"
 
@@ -181,4 +182,9 @@ void WGlfwWindow::Destroy()
 
 	glfwDestroyWindow(Window);
 	glfwTerminate();
+}
+
+void WGlfwWindow::SetTitle(std::string const& Title)
+{
+	glfwSetWindowTitle(Window, Title.c_str());
 }
