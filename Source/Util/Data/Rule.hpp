@@ -19,6 +19,8 @@ struct WTrafficItemRules : WTrafficItemRulesBase
 
 	[[nodiscard]] WTrafficItemRulesBase AsBase() const
 	{
-		return WTrafficItemRulesBase{ .UploadSwitch = UploadSwitch, .DownloadSwitch = DownloadSwitch };
+		return WTrafficItemRulesBase{
+			.UploadSwitch = UploadSwitch, .DownloadSwitch = DownloadSwitch, .UploadClassId = 0, .DownloadClassId = 0
+		};
 	}
 };
