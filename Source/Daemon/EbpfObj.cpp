@@ -7,11 +7,24 @@
 #include <spdlog/spdlog.h>
 #include <fcntl.h>
 #include <bpf/bpf.h>
-#include <bpf/libbpf.h>
+#include <net/if.h>
 
 #include "DaemonConfig.hpp"
 #include "ErrnoUtil.hpp"
 #include "Filesystem.hpp"
+
+unsigned int GetIfIndex(std::string const& ifname)
+{
+	if (ifname.empty())
+		throw std::invalid_argument("interface name is empty");
+
+	unsigned int ifindex = if_nametoindex(ifname.c_str());
+	if (ifindex == 0)
+	{
+		spdlog::critical("Failed to get index of network interface '{}': {}", ifname, WErrnoUtil::StrError());
+	}
+	return ifindex;
+}
 
 WEbpfObj::WEbpfObj()
 {
@@ -27,12 +40,13 @@ WEbpfObj::WEbpfObj()
 		}
 		CGroupFd.reset(new int(CGroupFdRaw));
 	}
-
-	errno = 0;
+	// Get index of configured network interface
+	IfIndex = GetIfIndex(WDaemonConfig::GetInstance().NetworkInterfaceName);
 }
 
 WEbpfObj::~WEbpfObj()
 {
+	spdlog::info("Detaching eBPF programs...");
 	for (auto const& Program : Programs)
 	{
 		int  ProgFd = bpf_program__fd(std::get<0>(Program));
@@ -105,4 +119,25 @@ bool WEbpfObj::FindAndAttachProgram(std::string const& ProgName, bpf_attach_type
 int WEbpfObj::FindMapFd(std::string const& MapFdPath) const
 {
 	return bpf_object__find_map_fd_by_name(this->Obj, MapFdPath.c_str());
+}
+
+bool WEbpfObj::CreateAndAttachTcxProgram(bpf_program* Program)
+{
+	if (IfIndex == 0)
+	{
+		spdlog::critical("Cannot create TC hook: interface index is 0 (invalid)");
+		return false;
+	}
+
+	bpf_tcx_opts Opts{};
+	Opts.sz = sizeof(Opts);
+
+	auto* Link = bpf_program__attach_tcx(Program, static_cast<int>(IfIndex), &Opts);
+	if (!Link)
+	{
+		spdlog::critical("Link attachment for tcx program  failed: {}", WErrnoUtil::StrError());
+		return false;
+	}
+	Links.emplace_back(Link, Program);
+	return true;
 }

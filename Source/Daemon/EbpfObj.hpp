@@ -10,10 +10,7 @@
 #include <tuple>
 #include <unistd.h>
 #include <linux/bpf.h>
-
-struct bpf_object;
-struct bpf_program;
-struct bpf_link;
+#include <bpf/libbpf.h>
 
 struct WFdCloser
 {
@@ -32,10 +29,9 @@ class WEbpfObj
 protected:
 	std::vector<std::tuple<bpf_program*, bpf_attach_type>> Programs{}; // attached programs
 	std::vector<std::tuple<bpf_link*, bpf_program*>>       Links{};
-
-	bpf_object*                     Obj{};
-	std::unique_ptr<int, WFdCloser> CGroupFd{};
-	int                             XdpIfIndex{};
+	bpf_object*                                            Obj{};
+	std::unique_ptr<int, WFdCloser>                        CGroupFd{};
+	unsigned int                                           IfIndex{};
 
 public:
 	explicit WEbpfObj();
@@ -49,4 +45,6 @@ public:
 	[[nodiscard]] int FindMapFd(std::string const& MapFdPath) const;
 
 	operator bpf_object*() const { return Obj; }
+
+	bool CreateAndAttachTcxProgram(bpf_program* Program);
 };
