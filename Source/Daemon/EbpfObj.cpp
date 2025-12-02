@@ -12,19 +12,7 @@
 #include "DaemonConfig.hpp"
 #include "ErrnoUtil.hpp"
 #include "Filesystem.hpp"
-
-unsigned int GetIfIndex(std::string const& ifname)
-{
-	if (ifname.empty())
-		throw std::invalid_argument("interface name is empty");
-
-	unsigned int ifindex = if_nametoindex(ifname.c_str());
-	if (ifindex == 0)
-	{
-		spdlog::critical("Failed to get index of network interface '{}': {}", ifname, WErrnoUtil::StrError());
-	}
-	return ifindex;
-}
+#include "NetworkInterface.hpp"
 
 WEbpfObj::WEbpfObj()
 {
@@ -41,7 +29,7 @@ WEbpfObj::WEbpfObj()
 		CGroupFd.reset(new int(CGroupFdRaw));
 	}
 	// Get index of configured network interface
-	IfIndex = GetIfIndex(WDaemonConfig::GetInstance().NetworkInterfaceName);
+	IfIndex = WNetworkInterface::GetIfIndex(WDaemonConfig::GetInstance().NetworkInterfaceName);
 }
 
 WEbpfObj::~WEbpfObj()
