@@ -59,8 +59,8 @@ void WRegisterDialog::Draw()
 	{
 		int TextBoxFlags = ImGuiInputTextFlags_CharsNoBlank;
 		ImGui::InputText("Username", Username, sizeof(Username), bValid ? ImGuiInputTextFlags_ReadOnly : 0);
-		ImGui::InputText(
-			"Serial Key", SerialKey, sizeof(SerialKey), bValid ? ImGuiInputTextFlags_ReadOnly : TextBoxFlags);
+		ImGui::InputText("Serial Key", SerialKey, sizeof(SerialKey),
+			bValid ? (ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_Password) : TextBoxFlags);
 
 		if (bValid)
 		{
