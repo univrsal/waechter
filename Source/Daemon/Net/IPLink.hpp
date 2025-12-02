@@ -3,11 +3,14 @@
 //
 
 #pragma once
+#include <string>
+
 #include "Singleton.hpp"
 
 class WIPLink : public TSingleton<WIPLink>
 {
-	unsigned int WaechterIngressIfIndex{ 0 };
+	static constexpr std::string WIfName{ "ifb0" };
+	unsigned int                 WaechterIngressIfIndex{ 0 };
 
 public:
 	bool Init();
