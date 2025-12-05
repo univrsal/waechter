@@ -52,16 +52,8 @@ struct
 	__type(key, __u64); // Socket cookie
 	__type(value, struct WTrafficItemRulesBase);
 	__uint(max_entries, 0xffff);
+	__uint(pinning, LIBBPF_PIN_BY_NAME); // We need to pin the map so it's both accessible in tcx and cgroup programs
 } socket_rules SEC(".maps");
-
-struct
-{
-	__uint(type, BPF_MAP_TYPE_HASH);
-	__type(key, __u64); // Socket cookie
-	__type(value, struct WTrafficItemLimits);
-	__uint(max_entries, 0xffff);
-	__uint(pinning, LIBBPF_PIN_BY_NAME);
-} socket_limits SEC(".maps");
 
 struct
 {

@@ -110,10 +110,9 @@ int const volatile IngressInterfaceId = 0;
 SEC("tcx/egress")
 int cls_egress(struct __sk_buff* skb)
 {
-	__u64                      Cookie = bpf_get_socket_cookie(skb);
-	struct WTrafficItemLimits* Rules = bpf_map_lookup_elem(&socket_limits, &Cookie);
+	__u64                         Cookie = bpf_get_socket_cookie(skb);
+	struct WTrafficItemRulesBase* Rules = GetSocketRules(Cookie);
 
-	bpf_printk("%llu has rules: UploadMark=%s", Cookie, Rules ? "yes" : "no");
 	if (Rules && Rules->UploadMark != 0)
 	{
 		skb->mark = Rules->UploadMark;

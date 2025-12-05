@@ -164,19 +164,6 @@ void WRuleManager::SyncToEBPF()
 				static_cast<int>(SockRules.Rules.UploadSwitch), static_cast<int>(SockRules.Rules.DownloadSwitch));
 			SockRules.bDirty = false;
 		}
-		WTrafficItemLimits Limits{};
-		Limits.UploadMark = SockRules.Rules.UploadMark;
-		Limits.DownloadMark = SockRules.Rules.DownloadMark;
-		if (!EbpfData->SocketLimits->Update(Cookie, Limits))
-		{
-			spdlog::error("Failed to update eBPF rules for socket cookie {}, UploadMark={}, DownloadMark={}", Cookie,
-				Limits.UploadMark, Limits.DownloadMark);
-		}
-		else
-		{
-			spdlog::info("Updated eBPF limits for socket cookie {}: UploadMark={}, DownloadMark={}", Cookie,
-				Limits.UploadMark, Limits.DownloadMark);
-		}
 	}
 }
 
