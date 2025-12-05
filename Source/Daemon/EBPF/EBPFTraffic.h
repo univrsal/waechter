@@ -7,6 +7,10 @@
 #include "EBPFInternal.h"
 #include "EBPFCommon.h"
 
+#ifndef TC_ACT_OK
+	#define TC_ACT_OK 0
+#endif
+
 // cgroup_skb ingress: capture incoming packet information
 SEC("cgroup_skb/ingress")
 int cgskb_ingress(struct __sk_buff* Skb)
@@ -99,4 +103,27 @@ int cgskb_egress(struct __sk_buff* Skb)
 	}
 
 	return SK_PASS;
+}
+
+int const volatile IngressInterfaceId = 0;
+
+SEC("tcx/egress")
+int cls_egress(struct __sk_buff* skb)
+{
+	__u64                      Cookie = bpf_get_socket_cookie(skb);
+	struct WTrafficItemLimits* Rules = bpf_map_lookup_elem(&socket_limits, &Cookie);
+
+	bpf_printk("%llu has rules: UploadMark=%s", Cookie, Rules ? "yes" : "no");
+	if (Rules && Rules->UploadMark != 0)
+	{
+		skb->mark = Rules->UploadMark;
+	}
+
+	return TC_ACT_OK;
+}
+
+SEC("tcx/ingress")
+int cls_ingress(struct __sk_buff* ctx)
+{
+	return TC_ACT_OK;
 }

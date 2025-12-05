@@ -56,6 +56,15 @@ struct
 
 struct
 {
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__type(key, __u64); // Socket cookie
+	__type(value, struct WTrafficItemLimits);
+	__uint(max_entries, 0xffff);
+	__uint(pinning, LIBBPF_PIN_BY_NAME);
+} socket_limits SEC(".maps");
+
+struct
+{
 	__uint(type, BPF_MAP_TYPE_RINGBUF);
 	__uint(max_entries, PACKET_RING_SIZE);
 } socket_event_ring SEC(".maps");

@@ -49,6 +49,15 @@ struct WTrafficItemRulesBase
 {
 	enum ESwitchState UploadSwitch;
 	enum ESwitchState DownloadSwitch;
+	// Used to route packets to the correct tc class for shaping
+	__u32 UploadMark;
+	__u32 DownloadMark;
+};
+struct WTrafficItemLimits
+{
+	// Used to route packets to the correct tc class for shaping
+	__u32 UploadMark;
+	__u32 DownloadMark;
 };
 
 struct WSocketBindEventData

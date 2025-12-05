@@ -12,6 +12,7 @@
 #include "Data/RuleUpdate.hpp"
 #include "Data/SystemMap.hpp"
 #include "Data/NetworkEvents.hpp"
+#include "Net/IPLink.hpp"
 
 inline ESwitchState GetEffectiveSwitchState(ESwitchState ParentState, ESwitchState ItemState)
 {
@@ -22,11 +23,22 @@ inline ESwitchState GetEffectiveSwitchState(ESwitchState ParentState, ESwitchSta
 	return ItemState;
 }
 
+inline uint32_t GetEffectiveMark(uint32_t ParentMark, uint32_t ItemMark)
+{
+	if (ItemMark == 0)
+	{
+		return ParentMark;
+	}
+	return ItemMark;
+}
+
 inline WTrafficItemRules GetEffectiveRules(WTrafficItemRules const& ParentRules, WTrafficItemRules const& ItemRules)
 {
 	WTrafficItemRules EffectiveRules = ItemRules;
 	EffectiveRules.UploadSwitch = GetEffectiveSwitchState(ParentRules.UploadSwitch, ItemRules.UploadSwitch);
 	EffectiveRules.DownloadSwitch = GetEffectiveSwitchState(ParentRules.DownloadSwitch, ItemRules.DownloadSwitch);
+	EffectiveRules.UploadMark = GetEffectiveMark(ParentRules.UploadMark, ItemRules.UploadMark);
+	EffectiveRules.DownloadMark = GetEffectiveMark(ParentRules.DownloadMark, ItemRules.DownloadMark);
 	return EffectiveRules;
 }
 
@@ -152,6 +164,19 @@ void WRuleManager::SyncToEBPF()
 				static_cast<int>(SockRules.Rules.UploadSwitch), static_cast<int>(SockRules.Rules.DownloadSwitch));
 			SockRules.bDirty = false;
 		}
+		WTrafficItemLimits Limits{};
+		Limits.UploadMark = SockRules.Rules.UploadMark;
+		Limits.DownloadMark = SockRules.Rules.DownloadMark;
+		if (!EbpfData->SocketLimits->Update(Cookie, Limits))
+		{
+			spdlog::error("Failed to update eBPF rules for socket cookie {}, UploadMark={}, DownloadMark={}", Cookie,
+				Limits.UploadMark, Limits.DownloadMark);
+		}
+		else
+		{
+			spdlog::info("Updated eBPF limits for socket cookie {}: UploadMark={}, DownloadMark={}", Cookie,
+				Limits.UploadMark, Limits.DownloadMark);
+		}
 	}
 }
 
@@ -187,6 +212,30 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 		return;
 	}
 
+	if (Update.Rules.DownloadLimit == 0)
+	{
+		WIPLink::GetInstance().RemoveDownloadLimit(Update.TrafficItemId);
+	}
+	else
+	{
+		auto const Limit = WIPLink::GetInstance().GetDownloadLimit(Update.TrafficItemId, Update.Rules.DownloadLimit);
+		spdlog::info("Set download limit for traffic item ID {} to {} B/s (class id: {}, mark: {})",
+			Update.TrafficItemId, Limit->RateLimit, Limit->MinorId, Limit->Mark);
+		Update.Rules.DownloadMark = Limit->Mark;
+	}
+
+	if (Update.Rules.UploadLimit == 0)
+	{
+		WIPLink::GetInstance().RemoveUploadLimit(Update.TrafficItemId);
+	}
+	else
+	{
+		auto const Limit = WIPLink::GetInstance().GetUploadLimit(Update.TrafficItemId, Update.Rules.UploadLimit);
+		spdlog::info("Set upload limit for traffic item ID {} to {} B/s (class id: {}, mark: {})", Update.TrafficItemId,
+			Limit->RateLimit, Limit->MinorId, Limit->Mark);
+		Update.Rules.UploadMark = Limit->Mark;
+	}
+
 	switch (Item->GetType())
 	{
 		case TI_Application:
@@ -201,6 +250,7 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 			break;
 		default:;
 	}
+
 	UpdateRuleCache(AppItem);
 	SyncToEBPF();
 }

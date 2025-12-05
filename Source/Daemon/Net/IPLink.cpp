@@ -25,6 +25,41 @@
 		spdlog::error("Failed to execute system command '{}': {} (RC={})", _fmt, WErrnoUtil::StrError(), RC); \
 	}
 
+WBandwidthLimit::WBandwidthLimit(
+	uint32_t Mark_, uint16_t MinorId_, WBytesPerSecond RateLimit_, ELimitDirection Direction_)
+	: Direction(Direction_), Mark(Mark_), MinorId(MinorId_), RateLimit(RateLimit_)
+{
+}
+
+WBandwidthLimit::~WBandwidthLimit()
+{
+	// clean up tc classes and filters
+	std::string IfName =
+		(Direction == ELimitDirection::Upload) ? WDaemonConfig::GetInstance().NetworkInterfaceName : WIPLink::WIfName;
+
+	SYSFMT2(
+		"tc filter delete dev {} parent 1: protocol ip pref 1 handle 0x{:x} fw classid 1:{}", IfName, Mark, MinorId);
+	// SYSFMT2(
+	// 	"tc filter delete dev {} parent 1: protocol ipv6 pref 1 handle 0x{:x} fw classid 1:{}", IfName, Mark, MinorId);
+	SYSFMT2("tc class delete dev {} classid 1:{}", IfName, MinorId);
+}
+
+bool WIPLink::SetupHTBLimitClass(std::shared_ptr<WBandwidthLimit> const& Limit, std::string const& IfName)
+{
+	spdlog::info("Setting up HTB class on interface {}: classid=1:{}, mark=0x{:x}, rate={} B/s", IfName, Limit->MinorId,
+		Limit->Mark, Limit->RateLimit);
+	SYSFMT("tc class replace dev {} parent 1:1 classid 1:{} htb rate {}bit ceil {}bit", IfName, Limit->MinorId,
+		static_cast<uint64_t>(Limit->RateLimit * 8), static_cast<uint64_t>(Limit->RateLimit * 8));
+
+	SYSFMT("tc filter replace dev {} parent 1: protocol ip pref 1 "
+		   "handle 0x{:x} fw classid 1:{}",
+		IfName, Limit->Mark, Limit->MinorId);
+	// SYSFMT("tc filter replace dev {} parent 1: protocol ipv6 pref 1 "
+	// 	   "handle 0x{:x} fw classid 1:{}",
+	// 	IfName, Limit->Mark, Limit->MinorId);
+	return true;
+}
+
 bool WIPLink::Init()
 {
 
@@ -72,10 +107,74 @@ bool WIPLink::Init()
 
 bool WIPLink::Deinit()
 {
+	std::lock_guard Lock(Mutex);
+	ActiveUploadLimits.clear();
+	ActiveDownloadLimits.clear();
 	SYSFMT2("tc filter delete dev {} parent ffff: protocol all prio 100",
 		WDaemonConfig::GetInstance().NetworkInterfaceName);
 	SYSFMT2("tc qdisc delete dev {} handle ffff: ingress", WDaemonConfig::GetInstance().NetworkInterfaceName);
 	SYSFMT2("tc qdisc delete dev {} root handle 1:", WDaemonConfig::GetInstance().NetworkInterfaceName);
 	SYSFMT2("ip link delete {} type ifb", WIfName);
 	return true;
+}
+
+bool WIPLink::SetupEgressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit)
+{
+	return SetupHTBLimitClass(Limit, WDaemonConfig::GetInstance().NetworkInterfaceName);
+}
+
+bool WIPLink::SetupIngressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit)
+{
+	return SetupHTBLimitClass(Limit, WIfName);
+}
+
+void WIPLink::RemoveUploadLimit(WTrafficItemId const& ItemId)
+{
+	std::lock_guard Lock(Mutex);
+	if (ActiveUploadLimits.contains(ItemId))
+	{
+		ActiveUploadLimits.erase(ItemId);
+	}
+}
+
+void WIPLink::RemoveDownloadLimit(WTrafficItemId const& ItemId)
+{
+	std::lock_guard Lock(Mutex);
+	if (ActiveDownloadLimits.contains(ItemId))
+	{
+		ActiveDownloadLimits.erase(ItemId);
+	}
+}
+
+std::shared_ptr<WBandwidthLimit> WIPLink::GetUploadLimit(WTrafficItemId const& ItemId, WBytesPerSecond const& Limit)
+{
+	std::lock_guard Lock(Mutex);
+	if (ActiveUploadLimits.contains(ItemId))
+	{
+		return ActiveUploadLimits[ItemId];
+	}
+	auto NewLimit = std::make_shared<WBandwidthLimit>(
+		NextMark.fetch_add(1), NextMinorId.fetch_add(1), Limit, ELimitDirection::Upload);
+
+	ActiveUploadLimits[ItemId] = NewLimit;
+
+	SetupEgressHTBClass(NewLimit);
+
+	return NewLimit;
+}
+
+std::shared_ptr<WBandwidthLimit> WIPLink::GetDownloadLimit(WTrafficItemId const& ItemId, WBytesPerSecond const& Limit)
+{
+	std::lock_guard Lock(Mutex);
+	if (ActiveDownloadLimits.contains(ItemId))
+	{
+		return ActiveDownloadLimits[ItemId];
+	}
+	auto NewLimit = std::make_shared<WBandwidthLimit>(
+		NextMark.fetch_add(1), NextMinorId.fetch_add(1), Limit, ELimitDirection::Download);
+	ActiveDownloadLimits[ItemId] = NewLimit;
+
+	SetupIngressHTBClass(NewLimit);
+
+	return NewLimit;
 }
