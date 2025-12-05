@@ -151,7 +151,14 @@ std::shared_ptr<WBandwidthLimit> WIPLink::GetUploadLimit(WTrafficItemId const& I
 	std::lock_guard Lock(Mutex);
 	if (ActiveUploadLimits.contains(ItemId))
 	{
-		return ActiveUploadLimits[ItemId];
+		auto ExistingLimit = ActiveUploadLimits[ItemId];
+		if (ExistingLimit->RateLimit != Limit)
+		{
+			// Update existing limit
+			ExistingLimit->RateLimit = Limit;
+			SetupEgressHTBClass(ExistingLimit);
+		}
+		return ExistingLimit;
 	}
 	auto NewLimit = std::make_shared<WBandwidthLimit>(
 		NextMark.fetch_add(1), NextMinorId.fetch_add(1), Limit, ELimitDirection::Upload);
