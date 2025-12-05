@@ -49,7 +49,8 @@ inline bool IsRuleDefault(WTrafficItemRules const& Rules)
 
 inline bool operator==(WTrafficItemRulesBase const& A, WTrafficItemRules const& B)
 {
-	return A.UploadSwitch == B.UploadSwitch && A.DownloadSwitch == B.DownloadSwitch;
+	return A.UploadSwitch == B.UploadSwitch && A.DownloadSwitch == B.DownloadSwitch && A.UploadMark == B.UploadMark
+		&& A.DownloadMark == B.DownloadMark;
 }
 
 void WRuleManager::OnSocketCreated(std::shared_ptr<WSocketCounter> const& Socket)
