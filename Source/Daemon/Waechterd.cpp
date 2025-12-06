@@ -21,16 +21,16 @@ int main()
 
 	libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
 	spdlog::info("Waechter daemon starting");
-
-	if (!WDaemon::GetInstance().InitEbpfObj() || !WDaemon::GetInstance().InitEbpfObj()
-		|| !WDaemon::GetInstance().InitSocket())
-	{
-		return -1;
-	}
-
 	if (!WIPLink::GetInstance().Init())
 	{
 		spdlog::error("Failed to initialize IP link");
+		WIPLink::GetInstance().Deinit();
+		return -1;
+	}
+
+	if (!WDaemon::GetInstance().InitEbpfObj() || !WDaemon::GetInstance().InitSocket())
+	{
+		WIPLink::GetInstance().Deinit();
 		return -1;
 	}
 
