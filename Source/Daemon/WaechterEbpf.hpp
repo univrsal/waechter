@@ -21,7 +21,6 @@ enum class EEbpfInitResult
 
 class WWaechterEbpf : public WEbpfObj
 {
-	int                        InterfaceIndex{ -1 };
 	std::shared_ptr<WEbpfData> Data{};
 	WMsec                      QueuePileupStartTime{};
 
