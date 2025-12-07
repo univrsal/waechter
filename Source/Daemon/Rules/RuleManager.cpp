@@ -38,7 +38,7 @@ inline WTrafficItemRules GetEffectiveRules(WTrafficItemRules const& ParentRules,
 	EffectiveRules.UploadSwitch = GetEffectiveSwitchState(ParentRules.UploadSwitch, ItemRules.UploadSwitch);
 	EffectiveRules.DownloadSwitch = GetEffectiveSwitchState(ParentRules.DownloadSwitch, ItemRules.DownloadSwitch);
 	EffectiveRules.UploadMark = GetEffectiveMark(ParentRules.UploadMark, ItemRules.UploadMark);
-	EffectiveRules.DownloadMark = GetEffectiveMark(ParentRules.DownloadMark, ItemRules.DownloadMark);
+	EffectiveRules.DownloadQdiscId = GetEffectiveMark(ParentRules.DownloadQdiscId, ItemRules.DownloadQdiscId);
 	return EffectiveRules;
 }
 
@@ -50,7 +50,7 @@ inline bool IsRuleDefault(WTrafficItemRules const& Rules)
 inline bool operator==(WTrafficItemRulesBase const& A, WTrafficItemRules const& B)
 {
 	return A.UploadSwitch == B.UploadSwitch && A.DownloadSwitch == B.DownloadSwitch && A.UploadMark == B.UploadMark
-		&& A.DownloadMark == B.DownloadMark;
+		&& A.DownloadQdiscId == B.DownloadQdiscId;
 }
 
 void WRuleManager::OnSocketCreated(std::shared_ptr<WSocketCounter> const& Socket)
@@ -66,9 +66,10 @@ void WRuleManager::OnSocketCreated(std::shared_ptr<WSocketCounter> const& Socket
 	if (!IsRuleDefault(EffectiveProcRules))
 	{
 		SocketRules[Socket->TrafficItem->ItemId] = ProcRules;
-		SocketCookieRules[Socket->TrafficItem->Cookie] =
-			WSocketRules{ .Rules = EffectiveProcRules.AsBase(), .bDirty = true };
-		SyncToEBPF();
+		SocketCookieRules[Socket->TrafficItem->Cookie] = WSocketRules{
+			.Rules = EffectiveProcRules.AsBase(), .SocketId = Socket->TrafficItem->ItemId, .bDirty = true
+		};
+		SyncRules();
 	}
 }
 
@@ -134,13 +135,14 @@ void WRuleManager::UpdateRuleCache(std::shared_ptr<ITrafficItem> const& AppItem)
 				WSocketRules NewRule{};
 				NewRule.Rules = EffectiveSockRules.AsBase();
 				NewRule.bDirty = true;
+				NewRule.SocketId = Sock->ItemId;
 				SocketCookieRules[Cookie] = NewRule;
 			}
 		}
 	}
 }
 
-void WRuleManager::SyncToEBPF()
+void WRuleManager::SyncRules()
 {
 	auto EbpfData = WDaemon::GetInstance().GetEbpfObj().GetData();
 	if (!EbpfData)
@@ -164,6 +166,19 @@ void WRuleManager::SyncToEBPF()
 			spdlog::info("Updated eBPF rules for socket cookie {}: UploadSwitch={}, DownloadSwitch={}", Cookie,
 				static_cast<int>(SockRules.Rules.UploadSwitch), static_cast<int>(SockRules.Rules.DownloadSwitch));
 			SockRules.bDirty = false;
+		}
+		if (SockRules.Rules.DownloadQdiscId != 0)
+		{
+			auto TrafficItem = WSystemMap::GetInstance().GetTrafficItemById(SockRules.SocketId);
+			if (TrafficItem)
+			{
+				auto SocketItem = std::dynamic_pointer_cast<WSocketItem>(TrafficItem);
+				if (SocketItem)
+				{
+					WIPLink::GetInstance().SetupIngressPortRouting(SockRules.SocketId, SockRules.Rules.DownloadQdiscId,
+						SocketItem->SocketTuple.LocalEndpoint.Port);
+				}
+			}
 		}
 	}
 }
@@ -209,7 +224,7 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 		auto const Limit = WIPLink::GetInstance().GetDownloadLimit(Update.TrafficItemId, Update.Rules.DownloadLimit);
 		spdlog::info("Set download limit for traffic item ID {} to {} B/s (class id: {}, mark: {})",
 			Update.TrafficItemId, Limit->RateLimit, Limit->MinorId, Limit->Mark);
-		Update.Rules.DownloadMark = Limit->Mark;
+		Update.Rules.DownloadQdiscId = Limit->MinorId;
 	}
 
 	if (Update.Rules.UploadLimit == 0)
@@ -240,5 +255,5 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 	}
 
 	UpdateRuleCache(AppItem);
-	SyncToEBPF();
+	SyncRules();
 }

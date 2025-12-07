@@ -35,6 +35,10 @@ WDaemonConfig::WDaemonConfig()
 void WDaemonConfig::LogConfig()
 {
 	spdlog::info("network interface={}", NetworkInterfaceName);
+	if (NetworkInterfaceName != IngressNetworkInterfaceName && !IngressNetworkInterfaceName.empty())
+	{
+		spdlog::info("ingress network interface={}", IngressNetworkInterfaceName);
+	}
 	spdlog::info("cgroup path={}", CGroupPath);
 	spdlog::info("socket path={}", DaemonSocketPath);
 }
@@ -57,6 +61,7 @@ void WDaemonConfig::Load(std::string const& Path)
 	}
 
 	SafeGet("network", "interface", NetworkInterfaceName);
+	SafeGet("network", "ingress_interface", IngressNetworkInterfaceName);
 	SafeGet("network", "cgroup_path", CGroupPath);
 
 	SafeGet("daemon", "user", DaemonUser);
@@ -81,6 +86,7 @@ void WDaemonConfig::SetDefaults()
 	{
 		NetworkInterfaceName = "eth0";
 	}
+	IngressNetworkInterfaceName = NetworkInterfaceName;
 }
 
 void WDaemonConfig::BumpMemlockRlimit()

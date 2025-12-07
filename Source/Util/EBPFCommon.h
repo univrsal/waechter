@@ -51,7 +51,7 @@ struct WTrafficItemRulesBase
 	enum ESwitchState DownloadSwitch;
 	// Used to route packets to the correct tc class for shaping
 	__u32 UploadMark;
-	__u32 DownloadMark;
+	__u32 DownloadQdiscId;
 };
 struct WTrafficItemLimits
 {
