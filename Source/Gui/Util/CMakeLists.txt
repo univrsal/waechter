@@ -10,6 +10,8 @@ target_sources(waechter
         RuleWidget.hpp
         ProtocolDB.cpp
         ProtocolDB.hpp
+        ImageUtil.cpp
+        ImageUtil.hpp
 )
 add_subdirectory(Keylogic)
 if (WAECHTER_WITH_IPQUERY_IO_API)

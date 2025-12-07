@@ -10,6 +10,7 @@
 struct WDaemonConfig final : TSingleton<WDaemonConfig>
 {
 	std::string NetworkInterfaceName{};
+	std::string IngressNetworkInterfaceName{}; // same as NetworkInterfaceName if empty
 	std::string CGroupPath{ "/sys/fs/cgroup" };
 	std::string DaemonUser{ "nobody" };
 	std::string DaemonGroup{ "nogroup" };

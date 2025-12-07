@@ -7,16 +7,17 @@
 #include <imgui.h>
 
 #include "Singleton.hpp"
+#include "Util/ImageUtil.hpp"
 
 extern std::unordered_map<std::string, std::pair<ImVec2, ImVec2>> const ICON_ATLAS_UV;
 
 class WIconAtlas final : public TSingleton<WIconAtlas>
 {
 public:
-	GLuint IconAtlasTextureId{ 0 };
-	GLuint LogoTextureId{ 0 };
-	void   Load();
-	void   Unload();
+	WTexture IconAtlas{};
+	WTexture Logo{};
+	void     Load();
+	void     Unload();
 
 	bool DrawIconButton(char const* Id, std::string const& Name, ImVec2 const& Size, bool bNoBackground = true) const
 	{
@@ -34,7 +35,7 @@ public:
 			ImGui::PushStyleColor(ImGuiCol_Button, transparent);
 			ImGui::PushStyleColor(ImGuiCol_ButtonActive, transparent);
 
-			bool const Result = ImGui::ImageButton(Id, IconAtlasTextureId, Size, It->second.first, It->second.second,
+			bool const Result = ImGui::ImageButton(Id, IconAtlas.TextureId, Size, It->second.first, It->second.second,
 				transparent, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
 
 			ImGui::PopStyleColor(2);
@@ -43,7 +44,7 @@ public:
 		}
 
 		// Default behavior (with standard styling)
-		return ImGui::ImageButton(Id, IconAtlasTextureId, Size, It->second.first, It->second.second);
+		return ImGui::ImageButton(Id, IconAtlas.TextureId, Size, It->second.first, It->second.second);
 	}
 
 	void DrawIconTint(std::string const& Name, ImVec2 const& Size, ImColor const& Tint = ImColor(1, 1, 1, 1),
@@ -55,7 +56,7 @@ public:
 			return;
 		}
 
-		ImGui::ImageWithBg(IconAtlasTextureId, Size, It->second.first, It->second.second, Bg, Tint);
+		ImGui::ImageWithBg(IconAtlas.TextureId, Size, It->second.first, It->second.second, Bg, Tint);
 	}
 
 	void DrawIcon(std::string const& Name, ImVec2 Size) const
@@ -66,6 +67,6 @@ public:
 			return;
 		}
 
-		ImGui::Image(IconAtlasTextureId, Size, It->second.first, It->second.second);
+		ImGui::Image(IconAtlas.TextureId, Size, It->second.first, It->second.second);
 	}
 };

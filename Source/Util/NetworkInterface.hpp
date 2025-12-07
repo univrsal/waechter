@@ -12,4 +12,6 @@ public:
 	// Returns a list of all network interface names present on the system.
 	// The list is de-duplicated and not guaranteed to be sorted.
 	static std::vector<std::string> list();
+
+	static unsigned int GetIfIndex(std::string const& Ifname);
 };

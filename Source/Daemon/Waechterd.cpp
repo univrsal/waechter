@@ -8,8 +8,8 @@
 #include <unistd.h>
 
 #include "SignalHandler.hpp"
-#include "DaemonConfig.hpp"
 #include "WaechterEbpf.hpp"
+#include "Net/IPLink.hpp"
 
 int main()
 {
@@ -21,23 +21,30 @@ int main()
 
 	libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
 	spdlog::info("Waechter daemon starting");
-
-	if (!WDaemon::GetInstance().InitEbpfObj() || !WDaemon::GetInstance().InitEbpfObj()
-		|| !WDaemon::GetInstance().InitSocket())
+	if (!WIPLink::GetInstance().Init())
 	{
+		spdlog::error("Failed to initialize IP link");
+		WIPLink::GetInstance().Deinit();
 		return -1;
 	}
 
-	if (!WDaemonConfig::GetInstance().DropPrivileges())
+	if (!WDaemon::GetInstance().InitEbpfObj() || !WDaemon::GetInstance().InitSocket())
 	{
-		spdlog::error("Failed to drop privileges");
+		WIPLink::GetInstance().Deinit();
 		return -1;
 	}
+
+	// if (!WDaemonConfig::GetInstance().DropPrivileges())
+	// {
+	// 	spdlog::error("Failed to drop privileges");
+	// 	return -1;
+	// }
 
 	WDaemon::RegisterSignalHandlers();
 
 	spdlog::info("Ebpf programs loaded and attached");
 	WDaemon::GetInstance().RunLoop();
 	spdlog::info("Waechter daemon stopped");
+	WIPLink::GetInstance().Deinit();
 	return 0;
 }

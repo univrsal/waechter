@@ -12,6 +12,7 @@
 #include "Types.hpp"
 #include "Format.hpp"
 #include "Data/SystemMap.hpp"
+#include "Net/IPLink.hpp"
 
 WWaechterEbpf::WWaechterEbpf() = default;
 
@@ -29,6 +30,7 @@ EEbpfInitResult WWaechterEbpf::Init()
 		return EEbpfInitResult::Open_Failed;
 	}
 
+	Skeleton->rodata->IngressInterfaceId = static_cast<int>(WIPLink::GetInstance().WaechterIngressIfIndex);
 	Obj = Skeleton->obj;
 
 	auto Result = waechter_ebpf__load(Skeleton);
@@ -76,6 +78,18 @@ EEbpfInitResult WWaechterEbpf::Init()
 	if (!this->FindAndAttachProgram("on_connect6", BPF_CGROUP_INET6_CONNECT))
 	{
 		spdlog::critical("Failed to attach on_connect6 (BPF_CGROUP_INET6_CONNECT).");
+		return EEbpfInitResult::Attach_Failed;
+	}
+
+	if (!this->CreateAndAttachTcxProgram(Skeleton->progs.cls_egress))
+	{
+		spdlog::critical("Failed to create and attach egress tcx program.");
+		return EEbpfInitResult::Attach_Failed;
+	}
+
+	if (!this->CreateAndAttachTcxProgram(Skeleton->progs.cls_ingress))
+	{
+		spdlog::critical("Failed to create and attach ingress tcx program.");
 		return EEbpfInitResult::Attach_Failed;
 	}
 

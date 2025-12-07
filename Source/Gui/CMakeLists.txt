@@ -12,6 +12,7 @@ target_compile_definitions(waechter PRIVATE
         "COUNTRY_FLAG_ATLAS_IMAGE=\"${CMAKE_SOURCE_DIR}/Thirdparty/flags/atlas.png\""
         "ICON_ATLAS_IMAGE=\"${CMAKE_SOURCE_DIR}/Meta/atlas.png\""
         "LOGO_IMAGE=\"${CMAKE_SOURCE_DIR}/Meta/logo.png\""
+        "WATERMARK_IMAGE=\"${CMAKE_SOURCE_DIR}/Meta/watermark.png\""
 )
 
 add_subdirectory(Windows)

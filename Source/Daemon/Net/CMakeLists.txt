@@ -6,4 +6,6 @@ target_sources(waechterd
         SocketStateParser.hpp
         Resolver.cpp
         Resolver.hpp
+        IPLink.cpp
+        IPLink.hpp
 )

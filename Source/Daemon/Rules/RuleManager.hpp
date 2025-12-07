@@ -19,6 +19,7 @@ struct WProcessCounter;
 struct WSocketRules
 {
 	WTrafficItemRulesBase Rules;
+	WTrafficItemId        SocketId{};
 
 	bool bDirty{ true };
 };
@@ -39,7 +40,7 @@ class WRuleManager : public TSingleton<WRuleManager>
 
 	void UpdateRuleCache(std::shared_ptr<ITrafficItem> const& AppItem);
 
-	void SyncToEBPF();
+	void SyncRules();
 
 public:
 	void RegisterSignalHandlers();

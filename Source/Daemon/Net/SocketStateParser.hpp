@@ -15,7 +15,7 @@
 // are called in relation to it, this does not work for existing sockets so instead on startup we look at the
 // filesystem `/proc/net/{tcp,udp,tcp6,udp6}` to find out which sockets already exist
 // when we encounter traffic on a socket that hasn't been discovered by the EBPF program we map it by parsing the
-// source/destination IP from the packet header, then we can use the local ip/port to figure out it's state
+// source/destination IP from the packet header, then we can use the local ip/port to figure out its state
 // from the file system. This doesn't work for all socket types so we make some assumptions to guess the socket type
 // generally the daemon should run before the network is established and therefore catches all sockets being created
 // but if that is not the case we make best-effort guesses to build a full map of all existing sockets
