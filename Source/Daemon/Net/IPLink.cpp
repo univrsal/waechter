@@ -11,6 +11,8 @@
 #include "NetworkInterface.hpp"
 #include "DaemonConfig.hpp"
 #include "ErrnoUtil.hpp"
+#include "Data/Counters.hpp"
+#include "Data/NetworkEvents.hpp"
 
 #define SYSFMT(_fmt, ...)                                                                                             \
 	if (auto RC = system(fmt::format(_fmt, __VA_ARGS__).c_str()); RC != 0)                                            \
@@ -48,11 +50,11 @@ WBandwidthLimit::~WBandwidthLimit()
 	}
 	SYSFMT2("tc class delete dev {} classid 1:{}", IfName, MinorId);
 
-	for (auto Port : RoutedPorts)
-	{
-		SYSFMT2("tc filter delete dev {} parent 1: protocol ip prio {} u32 match ip dport {} 0xffff flowid 1:{}",
-			IfName, kIngressPortFilterPriority, Port, MinorId);
-	}
+	// for (auto Port : RoutedPorts)
+	// {
+	// 	SYSFMT2("tc filter delete dev {} parent 1: protocol ip prio {} u32 match ip dport {} 0xffff flowid 1:{}",
+	// 		IfName, kIngressPortFilterPriority, Port, MinorId);
+	// }
 }
 
 bool WIPLink::SetupHTBLimitClass(
@@ -71,8 +73,16 @@ bool WIPLink::SetupHTBLimitClass(
 	return true;
 }
 
+void WIPLink::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket)
+{
+	RemoveIngressPortRouting(Socket->TrafficItem->ItemId);
+	RemoveUploadLimit(Socket->TrafficItem->ItemId);
+}
+
 bool WIPLink::Init()
 {
+	WNetworkEvents::GetInstance().OnSocketRemoved.connect(
+		std::bind(&WIPLink::OnSocketRemoved, this, std::placeholders::_1));
 	// For bandwidth limiting we need
 	//  - A new interface ifb0 for ingress redirection
 	//	- HTB on the main interface (egress)
@@ -143,25 +153,50 @@ bool WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uin
 {
 	spdlog::info("Setting up ingress port routing for traffic item ID {}: dport={}, qdisc id={}", Item, Dport, QDiscId);
 	std::lock_guard Lock(Mutex);
-	if (ActiveDownloadLimits.contains(Item))
+	if (IngressPortRoutings.contains(Item))
 	{
-		auto Limit = ActiveDownloadLimits[Item];
+		auto& Limit = IngressPortRoutings[Item];
 
-		if (Limit->RoutedPorts.contains(Dport))
+		if (Limit.Port == Dport && Limit.QDiscId == QDiscId)
 		{
 			// Already routed
 			spdlog::info("Port already routed for traffic item ID {}: dport={}, qdisc id={}", Item, Dport, QDiscId);
 			return true;
 		}
+		// First remove existing routing
+		SYSFMT("tc filter delete dev {} parent 1: protocol ip prio {} u32 match ip dport {} 0xffff flowid 1:{}", IfbDev,
+			kIngressPortFilterPriority, Limit.Port, Limit.QDiscId);
 		SYSFMT("tc filter add dev {} protocol ip parent 1: prio {} u32 match ip dport {} 0xffff flowid 1:{}", IfbDev,
 			kIngressPortFilterPriority, Dport, QDiscId);
 
-		Limit->RoutedPorts.insert(Dport);
+		Limit.Port = Dport;
+		Limit.QDiscId = QDiscId;
 
 		return true;
 	}
-	spdlog::error("No active download limit for traffic item ID {}", Item);
-	return false;
+	WIngressPortRouting NewRouting;
+	NewRouting.Port = Dport;
+	NewRouting.QDiscId = QDiscId;
+	IngressPortRoutings[Item] = NewRouting;
+	// Add new filter
+	SYSFMT("tc filter add dev {} protocol ip parent 1: prio {} u32 match ip dport {} 0xffff flowid 1:{}", IfbDev,
+		kIngressPortFilterPriority, Dport, QDiscId);
+	return true;
+}
+
+bool WIPLink::RemoveIngressPortRouting(WTrafficItemId Item)
+{
+	std::lock_guard Lock(Mutex);
+	if (!IngressPortRoutings.contains(Item))
+	{
+		return false;
+	}
+
+	auto& Limit = IngressPortRoutings[Item];
+	SYSFMT("tc filter delete dev {} parent 1: protocol ip prio {} u32 match ip dport {} 0xffff flowid 1:{}", IfbDev,
+		kIngressPortFilterPriority, Limit.Port, Limit.QDiscId);
+	IngressPortRoutings.erase(Item);
+	return true;
 }
 
 void WIPLink::RemoveUploadLimit(WTrafficItemId const& ItemId)

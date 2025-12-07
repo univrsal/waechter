@@ -28,11 +28,17 @@ struct WBandwidthLimit
 	uint16_t        MinorId{ 0 };   // Minor class ID in the HTB qdisc
 	WBytesPerSecond RateLimit{ 0 }; // Bandwidth limit in bytes per second
 
-	std::unordered_set<uint16_t> RoutedPorts; // For ingress limits, the ports that have been routed to this limit
-
 	WBandwidthLimit(uint32_t Mark, uint16_t MinorId, WBytesPerSecond RateLimit, ELimitDirection Direction);
 	~WBandwidthLimit();
 };
+
+struct WIngressPortRouting
+{
+	uint16_t Port{ 0 };
+	uint32_t QDiscId{ 0 };
+};
+
+struct WSocketCounter;
 
 class WIPLink : public TSingleton<WIPLink>
 {
@@ -44,19 +50,24 @@ class WIPLink : public TSingleton<WIPLink>
 	std::unordered_map<WTrafficItemId, std::shared_ptr<WBandwidthLimit>> ActiveUploadLimits;
 	std::unordered_map<WTrafficItemId, std::shared_ptr<WBandwidthLimit>> ActiveDownloadLimits;
 
+	std::unordered_map<WTrafficItemId, WIngressPortRouting> IngressPortRoutings;
+
 	static bool SetupHTBLimitClass(
 		std::shared_ptr<WBandwidthLimit> const& Limit, std::string const& IfName, bool bAttachMarkFilter);
+	void OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket);
 
 public:
 	unsigned int                 WaechterIngressIfIndex{ 0 };
 	static constexpr std::string IfbDev{ "ifb0" };
-	bool                         Init();
-	bool                         Deinit();
+
+	bool Init();
+	bool Deinit();
 
 	static bool SetupEgressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit);
 	static bool SetupIngressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit);
 
 	bool SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uint16_t Dport);
+	bool RemoveIngressPortRouting(WTrafficItemId Item);
 
 	void RemoveUploadLimit(WTrafficItemId const& ItemId);
 	void RemoveDownloadLimit(WTrafficItemId const& ItemId);
