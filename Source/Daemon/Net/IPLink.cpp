@@ -211,6 +211,13 @@ std::shared_ptr<WBandwidthLimit> WIPLink::GetDownloadLimit(WTrafficItemId const&
 	std::lock_guard Lock(Mutex);
 	if (ActiveDownloadLimits.contains(ItemId))
 	{
+		auto ExistingLimit = ActiveDownloadLimits[ItemId];
+		if (ExistingLimit->RateLimit != Limit)
+		{
+			// Update existing limit
+			ExistingLimit->RateLimit = Limit;
+			SetupIngressHTBClass(ExistingLimit);
+		}
 		return ActiveDownloadLimits[ItemId];
 	}
 	auto NewLimit = std::make_shared<WBandwidthLimit>(
