@@ -37,10 +37,7 @@ void WDaemonSocket::ListenThreadFunction()
 
 			// create a binary stream for cereal to write to
 			auto& SystemMap = WSystemMap::GetInstance();
-			{
-				std::lock_guard Lock(WResolver::GetInstance().ResolvedAddressesMutex);
-				NewClient->SendMessage(MT_Handshake, WProtocolHandshake{ WAECHTER_PROTOCOL_VERSION, GIT_COMMIT_HASH });
-			}
+			NewClient->SendMessage(MT_Handshake, WProtocolHandshake{ WAECHTER_PROTOCOL_VERSION, GIT_COMMIT_HASH });
 			{
 				std::lock_guard Lock(SystemMap.DataMutex);
 				NewClient->SendMessage(MT_TrafficTree, *SystemMap.GetSystemItem());
