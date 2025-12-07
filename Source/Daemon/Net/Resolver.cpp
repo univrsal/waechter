@@ -9,20 +9,8 @@
 #include <netdb.h>
 #include <spdlog/spdlog.h>
 
-std::string const& WResolver::Resolve(WIPAddress const& Address)
+void WResolver::ResolveAddress(WIPAddress const& Address)
 {
-	static std::string Empty = {};
-	if (Address.IsZero())
-	{
-		return Empty;
-	}
-	std::lock_guard Lock(ResolvedAddressesMutex);
-
-	if (auto It = ResolvedAddresses.find(Address); It != ResolvedAddresses.end())
-	{
-		return It->second;
-	}
-
 	int  Result = 0;
 	char Host[NI_MAXHOST]{};
 
@@ -60,23 +48,73 @@ std::string const& WResolver::Resolve(WIPAddress const& Address)
 		V6.Family = EIPFamily::IPv6;
 		spdlog::info(
 			"Unknown address family {} ({}/{})", static_cast<int>(Address.Family), V4.ToString(), V6.ToString());
-		return Empty;
 	}
 
 	if (Result != 0)
 	{
 		// getnameinfo returns GAI error codes, not errno
 		spdlog::warn("Resolver failed for {}: {} ({})", Address.ToString(), gai_strerror(Result), Result);
-		return Empty;
 	}
 
+	std::lock_guard Lock(ResolvedAddressesMutex);
 	if (Host == Address.ToString())
 	{
 		ResolvedAddresses[Address] = {};
-		return Empty;
 	}
 
 	spdlog::debug("Resolved {} to {}", Address.ToString(), Host);
 	ResolvedAddresses[Address] = Host;
-	return ResolvedAddresses[Address];
+}
+
+void WResolver::ResolverThreadFunc()
+{
+	while (bRunning)
+	{
+		QueueMutex.lock();
+		while (!PendingAddresses.empty())
+		{
+			WIPAddress Address = PendingAddresses.front();
+			PendingAddresses.pop();
+			ResolveAddress(Address);
+		}
+		QueueMutex.unlock();
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
+}
+
+void WResolver::Start()
+{
+	bRunning = true;
+	ResolverThread = std::thread(&WResolver::ResolverThreadFunc, this);
+}
+
+void WResolver::Stop()
+{
+	bRunning = false;
+	if (ResolverThread.joinable())
+	{
+		ResolverThread.join();
+	}
+}
+
+std::string const& WResolver::Resolve(WIPAddress const& Address)
+{
+	static std::string Empty = {};
+	if (Address.IsZero())
+	{
+		return Empty;
+	}
+	{
+		std::lock_guard Lock(ResolvedAddressesMutex);
+
+		if (auto It = ResolvedAddresses.find(Address); It != ResolvedAddresses.end())
+		{
+			return It->second;
+		}
+	}
+
+	std::lock_guard QueueLock(QueueMutex);
+	PendingAddresses.push(Address);
+
+	return Empty;
 }

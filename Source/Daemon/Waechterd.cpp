@@ -9,6 +9,7 @@
 
 #include "SignalHandler.hpp"
 #include "WaechterEbpf.hpp"
+#include "Net/Resolver.hpp"
 #include "Net/IPLink.hpp"
 
 int main()
@@ -33,6 +34,7 @@ int main()
 		WIPLink::GetInstance().Deinit();
 		return -1;
 	}
+	WResolver::GetInstance().Start();
 
 	// if (!WDaemonConfig::GetInstance().DropPrivileges())
 	// {
@@ -46,5 +48,6 @@ int main()
 	WDaemon::GetInstance().RunLoop();
 	spdlog::info("Waechter daemon stopped");
 	WIPLink::GetInstance().Deinit();
+	WResolver::GetInstance().Stop();
 	return 0;
 }

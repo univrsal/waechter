@@ -6,6 +6,9 @@
 #include <string>
 #include <unordered_map>
 #include <mutex>
+#include <thread>
+#include <atomic>
+#include <queue>
 
 #include "IPAddress.hpp"
 #include "Singleton.hpp"
@@ -14,7 +17,19 @@ class WResolver : public TSingleton<WResolver>
 {
 	std::unordered_map<WIPAddress, std::string> ResolvedAddresses{};
 
+	std::thread            ResolverThread;
+	std::atomic<bool>      bRunning{ false };
+	std::mutex             QueueMutex;
+	std::queue<WIPAddress> PendingAddresses;
+
+	void ResolveAddress(WIPAddress const& ip);
+
+	void ResolverThreadFunc();
+
 public:
+	void Start();
+	void Stop();
+
 	std::string const& Resolve(WIPAddress const& Address);
 
 	std::mutex                                  ResolvedAddressesMutex;
