@@ -124,8 +124,7 @@ bool WIPLink::Deinit()
 	ActiveUploadLimits.clear();
 	ActiveDownloadLimits.clear();
 	SYSFMT2("tc filter delete dev {} parent ffff:", WDaemonConfig::GetInstance().IngressNetworkInterfaceName);
-	// SYSFMT2("tc qdisc delete dev {} handle ffff: ingress", WDaemonConfig::GetInstance().NetworkInterfaceName);
-	// SYSFMT2("tc qdisc delete dev {} root handle 1:", WDaemonConfig::GetInstance().NetworkInterfaceName);
+	SYSFMT2("tc qdisc delete dev {} root", IfbDev);
 	SYSFMT2("ip link delete {} type ifb", IfbDev);
 	return true;
 }
