@@ -6,7 +6,7 @@
 
 #include <cstdlib>
 #include <spdlog/spdlog.h>
-#include <fmt/format.h>
+#include <spdlog/fmt/fmt.h>
 
 #include "NetworkInterface.hpp"
 #include "DaemonConfig.hpp"
