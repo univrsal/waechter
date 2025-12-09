@@ -3,6 +3,7 @@
 //
 
 #include "Daemon.hpp"
+#include "DaemonConfig.hpp"
 
 #include <spdlog/spdlog.h>
 #include <unistd.h>
@@ -11,12 +12,20 @@
 #include "WaechterEbpf.hpp"
 #include "Net/Resolver.hpp"
 #include "Net/IPLink.hpp"
+#include "Net/NetLink.hpp"
 
 int main()
 {
 	if (geteuid() != 0)
 	{
 		spdlog::critical("Waechter daemon requires root");
+		return -1;
+	}
+
+	WNetLink Netlink; // initialize netlink subsystem
+	if (!Netlink.CreateIfbDevice("ifb0"))
+	{
+		spdlog::critical("Failed to create IB device");
 		return -1;
 	}
 
@@ -36,11 +45,11 @@ int main()
 	}
 	WResolver::GetInstance().Start();
 
-	// if (!WDaemonConfig::GetInstance().DropPrivileges())
-	// {
-	// 	spdlog::error("Failed to drop privileges");
-	// 	return -1;
-	// }
+	if (!WDaemonConfig::GetInstance().DropPrivileges())
+	{
+		spdlog::error("Failed to drop privileges");
+		return -1;
+	}
 
 	WDaemon::RegisterSignalHandlers();
 
@@ -49,5 +58,6 @@ int main()
 	spdlog::info("Waechter daemon stopped");
 	WIPLink::GetInstance().Deinit();
 	WResolver::GetInstance().Stop();
+	Netlink.DeleteIfbDevice("ifb0");
 	return 0;
 }

@@ -92,9 +92,6 @@ bool WIPLink::Init()
 	//  - A root qdisc on the main interface to shape the egress traffic
 	//  - A filter on the ingress qdisc to redirect all traffic to ifb0
 
-	// Create the ifb0 interface if it does not exist
-	SYSFMT("ip link show {0} >/dev/null 2>&1 || ip link add {0} type ifb", IfbDev);
-	SYSFMT("ip link set {0} up", IfbDev);
 	WaechterIngressIfIndex = WNetworkInterface::GetIfIndex(IfbDev);
 
 	// Ingress HTB setup
@@ -107,17 +104,6 @@ bool WIPLink::Init()
 		IfbDev);
 	// Default filter
 	SYSFMT("tc filter replace dev {} parent 1: prio 100 protocol all u32 match u32 0 0 flowid 1:10", IfbDev);
-
-	// // Egress shaping on actual interface
-	// SYSFMT("tc qdisc add dev {} root handle 1: htb default 0x10", WDaemonConfig::GetInstance().NetworkInterfaceName);
-	//
-	// SYSFMT("tc class replace dev {} parent 1: classid 1:1 htb rate 1Gbit ceil 1Gbit",
-	// 	WDaemonConfig::GetInstance().NetworkInterfaceName);
-	// // leaf class for actual interface
-	// SYSFMT("tc class replace dev {} parent 1:1 classid 1:10 "
-	// 	   "htb rate 1Gbit ceil 1Gbit",
-	// 	WDaemonConfig::GetInstance().NetworkInterfaceName);
-	//
 
 	// Redirect ingress traffic to ifb0
 	SYSFMT("tc qdisc replace dev {} handle ffff: ingress", WDaemonConfig::GetInstance().IngressNetworkInterfaceName);
@@ -135,7 +121,6 @@ bool WIPLink::Deinit()
 	ActiveDownloadLimits.clear();
 	SYSFMT2("tc filter delete dev {} parent ffff:", WDaemonConfig::GetInstance().IngressNetworkInterfaceName);
 	SYSFMT2("tc qdisc delete dev {} root", IfbDev);
-	SYSFMT2("ip link delete {} type ifb", IfbDev);
 	return true;
 }
 

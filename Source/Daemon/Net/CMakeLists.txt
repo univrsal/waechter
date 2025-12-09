@@ -8,4 +8,6 @@ target_sources(waechterd
         Resolver.hpp
         IPLink.cpp
         IPLink.hpp
+        NetLink.cpp
+        NetLink.hpp
 )
