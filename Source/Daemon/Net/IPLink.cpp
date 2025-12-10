@@ -13,6 +13,7 @@
 #include "ErrnoUtil.hpp"
 #include "Data/Counters.hpp"
 #include "Data/NetworkEvents.hpp"
+#include "NetLink.hpp"
 
 #define SYSFMT(_fmt, ...)                                                                                             \
 	if (auto RC = system(fmt::format(_fmt, __VA_ARGS__).c_str()); RC != 0)                                            \
@@ -62,8 +63,13 @@ bool WIPLink::SetupHTBLimitClass(
 {
 	spdlog::info("Setting up HTB class on interface {}: classid=1:{}, mark=0x{:x}, rate={} B/s", IfName, Limit->MinorId,
 		Limit->Mark, Limit->RateLimit);
-	SYSFMT("tc class replace dev {} parent 1:1 classid 1:{} htb rate {}bit ceil {}bit", IfName, Limit->MinorId,
-		static_cast<uint64_t>(Limit->RateLimit * 8), static_cast<uint64_t>(Limit->RateLimit * 8));
+
+	auto RateBits = static_cast<uint64_t>(Limit->RateLimit * 8);
+	if (!WNetLink::GetInstance().ClassHtbReplace(IfName, 1, 1, 1, Limit->MinorId, RateBits, RateBits))
+	{
+		spdlog::error("Failed to configure HTB class via netlink on {} (1:{})", IfName, Limit->MinorId);
+		return false;
+	}
 
 	if (bAttachMarkFilter)
 	{
@@ -95,15 +101,28 @@ bool WIPLink::Init()
 	WaechterIngressIfIndex = WNetworkInterface::GetIfIndex(IfbDev);
 
 	// Ingress HTB setup
-	SYSFMT("tc qdisc replace dev {} root handle 1: htb default 0x10", IfbDev);
-	SYSFMT("tc class replace dev {} parent 1: classid 1:1 htb rate 1Gbit ceil 1Gbit", IfbDev);
+	if (!WNetLink::GetInstance().QdiscHtbReplaceRoot(IfbDev, 1, 0x10))
+	{
+		return false;
+	}
 
-	// leaf class for ifb
-	SYSFMT("tc class replace dev {} parent 1:1 classid 1:10 "
-		   "htb rate 1Gbit ceil 1Gbit",
-		IfbDev);
+	if (!WNetLink::GetInstance().ClassHtbReplace(IfbDev, 1, 0, 1, 1, 1'000'000'000ULL, 1'000'000'000ULL))
+	{
+		return false;
+	}
+
+	if (!WNetLink::GetInstance().ClassHtbReplace(IfbDev, 1, 1, 1, 10, 1'000'000'000ULL, 1'000'000'000ULL))
+	{
+		return false;
+	}
+
 	// Default filter
-	SYSFMT("tc filter replace dev {} parent 1: prio 100 protocol all u32 match u32 0 0 flowid 1:10", IfbDev);
+	// SYSFMT("tc filter replace dev {} parent 1: prio 100 protocol all u32 match u32 0 0 flowid 1:10", IfbDev);
+
+	if (!WNetLink::GetInstance().FilterMatchAllToClassReplace(IfbDev, 1, 0, 100, 1, 10))
+	{
+		return false;
+	}
 
 	// Redirect ingress traffic to ifb0
 	SYSFMT("tc qdisc replace dev {} handle ffff: ingress", WDaemonConfig::GetInstance().IngressNetworkInterfaceName);

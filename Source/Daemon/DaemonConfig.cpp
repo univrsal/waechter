@@ -9,6 +9,8 @@
 #include <spdlog/spdlog.h>
 #include <pwd.h>
 #include <fcntl.h>
+#include <sys/prctl.h>
+#include <sys/capability.h>
 
 #include "ErrnoUtil.hpp"
 #include "Filesystem.hpp"
@@ -113,6 +115,12 @@ void WDaemonConfig::BTFTest()
 
 bool WDaemonConfig::DropPrivileges()
 {
+	if (prctl(PR_SET_KEEPCAPS, 1L, 0L, 0L, 0L) != 0)
+	{
+		spdlog::critical("Failed to set PR_SET_KEEPCAPS: {}", WErrnoUtil::StrError());
+		return false;
+	}
+
 	passwd* PW = getpwnam(DaemonUser.c_str());
 	if (!PW)
 	{
@@ -125,6 +133,27 @@ bool WDaemonConfig::DropPrivileges()
 		spdlog::critical("Failed to drop privileges: {}", WErrnoUtil::StrError());
 		return false;
 	}
+
+	cap_t       Caps = cap_init();
+	cap_value_t CapsList[1] = { CAP_NET_ADMIN };
+
+	// Set Permitted and Effective sets
+	if (cap_set_flag(Caps, CAP_EFFECTIVE, 1, CapsList, CAP_SET) == -1
+		|| cap_set_flag(Caps, CAP_PERMITTED, 1, CapsList, CAP_SET) == -1)
+	{
+		spdlog::critical("Failed to set capabilities flags: {}", WErrnoUtil::StrError());
+		cap_free(Caps);
+		return false;
+	}
+
+	// Apply the capabilities
+	if (cap_set_proc(Caps) == -1)
+	{
+		spdlog::critical("Failed to set capabilities: {}", WErrnoUtil::StrError());
+		cap_free(Caps);
+		return false;
+	}
+	cap_free(Caps);
 
 	return true;
 }

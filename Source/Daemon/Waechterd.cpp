@@ -22,11 +22,10 @@ int main()
 		return -1;
 	}
 
-	WNetLink Netlink; // initialize netlink subsystem
-	if (!Netlink.CreateIfbDevice("ifb0"))
+	if (!WNetLink::GetInstance().CreateIfbDevice("ifb0"))
 	{
 		spdlog::critical("Failed to create IB device");
-		return -1;
+		goto exit;
 	}
 
 	libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
@@ -34,21 +33,19 @@ int main()
 	if (!WIPLink::GetInstance().Init())
 	{
 		spdlog::error("Failed to initialize IP link");
-		WIPLink::GetInstance().Deinit();
-		return -1;
+		goto exit;
 	}
 
 	if (!WDaemon::GetInstance().InitEbpfObj() || !WDaemon::GetInstance().InitSocket())
 	{
-		WIPLink::GetInstance().Deinit();
-		return -1;
+		goto exit;
 	}
 	WResolver::GetInstance().Start();
 
 	if (!WDaemonConfig::GetInstance().DropPrivileges())
 	{
 		spdlog::error("Failed to drop privileges");
-		return -1;
+		goto exit;
 	}
 
 	WDaemon::RegisterSignalHandlers();
@@ -56,8 +53,10 @@ int main()
 	spdlog::info("Ebpf programs loaded and attached");
 	WDaemon::GetInstance().RunLoop();
 	spdlog::info("Waechter daemon stopped");
+
+exit:
 	WIPLink::GetInstance().Deinit();
 	WResolver::GetInstance().Stop();
-	Netlink.DeleteIfbDevice("ifb0");
+	WNetLink::GetInstance().DeleteIfbDevice("ifb0");
 	return 0;
 }
