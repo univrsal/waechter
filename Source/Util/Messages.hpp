@@ -8,7 +8,6 @@ enum EMessageType : int8_t
 	MT_ResolvedAddresses,
 	MT_TrafficTreeUpdate,
 	MT_AppIconAtlasData,
-	MT_SetTcpLimit,
 	MT_RuleUpdate,
 	MT_Handshake
 };
