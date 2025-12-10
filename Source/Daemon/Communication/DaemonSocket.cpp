@@ -113,14 +113,14 @@ void WDaemonSocket::BroadcastTrafficUpdate()
 		cereal::BinaryOutputArchive Archive(Os);
 		Archive(Updates);
 	}
+	std::string const& Str = Os.str();
 
 	for (auto const& Client : Clients)
 	{
-		WBuffer            Frame{};
-		std::string const& s = Os.str();
-		uint32_t           frameLen = static_cast<uint32_t>(s.size());
-		Frame.Write(reinterpret_cast<char const*>(&frameLen), sizeof(frameLen));
-		Frame.Write(s.data(), s.size());
-		Client->SendData(Frame);
+		auto Sent = Client->SendFramedData(Str);
+		if (Sent < 0)
+		{
+			spdlog::error("Failed to send traffic update to client: {}", WErrnoUtil::StrError());
+		}
 	}
 }
