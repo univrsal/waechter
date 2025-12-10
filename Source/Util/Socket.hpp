@@ -60,6 +60,8 @@ public:
 
 	bool Receive(WBuffer& Buf, bool* bDataToRead = nullptr);
 
+	ssize_t ReceiveFramed(WBuffer& Buf);
+
 	[[nodiscard]] ESocketState GetState() const { return State.load(std::memory_order_acquire); }
 
 	void SetState(ESocketState NewState) { State.store(NewState, std::memory_order_release); }
