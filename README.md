@@ -2,7 +2,7 @@
 
 ![Demo](Meta/Demo.png)
 
-![Dev time spent](https://vrsal.cc/waechter_badge.svg)
+![Dev time spent](https://vrsal.cc/waechter_badge.svg) [![Build (Ubuntu)](https://github.com/univrsal/waechter/actions/workflows/build.yml/badge.svg)](https://github.com/univrsal/waechter/actions/workflows/build.yml)
 
 A Linux traffic monitoring and shaping tool.
 
