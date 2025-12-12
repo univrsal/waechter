@@ -2,6 +2,8 @@
 
 ![Demo](Meta/Demo.png)
 
+![Dev time spent](https://vrsal.cc/waechter_badge.svg)
+
 A Linux traffic monitoring and shaping tool.
 
 Wächter uses eBPF to monitor network traffic and enforce rules to block or throttle connections. It is
