@@ -6,7 +6,6 @@
 #include <string>
 #include <cstdint>
 #include <unordered_map>
-#include <unordered_set>
 #include <mutex>
 #include <atomic>
 #include <memory>
@@ -14,6 +13,7 @@
 #include "Singleton.hpp"
 #include "Types.hpp"
 #include "Data/TrafficItem.hpp"
+#include "Socket.hpp"
 
 enum class ELimitDirection
 {
@@ -51,6 +51,10 @@ class WIPLink : public TSingleton<WIPLink>
 	std::unordered_map<WTrafficItemId, std::shared_ptr<WBandwidthLimit>> ActiveDownloadLimits;
 
 	std::unordered_map<WTrafficItemId, WIngressPortRouting> IngressPortRoutings;
+
+	std::unique_ptr<WClientSocket> IpProcSocket;
+
+	std::string IpProcSecret;
 
 	static bool SetupHTBLimitClass(
 		std::shared_ptr<WBandwidthLimit> const& Limit, std::string const& IfName, bool bAttachMarkFilter);

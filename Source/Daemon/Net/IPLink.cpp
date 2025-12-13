@@ -5,14 +5,90 @@
 #include "IPLink.hpp"
 
 #include <cstdlib>
+#include <limits.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/fmt.h>
+#include <cereal/types/memory.hpp>
 
 #include "NetworkInterface.hpp"
 #include "DaemonConfig.hpp"
 #include "ErrnoUtil.hpp"
 #include "Data/Counters.hpp"
 #include "Data/NetworkEvents.hpp"
+#include "IPLinkMsg.hpp"
+
+// POSIX includes for non-blocking detached process launch
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <sys/wait.h>
+#include <errno.h>
+
+// Helper: launch a detached process (double-fork). The child is forked while this process
+// still has root privileges, so the launched process will inherit root (UID=0) and keep it
+// independently of this process dropping privileges later.
+static bool LaunchDetachedProcess(std::string const& cmd)
+{
+	pid_t pid = fork();
+	if (pid < 0)
+	{
+		spdlog::error("fork() failed: {}", WErrnoUtil::StrError());
+		return false;
+	}
+
+	if (pid > 0)
+	{
+		// parent: wait for the intermediate child to exit so it doesn't become a zombie.
+		int status = 0;
+		if (waitpid(pid, &status, 0) < 0)
+		{
+			spdlog::warn("waitpid failed for intermediate child: {}", WErrnoUtil::StrError());
+			// Non-fatal — the grandchild will continue running. Still return true because
+			// the intention to launch succeeded.
+		}
+		return true;
+	}
+
+	// First child.
+	// Create a new session so the child is no longer a process group member of the parent.
+	if (setsid() < 0)
+	{
+		_exit(1);
+	}
+
+	// Double-fork: fork again and have the first child exit. The grandchild is fully detached.
+	pid_t pid2 = fork();
+	if (pid2 < 0)
+	{
+		_exit(1);
+	}
+	if (pid2 > 0)
+	{
+		// first child exits
+		_exit(0);
+	}
+
+	// Grandchild: fully detached, still has the same UIDs / capabilities as the parent at fork time.
+	umask(0);
+
+	// Redirect stdio to /dev/null so child doesn't hold terminal fds.
+	int fd = open("/dev/null", O_RDWR);
+	if (fd >= 0)
+	{
+		dup2(fd, STDIN_FILENO);
+		dup2(fd, STDOUT_FILENO);
+		dup2(fd, STDERR_FILENO);
+		if (fd > 2)
+			close(fd);
+	}
+
+	// Execute via /bin/sh -c to keep existing command string parsing.
+	execl("/bin/sh", "sh", "-c", cmd.c_str(), nullptr);
+	// If exec fails, exit with 127.
+	_exit(127);
+}
 
 #define SYSFMT(_fmt, ...)                                                                                             \
 	if (auto RC = system(fmt::format(_fmt, __VA_ARGS__).c_str()); RC != 0)                                            \
@@ -83,48 +159,59 @@ bool WIPLink::Init()
 {
 	WNetworkEvents::GetInstance().OnSocketRemoved.connect(
 		std::bind(&WIPLink::OnSocketRemoved, this, std::placeholders::_1));
-	// For bandwidth limiting we need
-	//  - A new interface ifb0 for ingress redirection
-	//	- HTB on the main interface (egress)
-	//	- HTB on the ifb0 interface (ingress)
-	//	- An ingress qdisc on the main interface that redirects all traffic to ifb
-	//  - A root qdisc on ifb0 to shape the ingress traffic
-	//  - A root qdisc on the main interface to shape the egress traffic
-	//  - A filter on the ingress qdisc to redirect all traffic to ifb0
 
-	// Create the ifb0 interface if it does not exist
-	SYSFMT("ip link show {0} >/dev/null 2>&1 || ip link add {0} type ifb", IfbDev);
-	SYSFMT("ip link set {0} up", IfbDev);
+	for (int i = 0; i < 16; ++i)
+	{
+		IpProcSecret += static_cast<char>('A' + (rand() % 26));
+	}
+	// Get the path to waechter-iplink, assuming it's in the Net/IPLinkProc subdirectory relative to this executable's
+	// directory
+	std::string IPLinkProcPath = "waechter-iplink"; // fallback
+	char        exe_path[PATH_MAX];
+	ssize_t     len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
+	if (len > 0)
+	{
+		exe_path[len] = '\0';
+		std::string full_exe_path = exe_path;
+		size_t      last_slash = full_exe_path.find_last_of('/');
+		if (last_slash != std::string::npos)
+		{
+			std::string exe_dir = full_exe_path.substr(0, last_slash + 1);
+			IPLinkProcPath = exe_dir + "Net/IPLinkProc/waechter-iplink";
+		}
+	}
+	// Launch IPLinkProc as root with arguments [socket path] [secret] [ifb dev] [ingress interface]
+	std::string IngressInterface = WDaemonConfig::GetInstance().NetworkInterfaceName;
+	std::string Cmd = fmt::format("{} {} {} {} {}", IPLinkProcPath, WDaemonConfig::GetInstance().IpLinkProcSocketPath,
+		IpProcSecret, IfbDev, IngressInterface);
+
+	spdlog::info("Launching waechter-iplink process: {}", Cmd);
+	// Start the process
+	if (!LaunchDetachedProcess(Cmd))
+	{
+		spdlog::error("Failed to start waechter-iplink process");
+		return false;
+	}
+
+	IpProcSocket = std::make_unique<WClientSocket>(WDaemonConfig::GetInstance().IpLinkProcSocketPath);
+
+	for (int i = 0; i < 100; ++i)
+	{
+		if (IpProcSocket->Connect())
+		{
+			break;
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(500));
+	}
+	if (IpProcSocket->GetState() != ES_Connected)
+	{
+		spdlog::error("Failed to connect to waechter-iplink process socket: {}", WErrnoUtil::StrError());
+		return false;
+	}
+
+	spdlog::info("IP link process socket connected");
+
 	WaechterIngressIfIndex = WNetworkInterface::GetIfIndex(IfbDev);
-
-	// Ingress HTB setup
-	SYSFMT("tc qdisc replace dev {} root handle 1: htb default 0x10", IfbDev);
-	SYSFMT("tc class replace dev {} parent 1: classid 1:1 htb rate 1Gbit ceil 1Gbit", IfbDev);
-
-	// leaf class for ifb
-	SYSFMT("tc class replace dev {} parent 1:1 classid 1:10 "
-		   "htb rate 1Gbit ceil 1Gbit",
-		IfbDev);
-	// Default filter
-	SYSFMT("tc filter replace dev {} parent 1: prio 100 protocol all u32 match u32 0 0 flowid 1:10", IfbDev);
-
-	// // Egress shaping on actual interface
-	// SYSFMT("tc qdisc add dev {} root handle 1: htb default 0x10", WDaemonConfig::GetInstance().NetworkInterfaceName);
-	//
-	// SYSFMT("tc class replace dev {} parent 1: classid 1:1 htb rate 1Gbit ceil 1Gbit",
-	// 	WDaemonConfig::GetInstance().NetworkInterfaceName);
-	// // leaf class for actual interface
-	// SYSFMT("tc class replace dev {} parent 1:1 classid 1:10 "
-	// 	   "htb rate 1Gbit ceil 1Gbit",
-	// 	WDaemonConfig::GetInstance().NetworkInterfaceName);
-	//
-
-	// Redirect ingress traffic to ifb0
-	SYSFMT("tc qdisc replace dev {} handle ffff: ingress", WDaemonConfig::GetInstance().IngressNetworkInterfaceName);
-	SYSFMT(
-		"tc filter replace dev {} parent ffff: protocol all prio 100 u32 match u32 0 0 action mirred egress redirect dev {}",
-		WDaemonConfig::GetInstance().IngressNetworkInterfaceName, IfbDev);
-
 	return true;
 }
 
@@ -133,9 +220,6 @@ bool WIPLink::Deinit()
 	std::lock_guard Lock(Mutex);
 	ActiveUploadLimits.clear();
 	ActiveDownloadLimits.clear();
-	SYSFMT2("tc filter delete dev {} parent ffff:", WDaemonConfig::GetInstance().IngressNetworkInterfaceName);
-	SYSFMT2("tc qdisc delete dev {} root", IfbDev);
-	SYSFMT2("ip link delete {} type ifb", IfbDev);
 	return true;
 }
 
@@ -163,11 +247,14 @@ bool WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uin
 			spdlog::info("Port already routed for traffic item ID {}: dport={}, qdisc id={}", Item, Dport, QDiscId);
 			return true;
 		}
-		// First remove existing routing
-		SYSFMT("tc filter delete dev {} parent 1: protocol ip prio {} u32 match ip dport {} 0xffff flowid 1:{}", IfbDev,
-			kIngressPortFilterPriority, Limit.Port, Limit.QDiscId);
-		SYSFMT("tc filter add dev {} protocol ip parent 1: prio {} u32 match ip dport {} 0xffff flowid 1:{}", IfbDev,
-			kIngressPortFilterPriority, Dport, QDiscId);
+		WIPLinkMsg Msg{};
+		Msg.Type = EIPLinkMsgType::ConfigurePortRouting;
+		Msg.Secret = IpProcSecret;
+		Msg.SetupPortRouting = std::make_shared<WConfigurePortRouting>();
+		Msg.SetupPortRouting->Dport = Dport;
+		Msg.SetupPortRouting->QDiscId = QDiscId;
+		Msg.SetupPortRouting->bReplace = true;
+		IpProcSocket->SendMessage(Msg);
 
 		Limit.Port = Dport;
 		Limit.QDiscId = QDiscId;
@@ -178,9 +265,14 @@ bool WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uin
 	NewRouting.Port = Dport;
 	NewRouting.QDiscId = QDiscId;
 	IngressPortRoutings[Item] = NewRouting;
-	// Add new filter
-	SYSFMT("tc filter add dev {} protocol ip parent 1: prio {} u32 match ip dport {} 0xffff flowid 1:{}", IfbDev,
-		kIngressPortFilterPriority, Dport, QDiscId);
+
+	WIPLinkMsg Msg{};
+	Msg.Type = EIPLinkMsgType::ConfigurePortRouting;
+	Msg.Secret = IpProcSecret;
+	Msg.SetupPortRouting = std::make_shared<WConfigurePortRouting>();
+	Msg.SetupPortRouting->Dport = Dport;
+	Msg.SetupPortRouting->QDiscId = QDiscId;
+	IpProcSocket->SendMessage(Msg);
 	return true;
 }
 
@@ -192,9 +284,15 @@ bool WIPLink::RemoveIngressPortRouting(WTrafficItemId Item)
 		return false;
 	}
 
-	auto& Limit = IngressPortRoutings[Item];
-	SYSFMT("tc filter delete dev {} parent 1: protocol ip prio {} u32 match ip dport {} 0xffff flowid 1:{}", IfbDev,
-		kIngressPortFilterPriority, Limit.Port, Limit.QDiscId);
+	auto&      Limit = IngressPortRoutings[Item];
+	WIPLinkMsg Msg{};
+	Msg.Type = EIPLinkMsgType::ConfigurePortRouting;
+	Msg.Secret = IpProcSecret;
+	Msg.SetupPortRouting = std::make_shared<WConfigurePortRouting>();
+	Msg.SetupPortRouting->Dport = Limit.Port;
+	Msg.SetupPortRouting->QDiscId = Limit.QDiscId;
+	Msg.SetupPortRouting->bRemove = true;
+	IpProcSocket->SendMessage(Msg);
 	IngressPortRoutings.erase(Item);
 	return true;
 }

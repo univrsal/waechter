@@ -3,11 +3,11 @@
 //
 
 #include "Daemon.hpp"
+#include "DaemonConfig.hpp"
 
 #include <spdlog/spdlog.h>
 #include <unistd.h>
 
-#include "SignalHandler.hpp"
 #include "WaechterEbpf.hpp"
 #include "Net/Resolver.hpp"
 #include "Net/IPLink.hpp"
@@ -36,11 +36,11 @@ int main()
 	}
 	WResolver::GetInstance().Start();
 
-	// if (!WDaemonConfig::GetInstance().DropPrivileges())
-	// {
-	// 	spdlog::error("Failed to drop privileges");
-	// 	return -1;
-	// }
+	if (!WDaemonConfig::GetInstance().DropPrivileges())
+	{
+		spdlog::error("Failed to drop privileges");
+		return -1;
+	}
 
 	WDaemon::RegisterSignalHandlers();
 

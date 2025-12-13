@@ -10,6 +10,7 @@
 #include <utility>
 #include <atomic>
 #include <fcntl.h>
+#include <cereal/archives/binary.hpp>
 
 #include "Buffer.hpp"
 #include "Types.hpp"
@@ -37,6 +38,7 @@ enum ESocketState
 
 class WClientSocket : public WSocket
 {
+	WBuffer                   SerializeBuffer{};
 	WBuffer                   FrameBuffer{};
 	std::atomic<ESocketState> State{};
 	bool                      bBlocking{ true };
@@ -79,6 +81,17 @@ public:
 		}
 		fcntl(SocketFd, F_SETFL, Flags);
 		bBlocking = !bNonBlocking;
+	}
+
+	template <typename T>
+	ssize_t SendMessage(T const& Message)
+	{
+		std::stringstream Os{};
+		{
+			cereal::BinaryOutputArchive Archive(Os);
+			Archive(Message);
+		}
+		return SendFramed(Os.str());
 	}
 };
 
