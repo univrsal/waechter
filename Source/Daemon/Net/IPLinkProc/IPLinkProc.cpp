@@ -143,27 +143,28 @@ int main(int Argc, char** Argv)
 	auto ClientSocket = Socket.Accept();
 	spdlog::info("Daemon connected to IP link process socket");
 
-	bool bRunning = true;
-
 	WSignalHandler Handler;
 
 	while (!Handler.bStop)
 	{
 		WBuffer RecvBuffer;
-		ssize_t RecvSize = ClientSocket->ReceiveFramed(RecvBuffer);
-		if (RecvSize < 0)
+		bool bOk = ClientSocket->Receive(RecvBuffer);
+		if (!bOk)
 		{
 			spdlog::info("Connection closed, exiting...");
 			break;
 		}
 
-		if (RecvSize == 0)
+		if (RecvBuffer.GetWritePos() == 0)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			continue;
 		}
-
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		std::stringstream SS;
 		WIPLinkMsg        Msg;
+
+		spdlog::info("Received message with size {}", RecvBuffer.GetWritePos());
 
 		SS.write(RecvBuffer.GetData(), static_cast<long int>(RecvBuffer.GetWritePos()));
 		{
