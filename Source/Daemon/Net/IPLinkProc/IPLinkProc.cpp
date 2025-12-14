@@ -32,7 +32,7 @@
 // Sole purpose of this executable is to run `tc` commands which require root
 // Commands are sent via unix socket from waechterd after it has dropped privileges
 
-bool SetupHtbClass(std::shared_ptr<WSetupHtbClassMsg> SetupHtbClass)
+bool SetupHtbClass(std::shared_ptr<WSetupHtbClassMsg> const& SetupHtbClass)
 {
 
 	spdlog::info("Setting up HTB class on interface {}: classid=1:{}, mark=0x{:x}, rate={} B/s",
@@ -49,7 +49,7 @@ bool SetupHtbClass(std::shared_ptr<WSetupHtbClassMsg> SetupHtbClass)
 	return true;
 }
 
-bool ConfigurePortRouting(std::shared_ptr<WConfigurePortRouting> SetupPortRouting, std::string const& IfbDev)
+bool ConfigurePortRouting(std::shared_ptr<WConfigurePortRouting> const& SetupPortRouting, std::string const& IfbDev)
 {
 	if (SetupPortRouting->bRemove)
 	{
