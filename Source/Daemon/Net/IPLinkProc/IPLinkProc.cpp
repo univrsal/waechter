@@ -73,8 +73,8 @@ bool ConfigurePortRouting(std::shared_ptr<WConfigurePortRouting> const& SetupPor
 bool Init(std::string const& IfbDev, std::string const& IngressInterface)
 {
 
-	// Create the ifb0 interface if it does not exist
-	SYSFMT("ip link show {0} >/dev/null 2>&1 || ip link add {0} type ifb", IfbDev);
+	// Create the ifb0 interface
+	SYSFMT("ip link delete {0}>/dev/null 2>&1 || ip link add {0} type ifb", IfbDev);
 	SYSFMT("ip link set {0} up", IfbDev);
 
 	// Ingress HTB setup
