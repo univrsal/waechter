@@ -137,13 +137,13 @@ bool WIPLink::Init()
 
 	IpProcSocket = std::make_unique<WClientSocket>(WDaemonConfig::GetInstance().IpLinkProcSocketPath);
 
-	for (int i = 0; i < 100; ++i)
+	for (int i = 0; i < 10; ++i)
 	{
 		if (IpProcSocket->Connect())
 		{
 			break;
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(500));
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));
 	}
 	if (IpProcSocket->GetState() != ES_Connected)
 	{
