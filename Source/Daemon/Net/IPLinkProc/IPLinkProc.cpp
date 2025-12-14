@@ -9,10 +9,14 @@
 #include <cereal/types/string.hpp>
 #include <thread>
 #include <spdlog/fmt/fmt.h>
+#include <atomic>
 
 #include "Socket.hpp"
 #include "ErrnoUtil.hpp"
 #include "IPLinkMsg.hpp"
+#include "SignalHandler.hpp"
+
+#include <filesystem>
 
 #define SYSFMT(_fmt, ...)                                                                                             \
 	if (auto RC = system(fmt::format(_fmt, __VA_ARGS__).c_str()); RC != 0)                                            \
@@ -140,7 +144,9 @@ int main(int Argc, char** Argv)
 
 	bool bRunning = true;
 
-	while (bRunning)
+	WSignalHandler Handler;
+
+	while (!Handler.bStop)
 	{
 		WBuffer RecvBuffer;
 		ssize_t RecvSize = ClientSocket->ReceiveFramed(RecvBuffer);
@@ -173,7 +179,7 @@ int main(int Argc, char** Argv)
 		if (Msg.Type == EIPLinkMsgType::Exit)
 		{
 			spdlog::info("Received exit message, shutting down");
-			bRunning = false;
+			Handler.bStop = true;
 		}
 		else if (Msg.Type == EIPLinkMsgType::SetupHtbClass && Msg.SetupHtbClass)
 		{
