@@ -58,18 +58,7 @@ struct WIPLinkMsg
 	{
 		Ar(Type);
 		Ar(Secret);
-		switch (Type)
-		{
-			case EIPLinkMsgType::SetupHtbClass:
-				Ar(SetupHtbClass);
-				break;
-			case EIPLinkMsgType::ConfigurePortRouting:
-				Ar(SetupPortRouting);
-				break;
-			case EIPLinkMsgType::Exit:
-				break;
-			default:
-				break;
-		}
+		Ar(SetupHtbClass);
+		Ar(SetupPortRouting);
 	}
 };
