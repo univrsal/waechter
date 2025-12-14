@@ -111,6 +111,7 @@ bool Init(std::string const& IfbDev, std::string const& IngressInterface)
 //  - A filter on the ingress qdisc to redirect all traffic to ifb0
 int main(int Argc, char** Argv)
 {
+	// todo switch secret to env var, args are visible to everyone
 	if (Argc < 4)
 	{
 		spdlog::error("Usage: waechter-iplink [socket path] [socket secret] [ifb dev] [ingress interface]");
@@ -168,6 +169,7 @@ int main(int Argc, char** Argv)
 
 		SS.write(RecvBuffer.GetData(), static_cast<long int>(RecvBuffer.GetWritePos()));
 		{
+			SS.seekg(4); // Skip message length
 			cereal::BinaryInputArchive Iar(SS);
 			Iar(Msg);
 		}
