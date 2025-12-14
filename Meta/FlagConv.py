@@ -35,11 +35,8 @@ def render_svg_to_png_bytes(svg_path, width=None, height=None):
     return out.read()
 
 def find_min_power2_side(n_images, w, h, pow2_min=POWER2_MIN, pow2_max=POWER2_MAX):
-    # Find smallest square power-of-two side such that floor(side/w) * floor(side/h) >= n_images
     side = pow2_min
-    # Ensure starting side is at least max(w,h)
     side = max(side, 1 << (max(w, h)-1).bit_length())
-    # but simpler: start with 2**k where 2**k >= max(w,h)
     k = (max(w, h)-1).bit_length()
     side = 1 << k
     while side <= pow2_max:
@@ -105,7 +102,7 @@ def main():
     images = []
     names = []
     for svgp in svg_paths:
-        name = svgp.stem  # filename without extension
+        name = svgp.stem
         try:
             png_bytes = render_svg_to_png_bytes(svgp, width=target_w, height=target_h)
             img = Image.open(BytesIO(png_bytes)).convert("RGBA")
@@ -122,7 +119,6 @@ def main():
     atlas_side, cols, rows = find_min_power2_side(n, target_w, target_h)
     print(f"Selected atlas side: {atlas_side} (cols={cols}, rows={rows}) -> capacity {cols*rows}")
 
-    # Create atlas image
     atlas = Image.new("RGBA", (atlas_side, atlas_side), (0,0,0,0))
 
     mapping = []  # tuples (name, x, y)
@@ -136,11 +132,9 @@ def main():
         atlas.paste(img, (x, y), img)
         mapping.append((name, x, y))
 
-    # Save atlas
     atlas.save(args.out_atlas)
     print(f"Wrote atlas PNG: {args.out_atlas}")
 
-    # Optionally save individual PNGs
     if args.save_pngs:
         out_pngs_dir = Path("out_pngs")
         out_pngs_dir.mkdir(exist_ok=True)
@@ -149,7 +143,6 @@ def main():
             img.save(p)
         print(f"Wrote individual PNGs to {out_pngs_dir}")
 
-    # Write C++ header
     generate_cpp_header(mapping, atlas_side, args.out_header, os.path.basename(args.out_atlas))
 
 if __name__ == "__main__":
