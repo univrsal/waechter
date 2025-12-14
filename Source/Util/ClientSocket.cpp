@@ -14,6 +14,8 @@ void WClientSocket::Close()
 
 	close(SocketFd);
 	SocketFd = -1;
+	State = ES_Initial;
+	Accum.Reset();
 }
 
 bool WClientSocket::Open()
@@ -39,15 +41,28 @@ bool WClientSocket::Connect()
 		return true;
 	}
 
+	if (SocketFd < 0)
+	{
+		if (!Open())
+		{
+			return false;
+		}
+	}
+
 	// Set up the socket address structure
-	sockaddr_un Addr{};
+	sockaddr_un Addr{}; // value-init to zero
 	Addr.sun_family = AF_UNIX;
-	strncpy(Addr.sun_path, SocketPath.c_str(), sizeof(Addr.sun_path) - 1);
+	// Copy path and ensure null-termination
+	std::strncpy(Addr.sun_path, SocketPath.c_str(), sizeof(Addr.sun_path) - 1);
+	Addr.sun_path[sizeof(Addr.sun_path) - 1] = '\0';
+	// Compute the correct length for AF_UNIX addresses
+	auto AddrLen = static_cast<socklen_t>(offsetof(sockaddr_un, sun_path) + std::strlen(Addr.sun_path) + 1);
 
 	// Connect to the server
-	if (connect(SocketFd, reinterpret_cast<struct sockaddr*>(&Addr), sizeof(Addr)) == -1)
+	if (connect(SocketFd, reinterpret_cast<struct sockaddr*>(&Addr), AddrLen) == -1)
 	{
 		spdlog::debug("Failed to connect to socket {}: {} ({})", SocketPath, WErrnoUtil::StrError(), errno);
+		Close();
 		return false;
 	}
 	State = ES_Connected;
