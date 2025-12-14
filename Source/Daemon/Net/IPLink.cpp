@@ -5,7 +5,6 @@
 #include "IPLink.hpp"
 
 #include <cstdlib>
-#include <limits.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/fmt.h>
 #include <cereal/types/memory.hpp>
@@ -17,77 +16,16 @@
 #include "Data/NetworkEvents.hpp"
 #include "IPLinkMsg.hpp"
 
-// POSIX includes for non-blocking detached process launch
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
-#include <signal.h>
-#include <sys/wait.h>
-#include <errno.h>
 
 // Helper: launch a detached process (double-fork). The child is forked while this process
 // still has root privileges, so the launched process will inherit root (UID=0) and keep it
 // independently of this process dropping privileges later.
 static bool LaunchDetachedProcess(std::string const& cmd)
 {
-	pid_t pid = fork();
-	if (pid < 0)
-	{
-		spdlog::error("fork() failed: {}", WErrnoUtil::StrError());
-		return false;
-	}
-
-	if (pid > 0)
-	{
-		// parent: wait for the intermediate child to exit so it doesn't become a zombie.
-		int status = 0;
-		if (waitpid(pid, &status, 0) < 0)
-		{
-			spdlog::warn("waitpid failed for intermediate child: {}", WErrnoUtil::StrError());
-			// Non-fatal — the grandchild will continue running. Still return true because
-			// the intention to launch succeeded.
-		}
-		return true;
-	}
-
-	// First child.
-	// Create a new session so the child is no longer a process group member of the parent.
-	if (setsid() < 0)
-	{
-		_exit(1);
-	}
-
-	// Double-fork: fork again and have the first child exit. The grandchild is fully detached.
-	pid_t pid2 = fork();
-	if (pid2 < 0)
-	{
-		_exit(1);
-	}
-	if (pid2 > 0)
-	{
-		// first child exits
-		_exit(0);
-	}
-
-	// Grandchild: fully detached, still has the same UIDs / capabilities as the parent at fork time.
-	umask(0);
-
-	// Redirect stdio to /dev/null so child doesn't hold terminal fds.
-	int fd = open("/dev/null", O_RDWR);
-	if (fd >= 0)
-	{
-		dup2(fd, STDIN_FILENO);
-		dup2(fd, STDOUT_FILENO);
-		dup2(fd, STDERR_FILENO);
-		if (fd > 2)
-			close(fd);
-	}
-
-	// Execute via /bin/sh -c to keep existing command string parsing.
-	execl("/bin/sh", "sh", "-c", cmd.c_str(), nullptr);
-	// If exec fails, exit with 127.
-	_exit(127);
+	return system(fmt::format("{} & disown", cmd).c_str()) == 0;
 }
 
 #define SYSFMT(_fmt, ...)                                                                                             \
@@ -134,18 +72,22 @@ WBandwidthLimit::~WBandwidthLimit()
 }
 
 bool WIPLink::SetupHTBLimitClass(
-	std::shared_ptr<WBandwidthLimit> const& Limit, std::string const& IfName, bool bAttachMarkFilter)
+	std::shared_ptr<WBandwidthLimit> const& Limit, std::string const& IfName, bool bAttachMarkFilter) const
 {
 	spdlog::info("Setting up HTB class on interface {}: classid=1:{}, mark=0x{:x}, rate={} B/s", IfName, Limit->MinorId,
 		Limit->Mark, Limit->RateLimit);
-	SYSFMT("tc class replace dev {} parent 1:1 classid 1:{} htb rate {}bit ceil {}bit", IfName, Limit->MinorId,
-		static_cast<uint64_t>(Limit->RateLimit * 8), static_cast<uint64_t>(Limit->RateLimit * 8));
 
-	if (bAttachMarkFilter)
-	{
-		SYSFMT("tc filter replace dev {} parent 1: protocol ip pref 1 handle 0x{:x} fw classid 1:{}", IfName,
-			Limit->Mark, Limit->MinorId);
-	}
+	WIPLinkMsg Msg{};
+	Msg.Type = EIPLinkMsgType::SetupHtbClass;
+	Msg.Secret = IpProcSecret;
+	Msg.SetupHtbClass = std::make_shared<WSetupHtbClassMsg>();
+	Msg.SetupHtbClass->InterfaceName = IfName;
+	Msg.SetupHtbClass->Mark = Limit->Mark;
+	Msg.SetupHtbClass->MinorId = Limit->MinorId;
+	Msg.SetupHtbClass->RateLimit = Limit->RateLimit;
+	Msg.SetupHtbClass->bAddMarkFilter = bAttachMarkFilter;
+	IpProcSocket->SendMessage(Msg);
+
 	return true;
 }
 
@@ -261,6 +203,8 @@ bool WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uin
 
 		return true;
 	}
+	spdlog::info("Sending port routing setup to ip link process for traffic item ID {}: dport={}, qdisc id={}", Item, Dport,
+		QDiscId);
 	WIngressPortRouting NewRouting;
 	NewRouting.Port = Dport;
 	NewRouting.QDiscId = QDiscId;
@@ -353,6 +297,7 @@ std::shared_ptr<WBandwidthLimit> WIPLink::GetDownloadLimit(WTrafficItemId const&
 		}
 		return ActiveDownloadLimits[ItemId];
 	}
+
 	auto NewLimit = std::make_shared<WBandwidthLimit>(
 		NextMark.fetch_add(1), NextMinorId.fetch_add(1), Limit, ELimitDirection::Download);
 	ActiveDownloadLimits[ItemId] = NewLimit;

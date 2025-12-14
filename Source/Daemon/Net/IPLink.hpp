@@ -56,8 +56,8 @@ class WIPLink : public TSingleton<WIPLink>
 
 	std::string IpProcSecret;
 
-	static bool SetupHTBLimitClass(
-		std::shared_ptr<WBandwidthLimit> const& Limit, std::string const& IfName, bool bAttachMarkFilter);
+	bool SetupHTBLimitClass(
+		std::shared_ptr<WBandwidthLimit> const& Limit, std::string const& IfName, bool bAttachMarkFilter) const;
 	void OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket);
 
 public:
@@ -67,8 +67,8 @@ public:
 	bool Init();
 	bool Deinit();
 
-	static bool SetupEgressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit);
-	static bool SetupIngressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit);
+	bool SetupEgressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit);
+	bool SetupIngressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit);
 
 	bool SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uint16_t Dport);
 	bool RemoveIngressPortRouting(WTrafficItemId Item);
