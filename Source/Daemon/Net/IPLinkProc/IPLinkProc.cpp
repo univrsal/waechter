@@ -135,12 +135,13 @@ int main(int Argc, char** Argv)
 
 	if (!Init(IfbDev, IngressInterface))
 	{
-		spdlog::error("Failed to initialize IP link setup");
+		spdlog::error("Failed to setup");
 		return -1;
 	}
 
 	spdlog::info("Listening on socket {}. Waiting for daemon to connect", SocketPath);
 	auto ClientSocket = Socket.Accept();
+	spdlog::info("Daemon connected to IP link process socket");
 
 	bool bRunning = true;
 
@@ -152,7 +153,7 @@ int main(int Argc, char** Argv)
 		ssize_t RecvSize = ClientSocket->ReceiveFramed(RecvBuffer);
 		if (RecvSize < 0)
 		{
-			spdlog::error("Failed to receive framed data or connection closed");
+			spdlog::info("Connection closed, exiting...");
 			break;
 		}
 
