@@ -117,6 +117,10 @@ int main(int Argc, char** Argv)
 	std::string SocketSecret = Argv[2];
 	std::string IfbDev = Argv[3];
 	std::string IngressInterface = Argv[4];
+	if (std::filesystem::exists(SocketPath))
+	{
+		unlink(SocketPath.c_str());
+	}
 
 	WServerSocket Socket(SocketPath);
 	if (!Socket.BindAndListen())
