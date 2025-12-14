@@ -200,6 +200,6 @@ int main(int Argc, char** Argv)
 	// Cleanup
 	SYSFMT2("tc filter delete dev {} parent ffff:", IngressInterface);
 	SYSFMT2("tc qdisc delete dev {} root", IfbDev);
-	SYSFMT2("ip link delete {} type ifb", IfbDev);
+	SYSFMT2("ip link delete {}", IfbDev);
 	return 0;
 }
