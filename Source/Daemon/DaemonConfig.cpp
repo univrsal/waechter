@@ -67,6 +67,7 @@ void WDaemonConfig::Load(std::string const& Path)
 	SafeGet("daemon", "user", DaemonUser);
 	SafeGet("daemon", "group", DaemonGroup);
 	SafeGet("daemon", "socket_path", DaemonSocketPath);
+	SafeGet("daemon", "ip_proc_socket_path", IpLinkProcSocketPath);
 	DaemonSocketMode = static_cast<mode_t>(Reader.GetInteger("daemon", "socket_permissions", DaemonSocketMode));
 	SafeGet("daemon", "ebpf_program_object_path", EbpfProgramObjectPath);
 }

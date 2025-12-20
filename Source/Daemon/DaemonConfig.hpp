@@ -15,6 +15,7 @@ struct WDaemonConfig final : TSingleton<WDaemonConfig>
 	std::string DaemonUser{ "nobody" };
 	std::string DaemonGroup{ "nogroup" };
 	std::string DaemonSocketPath{ "/var/run/waechterd.sock" };
+	std::string IpLinkProcSocketPath{ "/var/run/waechter-iplink.sock" };
 	std::string EbpfProgramObjectPath{ "./waechter-ebpf.o" };
 	mode_t      DaemonSocketMode{ 0660 };
 	WDaemonConfig();

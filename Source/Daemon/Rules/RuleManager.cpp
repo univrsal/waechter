@@ -203,7 +203,7 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 	std::stringstream ss;
 	ss.write(Buf.GetData(), static_cast<long int>(Buf.GetWritePos()));
 	{
-		ss.seekg(1); // Skip message type
+		ss.seekg(5); // Skip message type and length for now
 		cereal::BinaryInputArchive iar(ss);
 		iar(Update);
 	}

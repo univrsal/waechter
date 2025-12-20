@@ -14,6 +14,8 @@ void WClientSocket::Close()
 
 	close(SocketFd);
 	SocketFd = -1;
+	State = ES_Initial;
+	Accum.Reset();
 }
 
 bool WClientSocket::Open()
@@ -39,15 +41,28 @@ bool WClientSocket::Connect()
 		return true;
 	}
 
+	if (SocketFd < 0)
+	{
+		if (!Open())
+		{
+			return false;
+		}
+	}
+
 	// Set up the socket address structure
-	sockaddr_un Addr{};
+	sockaddr_un Addr{}; // value-init to zero
 	Addr.sun_family = AF_UNIX;
-	strncpy(Addr.sun_path, SocketPath.c_str(), sizeof(Addr.sun_path) - 1);
+	// Copy path and ensure null-termination
+	std::strncpy(Addr.sun_path, SocketPath.c_str(), sizeof(Addr.sun_path) - 1);
+	Addr.sun_path[sizeof(Addr.sun_path) - 1] = '\0';
+	// Compute the correct length for AF_UNIX addresses
+	auto AddrLen = static_cast<socklen_t>(offsetof(sockaddr_un, sun_path) + std::strlen(Addr.sun_path) + 1);
 
 	// Connect to the server
-	if (connect(SocketFd, reinterpret_cast<struct sockaddr*>(&Addr), sizeof(Addr)) == -1)
+	if (connect(SocketFd, reinterpret_cast<struct sockaddr*>(&Addr), AddrLen) == -1)
 	{
 		spdlog::debug("Failed to connect to socket {}: {} ({})", SocketPath, WErrnoUtil::StrError(), errno);
+		Close();
 		return false;
 	}
 	State = ES_Connected;
@@ -194,42 +209,4 @@ bool WClientSocket::Receive(WBuffer& Buf, bool* bDataToRead)
 		*bDataToRead = true;
 	}
 	return true;
-}
-
-ssize_t WClientSocket::ReceiveFramed(WBuffer& Buf)
-{
-	Buf.Reset();
-
-	// Read frame length
-	uint32_t FrameLength = 0;
-	WBuffer  LengthBuf{};
-	LengthBuf.Resize(sizeof(FrameLength));
-	ssize_t LenRecv = Receive(LengthBuf);
-	if (LenRecv <= 0)
-	{
-		return -1; // connection closed or error
-	}
-	if (static_cast<size_t>(LenRecv) < sizeof(FrameLength))
-	{
-		return 0; // incomplete frame length
-	}
-	std::memcpy(&FrameLength, LengthBuf.GetData(), sizeof(FrameLength));
-
-	// Read frame data
-	Buf.Resize(FrameLength);
-	size_t TotalReceived = 0;
-	while (TotalReceived < FrameLength)
-	{
-		WBuffer TempBuf{};
-		TempBuf.Resize(FrameLength - TotalReceived);
-		ssize_t RecvSize = Receive(TempBuf);
-		if (RecvSize <= 0)
-		{
-			return (TotalReceived > 0) ? static_cast<ssize_t>(TotalReceived) : RecvSize;
-		}
-		std::memcpy(Buf.GetData() + TotalReceived, TempBuf.GetData(), static_cast<size_t>(RecvSize));
-		TotalReceived += static_cast<size_t>(RecvSize);
-	}
-	Buf.SetWritingPos(FrameLength);
-	return static_cast<ssize_t>(TotalReceived);
 }

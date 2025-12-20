@@ -27,20 +27,6 @@
 #include "Util/Settings.hpp"
 #include "spdlog/fmt/bundled/chrono.h"
 
-template <class K, class V>
-static bool TryRemoveFromMap(std::unordered_map<K, V>& Map, WTrafficItemId TrafficItemId)
-{
-	for (auto It = Map.begin(); It != Map.end(); ++It)
-	{
-		if (It->second->ItemId == TrafficItemId)
-		{
-			Map.erase(It);
-			return true;
-		}
-	}
-	return false;
-}
-
 // This isn't exactly efficient, we should probably have something
 // along the lines of ITrafficItem->Parent->RemoveChild or similar.
 void WTrafficTree::RemoveTrafficItem(WTrafficItemId TrafficItemId)
@@ -204,7 +190,7 @@ bool WTrafficTree::RenderItem(WRenderItemArgs const& Args)
 	}
 
 	ImGui::TableSetColumnIndex(3);
-	ImGui::PushID(Args.Item->ItemId);
+	ImGui::PushID(static_cast<int>(Args.Item->ItemId));
 	RuleWidget.Draw(Args, bRowSelected);
 	ImGui::PopID();
 

@@ -3,11 +3,11 @@
 //
 
 #include "Daemon.hpp"
+#include "DaemonConfig.hpp"
 
 #include <spdlog/spdlog.h>
 #include <unistd.h>
 
-#include "SignalHandler.hpp"
 #include "WaechterEbpf.hpp"
 #include "Net/Resolver.hpp"
 #include "Net/IPLink.hpp"
