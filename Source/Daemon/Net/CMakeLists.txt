@@ -9,3 +9,5 @@ target_sources(waechterd
         IPLink.cpp
         IPLink.hpp
 )
+
+add_subdirectory(IPLinkProc)

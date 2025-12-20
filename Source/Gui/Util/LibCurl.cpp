@@ -99,9 +99,9 @@ std::string WLibCurl::GetLoadedVersion() const
 		return {};
 	if (curl_version_fp)
 	{
-		char const* v = curl_version_fp();
-		if (v)
-			return std::string(v);
+		char const* Version = curl_version_fp();
+		if (Version)
+			return {Version};
 	}
 	return {};
 }
@@ -135,7 +135,7 @@ WJson WLibCurl::GetJson(std::string const& Url, std::string& OutError) const
 	};
 
 	bool bOk = SetOpt(CURLOPT_URL, Url.c_str())
-		&& SetOpt(CURLOPT_WRITEFUNCTION, reinterpret_cast<size_t (*)(char*, size_t, size_t, void*)>(WriteCallback))
+		&& SetOpt(CURLOPT_WRITEFUNCTION, WriteCallback)
 		&& SetOpt(CURLOPT_WRITEDATA, &Body) && SetOpt(CURLOPT_USERAGENT, "waechter/1.0 (+https://github.com/)")
 		&& SetOpt(CURLOPT_FOLLOWLOCATION, 1L) && SetOpt(CURLOPT_MAXREDIRS, 5L) && SetOpt(CURLOPT_TIMEOUT, 10L)
 		&& SetOpt(CURLOPT_CONNECTTIMEOUT, 5L) && SetOpt(CURLOPT_ACCEPT_ENCODING, ""); // enable all supported encodings

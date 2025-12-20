@@ -11,26 +11,29 @@ void WDaemonClient::ListenThreadFunction()
 	WBuffer Msg;
 	while (Running)
 	{
-		auto Recv = ClientSocket->ReceiveFramed(Msg);
-		if (Recv == 0)
+		bool bDataToRead;
+		bool bOk = ClientSocket->Receive(Msg, &bDataToRead);
+		if (!bDataToRead)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			continue;
 		}
 
-		if (Recv < 0)
+		if (!bOk)
 		{
 			spdlog::info("Client disconnected");
 			Running = false;
 			break;
 		}
 
+		Msg.Consume(4); // Skip message length for now
 		auto Type = ReadMessageTypeFromBuffer(Msg);
 		if (Type == MT_Invalid)
 		{
 			spdlog::warn("Received invalid message type from daemon client");
 			continue;
 		}
+		spdlog::info("Received message: {}", static_cast<int>(Type));
 
 		switch (Type)
 		{

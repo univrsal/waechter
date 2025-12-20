@@ -6,7 +6,6 @@
 #include <string>
 #include <cstdint>
 #include <unordered_map>
-#include <unordered_set>
 #include <mutex>
 #include <atomic>
 #include <memory>
@@ -14,6 +13,7 @@
 #include "Singleton.hpp"
 #include "Types.hpp"
 #include "Data/TrafficItem.hpp"
+#include "Socket.hpp"
 
 enum class ELimitDirection
 {
@@ -52,8 +52,12 @@ class WIPLink : public TSingleton<WIPLink>
 
 	std::unordered_map<WTrafficItemId, WIngressPortRouting> IngressPortRoutings;
 
-	static bool SetupHTBLimitClass(
-		std::shared_ptr<WBandwidthLimit> const& Limit, std::string const& IfName, bool bAttachMarkFilter);
+	std::unique_ptr<WClientSocket> IpProcSocket;
+
+	std::string IpProcSecret;
+
+	bool SetupHTBLimitClass(
+		std::shared_ptr<WBandwidthLimit> const& Limit, std::string const& IfName, bool bAttachMarkFilter) const;
 	void OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket);
 
 public:
@@ -63,8 +67,8 @@ public:
 	bool Init();
 	bool Deinit();
 
-	static bool SetupEgressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit);
-	static bool SetupIngressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit);
+	bool SetupEgressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit);
+	bool SetupIngressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit);
 
 	bool SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uint16_t Dport);
 	bool RemoveIngressPortRouting(WTrafficItemId Item);

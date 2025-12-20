@@ -87,7 +87,7 @@ public:
 			cereal::BinaryOutputArchive AtlasArchive(AtlasOs);
 			AtlasArchive(Data);
 		}
-		if (auto Sent = SendFramedData(AtlasOs.str()); Sent < 0)
+		if (auto Sent = Socket->SendFramed(AtlasOs.str()); Sent < 0)
 		{
 			spdlog::error(
 				"Failed to send message of type {} to daemon: {}", static_cast<int>(Type), WErrnoUtil::StrError());
