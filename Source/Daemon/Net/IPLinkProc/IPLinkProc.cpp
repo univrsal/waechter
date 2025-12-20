@@ -3,6 +3,7 @@
 //
 
 #include <string>
+#include <cstring>
 #include <spdlog/spdlog.h>
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/memory.hpp>
@@ -146,57 +147,77 @@ int main(int Argc, char** Argv)
 
 	WSignalHandler Handler;
 
+	std::string Accumulator;
 	while (!Handler.bStop)
 	{
 		WBuffer RecvBuffer;
-		bool bOk = ClientSocket->Receive(RecvBuffer);
+		bool    bOk = ClientSocket->Receive(RecvBuffer);
 		if (!bOk)
 		{
 			spdlog::info("Connection closed, exiting...");
 			break;
 		}
 
-		if (RecvBuffer.GetWritePos() == 0)
+		if (RecvBuffer.GetWritePos() > 0)
+		{
+			Accumulator.append(RecvBuffer.GetData(), RecvBuffer.GetWritePos());
+		}
+		else
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 			continue;
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
-		std::stringstream SS;
-		WIPLinkMsg        Msg;
 
-		spdlog::info("Received message with size {}", RecvBuffer.GetWritePos());
+		while (Accumulator.size() >= 4)
+		{
+			uint32_t MsgLen = 0;
+			std::memcpy(&MsgLen, Accumulator.data(), 4);
 
-		SS.write(RecvBuffer.GetData(), static_cast<long int>(RecvBuffer.GetWritePos()));
-		{
-			SS.seekg(4); // Skip message length
-			cereal::BinaryInputArchive Iar(SS);
-			Iar(Msg);
-		}
-
-		if (Msg.Secret != SocketSecret)
-		{
-			spdlog::warn("Received message with invalid secret, ignoring");
-			continue;
-		}
-
-		if (Msg.Type == EIPLinkMsgType::Exit)
-		{
-			spdlog::info("Received exit message, shutting down");
-			Handler.bStop = true;
-		}
-		else if (Msg.Type == EIPLinkMsgType::SetupHtbClass && Msg.SetupHtbClass)
-		{
-			if (!SetupHtbClass(Msg.SetupHtbClass))
+			if (Accumulator.size() < 4 + MsgLen)
 			{
-				spdlog::error("Failed to setup HTB class");
+				break;
 			}
-		}
-		else if (Msg.Type == EIPLinkMsgType::ConfigurePortRouting && Msg.SetupPortRouting)
-		{
-			if (!ConfigurePortRouting(Msg.SetupPortRouting, IfbDev))
+
+			std::string MsgData = Accumulator.substr(4, MsgLen);
+			Accumulator.erase(0, 4 + MsgLen);
+
+			std::stringstream SS(MsgData);
+			WIPLinkMsg        Msg;
+			try
 			{
-				spdlog::error("Failed to configure port routing");
+				cereal::BinaryInputArchive Iar(SS);
+				Iar(Msg);
+			}
+			catch (std::exception const& e)
+			{
+				spdlog::error("Failed to deserialize message: {}", e.what());
+				continue;
+			}
+
+			if (Msg.Secret != SocketSecret)
+			{
+				spdlog::warn("Received message with invalid secret, ignoring");
+				continue;
+			}
+
+			if (Msg.Type == EIPLinkMsgType::Exit)
+			{
+				spdlog::info("Received exit message, shutting down");
+				Handler.bStop = true;
+			}
+			else if (Msg.Type == EIPLinkMsgType::SetupHtbClass && Msg.SetupHtbClass)
+			{
+				if (!SetupHtbClass(Msg.SetupHtbClass))
+				{
+					spdlog::error("Failed to setup HTB class");
+				}
+			}
+			else if (Msg.Type == EIPLinkMsgType::ConfigurePortRouting && Msg.SetupPortRouting)
+			{
+				if (!ConfigurePortRouting(Msg.SetupPortRouting, IfbDev))
+				{
+					spdlog::error("Failed to configure port routing");
+				}
 			}
 		}
 	}
