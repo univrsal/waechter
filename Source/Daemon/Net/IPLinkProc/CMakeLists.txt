@@ -6,4 +6,5 @@ target_link_libraries(waechter-iplink
         PRIVATE
         waechter::util
         thirdparty::spdlog
+        thirdparty::cereal
 )
