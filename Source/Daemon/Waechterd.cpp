@@ -8,7 +8,7 @@
 #include <spdlog/spdlog.h>
 #include <unistd.h>
 
-#include "WaechterEbpf.hpp"
+#include "EBPF/WaechterEbpf.hpp"
 #include "Net/Resolver.hpp"
 #include "Net/IPLink.hpp"
 

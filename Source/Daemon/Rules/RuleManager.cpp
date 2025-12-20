@@ -8,7 +8,7 @@
 #include <cereal/archives/binary.hpp>
 
 #include "Daemon.hpp"
-#include "EbpfData.hpp"
+#include "../EBPF/EbpfData.hpp"
 #include "Data/RuleUpdate.hpp"
 #include "Data/SystemMap.hpp"
 #include "Data/NetworkEvents.hpp"

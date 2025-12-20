@@ -4,7 +4,7 @@
 
 #pragma once
 #include "Singleton.hpp"
-#include "WaechterEbpf.hpp"
+#include "EBPF/WaechterEbpf.hpp"
 #include "Communication/DaemonSocket.hpp"
 
 class WDaemon : public TSingleton<WDaemon>

@@ -6,7 +6,6 @@
 #include <unordered_map>
 #include <bpf/bpf.h>
 #include <linux/bpf.h>
-#include <cstdint>
 
 template <typename K, typename T>
 class TEbpfMap

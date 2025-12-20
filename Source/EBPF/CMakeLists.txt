@@ -1,0 +1,81 @@
+# Detect BPF target arch from host
+set(BPF_TARGET_ARCH x86)
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64")
+    set(BPF_TARGET_ARCH x86)
+elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|AARCH64|arm64")
+    set(BPF_TARGET_ARCH arm64)
+elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "armv7|armv7l|arm")
+    set(BPF_TARGET_ARCH arm)
+elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "ppc64le")
+    set(BPF_TARGET_ARCH powerpc)
+endif ()
+
+find_program(CLANG_EXECUTABLE NAMES clang REQUIRED)
+
+find_program(BPFTTOOL_EXECUTABLE bpftool)
+
+set(VMLINUX_SRC "/sys/kernel/btf/vmlinux")
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/vmlinux")
+set(VMLINUX_OUT "${CMAKE_CURRENT_BINARY_DIR}/vmlinux/vmlinux.h")
+if (BPFTTOOL_EXECUTABLE)
+    message(STATUS "Found bpftool: ${BPFTTOOL_EXECUTABLE}")
+
+    if (EXISTS ${VMLINUX_SRC})
+        add_custom_command(
+                OUTPUT ${VMLINUX_OUT}
+                COMMAND /bin/sh -c "${BPFTTOOL_EXECUTABLE} btf dump file ${VMLINUX_SRC} format c > ${VMLINUX_OUT}"
+                DEPENDS ${BPFTTOOL_EXECUTABLE}
+                COMMENT "Generating ${VMLINUX_OUT} from ${VMLINUX_SRC}"
+                VERBATIM
+        )
+
+        add_custom_target(generate_vmlinux_h ALL DEPENDS ${VMLINUX_OUT})
+    else ()
+        message(WARNING "BTF not found at ${VMLINUX_SRC}; skipping generation of `vmlinux.h`")
+    endif ()
+else ()
+    message(FATAL_ERROR "bpftool not found; skipping generation of `vmlinux.h`")
+endif ()
+
+# Build eBPF object
+set(BPF_SRC ${CMAKE_SOURCE_DIR}/Source/EBPF/WaechterEBPF.c)
+set(BPF_HDR
+        ${VMLINUX_OUT}
+        EBPFConnect.h
+        EBPFTraffic.h
+        EBPFBind.h
+        EBPFAccept.h
+        EBPFInternal.h
+        EBPFLifetime.h
+        EBPFUdp.h
+        ${CMAKE_SOURCE_DIR}/Source/Util/EBPFCommon.h
+)
+set(BPF_OBJ ${CMAKE_CURRENT_BINARY_DIR}/waechter-ebpf.o)
+set(SKELETON_OUT "${CMAKE_CURRENT_BINARY_DIR}/WaechterEBPF.skel.h")
+
+
+add_library(ebpf_includes INTERFACE)
+
+target_include_directories(ebpf_includes SYSTEM INTERFACE
+        ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+add_custom_command(
+        OUTPUT ${BPF_OBJ} ${SKELETON_OUT}
+        COMMAND ${CLANG_EXECUTABLE} -O2 -g -target bpf -D__TARGET_ARCH_${BPF_TARGET_ARCH} -Wall -Wno-unused-value -Wno-pointer-sign -Wno-compare-distinct-pointer-types -Werror
+        -I/usr/include -I/usr/include/bpf
+        -I${CMAKE_CURRENT_BINARY_DIR}/vmlinux
+        -I${CMAKE_SOURCE_DIR}/Source/Util
+        -c ${BPF_SRC} -o ${BPF_OBJ}
+        COMMAND ${BPFTTOOL_EXECUTABLE} gen skeleton ${BPF_OBJ} > ${SKELETON_OUT}
+        DEPENDS ${BPF_SRC} ${BPF_HDR}
+        COMMENT "Building eBPF object ${BPF_OBJ}"
+        VERBATIM
+)
+
+add_custom_target(bpfobj ALL DEPENDS ${BPF_OBJ})
+if (TARGET generate_vmlinux_h)
+    add_dependencies(bpfobj generate_vmlinux_h)
+endif ()
+
+message(STATUS "EBPF object is build to " ${BPF_OBJ})

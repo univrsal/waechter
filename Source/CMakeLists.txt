@@ -1,4 +1,5 @@
 add_subdirectory(Util)
+add_subdirectory(EBPF)
 add_subdirectory(Daemon)
 add_subdirectory(Gui)
 
