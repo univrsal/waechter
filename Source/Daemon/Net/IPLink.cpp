@@ -65,7 +65,7 @@ WBandwidthLimit::~WBandwidthLimit()
 	SYSFMT2("tc class delete dev {} classid 1:{}", IfName, MinorId);
 }
 
-bool WIPLink::SetupHTBLimitClass(
+void WIPLink::SetupHTBLimitClass(
 	std::shared_ptr<WBandwidthLimit> const& Limit, std::string const& IfName, bool bAttachMarkFilter) const
 {
 	spdlog::info("Setting up HTB class on interface {}: classid=1:{}, mark=0x{:x}, rate={} B/s", IfName, Limit->MinorId,
@@ -81,8 +81,6 @@ bool WIPLink::SetupHTBLimitClass(
 	Msg.SetupHtbClass->RateLimit = Limit->RateLimit;
 	Msg.SetupHtbClass->bAddMarkFilter = bAttachMarkFilter;
 	IpProcSocket->SendMessage(Msg);
-
-	return true;
 }
 
 void WIPLink::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket)
@@ -159,17 +157,17 @@ bool WIPLink::Deinit()
 	return true;
 }
 
-bool WIPLink::SetupEgressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit)
+void WIPLink::SetupEgressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit)
 {
-	return SetupHTBLimitClass(Limit, WDaemonConfig::GetInstance().NetworkInterfaceName, true);
+	SetupHTBLimitClass(Limit, WDaemonConfig::GetInstance().NetworkInterfaceName, true);
 }
 
-bool WIPLink::SetupIngressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit)
+void WIPLink::SetupIngressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit)
 {
-	return SetupHTBLimitClass(Limit, IfbDev, false);
+	SetupHTBLimitClass(Limit, IfbDev, false);
 }
 
-bool WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uint16_t Dport)
+void WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uint16_t Dport)
 {
 	spdlog::info("Setting up ingress port routing for traffic item ID {}: dport={}, qdisc id={}", Item, Dport, QDiscId);
 	std::lock_guard Lock(Mutex);
@@ -181,7 +179,7 @@ bool WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uin
 		{
 			// Already routed
 			spdlog::info("Port already routed for traffic item ID {}: dport={}, qdisc id={}", Item, Dport, QDiscId);
-			return true;
+			return;
 		}
 		WIPLinkMsg Msg{};
 		Msg.Type = EIPLinkMsgType::ConfigurePortRouting;
@@ -195,7 +193,7 @@ bool WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uin
 		Limit.Port = Dport;
 		Limit.QDiscId = QDiscId;
 
-		return true;
+		return;
 	}
 	spdlog::info("Sending port routing setup to ip link process for traffic item ID {}: dport={}, qdisc id={}", Item,
 		Dport, QDiscId);
@@ -211,15 +209,14 @@ bool WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uin
 	Msg.SetupPortRouting->Dport = Dport;
 	Msg.SetupPortRouting->QDiscId = QDiscId;
 	IpProcSocket->SendMessage(Msg);
-	return true;
 }
 
-bool WIPLink::RemoveIngressPortRouting(WTrafficItemId Item)
+void WIPLink::RemoveIngressPortRouting(WTrafficItemId Item)
 {
 	std::lock_guard Lock(Mutex);
 	if (!IngressPortRoutings.contains(Item))
 	{
-		return false;
+		return;
 	}
 
 	auto&      Limit = IngressPortRoutings[Item];
@@ -232,7 +229,6 @@ bool WIPLink::RemoveIngressPortRouting(WTrafficItemId Item)
 	Msg.SetupPortRouting->bRemove = true;
 	IpProcSocket->SendMessage(Msg);
 	IngressPortRoutings.erase(Item);
-	return true;
 }
 
 void WIPLink::RemoveUploadLimit(WTrafficItemId const& ItemId)
