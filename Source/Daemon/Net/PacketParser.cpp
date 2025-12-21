@@ -1,6 +1,7 @@
-//
-// Created by usr on 23/10/2025.
-//
+/*
+ * Copyright (c) 2025, Alex <uni@vrsal.xyz>
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
 
 #include "PacketParser.hpp"
 

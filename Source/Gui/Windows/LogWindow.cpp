@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2025, Alex <uni@vrsal.xyz>
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 #include "LogWindow.hpp"
 
 #include <imgui.h>

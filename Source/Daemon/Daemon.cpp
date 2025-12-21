@@ -1,6 +1,7 @@
-//
-// Created by usr on 19/11/2025.
-//
+/*
+ * Copyright (c) 2025, Alex <uni@vrsal.xyz>
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
 
 #include "Daemon.hpp"
 

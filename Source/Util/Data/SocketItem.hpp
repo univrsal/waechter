@@ -1,6 +1,8 @@
-//
-// Created by usr on 30/10/2025.
-//
+/*
+ * Copyright (c) 2025, Alex <uni@vrsal.xyz>
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 #pragma once
 #include <memory>
 #include <unordered_map>

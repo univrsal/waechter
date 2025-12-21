@@ -1,6 +1,8 @@
-//
-// Created by usr on 27/10/2025.
-//
+/*
+ * Copyright (c) 2025, Alex <uni@vrsal.xyz>
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 #define INCBIN_PREFIX G
 
 #include "AboutDialog.hpp"
