@@ -20,3 +20,24 @@ Build requirements:
 - A recent Linux kernel with eBPF support
 - `bpftool` to create vmlinux.h
 - `clang` and `llvm` to compile eBPF programs
+
+### Roadmap
+
+Wächter is still in early development. Currently implemented features:
+
+- Monitor per-connection network traffic (upload and download)
+- View connection information (local/remote endpoints, hostname)
+- Block upload/download per connection
+- Throttle upload/download per connection
+
+Planned features:
+
+- Connection history to log what are made by which application
+- Persistent rules that are saved and loaded on startup
+- Long-term traffic statistics and graphs
+
+Potential future features:
+
+- Priority-based traffic shaping
+- Traffic quotas
+- Global rules per ip/port etc.
