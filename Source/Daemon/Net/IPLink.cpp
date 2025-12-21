@@ -97,7 +97,7 @@ bool WIPLink::Init()
 		}
 	}
 	// Launch IPLinkProc as root with arguments [socket path] [secret] [ifb dev] [ingress interface]
-	std::string IngressInterface = WDaemonConfig::GetInstance().NetworkInterfaceName;
+	std::string IngressInterface = WDaemonConfig::GetInstance().IngressNetworkInterfaceName;
 	std::string Cmd = fmt::format(
 		"{} {} {} {}", IPLinkProcPath, WDaemonConfig::GetInstance().IpLinkProcSocketPath, IfbDev, IngressInterface);
 
