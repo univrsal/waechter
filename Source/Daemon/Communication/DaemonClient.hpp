@@ -57,9 +57,14 @@ public:
 
 	[[nodiscard]] std::shared_ptr<WClientSocket> GetSocket() const { return ClientSocket; }
 
-	ssize_t SendData(WBuffer& Buffer) const { return ClientSocket->Send(Buffer); }
-
-	[[nodiscard]] ssize_t SendFramedData(std::string const& Data) const { return ClientSocket->SendFramed(Data); }
+	[[nodiscard]] ssize_t SendFramedData(std::string const& Data) const
+	{
+		if (!Running)
+		{
+			return 0;
+		}
+		return ClientSocket->SendFramed(Data);
+	}
 
 	template <class T>
 	void SendMessage(EMessageType Type, T const& Data)
