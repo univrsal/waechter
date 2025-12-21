@@ -124,3 +124,20 @@ void WDaemonSocket::BroadcastTrafficUpdate()
 		}
 	}
 }
+
+void WDaemonSocket::BroadcastAtlasUpdate()
+{
+	auto&           SystemMap = WSystemMap::GetInstance();
+	std::lock_guard Lock(ClientsMutex);
+	spdlog::info("App icon atlas is dirty, broadcasting atlas update to clients");
+	auto              ActiveApps = SystemMap.GetActiveApplicationPaths();
+	WAppIconAtlasData Data{};
+	if (WAppIconAtlasBuilder::GetInstance().GetAtlasData(Data, ActiveApps))
+	{
+		for (auto const& Client : Clients)
+		{
+			Client->SendMessage(MT_AppIconAtlasData, Data);
+		}
+	}
+	WAppIconAtlasBuilder::GetInstance().ClearDirty();
+}

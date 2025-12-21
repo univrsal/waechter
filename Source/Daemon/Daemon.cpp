@@ -9,6 +9,7 @@
 #include "DaemonConfig.hpp"
 #include "ErrnoUtil.hpp"
 #include "SignalHandler.hpp"
+#include "Data/AppIconAtlasBuilder.hpp"
 #include "Data/SystemMap.hpp"
 #include "Rules/RuleManager.hpp"
 
@@ -68,6 +69,11 @@ void WDaemon::RunLoop()
 		{
 			WSystemMap::GetInstance().RefreshAllTrafficCounters();
 			DaemonSocket->BroadcastTrafficUpdate();
+
+			if (DaemonSocket->HasClients() && WAppIconAtlasBuilder::GetInstance().IsDirty())
+			{
+				DaemonSocket->BroadcastAtlasUpdate();
+			}
 			LastTrafficUpdate = now;
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));

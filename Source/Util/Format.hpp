@@ -25,6 +25,22 @@ enum EStorageUnit
 	SU_Auto
 };
 
+class WStringFormat
+{
+public:
+	// Remove leading and trailing whitespace from a string
+	static std::string Trim(std::string const& Str)
+	{
+		size_t const First = Str.find_first_not_of(' ');
+		if (First == std::string::npos)
+		{
+			return "";
+		}
+		size_t const Last = Str.find_last_not_of(' ');
+		return Str.substr(First, (Last - First + 1));
+	}
+};
+
 class WTrafficFormat
 {
 public:

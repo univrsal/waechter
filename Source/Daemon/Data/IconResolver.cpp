@@ -68,19 +68,24 @@ inline std::string FindIconPathByName(std::string const& Name)
 	return "";
 }
 
-std::string WIconResolver::GetIconFromBinaryName(std::string const& Binary)
+std::string WIconResolver::GetIconFromBinaryName(std::string const& Binary) const
 {
+	if (Binary.empty())
+	{
+		return "";
+	}
+
 	auto const DesktopFile = FindDesktopFile(Binary, DesktopDirs);
 	if (DesktopFile.empty())
 	{
-		spdlog::warn("No desktop file found for binary '{}'", Binary);
+		spdlog::debug("No desktop file found for binary '{}'", Binary);
 		return "";
 	}
 
 	auto const Name = GetIconName(DesktopFile);
 	if (Name.empty())
 	{
-		spdlog::warn("No icon name found in desktop file '{}'", DesktopFile);
+		spdlog::debug("No icon name found in desktop file '{}'", DesktopFile);
 		return "";
 	}
 	return FindIconPathByName(Name);

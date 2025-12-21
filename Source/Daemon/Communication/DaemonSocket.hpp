@@ -67,4 +67,6 @@ public:
 	}
 
 	void BroadcastTrafficUpdate();
+
+	void BroadcastAtlasUpdate();
 };

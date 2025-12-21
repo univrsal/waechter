@@ -7,7 +7,9 @@
 #include <spdlog/spdlog.h>
 #include <ranges>
 
+#include "AppIconAtlasBuilder.hpp"
 #include "Filesystem.hpp"
+#include "Format.hpp"
 #include "NetworkEvents.hpp"
 #include "Net/PacketParser.hpp"
 #include "Net/Resolver.hpp"
@@ -277,13 +279,23 @@ std::shared_ptr<WAppCounter> WSystemMap::FindOrMapApplication(
 	// Choose display name: AppName (comm) if provided, else basename of key
 	if (!AppName.empty())
 	{
-		AppItem->ApplicationName = AppName;
+		AppItem->ApplicationName = WStringFormat::Trim(AppName);
 	}
 	else
 	{
 		// derive basename
 		auto Pos = Key.find_last_of('/');
-		AppItem->ApplicationName = (Pos == std::string::npos) ? Key : Key.substr(Pos + 1);
+		AppItem->ApplicationName = WStringFormat::Trim((Pos == std::string::npos) ? Key : Key.substr(Pos + 1));
+	}
+
+	bool bHaveCachedIcon{ false };
+	auto IconPath =
+		WAppIconAtlasBuilder::GetInstance().GetResolver().ResolveIcon(AppItem->ApplicationName, &bHaveCachedIcon);
+
+	if (!IconPath.empty() && !bHaveCachedIcon)
+	{
+		// This is a new icon we haven't seen before, send atlas update to clients
+		WAppIconAtlasBuilder::GetInstance().MarkDirty();
 	}
 
 	SystemItem->Applications[Key] = AppItem;
@@ -366,7 +378,7 @@ std::vector<std::string> WSystemMap::GetActiveApplicationPaths()
 
 	for (auto const& App : Applications | std::views::values)
 	{
-		if (!App->TrafficItem->Processes.empty())
+		if (!App->TrafficItem->Processes.empty() && !App->TrafficItem->ApplicationName.empty())
 		{
 			ActiveApps.emplace_back(App->TrafficItem->ApplicationName);
 		}
