@@ -100,7 +100,6 @@ bool WIPLink::Init()
 	{
 		IpProcSecret += static_cast<char>('A' + (rand() % 26));
 	}
-	IpProcSecret = "123";
 	// Get the path to waechter-iplink, assuming it's in the Net/IPLinkProc subdirectory relative to this executable's
 	// directory
 	std::string IPLinkProcPath = "waechter-iplink"; // fallback
@@ -124,11 +123,11 @@ bool WIPLink::Init()
 
 	spdlog::info("Launching waechter-iplink process: {}", Cmd);
 	// Start the process
-	// if (!LaunchDetachedProcess(Cmd))
-	// {
-	// 	spdlog::error("Failed to start waechter-iplink process");
-	// 	return false;
-	// }
+	if (!LaunchDetachedProcess(Cmd))
+	{
+		spdlog::error("Failed to start waechter-iplink process");
+		return false;
+	}
 
 	IpProcSocket = std::make_unique<WClientSocket>(WDaemonConfig::GetInstance().IpLinkProcSocketPath);
 
@@ -198,8 +197,8 @@ bool WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uin
 
 		return true;
 	}
-	spdlog::info("Sending port routing setup to ip link process for traffic item ID {}: dport={}, qdisc id={}", Item, Dport,
-		QDiscId);
+	spdlog::info("Sending port routing setup to ip link process for traffic item ID {}: dport={}, qdisc id={}", Item,
+		Dport, QDiscId);
 	WIngressPortRouting NewRouting;
 	NewRouting.Port = Dport;
 	NewRouting.QDiscId = QDiscId;
