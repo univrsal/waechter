@@ -87,11 +87,13 @@ ssize_t WClientSocket::Send(WBuffer const& Buf)
 	size_t      Len = Buf.GetWritePos();
 	while (Total < Len)
 	{
-		ssize_t Sent = send(SocketFd, Data + Total, Len - Total, 0);
+		ssize_t Sent = send(SocketFd, Data + Total, Len - Total, MSG_NOSIGNAL);
 		if (Sent < 0)
 		{
 			if (errno == EINTR)
 				continue; // retry
+			if (errno == EPIPE)
+				break; // connection closed
 			if (!bBlocking && (errno == EWOULDBLOCK))
 				break; // return partial in non-blocking mode
 			MarkStateForError(errno);
