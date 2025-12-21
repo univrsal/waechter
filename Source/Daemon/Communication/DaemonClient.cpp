@@ -8,16 +8,12 @@
 
 void WDaemonClient::ListenThreadFunction()
 {
-	WBuffer Msg;
+	WBuffer Accumulator;
+	WBuffer RecvBuf;
 	while (Running)
 	{
 		bool bDataToRead;
-		bool bOk = ClientSocket->Receive(Msg, &bDataToRead);
-		if (!bDataToRead)
-		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(50));
-			continue;
-		}
+		bool bOk = ClientSocket->Receive(RecvBuf, &bDataToRead);
 
 		if (!bOk)
 		{
@@ -26,23 +22,50 @@ void WDaemonClient::ListenThreadFunction()
 			break;
 		}
 
-		Msg.Consume(4); // Skip message length for now
-		auto Type = ReadMessageTypeFromBuffer(Msg);
-		if (Type == MT_Invalid)
+		if (!bDataToRead)
 		{
-			spdlog::warn("Received invalid message type from daemon client");
+			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			continue;
 		}
-		spdlog::info("Received message: {}", static_cast<int>(Type));
 
-		switch (Type)
+		Accumulator.Write(RecvBuf.GetData(), RecvBuf.GetWritePos());
+
+		while (Accumulator.GetReadableSize() >= 4)
 		{
-			case MT_RuleUpdate:
-				WRuleManager::GetInstance().HandleRuleChange(Msg);
+			uint32_t PayloadLen = 0;
+			std::memcpy(&PayloadLen, Accumulator.PeekReadPtr(), 4);
+
+			if (Accumulator.GetReadableSize() < 4 + PayloadLen)
+			{
 				break;
-			default:
-				break;
+			}
+
+			// Extract the full message
+			std::vector<char> RawMsg(4 + PayloadLen);
+			Accumulator.Read(RawMsg.data(), 4 + PayloadLen);
+
+			WBuffer Msg;
+			Msg.Write(RawMsg.data(), RawMsg.size());
+
+			Msg.Consume(4); // Skip message length for now
+			auto Type = ReadMessageTypeFromBuffer(Msg);
+			if (Type == MT_Invalid)
+			{
+				spdlog::warn("Received invalid message type from daemon client");
+				continue;
+			}
+			spdlog::info("Received message: {}", static_cast<int>(Type));
+
+			switch (Type)
+			{
+				case MT_RuleUpdate:
+					WRuleManager::GetInstance().HandleRuleChange(Msg);
+					break;
+				default:
+					break;
+			}
 		}
+		Accumulator.Compact();
 	}
 	ClientSocket->Close();
 	spdlog::info("Client exited loop");
