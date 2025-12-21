@@ -3,4 +3,14 @@
 //
 
 #pragma once
-int is_valid_key(const char* username, const char* key);
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+	int is_valid_key(char const* username, char const* key);
+
+#ifdef __cplusplus
+}
+#endif

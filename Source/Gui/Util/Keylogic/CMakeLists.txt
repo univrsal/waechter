@@ -1,2 +1,3 @@
+add_library(keylogic STATIC keylogic.c)
 
-target_link_libraries(waechter PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/libvalidate.a")
+target_link_libraries(waechter PRIVATE keylogic)
