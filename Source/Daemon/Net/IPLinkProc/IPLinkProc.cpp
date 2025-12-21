@@ -112,10 +112,9 @@ bool Init(std::string const& IfbDev, std::string const& IngressInterface)
 //  - A filter on the ingress qdisc to redirect all traffic to ifb0
 int main(int Argc, char** Argv)
 {
-	// todo switch secret to env var, args are visible to everyone
 	if (Argc < 4)
 	{
-		spdlog::error("Usage: waechter-iplink [socket path] [socket secret] [ifb dev] [ingress interface]");
+		spdlog::error("Usage: waechter-iplink [socket path] [ifb dev] [ingress interface]");
 		return -1;
 	}
 
@@ -191,12 +190,6 @@ int main(int Argc, char** Argv)
 			catch (std::exception const& e)
 			{
 				spdlog::error("Failed to deserialize message: {}", e.what());
-				continue;
-			}
-
-			if (Msg.Secret != SocketSecret)
-			{
-				spdlog::warn("Received message with invalid secret, ignoring");
 				continue;
 			}
 

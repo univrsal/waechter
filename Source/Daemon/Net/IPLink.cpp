@@ -73,7 +73,6 @@ void WIPLink::SetupHTBLimitClass(
 
 	WIPLinkMsg Msg{};
 	Msg.Type = EIPLinkMsgType::SetupHtbClass;
-	Msg.Secret = IpProcSecret;
 	Msg.SetupHtbClass = std::make_shared<WSetupHtbClassMsg>();
 	Msg.SetupHtbClass->InterfaceName = IfName;
 	Msg.SetupHtbClass->Mark = Limit->Mark;
@@ -94,10 +93,6 @@ bool WIPLink::Init()
 	WNetworkEvents::GetInstance().OnSocketRemoved.connect(
 		std::bind(&WIPLink::OnSocketRemoved, this, std::placeholders::_1));
 
-	for (int i = 0; i < 16; ++i)
-	{
-		IpProcSecret += static_cast<char>('A' + (rand() % 26));
-	}
 	// Get the path to waechter-iplink, assuming it's in the Net/IPLinkProc subdirectory relative to this executable's
 	// directory
 	std::string IPLinkProcPath = "waechter-iplink"; // fallback
@@ -116,8 +111,8 @@ bool WIPLink::Init()
 	}
 	// Launch IPLinkProc as root with arguments [socket path] [secret] [ifb dev] [ingress interface]
 	std::string IngressInterface = WDaemonConfig::GetInstance().NetworkInterfaceName;
-	std::string Cmd = fmt::format("{} {} {} {} {}", IPLinkProcPath, WDaemonConfig::GetInstance().IpLinkProcSocketPath,
-		IpProcSecret, IfbDev, IngressInterface);
+	std::string Cmd = fmt::format(
+		"{} {} {} {}", IPLinkProcPath, WDaemonConfig::GetInstance().IpLinkProcSocketPath, IfbDev, IngressInterface);
 
 	spdlog::info("Launching waechter-iplink process: {}", Cmd);
 	// Start the process
@@ -183,7 +178,6 @@ void WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uin
 		}
 		WIPLinkMsg Msg{};
 		Msg.Type = EIPLinkMsgType::ConfigurePortRouting;
-		Msg.Secret = IpProcSecret;
 		Msg.SetupPortRouting = std::make_shared<WConfigurePortRouting>();
 		Msg.SetupPortRouting->Dport = Dport;
 		Msg.SetupPortRouting->QDiscId = QDiscId;
@@ -204,7 +198,6 @@ void WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uin
 
 	WIPLinkMsg Msg{};
 	Msg.Type = EIPLinkMsgType::ConfigurePortRouting;
-	Msg.Secret = IpProcSecret;
 	Msg.SetupPortRouting = std::make_shared<WConfigurePortRouting>();
 	Msg.SetupPortRouting->Dport = Dport;
 	Msg.SetupPortRouting->QDiscId = QDiscId;
@@ -222,7 +215,6 @@ void WIPLink::RemoveIngressPortRouting(WTrafficItemId Item)
 	auto&      Limit = IngressPortRoutings[Item];
 	WIPLinkMsg Msg{};
 	Msg.Type = EIPLinkMsgType::ConfigurePortRouting;
-	Msg.Secret = IpProcSecret;
 	Msg.SetupPortRouting = std::make_shared<WConfigurePortRouting>();
 	Msg.SetupPortRouting->Dport = Limit.Port;
 	Msg.SetupPortRouting->QDiscId = Limit.QDiscId;

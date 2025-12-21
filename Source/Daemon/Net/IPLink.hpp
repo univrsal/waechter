@@ -54,8 +54,6 @@ class WIPLink : public TSingleton<WIPLink>
 
 	std::unique_ptr<WClientSocket> IpProcSocket;
 
-	std::string IpProcSecret;
-
 	void SetupHTBLimitClass(
 		std::shared_ptr<WBandwidthLimit> const& Limit, std::string const& IfName, bool bAttachMarkFilter) const;
 	void OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket);

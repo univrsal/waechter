@@ -48,7 +48,6 @@ struct WConfigurePortRouting
 struct WIPLinkMsg
 {
 	EIPLinkMsgType Type{};
-	std::string    Secret{};
 
 	std::shared_ptr<WSetupHtbClassMsg>     SetupHtbClass{};
 	std::shared_ptr<WConfigurePortRouting> SetupPortRouting{};
@@ -57,7 +56,6 @@ struct WIPLinkMsg
 	void serialize(Archive& Ar)
 	{
 		Ar(Type);
-		Ar(Secret);
 		Ar(SetupHtbClass);
 		Ar(SetupPortRouting);
 	}
