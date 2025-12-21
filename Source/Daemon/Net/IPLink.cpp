@@ -63,12 +63,6 @@ WBandwidthLimit::~WBandwidthLimit()
 			MinorId);
 	}
 	SYSFMT2("tc class delete dev {} classid 1:{}", IfName, MinorId);
-
-	// for (auto Port : RoutedPorts)
-	// {
-	// 	SYSFMT2("tc filter delete dev {} parent 1: protocol ip prio {} u32 match ip dport {} 0xffff flowid 1:{}",
-	// 		IfName, kIngressPortFilterPriority, Port, MinorId);
-	// }
 }
 
 bool WIPLink::SetupHTBLimitClass(
