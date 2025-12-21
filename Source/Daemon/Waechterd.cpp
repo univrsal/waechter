@@ -22,6 +22,7 @@ int main()
 
 	libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
 	spdlog::info("Waechter daemon starting");
+	WDaemonConfig::GetInstance().LogConfig();
 	if (!WIPLink::GetInstance().Init())
 	{
 		spdlog::error("Failed to initialize IP link");

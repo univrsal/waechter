@@ -15,7 +15,6 @@
 
 WDaemon::WDaemon()
 {
-	WDaemonConfig::GetInstance().LogConfig();
 	WDaemonConfig::BTFTest();
 }
 
