@@ -42,7 +42,7 @@ struct WSocketCounter;
 
 class WIPLink : public TSingleton<WIPLink>
 {
-
+	friend struct WBandwidthLimit;
 	std::mutex            Mutex;
 	std::atomic<uint32_t> NextMark{ 1 };
 	std::atomic<uint16_t> NextMinorId{ 11 }; // 10 is root

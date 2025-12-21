@@ -54,6 +54,17 @@ bool SetupHtbClass(std::shared_ptr<WSetupHtbClassMsg> const& SetupHtbClass)
 	return true;
 }
 
+bool RemoveHtbClass(std::shared_ptr<WRemoveHtbClassMsg> const& RemoveHtbClass)
+{
+	if (RemoveHtbClass->bIsUpload)
+	{
+		SYSFMT2("tc filter delete dev {} parent 1: protocol ip pref 1 handle 0x{:x} fw classid 1:{}",
+			RemoveHtbClass->InterfaceName, RemoveHtbClass->Mark, RemoveHtbClass->MinorId);
+	}
+	SYSFMT("tc class delete dev {} classid 1:{}", RemoveHtbClass->InterfaceName, RemoveHtbClass->MinorId);
+	return true;
+}
+
 bool ConfigurePortRouting(std::shared_ptr<WConfigurePortRouting> const& SetupPortRouting, std::string const& IfbDev)
 {
 	if (SetupPortRouting->bRemove)
@@ -112,6 +123,8 @@ bool Init(std::string const& IfbDev, std::string const& IngressInterface)
 //  - A filter on the ingress qdisc to redirect all traffic to ifb0
 int main(int Argc, char** Argv)
 {
+	spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] [tc] %v");
+
 	if (Argc < 4)
 	{
 		spdlog::error("Usage: waechter-iplink [socket path] [ifb dev] [ingress interface]");
@@ -119,9 +132,8 @@ int main(int Argc, char** Argv)
 	}
 
 	std::string SocketPath = Argv[1];
-	std::string SocketSecret = Argv[2];
-	std::string IfbDev = Argv[3];
-	std::string IngressInterface = Argv[4];
+	std::string IfbDev = Argv[2];
+	std::string IngressInterface = Argv[3];
 	if (std::filesystem::exists(SocketPath))
 	{
 		unlink(SocketPath.c_str());
@@ -203,6 +215,13 @@ int main(int Argc, char** Argv)
 				if (!SetupHtbClass(Msg.SetupHtbClass))
 				{
 					spdlog::error("Failed to setup HTB class");
+				}
+			}
+			else if (Msg.Type == EIPLinkMsgType::RemoveHtbClass && Msg.RemoveHtbClass)
+			{
+				if (!RemoveHtbClass(Msg.RemoveHtbClass))
+				{
+					spdlog::error("Failed to remove HTB class");
 				}
 			}
 			else if (Msg.Type == EIPLinkMsgType::ConfigurePortRouting && Msg.SetupPortRouting)

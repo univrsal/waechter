@@ -28,21 +28,6 @@ static bool LaunchDetachedProcess(std::string const& cmd)
 	return system(fmt::format("{} & disown", cmd).c_str()) == 0;
 }
 
-#define SYSFMT(_fmt, ...)                                                                                             \
-	if (auto RC = system(fmt::format(_fmt, __VA_ARGS__).c_str()); RC != 0)                                            \
-	{                                                                                                                 \
-		auto CmdFormatted = fmt::format(_fmt, __VA_ARGS__);                                                           \
-		spdlog::error("Failed to execute system command '{}': {} (RC={})", CmdFormatted, WErrnoUtil::StrError(), RC); \
-		return false;                                                                                                 \
-	}
-
-#define SYSFMT2(_fmt, ...)                                                                                            \
-	if (auto RC = system(fmt::format(_fmt, __VA_ARGS__).c_str()); RC != 0)                                            \
-	{                                                                                                                 \
-		auto CmdFormatted = fmt::format(_fmt, __VA_ARGS__);                                                           \
-		spdlog::error("Failed to execute system command '{}': {} (RC={})", CmdFormatted, WErrnoUtil::StrError(), RC); \
-	}
-
 constexpr int kIngressPortFilterPriority = 1;
 
 WBandwidthLimit::WBandwidthLimit(
@@ -57,12 +42,14 @@ WBandwidthLimit::~WBandwidthLimit()
 	std::string IfName =
 		(Direction == ELimitDirection::Upload) ? WDaemonConfig::GetInstance().NetworkInterfaceName : WIPLink::IfbDev;
 
-	if (Direction == ELimitDirection::Upload)
-	{
-		SYSFMT2("tc filter delete dev {} parent 1: protocol ip pref 1 handle 0x{:x} fw classid 1:{}", IfName, Mark,
-			MinorId);
-	}
-	SYSFMT2("tc class delete dev {} classid 1:{}", IfName, MinorId);
+	WIPLinkMsg Msg{};
+	Msg.Type = EIPLinkMsgType::RemoveHtbClass;
+	Msg.RemoveHtbClass = std::make_shared<WRemoveHtbClassMsg>();
+	Msg.RemoveHtbClass->InterfaceName = IfName;
+	Msg.RemoveHtbClass->Mark = Mark;
+	Msg.RemoveHtbClass->MinorId = MinorId;
+	Msg.RemoveHtbClass->bIsUpload = (Direction == ELimitDirection::Upload);
+	WIPLink::GetInstance().IpProcSocket->SendMessage(Msg);
 }
 
 void WIPLink::SetupHTBLimitClass(
