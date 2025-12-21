@@ -30,7 +30,7 @@ The project is split into five parts
 - Source/Client/ - Contains the client application that communicates with the daemon
     - Gui uses imgui and glfw for rendering
     - Different windows are in Source/Client/Gui/Windows/
-- An eBPF program in Source/Daemon/EBPF
+- An eBPF program in Source/EBPF
     - Split up into multiple header files
     - Tracks socket creation, destruction, state change and traffic
 - Shared utility code is in Source/Util
