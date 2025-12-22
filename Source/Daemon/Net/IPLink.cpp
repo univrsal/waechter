@@ -152,7 +152,6 @@ void WIPLink::SetupIngressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit
 
 void WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uint16_t Dport)
 {
-	spdlog::info("Setting up ingress port routing for traffic item ID {}: dport={}, qdisc id={}", Item, Dport, QDiscId);
 	std::lock_guard Lock(Mutex);
 	if (IngressPortRoutings.contains(Item))
 	{
@@ -177,8 +176,6 @@ void WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uin
 
 		return;
 	}
-	spdlog::info("Sending port routing setup to ip link process for traffic item ID {}: dport={}, qdisc id={}", Item,
-		Dport, QDiscId);
 	WIngressPortRouting NewRouting;
 	NewRouting.Port = Dport;
 	NewRouting.QDiscId = QDiscId;
