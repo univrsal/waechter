@@ -21,7 +21,7 @@
 #include <filesystem>
 
 #define SYSFMT(_fmt, ...)                                                                                             \
-	if (auto RC = system(fmt::format(_fmt, __VA_ARGS__).c_str()); RC != 0)                                            \
+	if (auto RC = SafeSystem(fmt::format(_fmt, __VA_ARGS__).c_str()); RC != 0)                                        \
 	{                                                                                                                 \
 		auto CmdFormatted = fmt::format(_fmt, __VA_ARGS__);                                                           \
 		spdlog::error("Failed to execute system command '{}': {} (RC={})", CmdFormatted, WErrnoUtil::StrError(), RC); \
@@ -29,7 +29,7 @@
 	}
 
 #define SYSFMT2(_fmt, ...)                                                                                            \
-	if (auto RC = system(fmt::format(_fmt, __VA_ARGS__).c_str()); RC != 0)                                            \
+	if (auto RC = SafeSystem(fmt::format(_fmt, __VA_ARGS__).c_str()); RC != 0)                                        \
 	{                                                                                                                 \
 		auto CmdFormatted = fmt::format(_fmt, __VA_ARGS__);                                                           \
 		spdlog::error("Failed to execute system command '{}': {} (RC={})", CmdFormatted, WErrnoUtil::StrError(), RC); \
@@ -38,31 +38,57 @@
 // Sole purpose of this executable is to run `tc` commands which require root
 // Commands are sent via unix socket from waechterd after it has dropped privileges
 
+int SafeSystem(std::string const& Command)
+{
+	// Check if the command contains any dangerous characters
+	for (char c : Command)
+	{
+		if (!std::isalnum(c) && c != ' ' && c != '_' && c != '-' && c != ':' && c != '=')
+		{
+			spdlog::error("Unsafe character '{}' detected in command: {}", c, Command);
+			return -1;
+		}
+	}
+	return system(Command.c_str());
+}
+
+std::string SanitizeInterfaceName(std::string const& IfName)
+{
+	// only allow alphanumeric characters, underscores and dashes to prevent command injection
+	std::string Result = IfName;
+	Result.erase(
+		std::remove_if(Result.begin(), Result.end(), [](char c) { return !std::isalnum(c) && c != '_' && c != '-'; }),
+		Result.end());
+	return Result;
+}
+
 bool SetupHtbClass(std::shared_ptr<WSetupHtbClassMsg> const& SetupHtbClass)
 {
-
-	spdlog::info("Setting up HTB class on interface {}: classid=1:{}, mark=0x{:x}, rate={} B/s",
-		SetupHtbClass->InterfaceName, SetupHtbClass->MinorId, SetupHtbClass->Mark, SetupHtbClass->RateLimit);
-	SYSFMT("tc class replace dev {} parent 1:1 classid 1:{} htb rate {}bit ceil {}bit", SetupHtbClass->InterfaceName,
-		SetupHtbClass->MinorId, static_cast<uint64_t>(SetupHtbClass->RateLimit * 8),
-		static_cast<uint64_t>(SetupHtbClass->RateLimit * 8));
+	auto const IfName = SanitizeInterfaceName(SetupHtbClass->InterfaceName);
+	spdlog::info("Setting up HTB class on interface {}: classid=1:{}, mark=0x{:x}, rate={} B/s", IfName,
+		SetupHtbClass->MinorId, SetupHtbClass->Mark, SetupHtbClass->RateLimit);
+	SYSFMT("tc class replace dev {} parent 1:1 classid 1:{} htb rate {}bit ceil {}bit", IfName, SetupHtbClass->MinorId,
+		static_cast<uint64_t>(SetupHtbClass->RateLimit * 8), static_cast<uint64_t>(SetupHtbClass->RateLimit * 8));
 
 	if (SetupHtbClass->bAddMarkFilter)
 	{
-		SYSFMT("tc filter replace dev {} parent 1: protocol ip pref 1 handle 0x{:x} fw classid 1:{}",
-			SetupHtbClass->InterfaceName, SetupHtbClass->Mark, SetupHtbClass->MinorId);
+		SYSFMT("tc filter replace dev {} parent 1: protocol ip pref 1 handle 0x{:x} fw classid 1:{}", IfName,
+			SetupHtbClass->Mark, SetupHtbClass->MinorId);
 	}
 	return true;
 }
 
 bool RemoveHtbClass(std::shared_ptr<WRemoveHtbClassMsg> const& RemoveHtbClass)
 {
+	auto const& IfName = SanitizeInterfaceName(RemoveHtbClass->InterfaceName);
+	spdlog::info("Removing HTB class on interface {}: classid=1:{}, mark=0x{:x}", IfName, RemoveHtbClass->MinorId,
+		RemoveHtbClass->Mark);
 	if (RemoveHtbClass->bIsUpload)
 	{
-		SYSFMT2("tc filter delete dev {} parent 1: protocol ip pref 1 handle 0x{:x} fw classid 1:{}",
-			RemoveHtbClass->InterfaceName, RemoveHtbClass->Mark, RemoveHtbClass->MinorId);
+		SYSFMT2("tc filter delete dev {} parent 1: protocol ip pref 1 handle 0x{:x} fw classid 1:{}", IfName,
+			RemoveHtbClass->Mark, RemoveHtbClass->MinorId);
 	}
-	SYSFMT("tc class delete dev {} classid 1:{}", RemoveHtbClass->InterfaceName, RemoveHtbClass->MinorId);
+	SYSFMT("tc class delete dev {} classid 1:{}", IfName, RemoveHtbClass->MinorId);
 	return true;
 }
 
@@ -72,26 +98,21 @@ bool ConfigurePortRouting(std::shared_ptr<WConfigurePortRouting> const& SetupPor
 	{
 		SYSFMT("tc filter delete dev {} parent 1: protocol ip prio {} u32 match ip dport {} 0xffff flowid 1:{}", IfbDev,
 			1, SetupPortRouting->Dport, SetupPortRouting->QDiscId);
-		return true;
 	}
-	spdlog::info("Setting up ingress port routing on interface {}: dport={}, qdisc id={}", IfbDev,
-		SetupPortRouting->Dport, SetupPortRouting->QDiscId);
-
-	if (SetupPortRouting->bRemove)
+	else
 	{
-		SYSFMT("tc filter delete dev {} parent 1: protocol ip prio {} u32 match ip dport {} 0xffff flowid 1:{}", IfbDev,
-			1, SetupPortRouting->Dport, SetupPortRouting->QDiscId);
+		spdlog::info("Setting up ingress port routing on interface {}: dport={}, qdisc id={}", IfbDev,
+			SetupPortRouting->Dport, SetupPortRouting->QDiscId);
+		SYSFMT("tc filter add dev {} protocol ip parent 1: prio {} u32 match ip dport {} 0xffff flowid 1:{}", IfbDev, 1,
+			SetupPortRouting->Dport, SetupPortRouting->QDiscId);
 	}
-	SYSFMT("tc filter add dev {} protocol ip parent 1: prio {} u32 match ip dport {} 0xffff flowid 1:{}", IfbDev, 1,
-		SetupPortRouting->Dport, SetupPortRouting->QDiscId);
 	return true;
 }
 
 bool Init(std::string const& IfbDev, std::string const& IngressInterface)
 {
-
 	// Create the ifb0 interface
-	SYSFMT("ip link delete {0}>/dev/null 2>&1 || ip link add {0} type ifb", IfbDev);
+	SafeSystem(fmt::format("ip link add {0} type ifb", IfbDev));
 	SYSFMT("ip link set {0} up", IfbDev);
 
 	// Ingress HTB setup
@@ -133,8 +154,8 @@ int main(int Argc, char** Argv)
 	}
 
 	std::string SocketPath = Argv[1];
-	std::string IfbDev = Argv[2];
-	std::string IngressInterface = Argv[3];
+	std::string IfbDev = SanitizeInterfaceName(Argv[2]);
+	std::string IngressInterface = SanitizeInterfaceName(Argv[3]);
 	if (std::filesystem::exists(SocketPath))
 	{
 		unlink(SocketPath.c_str());
