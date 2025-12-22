@@ -14,7 +14,8 @@ struct WProcessCounter;
 class WNetworkEvents final : public TSingleton<WNetworkEvents>
 {
 public:
-	sigslot::signal<std::shared_ptr<WSocketCounter>>         OnSocketCreated;
+	sigslot::signal<WSocketCounter const*>                   OnSocketConnected;
 	sigslot::signal<std::shared_ptr<WSocketCounter> const&>  OnSocketRemoved;
 	sigslot::signal<std::shared_ptr<WProcessCounter> const&> OnProcessRemoved;
+	sigslot::signal<std::shared_ptr<WProcessCounter> const&> OnProcessCreated;
 };

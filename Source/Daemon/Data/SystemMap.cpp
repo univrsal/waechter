@@ -222,8 +222,6 @@ std::shared_ptr<WSocketCounter> WSystemMap::FindOrMapSocket(
 	TrafficItems[Socket->TrafficItem->ItemId] = SocketItem;
 	ParentProcess->TrafficItem->Sockets[SocketCookie] = SocketItem;
 
-	WNetworkEvents::GetInstance().OnSocketCreated(Socket);
-
 	MapUpdate.AddSocketAddition(Socket);
 
 	return Socket;
@@ -245,6 +243,8 @@ std::shared_ptr<WProcessCounter> WSystemMap::FindOrMapProcess(
 	ParentApp->TrafficItem->Processes[PID] = ProcessItem;
 	Processes[PID] = Process;
 	TrafficItems[Process->TrafficItem->ItemId] = ProcessItem;
+
+	WNetworkEvents::GetInstance().OnProcessCreated(Process);
 	return Process;
 }
 
@@ -411,6 +411,7 @@ void WSystemMap::Cleanup()
 			//  - Remove all its sockets from the Sockets map
 			//  - Remove the process from its parent application's Processes map
 			//  - Remove the process from the Processes map
+			//  - Remove any rules associated with the process and its sockets
 			for (auto const& [SocketCookie, Socket] : Process->TrafficItem->Sockets)
 			{
 				WNetworkEvents::GetInstance().OnSocketRemoved(Sockets[SocketCookie]);

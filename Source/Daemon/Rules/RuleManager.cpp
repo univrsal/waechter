@@ -9,7 +9,7 @@
 #include <cereal/archives/binary.hpp>
 
 #include "Daemon.hpp"
-#include "../EBPF/EbpfData.hpp"
+#include "EBPF/EbpfData.hpp"
 #include "Data/RuleUpdate.hpp"
 #include "Data/SystemMap.hpp"
 #include "Data/NetworkEvents.hpp"
@@ -45,7 +45,8 @@ inline WTrafficItemRules GetEffectiveRules(WTrafficItemRules const& ParentRules,
 
 inline bool IsRuleDefault(WTrafficItemRules const& Rules)
 {
-	return Rules.UploadSwitch == SS_None && Rules.DownloadSwitch == SS_None;
+	return Rules.UploadSwitch == SS_None && Rules.DownloadSwitch == SS_None && Rules.UploadMark == 0
+		&& Rules.DownloadQdiscId == 0;
 }
 
 inline bool operator==(WTrafficItemRulesBase const& A, WTrafficItemRules const& B)
@@ -54,7 +55,7 @@ inline bool operator==(WTrafficItemRulesBase const& A, WTrafficItemRules const& 
 		&& A.DownloadQdiscId == B.DownloadQdiscId;
 }
 
-void WRuleManager::OnSocketCreated(std::shared_ptr<WSocketCounter> const& Socket)
+void WRuleManager::OnSocketConnected(WSocketCounter const* Socket)
 {
 	std::lock_guard Lock(Mutex);
 	auto            ProcessItem = Socket->ParentProcess->TrafficItem->ItemId;
@@ -190,8 +191,8 @@ void WRuleManager::SyncRules()
 
 void WRuleManager::RegisterSignalHandlers()
 {
-	WNetworkEvents::GetInstance().OnSocketCreated.connect(
-		std::bind(&WRuleManager::OnSocketCreated, this, std::placeholders::_1));
+	WNetworkEvents::GetInstance().OnSocketConnected.connect(
+		std::bind(&WRuleManager::OnSocketConnected, this, std::placeholders::_1));
 	WNetworkEvents::GetInstance().OnSocketRemoved.connect(
 		std::bind(&WRuleManager::OnSocketRemoved, this, std::placeholders::_1));
 	WNetworkEvents::GetInstance().OnProcessRemoved.connect(

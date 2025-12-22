@@ -6,6 +6,7 @@
 #include "Counters.hpp"
 
 #include "MapUpdate.hpp"
+#include "NetworkEvents.hpp"
 #include "SystemMap.hpp"
 
 void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
@@ -49,6 +50,7 @@ void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 			static_cast<uint16_t>(Event.Data.TCPSocketEstablishedEventData.UserPort);
 		TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv4Uint32(Event.Data.TCPSocketEstablishedEventData.Addr4);
 		TrafficItem->ConnectionState = ESocketConnectionState::Connected;
+		WNetworkEvents::GetInstance().OnSocketConnected(this);
 	}
 	else if (Event.EventType == NE_TCPSocketEstablished_6)
 	{
@@ -56,6 +58,7 @@ void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 			static_cast<uint16_t>(Event.Data.TCPSocketEstablishedEventData.UserPort);
 		TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv6Array(Event.Data.TCPSocketEstablishedEventData.Addr6);
 		TrafficItem->ConnectionState = ESocketConnectionState::Connected;
+		WNetworkEvents::GetInstance().OnSocketConnected(this);
 	}
 	else if (Event.EventType == NE_SocketBind_4)
 	{
@@ -70,6 +73,7 @@ void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 		{
 			TrafficItem->SocketType |= ESocketType::Listen;
 		}
+		WNetworkEvents::GetInstance().OnSocketConnected(this);
 	}
 	else if (Event.EventType == NE_SocketBind_6)
 	{
@@ -84,6 +88,7 @@ void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 		{
 			TrafficItem->SocketType |= ESocketType::Listen;
 		}
+		WNetworkEvents::GetInstance().OnSocketConnected(this);
 	}
 	else if (Event.EventType == NE_TCPSocketListening)
 	{

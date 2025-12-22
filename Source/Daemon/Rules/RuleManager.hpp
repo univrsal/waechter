@@ -35,7 +35,7 @@ class WRuleManager : public TSingleton<WRuleManager>
 
 	std::unordered_map<WSocketCookie, WSocketRules> SocketCookieRules;
 
-	void OnSocketCreated(std::shared_ptr<WSocketCounter> const& Socket);
+	void OnSocketConnected(WSocketCounter const* Socket);
 	void OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket);
 	void OnProcessRemoved(std::shared_ptr<WProcessCounter> const& ProcessItem);
 
