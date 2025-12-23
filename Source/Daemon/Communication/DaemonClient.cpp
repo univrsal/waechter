@@ -22,7 +22,6 @@ void WDaemonClient::ListenThreadFunction()
 
 		if (!bOk)
 		{
-			spdlog::info("Client disconnected");
 			Running = false;
 			break;
 		}
@@ -73,7 +72,7 @@ void WDaemonClient::ListenThreadFunction()
 		Accumulator.Compact();
 	}
 	ClientSocket->Close();
-	spdlog::info("Client exited loop");
+	spdlog::info("Client disconnected");
 }
 
 void WDaemonClient::StartListenThread()
