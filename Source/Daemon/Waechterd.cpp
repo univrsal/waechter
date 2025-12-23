@@ -15,6 +15,12 @@
 
 int main()
 {
+	if (std::getenv("INVOCATION_ID") != nullptr)
+	{
+		// Running under systemd so we don't need the timestamp from spdlog
+		spdlog::set_pattern("[%^%l%$] %v");
+	}
+
 	if (geteuid() != 0)
 	{
 		spdlog::critical("Waechter daemon requires root");
