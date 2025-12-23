@@ -287,6 +287,10 @@ std::shared_ptr<WAppCounter> WSystemMap::FindOrMapApplication(
 		// derive basename
 		auto Pos = Key.find_last_of('/');
 		AppItem->ApplicationName = WStringFormat::Trim((Pos == std::string::npos) ? Key : Key.substr(Pos + 1));
+		if (AppItem->ApplicationName.empty())
+		{
+			AppItem->ApplicationName = Key.empty() ? "unknown" : Key;
+		}
 	}
 
 	bool bHaveCachedIcon{ false };
