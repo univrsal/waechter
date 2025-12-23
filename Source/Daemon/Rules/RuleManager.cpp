@@ -179,7 +179,7 @@ void WRuleManager::SyncRules()
 				{
 					WIPLink::GetInstance().RemoveIngressPortRouting(SockRules.SocketId);
 				}
-				else
+				else if (SocketItem->SocketTuple.LocalEndpoint.Port != 0)
 				{
 					WIPLink::GetInstance().SetupIngressPortRouting(SockRules.SocketId, SockRules.Rules.DownloadQdiscId,
 						SocketItem->SocketTuple.LocalEndpoint.Port);
