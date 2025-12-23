@@ -112,6 +112,7 @@ bool ConfigurePortRouting(std::shared_ptr<WConfigurePortRouting> const& SetupPor
 bool Init(std::string const& IfbDev, std::string const& IngressInterface)
 {
 	// Create the ifb0 interface
+	SafeSystem(fmt::format("ip link delete {}", IfbDev));
 	SafeSystem(fmt::format("ip link add {0} type ifb", IfbDev));
 	SYSFMT("ip link set {0} up", IfbDev);
 
