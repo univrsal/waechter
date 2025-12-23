@@ -1,0 +1,41 @@
+/* Small, low-risk visual tweaks that still keep the default VitePress look. */
+
+:root {
+  /* Slightly punchier accent */
+  --vp-c-brand-1: #3b82f6;
+  --vp-c-brand-2: #2563eb;
+  --vp-c-brand-3: #1d4ed8;
+}
+
+/* Make the homepage hero a bit denser on large screens */
+@media (min-width: 960px) {
+  .VPHomeHero .container {
+    padding-top: 48px;
+    padding-bottom: 32px;
+  }
+}
+
+.VPHomeHero .image {
+  max-width: 860px; /* adjust this */
+  width: 100%;
+}
+
+.VPHomeHero .image img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+@media (min-width: 960px) {
+  .VPHomeHero .image {
+    width: 820px;
+  }
+}
+
+.centered-image {
+  display: block;
+  margin: 0px auto;
+  max-width: 800px;
+  width: 90%;
+  height: auto;
+}

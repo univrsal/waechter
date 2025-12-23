@@ -8,3 +8,8 @@ build/
 build-*/
 cmake-*/
 .idea/
+
+node_modules/
+.vitepress/cache/
+.vitepress/dist/
+.vitepress/.temp/

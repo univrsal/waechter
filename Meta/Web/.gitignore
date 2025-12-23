@@ -1,0 +1,8 @@
+node_modules/
+.vitepress/cache/
+.vitepress/dist/
+.vitepress/.temp/
+.idea/
+build/
+cmake-build-*/
+Thirdparty
