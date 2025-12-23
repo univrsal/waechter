@@ -48,7 +48,7 @@ void WDaemonClient::ListenThreadFunction()
 			std::vector<char> RawMsg(4 + PayloadLen);
 			Accumulator.Read(RawMsg.data(), 4 + PayloadLen);
 
-			WBuffer Msg;
+			WBuffer Msg(RawMsg.size());
 			Msg.Write(RawMsg.data(), RawMsg.size());
 
 			Msg.Consume(4); // Skip message length for now
