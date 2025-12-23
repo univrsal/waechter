@@ -6,7 +6,8 @@
 
 A Linux traffic monitoring and shaping tool.
 
-Wächter uses eBPF to monitor network traffic and enforce rules to block or throttle connections. It is
+Wächter uses [eBPF](https://ebpf.io/) to monitor network traffic and enforce rules to block or throttle connections. It
+is
 divided up into three parts:
 
 - An eBPF program that hooks into the Linux kernel to gather traffic data and enforce rules
@@ -23,7 +24,7 @@ Build requirements:
 
 ### Roadmap
 
-Wächter is still in early development. Currently implemented features:
+Wächter is still in early development. Currently implemented features are:
 
 - Monitor per-connection network traffic (upload and download)
 - View connection information (local/remote endpoints, hostname)
@@ -32,7 +33,7 @@ Wächter is still in early development. Currently implemented features:
 
 Planned features:
 
-- Connection history to log what are made by which application
+- Connection history to log what connections are made by which application
 - Persistent rules that are saved and loaded on startup
 - Long-term traffic statistics and graphs
 
