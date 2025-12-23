@@ -37,6 +37,7 @@ struct WIngressPortRouting
 {
 	uint16_t Port{ 0 };
 	uint32_t QDiscId{ 0 };
+	uint32_t Handle{ 0 };
 };
 
 struct WSocketCounter;
@@ -45,6 +46,7 @@ class WIPLink : public TSingleton<WIPLink>
 {
 	friend struct WBandwidthLimit;
 	std::mutex            Mutex;
+	std::atomic<uint32_t> NextFilterhandle{ 1 };
 	std::atomic<uint32_t> NextMark{ 1 };
 	std::atomic<uint16_t> NextMinorId{ 11 }; // 10 is root
 

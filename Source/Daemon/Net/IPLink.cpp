@@ -164,12 +164,14 @@ void WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uin
 			spdlog::info("Port already routed for traffic item ID {}: dport={}, qdisc id={}", Item, Dport, QDiscId);
 			return;
 		}
-		WIPLinkMsg Msg{};
+		auto const& ExistingLimit = IngressPortRoutings[Item];
+		WIPLinkMsg  Msg{};
 		Msg.Type = EIPLinkMsgType::ConfigurePortRouting;
 		Msg.SetupPortRouting = std::make_shared<WConfigurePortRouting>();
 		Msg.SetupPortRouting->Dport = Dport;
 		Msg.SetupPortRouting->QDiscId = QDiscId;
 		Msg.SetupPortRouting->bReplace = true;
+		Msg.SetupPortRouting->Handle = ExistingLimit.Handle;
 		IpProcSocket->SendMessage(Msg);
 
 		Limit.Port = Dport;
@@ -180,6 +182,7 @@ void WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uin
 	WIngressPortRouting NewRouting;
 	NewRouting.Port = Dport;
 	NewRouting.QDiscId = QDiscId;
+	NewRouting.Handle = NextFilterhandle.fetch_add(2); // TCP and UDP each get one handle
 	IngressPortRoutings[Item] = NewRouting;
 
 	WIPLinkMsg Msg{};
@@ -187,6 +190,7 @@ void WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uin
 	Msg.SetupPortRouting = std::make_shared<WConfigurePortRouting>();
 	Msg.SetupPortRouting->Dport = Dport;
 	Msg.SetupPortRouting->QDiscId = QDiscId;
+	Msg.SetupPortRouting->Handle = NewRouting.Handle;
 	IpProcSocket->SendMessage(Msg);
 }
 

@@ -51,13 +51,14 @@ struct WConfigurePortRouting
 {
 	uint32_t QDiscId{};
 	uint16_t Dport{};
+	uint32_t Handle{};
 	bool     bReplace{ false };
 	bool     bRemove{ false };
 
 	template <class Archive>
 	void serialize(Archive& Ar)
 	{
-		Ar(QDiscId, Dport, bReplace, bRemove);
+		Ar(QDiscId, Dport, Handle, bReplace, bRemove);
 	}
 };
 

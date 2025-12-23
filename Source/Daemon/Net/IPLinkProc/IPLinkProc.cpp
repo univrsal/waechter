@@ -94,17 +94,24 @@ bool RemoveHtbClass(std::shared_ptr<WRemoveHtbClassMsg> const& RemoveHtbClass)
 
 bool ConfigurePortRouting(std::shared_ptr<WConfigurePortRouting> const& SetupPortRouting, std::string const& IfbDev)
 {
+	int const Priority = 1;
 	if (SetupPortRouting->bRemove)
 	{
-		SYSFMT("tc filter delete dev {} parent 1: protocol ip prio {} u32 match ip dport {} 0xffff flowid 1:{}", IfbDev,
-			1, SetupPortRouting->Dport, SetupPortRouting->QDiscId);
+		SYSFMT("tc filter del dev {} protocol ip parent 1: prio {} handle {} flower", IfbDev, Priority,
+			SetupPortRouting->Handle);
+		SYSFMT("tc filter del dev {} protocol ip parent 1: prio {} handle {} flower", IfbDev, Priority,
+			SetupPortRouting->Handle + 1);
 	}
 	else
 	{
 		spdlog::info("Setting up ingress port routing on interface {}: dport={}, qdisc id={}", IfbDev,
 			SetupPortRouting->Dport, SetupPortRouting->QDiscId);
-		SYSFMT("tc filter add dev {} protocol ip parent 1: prio {} u32 match ip dport {} 0xffff flowid 1:{}", IfbDev, 1,
-			SetupPortRouting->Dport, SetupPortRouting->QDiscId);
+		SYSFMT(
+			"tc filter add dev {} parent 1: protocol ip prio {} handle {} flower ip_proto tcp dst_port {} classid 1:{}",
+			IfbDev, Priority, SetupPortRouting->Handle, SetupPortRouting->Dport, SetupPortRouting->QDiscId);
+		SYSFMT(
+			"tc filter add dev {} parent 1: protocol ip prio {} handle {} flower ip_proto udp dst_port {} classid 1:{}",
+			IfbDev, Priority, SetupPortRouting->Handle + 1, SetupPortRouting->Dport, SetupPortRouting->QDiscId);
 	}
 	return true;
 }
