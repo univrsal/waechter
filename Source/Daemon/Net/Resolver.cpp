@@ -54,7 +54,14 @@ void WResolver::ResolveAddress(WIPAddress const& Address)
 	if (Result != 0)
 	{
 		// getnameinfo returns GAI error codes, not errno
-		spdlog::warn("Resolver failed for {}: {} ({})", Address.ToString(), gai_strerror(Result), Result);
+		if (Result == EAI_AGAIN)
+		{
+			spdlog::debug("Resolver failed for {}: {} ({})", Address.ToString(), gai_strerror(Result), Result);
+		}
+		else
+		{
+			spdlog::warn("Resolver failed for {}: {} ({})", Address.ToString(), gai_strerror(Result), Result);
+		}
 	}
 
 	std::lock_guard Lock(ResolvedAddressesMutex);
