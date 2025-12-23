@@ -223,6 +223,7 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 
 	if (Update.Rules.DownloadLimit == 0)
 	{
+		WIPLink::GetInstance().RemoveIngressPortRouting(Update.TrafficItemId);
 		WIPLink::GetInstance().RemoveDownloadLimit(Update.TrafficItemId);
 	}
 	else

@@ -73,6 +73,7 @@ void WIPLink::SetupHTBLimitClass(
 void WIPLink::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket)
 {
 	RemoveIngressPortRouting(Socket->TrafficItem->ItemId);
+	RemoveDownloadLimit(Socket->TrafficItem->ItemId);
 	RemoveUploadLimit(Socket->TrafficItem->ItemId);
 }
 
