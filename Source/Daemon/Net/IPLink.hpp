@@ -62,8 +62,8 @@ class WIPLink : public TSingleton<WIPLink>
 	void OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket);
 
 public:
-	unsigned int                 WaechterIngressIfIndex{ 0 };
-	static constexpr std::string IfbDev{ "ifb0" };
+	unsigned int             WaechterIngressIfIndex{ 0 };
+	static std::string const IfbDev;
 
 	bool Init();
 	bool Deinit();

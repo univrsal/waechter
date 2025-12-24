@@ -78,6 +78,8 @@ void WIPLink::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket)
 	RemoveUploadLimit(Socket->TrafficItem->ItemId);
 }
 
+std::string const WIPLink::IfbDev = "ifb0";
+
 bool WIPLink::Init()
 {
 	WNetworkEvents::GetInstance().OnSocketRemoved.connect(
