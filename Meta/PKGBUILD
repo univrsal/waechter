@@ -1,0 +1,63 @@
+# Maintainer: univrsal <uni@vrsal.xyz>
+
+pkgname=waechter-git
+pkgver=0.1.0.r0.g0000000
+pkgrel=1
+pkgdesc="Traffic shaping and monitoring for GNU/Linux"
+arch=('x86_64')
+url="https://github.com/univrsal/waechter"
+license=('BSD-3-Clause' 'GPL')
+depends=('systemd' 'bpftool' 'libbpf')
+makedepends=('git' 'cmake' 'clang' 'gcc' 'g++')
+
+provides=('waechter')
+conflicts=('waechter')
+
+source=("git+$url.git")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd "$srcdir/${pkgname%-git}"
+  # If you use annotated tags like v0.1.0, this yields: 0.1.0.r<revcount>.g<hash>
+  git describe --long --tags --match 'v*' 2>/dev/null \
+    | sed 's/^v//; s/\([^-]*\)-\([0-9]*\)-g/\1.r\2.g/' \
+    || printf "0.0.0.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+prepare() {
+  cd "$srcdir/${pkgname%-git}"
+}
+
+build() {
+  cd "$srcdir/${pkgname%-git}"
+  cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+  cmake --build build
+}
+
+check() {
+  :
+}
+
+package() {
+  cd "$srcdir/${pkgname%-git}"
+
+  install -Dm755 "build/Source/Gui/waechter" \
+    "$pkgdir/usr/bin/waechter"
+
+  install -Dm755 "build/Source/Daemon/waechterd" \
+    "$pkgdir/usr/bin/waechterd"
+
+  install -Dm755 "build/Source/Daemon/Net/IPLinkProc/waechter-iplink" \
+    "$pkgdir/usr/bin/waechter-iplink"
+
+  install -Dm644 "Meta/waechter.service" \
+    "$pkgdir/usr/lib/systemd/system/waechter.service"
+    
+  install -Dm644 "Meta/Waechter.desktop" \
+    "$pkgdir/usr/share/applications/waechter.desktop"
+  install -Dm644 Meta/Icon.png \
+    "$pkgdir/usr/share/icons/hicolor/256x256/apps/waechter.png"
+
+  install -Dm644 "Meta/waechterd.ini" "$pkgdir/etc/waechter/waechterd.ini"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
