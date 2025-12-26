@@ -1,14 +1,14 @@
 # Maintainer: univrsal <uni@vrsal.xyz>
 
 pkgname=waechter-git
-pkgver=0.1.0.r0.g0000000
+pkgver=r500.2cc4bd3
 pkgrel=1
 pkgdesc="Traffic shaping and monitoring for GNU/Linux"
 arch=('x86_64')
 url="https://github.com/univrsal/waechter"
-license=('BSD-3-Clause' 'GPL')
-depends=('systemd' 'bpftool' 'libbpf')
-makedepends=('git' 'cmake' 'clang' 'gcc' 'g++')
+license=('BSD-3-Clause' 'GPL-3.0-or-later')
+depends=('systemd' 'bpf' 'libbpf' 'libxkbcommon' 'libgl' 'libx11' 'libxrandr' 'libxinerama' 'libxcursor' 'libxi')
+makedepends=('git' 'cmake' 'clang' 'gcc')
 
 provides=('waechter')
 conflicts=('waechter')
@@ -18,10 +18,7 @@ sha256sums=('SKIP')
 
 pkgver() {
   cd "$srcdir/${pkgname%-git}"
-  # If you use annotated tags like v0.1.0, this yields: 0.1.0.r<revcount>.g<hash>
-  git describe --long --tags --match 'v*' 2>/dev/null \
-    | sed 's/^v//; s/\([^-]*\)-\([0-9]*\)-g/\1.r\2.g/' \
-    || printf "0.0.0.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+  printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
 prepare() {
@@ -29,9 +26,13 @@ prepare() {
 }
 
 build() {
+  export CFLAGS CXXFLAGS
+  CFLAGS="${CFLAGS/_FORTIFY_SOURCE=?/_FORTIFY_SOURCE=2}"
+  CXXFLAGS="${CXXFLAGS/_FORTIFY_SOURCE=?/_FORTIFY_SOURCE=2}"
+
   cd "$srcdir/${pkgname%-git}"
   cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
-  cmake --build build
+  cmake --build build -j$(nproc)
 }
 
 check() {
@@ -50,14 +51,15 @@ package() {
   install -Dm755 "build/Source/Daemon/Net/IPLinkProc/waechter-iplink" \
     "$pkgdir/usr/bin/waechter-iplink"
 
-  install -Dm644 "Meta/waechter.service" \
-    "$pkgdir/usr/lib/systemd/system/waechter.service"
-    
-  install -Dm644 "Meta/Waechter.desktop" \
+  install -Dm644 "Meta/Package/waechterd.service" \
+    "$pkgdir/usr/lib/systemd/system/waechterd.service"
+  install -Dm644 "Meta/Package/waechter.sysusers" \
+    "$pkgdir/usr/lib/sysusers.d/waechter.conf" 
+  install -Dm644 "Meta/Package/Waechter.desktop" \
     "$pkgdir/usr/share/applications/waechter.desktop"
   install -Dm644 Meta/Icon.png \
     "$pkgdir/usr/share/icons/hicolor/256x256/apps/waechter.png"
 
-  install -Dm644 "Meta/waechterd.ini" "$pkgdir/etc/waechter/waechterd.ini"
+  install -Dm644 "Meta/Package/waechterd.ini" "$pkgdir/etc/waechter/waechterd.ini"
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
