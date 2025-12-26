@@ -6,7 +6,6 @@ Comment=Monitor and control network traffic
 Exec=waechter %U
 Icon=waechter.png
 Terminal=false
-StartupNotify=true
 StartupWMClass=Waechter
 Categories=Network;Utility;
 MimeType=
