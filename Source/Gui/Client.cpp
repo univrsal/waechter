@@ -11,6 +11,7 @@
 #include "AppIconAtlas.hpp"
 #include "Messages.hpp"
 #include "Data/Protocol.hpp"
+#include "Util/Settings.hpp"
 
 inline bool ReadU32(char const* DataPtr, size_t N, uint32_t& outI32)
 {
@@ -195,6 +196,6 @@ void WClient::Start()
 
 WClient::WClient()
 {
-	Socket = std::make_shared<WClientSocket>("/var/run/waechterd.sock");
+	Socket = std::make_shared<WClientSocket>(WSettings::GetInstance().SocketPath);
 	TrafficTree = std::make_shared<WTrafficTree>();
 }

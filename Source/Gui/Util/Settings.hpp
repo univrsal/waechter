@@ -17,14 +17,16 @@ public:
 	std::string RegisteredUsername{};
 	std::string RegistrationSerialKey{};
 
+	std::string SocketPath{ "/var/run/waechterd.sock" };
+
 	WSettings();
 	~WSettings() override = default;
 
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(
-			CEREAL_NVP(bShowUninitalizedSockets), CEREAL_NVP(RegisteredUsername), CEREAL_NVP(RegistrationSerialKey));
+		archive(CEREAL_NVP(bShowUninitalizedSockets), CEREAL_NVP(RegisteredUsername), CEREAL_NVP(RegistrationSerialKey),
+			CEREAL_NVP(SocketPath));
 	}
 
 	void Load();
