@@ -13,6 +13,7 @@
 #include "NetworkInterface.hpp"
 #include "DaemonConfig.hpp"
 #include "ErrnoUtil.hpp"
+#include "Filesystem.hpp"
 #include "Data/Counters.hpp"
 #include "Data/NetworkEvents.hpp"
 #include "IPLinkMsg.hpp"
@@ -88,8 +89,9 @@ bool WIPLink::Init()
 	// Get the path to waechter-iplink, assuming it's in the Net/IPLinkProc subdirectory relative to this executable's
 	// directory
 	std::string IPLinkProcPath = "waechter-iplink"; // fallback
-	char        exe_path[PATH_MAX];
-	ssize_t     len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
+#if WDEBUG
+	char    exe_path[PATH_MAX];
+	ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
 	if (len > 0)
 	{
 		exe_path[len] = '\0';
@@ -98,9 +100,22 @@ bool WIPLink::Init()
 		if (last_slash != std::string::npos)
 		{
 			std::string exe_dir = full_exe_path.substr(0, last_slash + 1);
-			IPLinkProcPath = exe_dir + "Net/IPLinkProc/waechter-iplink";
+			auto        IpLinkProcPath = exe_dir + "Net/IPLinkProc/waechter-iplink";
+
+			if (WFilesystem::Exists(IpLinkProcPath))
+			{
+				spdlog::info("Found waechter-iplink at {}", IpLinkProcPath);
+				IPLinkProcPath = IpLinkProcPath;
+			}
+			else
+			{
+				spdlog::warn(
+					"waechter-iplink not found at {}, falling back to just 'waechter-iplink' (relying on PATH)",
+					IpLinkProcPath);
+			}
 		}
 	}
+#endif
 	// Launch IPLinkProc as root with arguments [socket path] [secret] [ifb dev] [ingress interface]
 	std::string IngressInterface = WDaemonConfig::GetInstance().IngressNetworkInterfaceName;
 	std::string Cmd = fmt::format(
