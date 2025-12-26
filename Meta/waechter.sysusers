@@ -1,0 +1,2 @@
+# Waechter daemon user (no home, no shell)
+u waechter - "Waechter daemon user" -
