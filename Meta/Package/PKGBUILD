@@ -55,7 +55,7 @@ package() {
     "$pkgdir/usr/lib/systemd/system/waechterd.service"
   install -Dm644 "Meta/Package/waechter.sysusers" \
     "$pkgdir/usr/lib/sysusers.d/waechter.conf" 
-  install -Dm644 "Meta/Package/Waechter.desktop" \
+  install -Dm644 "Meta/Package/waechter.desktop" \
     "$pkgdir/usr/share/applications/waechter.desktop"
   install -Dm644 Meta/Icon.png \
     "$pkgdir/usr/share/icons/hicolor/256x256/apps/waechter.png"
