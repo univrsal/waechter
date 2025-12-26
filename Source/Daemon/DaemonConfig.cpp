@@ -65,6 +65,25 @@ void WDaemonConfig::Load(std::string const& Path)
 	SafeGet("network", "ingress_interface", IngressNetworkInterfaceName);
 	SafeGet("network", "cgroup_path", CGroupPath);
 
+	if (NetworkInterfaceName == "auto")
+	{
+		// Auto-select the first non-loopback interface
+		auto Ifaces = WNetworkInterface::list();
+		for (auto const& Iface : Ifaces)
+		{
+			if (Iface != "lo")
+			{
+				NetworkInterfaceName = Iface;
+				break;
+			}
+		}
+	}
+
+	if (IngressNetworkInterfaceName == "auto")
+	{
+		IngressNetworkInterfaceName = NetworkInterfaceName;
+	}
+
 	SafeGet("daemon", "user", DaemonUser);
 	SafeGet("daemon", "group", DaemonGroup);
 	SafeGet("daemon", "socket_path", DaemonSocketPath);
