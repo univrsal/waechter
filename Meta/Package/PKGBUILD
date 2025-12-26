@@ -64,11 +64,3 @@ package() {
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
 
-post_install() {
-    echo ":: To connect to the daemon, users must be part of the 'waechter' group."
-    echo "   Run: sudo usermod -aG waechter <username>"
-}
-
-post_upgrade() {
-    post_install
-}
