@@ -5,7 +5,6 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-# Run as root so privileged init can happen; daemon drops privileges internally.
 User=root
 Group=root
 
@@ -13,12 +12,10 @@ ExecStart=/usr/bin/waechterd
 Restart=on-failure
 RestartSec=2s
 
-# If your daemon uses SIGTERM cleanly, this is fine.
 KillSignal=SIGTERM
 TimeoutStopSec=15s
 
-# Hardening (keep conservative since it manipulates networking/bpf)
-NoNewPrivileges=true
+NoNewPrivileges=false
 PrivateTmp=true
 ProtectHome=true
 ProtectSystem=strict
@@ -28,10 +25,9 @@ ProtectKernelModules=true
 LockPersonality=true
 MemoryDenyWriteExecute=true
 RestrictRealtime=true
-RestrictSUIDSGID=true
+RestrictSUIDSGID=false
 SystemCallArchitectures=native
 
-# Logging
 StandardOutput=journal
 StandardError=journal
 
