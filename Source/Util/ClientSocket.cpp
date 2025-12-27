@@ -54,22 +54,6 @@ bool WClientSocket::Connect()
 		}
 	}
 
-	// Check first if the socket path is valid and accessible
-	if (access(SocketPath.c_str(), F_OK) != 0)
-	{
-		spdlog::error("Socket path {} does not exist: {} ({})", SocketPath, WErrnoUtil::StrError(), errno);
-		Close();
-		return false;
-	}
-
-	// Check for permissions
-	if (access(SocketPath.c_str(), R_OK | W_OK) != 0)
-	{
-		spdlog::error("Insufficient permissions for socket {}: {} ({})", SocketPath, WErrnoUtil::StrError(), errno);
-		Close();
-		return false;
-	}
-
 	// Set up the socket address structure
 	sockaddr_un Addr{}; // value-init to zero
 	Addr.sun_family = AF_UNIX;
@@ -82,7 +66,18 @@ bool WClientSocket::Connect()
 	// Connect to the server
 	if (connect(SocketFd, reinterpret_cast<struct sockaddr*>(&Addr), AddrLen) == -1)
 	{
-		spdlog::debug("Failed to connect to socket {}: {} ({})", SocketPath, WErrnoUtil::StrError(), errno);
+		if (errno == EACCES || errno == EPERM)
+		{
+			spdlog::error("Insufficient permissions for socket {}: {} ({})", SocketPath, WErrnoUtil::StrError(), errno);
+		}
+		else if (errno == ENOENT)
+		{
+			spdlog::error("Socket path {} does not exist: {} ({})", SocketPath, WErrnoUtil::StrError(), errno);
+		}
+		else
+		{
+			spdlog::debug("Failed to connect to socket {}: {} ({})", SocketPath, WErrnoUtil::StrError(), errno);
+		}
 		Close();
 		return false;
 	}
