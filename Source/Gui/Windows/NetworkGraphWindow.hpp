@@ -15,7 +15,7 @@ struct WScrollingBuffer
 	int              MaxSize;
 	int              Offset;
 	ImVector<ImVec2> Data;
-	explicit WScrollingBuffer(int max_size = 2000)
+	explicit WScrollingBuffer(int max_size = 100)
 	{
 		MaxSize = max_size;
 		Offset = 0;
