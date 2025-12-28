@@ -79,14 +79,18 @@ void WResolver::ResolverThreadFunc()
 {
 	while (bRunning)
 	{
-		QueueMutex.lock();
-		while (!PendingAddresses.empty())
+		std::unique_lock Lock(QueueMutex);
+		if (!PendingAddresses.empty())
 		{
 			WIPAddress Address = PendingAddresses.front();
 			PendingAddresses.pop();
+			Lock.unlock();
+
 			ResolveAddress(Address);
+			continue;
 		}
-		QueueMutex.unlock();
+		Lock.unlock();
+
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 }
