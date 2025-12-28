@@ -6,6 +6,8 @@
 #include "Daemon.hpp"
 
 #include <spdlog/spdlog.h>
+#include <tracy/Tracy.hpp>
+#include <common/TracySystem.hpp>
 
 #include "DaemonConfig.hpp"
 #include "ErrnoUtil.hpp"
@@ -49,6 +51,7 @@ void WDaemon::RegisterSignalHandlers()
 
 void WDaemon::RunLoop()
 {
+	tracy::SetThreadName("main");
 	WSignalHandler& SignalHandler = WSignalHandler::GetInstance();
 
 	// Poll ring buffers and periodically print aggregate stats
@@ -57,7 +60,10 @@ void WDaemon::RunLoop()
 
 	while (!SignalHandler.bStop)
 	{
-		EbpfObj.UpdateData();
+		{
+			ZoneScopedN("EbpfObj.UpdateData");
+			EbpfObj.UpdateData();
+		}
 		auto now = std::chrono::steady_clock::now();
 		if (now - LastPrint >= std::chrono::milliseconds(30000))
 		{
@@ -67,11 +73,18 @@ void WDaemon::RunLoop()
 
 		if (now - LastTrafficUpdate >= std::chrono::milliseconds(1000))
 		{
-			WSystemMap::GetInstance().RefreshAllTrafficCounters();
-			DaemonSocket->BroadcastTrafficUpdate();
+			{
+				ZoneScopedN("RefreshAllTrafficCounters");
+				WSystemMap::GetInstance().RefreshAllTrafficCounters();
+			}
+			{
+				ZoneScopedN("BroadcastTrafficUpdate");
+				DaemonSocket->BroadcastTrafficUpdate();
+			}
 
 			if (DaemonSocket->HasClients() && WAppIconAtlasBuilder::GetInstance().IsDirty())
 			{
+				ZoneScopedN("BroadcastAtlasUpdate");
 				DaemonSocket->BroadcastAtlasUpdate();
 			}
 			LastTrafficUpdate = now;

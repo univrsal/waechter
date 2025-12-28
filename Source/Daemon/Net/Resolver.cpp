@@ -68,6 +68,7 @@ void WResolver::ResolveAddress(WIPAddress const& Address)
 	if (Host == Address.ToString())
 	{
 		ResolvedAddresses[Address] = {};
+		return;
 	}
 
 	spdlog::debug("Resolved {} to {}", Address.ToString(), Host);
@@ -119,6 +120,7 @@ std::string const& WResolver::Resolve(WIPAddress const& Address)
 		{
 			return It->second;
 		}
+		ResolvedAddresses[Address] = Empty;
 	}
 
 	std::lock_guard QueueLock(QueueMutex);
