@@ -10,6 +10,7 @@ add_subdirectory(json11)
 add_subdirectory(cereal)
 add_subdirectory(flags)
 add_subdirectory(sigslot)
+add_subdirectory(tracy)
 
 add_library(deps_includes INTERFACE
         flags/CountryFlags.cpp)
@@ -17,6 +18,7 @@ add_library(thirdparty::deps_includes ALIAS deps_includes)
 
 # Special target to ignore warnings from thirdparty includes
 target_include_directories(deps_includes SYSTEM INTERFACE
+        ${CMAKE_SOURCE_DIR}/Thirdparty/tracy/public
         ${CMAKE_SOURCE_DIR}/Thirdparty/imgui
         ${CMAKE_SOURCE_DIR}/Thirdparty/implot
         ${CMAKE_SOURCE_DIR}/Thirdparty/json11
