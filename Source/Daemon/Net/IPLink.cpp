@@ -28,7 +28,7 @@
 // independently of this process dropping privileges later.
 static bool LaunchDetachedProcess(std::string const& cmd)
 {
-	return system(fmt::format("{} & disown", cmd).c_str()) == 0;
+	return system(fmt::format("{} &", cmd).c_str()) == 0;
 }
 
 constexpr int kIngressPortFilterPriority = 1;
