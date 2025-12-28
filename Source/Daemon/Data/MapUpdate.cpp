@@ -5,6 +5,8 @@
 
 #include "MapUpdate.hpp"
 
+#include <tracy/Tracy.hpp>
+
 #include "Daemon.hpp"
 #include "SystemMap.hpp"
 #include "Net/Resolver.hpp"
@@ -39,6 +41,7 @@ void WMapUpdate::AddStateChange(WTrafficItemId const Id, ESocketConnectionState 
 template <typename K, typename V, typename U>
 void FetchActiveCounters(std::unordered_map<K, std::shared_ptr<V>> const& Counters, std::vector<U>& OutUpdatedItems)
 {
+	ZoneScopedN("FetchActiveCounters");
 	for (auto const& CounterPair : Counters | std::views::values)
 	{
 		if (CounterPair->IsActive())
@@ -105,8 +108,11 @@ WTrafficTreeUpdates const& WMapUpdate::GetUpdates()
 		Addition.ApplicationPath = PATI->ApplicationPath;
 		Addition.ApplicationName = PATI->ApplicationName;
 		Addition.ApplicationCommandLine = PATI->ApplicationCommandLine;
-		Addition.ResolvedAddress =
-			WResolver::GetInstance().Resolve(Socket->TrafficItem->SocketTuple.RemoteEndpoint.Address);
+		{
+			ZoneScopedN("ResolveAddress");
+			Addition.ResolvedAddress =
+				WResolver::GetInstance().Resolve(Socket->TrafficItem->SocketTuple.RemoteEndpoint.Address);
+		}
 		Addition.SocketTuple = Socket->TrafficItem->SocketTuple;
 		Addition.ConnectionState = Socket->TrafficItem->ConnectionState;
 		Updates.AddedSockets.emplace_back(Addition);
@@ -125,7 +131,10 @@ WTrafficTreeUpdates const& WMapUpdate::GetUpdates()
 		Addition.ItemId = TupleCounter.second->TrafficItem->ItemId;
 		Addition.SocketItemId = TupleCounter.second->ParentSocket->TrafficItem->ItemId;
 		Addition.Endpoint = TupleCounter.first;
-		Addition.ResolvedAddress = WResolver::GetInstance().Resolve(Addition.Endpoint.Address);
+		{
+			ZoneScopedN("ResolveAddress");
+			Addition.ResolvedAddress = WResolver::GetInstance().Resolve(Addition.Endpoint.Address);
+		}
 	}
 
 	Clear();

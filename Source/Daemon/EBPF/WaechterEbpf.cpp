@@ -7,6 +7,7 @@
 
 #include <bpf/bpf.h>
 #include <spdlog/spdlog.h>
+#include <tracy/Tracy.hpp>
 
 #include "EbpfData.hpp"
 #include "EBPFCommon.h"
@@ -162,16 +163,19 @@ void WWaechterEbpf::UpdateData()
 			case NE_TCPSocketEstablished_6:
 				if (SocketInfo)
 				{
+					ZoneScopedN("ProcessSocketEvent");
 					SocketInfo->ProcessSocketEvent(SocketEvent);
 				}
 				break;
 			case NE_Traffic:
 				if (SocketEvent.Data.TrafficEventData.Direction == PD_Incoming)
 				{
+					ZoneScopedN("PushIncomingTraffic");
 					WSystemMap::GetInstance().PushIncomingTraffic(SocketEvent);
 				}
 				else if (SocketEvent.Data.TrafficEventData.Direction == PD_Outgoing)
 				{
+					ZoneScopedN("PushOutgoingTraffic");
 					WSystemMap::GetInstance().PushOutgoingTraffic(SocketEvent);
 				}
 				break;

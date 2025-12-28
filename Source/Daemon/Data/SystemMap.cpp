@@ -7,6 +7,7 @@
 
 #include <spdlog/spdlog.h>
 #include <ranges>
+#include <tracy/Tracy.hpp>
 
 #include "AppIconAtlasBuilder.hpp"
 #include "Filesystem.hpp"
@@ -52,7 +53,10 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 			RemoteEndpoint = PacketHeader.Src;
 		}
 
-		WResolver::GetInstance().Resolve(RemoteEndpoint.Address);
+		{
+			// ZoneScopedN("ResolveLocalEndpoint");
+			// WResolver::GetInstance().Resolve(RemoteEndpoint.Address);
+		}
 
 		if (!bHaveLocalEndpoint)
 		{
@@ -72,6 +76,7 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 			}
 			else
 			{
+				ZoneScopedN("DetermineSocketType");
 				Item->SocketType =
 					SocketStateParser.DetermineSocketType(Item->SocketTuple.LocalEndpoint, Item->SocketTuple.Protocol);
 			}
@@ -86,10 +91,12 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 				auto TupleCounter = GetOrCreateUDPTupleCounter(SockCounter, RemoteEndpoint);
 				if (Event.Data.TrafficEventData.Direction == PD_Outgoing)
 				{
+					ZoneScopedN("PushOutgoingTraffic");
 					TupleCounter->PushOutgoingTraffic(Event.Data.TrafficEventData.Bytes);
 				}
 				else
 				{
+					ZoneScopedN("PushIncomingTraffic");
 					TupleCounter->PushIncomingTraffic(Event.Data.TrafficEventData.Bytes);
 				}
 
@@ -144,6 +151,7 @@ std::string NormalizeAppImagePaths(std::string const& path)
 
 std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketEvent const& Event, WProcessId PID, bool bSilentFail)
 {
+	ZoneScopedN("WSystemMap::MapSocket");
 	auto SocketCookie = Event.Cookie;
 	if (PID == 0)
 	{
@@ -209,6 +217,7 @@ std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketEvent const& Event,
 std::shared_ptr<WSocketCounter> WSystemMap::FindOrMapSocket(
 	WSocketCookie SocketCookie, std::shared_ptr<WProcessCounter> const& ParentProcess)
 {
+	ZoneScopedN("WSystemMap::FindOrMapSocket");
 	if (auto const It = Sockets.find(SocketCookie); It != Sockets.end())
 	{
 		return It->second;
@@ -230,6 +239,7 @@ std::shared_ptr<WSocketCounter> WSystemMap::FindOrMapSocket(
 std::shared_ptr<WProcessCounter> WSystemMap::FindOrMapProcess(
 	WProcessId const PID, std::shared_ptr<WAppCounter> const& ParentApp)
 {
+	ZoneScopedN("WSystemMap::FindOrMapProcess");
 	if (auto const It = Processes.find(PID); It != Processes.end())
 	{
 		return It->second;
@@ -251,7 +261,10 @@ std::shared_ptr<WProcessCounter> WSystemMap::FindOrMapProcess(
 std::shared_ptr<WAppCounter> WSystemMap::FindOrMapApplication(
 	std::string const& ExePath, std::string const& CommandLine, std::string const& AppName)
 {
-	// Prefer the resolved exe path as key if available; otherwise fall back to argv[0] from CommandLine's first token
+	ZoneScopedN("WSystemMap::FindOrMapApplication");
+
+	// Prefer the resolved exe path as key if available; otherwise fall back to argv[0] from CommandLine's first
+	// token
 	std::string Key = ExePath;
 	if (Key.empty())
 	{
@@ -348,10 +361,13 @@ void WSystemMap::PushIncomingTraffic(WSocketEvent const& Event)
 	if (auto const It = Sockets.find(SocketCookie); It != Sockets.end())
 	{
 		auto Socket = It->second;
-		Socket->PushIncomingTraffic(Bytes);
-		Socket->TrafficItem->ConnectionState = ESocketConnectionState::Connected;
-		Socket->ParentProcess->PushIncomingTraffic(Bytes);
-		Socket->ParentProcess->ParentApp->PushIncomingTraffic(Bytes);
+		{
+			ZoneScopedN("WSystemMap::PushIncomingTraffic");
+			Socket->PushIncomingTraffic(Bytes);
+			Socket->TrafficItem->ConnectionState = ESocketConnectionState::Connected;
+			Socket->ParentProcess->PushIncomingTraffic(Bytes);
+			Socket->ParentProcess->ParentApp->PushIncomingTraffic(Bytes);
+		}
 
 		DoPacketParsing(Event, Socket);
 	}
@@ -367,10 +383,13 @@ void WSystemMap::PushOutgoingTraffic(WSocketEvent const& Event)
 	if (auto const It = Sockets.find(SocketCookie); It != Sockets.end())
 	{
 		auto Socket = It->second;
-		Socket->PushOutgoingTraffic(Bytes);
-		Socket->TrafficItem->ConnectionState = ESocketConnectionState::Connected;
-		Socket->ParentProcess->PushOutgoingTraffic(Bytes);
-		Socket->ParentProcess->ParentApp->PushOutgoingTraffic(Bytes);
+		{
+			ZoneScopedN("WSystemMap::PushOutgoingTraffic");
+			Socket->PushOutgoingTraffic(Bytes);
+			Socket->TrafficItem->ConnectionState = ESocketConnectionState::Connected;
+			Socket->ParentProcess->PushOutgoingTraffic(Bytes);
+			Socket->ParentProcess->ParentApp->PushOutgoingTraffic(Bytes);
+		}
 
 		DoPacketParsing(Event, Socket);
 	}

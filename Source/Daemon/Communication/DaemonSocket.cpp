@@ -27,6 +27,7 @@
 #include "Data/Protocol.hpp"
 #include "Data/SystemMap.hpp"
 #include "Net/Resolver.hpp"
+#include "tracy/Tracy.hpp"
 
 void WDaemonSocket::ListenThreadFunction()
 {
@@ -116,12 +117,14 @@ void WDaemonSocket::BroadcastTrafficUpdate()
 		WTrafficTreeUpdates const& Updates = SystemMap.GetUpdates();
 		Os << MT_TrafficTreeUpdate;
 		cereal::BinaryOutputArchive Archive(Os);
+		ZoneScopedN("Archive");
 		Archive(Updates);
 	}
 	std::string const& Str = Os.str();
 
 	for (auto const& Client : Clients)
 	{
+		ZoneScopedN("SendTrafficUpdate");
 		auto Sent = Client->SendFramedData(Str);
 		if (Sent < 0)
 		{

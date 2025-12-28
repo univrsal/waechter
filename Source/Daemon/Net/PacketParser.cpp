@@ -5,6 +5,8 @@
 
 #include "PacketParser.hpp"
 
+#include <tracy/Tracy.hpp>
+
 namespace EIPv6ExtensionHeaders
 {
 	enum Type : uint8_t
@@ -257,5 +259,6 @@ bool WPacketHeaderParser::ParsePacketHeader(uint8_t const* Data, std::size_t Len
 
 bool WPacketHeaderParser::ParsePacket(uint8_t const* Data, std::size_t Length)
 {
+	ZoneScopedN("WPacketHeaderParser::ParsePacket");
 	return ParsePacketL3(Data, Length, *this);
 }
