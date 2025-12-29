@@ -56,15 +56,13 @@ public:
 
 	void StartListenThread();
 
-	[[nodiscard]] WProcessId GetPid() const { return ClientPid; }
-
-	[[nodiscard]] bool IsRunning() const { return Running; }
+	[[nodiscard]] bool IsRunning() const { return ClientSocket->IsOpen(); }
 
 	[[nodiscard]] std::shared_ptr<WClientSocket> GetSocket() const { return ClientSocket; }
 
 	[[nodiscard]] ssize_t SendFramedData(std::string const& Data) const
 	{
-		if (!Running)
+		if (!ClientSocket->IsOpen())
 		{
 			return 0;
 		}

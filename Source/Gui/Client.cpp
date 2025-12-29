@@ -141,7 +141,7 @@ bool WClient::EnsureConnected()
 	switch (Socket->GetState())
 	{
 		case ES_Initial:
-			if (!Socket->Open())
+			if (!Socket->IsOpen())
 			{
 				return false;
 			}

@@ -57,7 +57,7 @@ public:
 
 	void Close();
 
-	bool Open();
+	bool IsOpen();
 
 	bool Connect();
 

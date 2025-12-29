@@ -23,7 +23,7 @@ void WClientSocket::Close()
 	Accum.Reset();
 }
 
-bool WClientSocket::Open()
+bool WClientSocket::IsOpen()
 {
 	if (State == ES_Opened)
 	{
@@ -48,7 +48,7 @@ bool WClientSocket::Connect()
 
 	if (SocketFd < 0)
 	{
-		if (!Open())
+		if (!IsOpen())
 		{
 			return false;
 		}
