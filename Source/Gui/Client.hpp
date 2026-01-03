@@ -72,7 +72,7 @@ public:
 	[[nodiscard]] bool IsConnected() const
 	{
 		std::lock_guard lk(SocketMutex);
-		return Socket && Socket->GetState() == ES_Connected;
+		return Socket && Socket->IsConnected();
 	}
 
 	std::shared_ptr<WTrafficTree> GetTrafficTree() { return TrafficTree; }
@@ -88,7 +88,7 @@ public:
 			cereal::BinaryOutputArchive AtlasArchive(AtlasOs);
 			AtlasArchive(Data);
 		}
-		if (auto Sent = Socket->SendFramed(AtlasOs.str()); Sent < 0)
+		if (!Socket->SendFramed(AtlasOs.str()))
 		{
 			spdlog::error(
 				"Failed to send message of type {} to daemon: {}", static_cast<int>(Type), WErrnoUtil::StrError());

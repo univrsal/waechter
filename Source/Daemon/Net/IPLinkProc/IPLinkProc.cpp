@@ -187,79 +187,60 @@ int main(int Argc, char** Argv)
 	spdlog::info("Daemon connected to IP link process socket");
 
 	WSignalHandler Handler;
+	WBuffer        RecvBuffer;
 
-	std::string Accumulator;
 	while (!Handler.bStop)
 	{
-		WBuffer RecvBuffer;
-		bool    bOk = ClientSocket->Receive(RecvBuffer);
-		if (!bOk)
+		bool bHaveFrame = ClientSocket->ReceiveFramed(RecvBuffer);
+
+		if (!ClientSocket->IsConnected())
 		{
-			spdlog::info("Connection closed, exiting...");
+			spdlog::info("Daemon disconnected from IP link process socket, exiting");
 			break;
 		}
 
-		if (RecvBuffer.GetWritePos() > 0)
+		if (!bHaveFrame)
 		{
-			Accumulator.append(RecvBuffer.GetData(), RecvBuffer.GetWritePos());
-		}
-		else
-		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 			continue;
 		}
 
-		while (Accumulator.size() >= 4)
+		std::stringstream SS(std::string(RecvBuffer.GetData(), RecvBuffer.GetReadableSize()));
+		WIPLinkMsg        Msg;
+		try
 		{
-			uint32_t MsgLen = 0;
-			std::memcpy(&MsgLen, Accumulator.data(), 4);
+			cereal::BinaryInputArchive Iar(SS);
+			Iar(Msg);
+		}
+		catch (std::exception const& e)
+		{
+			spdlog::error("Failed to deserialize message: {}", e.what());
+			continue;
+		}
 
-			if (Accumulator.size() < 4 + MsgLen)
+		if (Msg.Type == EIPLinkMsgType::Exit)
+		{
+			spdlog::info("Received exit message, shutting down");
+			Handler.bStop = true;
+		}
+		else if (Msg.Type == EIPLinkMsgType::SetupHtbClass && Msg.SetupHtbClass)
+		{
+			if (!SetupHtbClass(Msg.SetupHtbClass))
 			{
-				break;
+				spdlog::error("Failed to setup HTB class");
 			}
-
-			std::string MsgData = Accumulator.substr(4, MsgLen);
-			Accumulator.erase(0, 4 + MsgLen);
-
-			std::stringstream SS(MsgData);
-			WIPLinkMsg        Msg;
-			try
+		}
+		else if (Msg.Type == EIPLinkMsgType::RemoveHtbClass && Msg.RemoveHtbClass)
+		{
+			if (!RemoveHtbClass(Msg.RemoveHtbClass))
 			{
-				cereal::BinaryInputArchive Iar(SS);
-				Iar(Msg);
+				spdlog::error("Failed to remove HTB class");
 			}
-			catch (std::exception const& e)
+		}
+		else if (Msg.Type == EIPLinkMsgType::ConfigurePortRouting && Msg.SetupPortRouting)
+		{
+			if (!ConfigurePortRouting(Msg.SetupPortRouting, IfbDev))
 			{
-				spdlog::error("Failed to deserialize message: {}", e.what());
-				continue;
-			}
-
-			if (Msg.Type == EIPLinkMsgType::Exit)
-			{
-				spdlog::info("Received exit message, shutting down");
-				Handler.bStop = true;
-			}
-			else if (Msg.Type == EIPLinkMsgType::SetupHtbClass && Msg.SetupHtbClass)
-			{
-				if (!SetupHtbClass(Msg.SetupHtbClass))
-				{
-					spdlog::error("Failed to setup HTB class");
-				}
-			}
-			else if (Msg.Type == EIPLinkMsgType::RemoveHtbClass && Msg.RemoveHtbClass)
-			{
-				if (!RemoveHtbClass(Msg.RemoveHtbClass))
-				{
-					spdlog::error("Failed to remove HTB class");
-				}
-			}
-			else if (Msg.Type == EIPLinkMsgType::ConfigurePortRouting && Msg.SetupPortRouting)
-			{
-				if (!ConfigurePortRouting(Msg.SetupPortRouting, IfbDev))
-				{
-					spdlog::error("Failed to configure port routing");
-				}
+				spdlog::error("Failed to configure port routing");
 			}
 		}
 	}

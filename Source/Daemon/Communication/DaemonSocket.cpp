@@ -34,8 +34,7 @@ void WDaemonSocket::ListenThreadFunction()
 	WBuffer Buffer;
 	while (Running)
 	{
-		bool bTimedOut = false;
-		if (auto ClientSocket = Socket.Accept(500, &bTimedOut))
+		if (auto ClientSocket = Socket.Accept(500))
 		{
 			spdlog::info("Client connected");
 			auto NewClient = std::make_shared<WDaemonClient>(ClientSocket, this);
@@ -69,11 +68,6 @@ void WDaemonSocket::ListenThreadFunction()
 			ClientsMutex.lock();
 			Clients.push_back(NewClient);
 			ClientsMutex.unlock();
-		}
-		else if (Running && !bTimedOut)
-		{
-			// if the socket is not valid and the server is still running, print an error message
-			spdlog::error("Error accepting client connection: {} ({})", strerror(errno), errno);
 		}
 		RemoveInactiveClients();
 	}

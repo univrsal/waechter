@@ -139,7 +139,7 @@ bool WIPLink::Init()
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(200));
 	}
-	if (IpProcSocket->GetState() != ES_Connected)
+	if (!IpProcSocket->IsConnected())
 	{
 		spdlog::error("Failed to connect to waechter-iplink process socket: {}", WErrnoUtil::StrError());
 		return false;

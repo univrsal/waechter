@@ -34,57 +34,42 @@ public:
 	[[nodiscard]] int GetFd() const { return SocketFd; }
 };
 
-enum ESocketState
-{
-	ES_Initial,
-	ES_Opened,
-	ES_Connected
-};
-
 class WClientSocket : public WSocket
 {
-	WBuffer Accum{};
-	WBuffer                   FrameBuffer{};
-	std::atomic<ESocketState> State{};
-	bool                      bBlocking{ true };
+	// Stores raw bytes read from the socket until a full frame is assembled
+	WBuffer IncomingBuffer{ 4096 };
+	bool    bIsConnected{ false };
 
 public:
-	explicit WClientSocket(int SocketFd_) : WSocket(SocketFd_) { assert(SocketFd_ > 0); }
-
+	explicit WClientSocket(int SocketFd_) : WSocket(SocketFd_), bIsConnected(true) { assert(SocketFd_ > 0); }
 	explicit WClientSocket(std::string const& SocketPath_) : WSocket(SocketPath_) {}
 
-	~WClientSocket() { Close(); }
+	~WClientSocket();
 
-	void Close();
-
-	bool IsOpen();
-
+	// Establishes connection if not already connected
 	bool Connect();
 
-	ssize_t Send(WBuffer const& Buf);
+	// Closes the socket and resets buffers
+	void Close();
 
-	ssize_t SendFramed(std::string const& Data);
+	[[nodiscard]] bool IsConnected() const { return bIsConnected && SocketFd >= 0; }
 
-	bool Receive(WBuffer& Buf, bool* bDataToRead = nullptr);
+	// Sends raw data (no framing header)
+	// Returns true if all data was sent, false on error
+	bool Send(void const* Data, size_t Size);
 
-	[[nodiscard]] ESocketState GetState() const { return State.load(std::memory_order_acquire); }
+	// Wraps data in a 4-byte length header and sends it
+	bool SendFramed(std::string const& Payload);
+	bool SendFramed(void const* Data, size_t Size);
 
-	void SetState(ESocketState NewState) { State.store(NewState, std::memory_order_release); }
+	// Attempts to read from socket and extract exactly one frame.
+	// Returns:
+	//  true  -> A full frame was extracted into OutputBuffer.
+	//  false -> Not enough data yet, or socket error (check IsConnected()).
+	bool ReceiveFramed(WBuffer& OutputBuffer);
 
-	void SetNonBlocking(bool bNonBlocking)
-	{
-		int Flags = fcntl(SocketFd, F_GETFL, 0);
-		if (bNonBlocking)
-		{
-			Flags |= O_NONBLOCK;
-		}
-		else
-		{
-			Flags &= ~O_NONBLOCK;
-		}
-		fcntl(SocketFd, F_SETFL, Flags);
-		bBlocking = !bNonBlocking;
-	}
+	// Standard receive into a buffer (raw bytes)
+	ssize_t ReceiveRaw(void* Buffer, size_t Capacity);
 
 	template <typename T>
 	ssize_t SendMessage(T const& Message)
@@ -133,7 +118,6 @@ public:
 		{
 			return false;
 		}
-
 		if (listen(SocketFd, 5) < 0)
 		{
 			return false;
@@ -142,27 +126,16 @@ public:
 		return true;
 	}
 
-	std::shared_ptr<WClientSocket> Accept(int TimeoutMs = -1, bool* bTimedOut = nullptr) const
+	std::shared_ptr<WClientSocket> Accept(int TimeoutMs = -1) const
 	{
-		pollfd pfd{};
-		pfd.fd = SocketFd;
-		pfd.events = POLLIN;
-
-		if (int const Ret = poll(&pfd, 1, TimeoutMs); Ret > 0)
+		pollfd Pfd{ SocketFd, POLLIN, 0 };
+		if (poll(&Pfd, 1, TimeoutMs) > 0 && (Pfd.revents & POLLIN))
 		{
-			if (pfd.revents & POLLIN)
+			int ClientFd = accept(SocketFd, nullptr, nullptr);
+			if (ClientFd >= 0)
 			{
-				int ClientFd = accept(SocketFd, nullptr, nullptr);
-				if (ClientFd < 0)
-				{
-					return nullptr;
-				}
 				return std::make_shared<WClientSocket>(ClientFd);
 			}
-		}
-		else if (Ret == 0 && bTimedOut)
-		{
-			*bTimedOut = true;
 		}
 		return nullptr;
 	}
