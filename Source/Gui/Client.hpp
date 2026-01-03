@@ -36,35 +36,22 @@ struct WClientItem : ITrafficItem
 class WClient : public TSingleton<WClient>
 {
 	std::shared_ptr<WClientSocket> Socket;
-
-	std::thread                   ConnectionThread;
-	mutable std::mutex            SocketMutex;
-	std::atomic<bool>             Running{ true };
-	std::shared_ptr<WTrafficTree> TrafficTree{};
+	mutable std::mutex             SocketMutex;
+	std::shared_ptr<WTrafficTree>  TrafficTree{};
 
 	TTrafficCounter<WClientItem> TrafficCounter{ std::make_shared<WClientItem>() };
 
-	void ConnectionThreadFunction();
+	void OnDataReceived(WBuffer& Buffer);
 
-	bool EnsureConnected();
-
-	void HandleHandshake(WBuffer& Buf);
+	static void HandleHandshake(WBuffer& Buf);
 
 public:
 	std::atomic<WBytesPerSecond> DaemonToClientTrafficRate{ 0 };
 	std::atomic<WBytesPerSecond> ClientToDaemonTrafficRate{ 0 };
 
 	void Start();
+	void Stop() const { Socket->Close(); }
 
-	void Stop()
-	{
-		Running = false;
-		Socket->Close();
-		if (ConnectionThread.joinable())
-		{
-			ConnectionThread.join();
-		}
-	}
 	WClient();
 	~WClient() override = default;
 

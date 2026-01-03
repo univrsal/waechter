@@ -13,83 +13,44 @@
 #include "Data/Protocol.hpp"
 #include "Util/Settings.hpp"
 
-inline bool ReadU32(char const* DataPtr, size_t N, uint32_t& outI32)
+void WClient::OnDataReceived(WBuffer& Buf)
 {
-	if (N < 4)
-		return false;
-	uint32_t Val;
-	std::memcpy(&Val, DataPtr, 4);
-	outI32 = Val;
-	return true;
-}
+	TrafficCounter.PushIncomingTraffic(Buf.GetWritePos());
+	TrafficCounter.Refresh();
+	DaemonToClientTrafficRate = TrafficCounter.TrafficItem->DownloadSpeed;
 
-void WClient::ConnectionThreadFunction()
-{
-	WBuffer Buf{}; // per-read buffer from socket
-	while (Running)
+	// Dispatch based on 1-byte message type at start of payload
+	auto Type = ReadMessageTypeFromBuffer(Buf);
+	if (Type == MT_Invalid)
 	{
-		if (!EnsureConnected())
-		{
-			for (int i = 0; i < 20 && Running; ++i)
-			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(50));
-			}
-		}
-
-		if (!Socket->ReceiveFramed(Buf))
-		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(50));
-			continue;
-		}
-
-		TrafficCounter.PushIncomingTraffic(Buf.GetWritePos());
-		TrafficCounter.Refresh();
-		DaemonToClientTrafficRate = TrafficCounter.TrafficItem->DownloadSpeed;
-
-		// Dispatch based on 1-byte message type at start of payload
-		auto Type = ReadMessageTypeFromBuffer(Buf);
-		if (Type == MT_Invalid)
-		{
-			spdlog::error("Received invalid message type from server (framed)");
-			continue;
-		}
-		switch (Type)
-		{
-			case MT_Handshake:
-				HandleHandshake(Buf);
-				break;
-			case MT_TrafficTree:
-				TrafficTree->LoadFromBuffer(Buf);
-				break;
-			case MT_TrafficTreeUpdate:
-				TrafficTree->UpdateFromBuffer(Buf);
-				break;
-			case MT_AppIconAtlasData:
-				WAppIconAtlas::GetInstance().FromAtlasData(Buf);
-				break;
-			case MT_ResolvedAddresses:
-				TrafficTree->SetResolvedAddresses(Buf);
-				break;
-			default:
-				spdlog::warn("Received unknown message type from server: {}", static_cast<int>(Type));
-				break;
-		}
+		spdlog::error("Received invalid message type from server (framed)");
+		return;
 	}
-}
-
-bool WClient::EnsureConnected()
-{
-	if (Socket->IsConnected())
+	switch (Type)
 	{
-		return true;
+		case MT_Handshake:
+			HandleHandshake(Buf);
+			break;
+		case MT_TrafficTree:
+			TrafficTree->LoadFromBuffer(Buf);
+			break;
+		case MT_TrafficTreeUpdate:
+			TrafficTree->UpdateFromBuffer(Buf);
+			break;
+		case MT_AppIconAtlasData:
+			WAppIconAtlas::GetInstance().FromAtlasData(Buf);
+			break;
+		case MT_ResolvedAddresses:
+			TrafficTree->SetResolvedAddresses(Buf);
+			break;
+		default:
+			spdlog::warn("Received unknown message type from server: {}", static_cast<int>(Type));
+			break;
 	}
-
-	return Socket->Connect();
 }
 
 void WClient::HandleHandshake(WBuffer& Buf)
 {
-
 	WProtocolHandshake Handshake{};
 	std::stringstream  ss;
 	ss.write(Buf.GetData(), static_cast<long int>(Buf.GetWritePos()));
@@ -121,8 +82,19 @@ void WClient::HandleHandshake(WBuffer& Buf)
 
 void WClient::Start()
 {
-	Running = true;
-	ConnectionThread = std::thread(&WClient::ConnectionThreadFunction, this);
+	Socket->OnData.connect(std::bind(&WClient::OnDataReceived, this, std::placeholders::_1));
+	Socket->StartListenThread();
+
+	WTimerManager::GetInstance().AddTimer(0.5, [this] {
+		if (!Socket->IsConnected())
+		{
+			Socket->Connect();
+			if (Socket->IsConnected())
+			{
+				Socket->StartListenThread();
+			}
+		}
+	});
 }
 
 WClient::WClient()

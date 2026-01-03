@@ -3,14 +3,24 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-/*
- * Copyright (c) 2025, Alex <uni@vrsal.xyz>
- * SPDX-License-Identifier: BSD-3-Clause
- */
-
 #include "Socket.hpp"
 #include <spdlog/spdlog.h>
-#include <vector>
+
+void WClientSocket::ListenThreadFunction()
+{
+	WBuffer RecvBuf;
+	while (bListenThreadRunning && IsConnected())
+	{
+		if (!ReceiveFramed(RecvBuf))
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(50));
+			continue;
+		}
+		OnData(RecvBuf);
+		RecvBuf.Compact();
+	}
+	bListenThreadRunning = false;
+}
 
 WClientSocket::~WClientSocket()
 {
@@ -19,12 +29,32 @@ WClientSocket::~WClientSocket()
 
 void WClientSocket::Close()
 {
+	bool bWasConnected = bIsConnected;
+	bListenThreadRunning = false;
+	bIsConnected = false;
 	if (SocketFd >= 0)
 	{
+		shutdown(SocketFd, SHUT_RDWR);
 		close(SocketFd);
 		SocketFd = -1;
 	}
-	bIsConnected = false;
+
+	if (std::this_thread::get_id() == ListenerThread.get_id())
+	{
+		// We're in the listener thread, cannot join ourselves
+		// Just let the thread finish naturally.
+	}
+	else
+	{
+		if (ListenerThread.joinable())
+		{
+			ListenerThread.join();
+		}
+	}
+	if (bWasConnected)
+	{
+		OnClosed();
+	}
 	IncomingBuffer.Reset();
 }
 
@@ -60,7 +90,9 @@ bool WClientSocket::Connect()
 bool WClientSocket::Send(void const* Data, size_t Size)
 {
 	if (!IsConnected() || Size == 0)
+	{
 		return false;
+	}
 
 	char const* Ptr = static_cast<char const*>(Data);
 	size_t      TotalSent = 0;
@@ -85,7 +117,9 @@ bool WClientSocket::SendFramed(void const* Data, size_t Size)
 	// 1. Send Length Header (uint32)
 	uint32_t Length = static_cast<uint32_t>(Size);
 	if (!Send(&Length, sizeof(Length)))
+	{
 		return false;
+	}
 
 	// 2. Send Body
 	return Send(Data, Size);

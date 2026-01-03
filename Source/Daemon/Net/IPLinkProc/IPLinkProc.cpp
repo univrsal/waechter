@@ -193,55 +193,53 @@ int main(int Argc, char** Argv)
 	{
 		bool bHaveFrame = ClientSocket->ReceiveFramed(RecvBuffer);
 
+		if (bHaveFrame)
+		{
+			std::stringstream SS(std::string(RecvBuffer.GetData(), RecvBuffer.GetReadableSize()));
+			WIPLinkMsg        Msg;
+			try
+			{
+				cereal::BinaryInputArchive Iar(SS);
+				Iar(Msg);
+			}
+			catch (std::exception const& e)
+			{
+				spdlog::error("Failed to deserialize message: {}", e.what());
+				continue;
+			}
+
+			if (Msg.Type == EIPLinkMsgType::Exit)
+			{
+				spdlog::info("Received exit message, shutting down");
+				Handler.bStop = true;
+			}
+			else if (Msg.Type == EIPLinkMsgType::SetupHtbClass && Msg.SetupHtbClass)
+			{
+				if (!SetupHtbClass(Msg.SetupHtbClass))
+				{
+					spdlog::error("Failed to setup HTB class");
+				}
+			}
+			else if (Msg.Type == EIPLinkMsgType::RemoveHtbClass && Msg.RemoveHtbClass)
+			{
+				if (!RemoveHtbClass(Msg.RemoveHtbClass))
+				{
+					spdlog::error("Failed to remove HTB class");
+				}
+			}
+			else if (Msg.Type == EIPLinkMsgType::ConfigurePortRouting && Msg.SetupPortRouting)
+			{
+				if (!ConfigurePortRouting(Msg.SetupPortRouting, IfbDev))
+				{
+					spdlog::error("Failed to configure port routing");
+				}
+			}
+		}
+
 		if (!ClientSocket->IsConnected())
 		{
 			spdlog::info("Daemon disconnected from IP link process socket, exiting");
 			break;
-		}
-
-		if (!bHaveFrame)
-		{
-			continue;
-		}
-
-		std::stringstream SS(std::string(RecvBuffer.GetData(), RecvBuffer.GetReadableSize()));
-		WIPLinkMsg        Msg;
-		try
-		{
-			cereal::BinaryInputArchive Iar(SS);
-			Iar(Msg);
-		}
-		catch (std::exception const& e)
-		{
-			spdlog::error("Failed to deserialize message: {}", e.what());
-			continue;
-		}
-
-		if (Msg.Type == EIPLinkMsgType::Exit)
-		{
-			spdlog::info("Received exit message, shutting down");
-			Handler.bStop = true;
-		}
-		else if (Msg.Type == EIPLinkMsgType::SetupHtbClass && Msg.SetupHtbClass)
-		{
-			if (!SetupHtbClass(Msg.SetupHtbClass))
-			{
-				spdlog::error("Failed to setup HTB class");
-			}
-		}
-		else if (Msg.Type == EIPLinkMsgType::RemoveHtbClass && Msg.RemoveHtbClass)
-		{
-			if (!RemoveHtbClass(Msg.RemoveHtbClass))
-			{
-				spdlog::error("Failed to remove HTB class");
-			}
-		}
-		else if (Msg.Type == EIPLinkMsgType::ConfigurePortRouting && Msg.SetupPortRouting)
-		{
-			if (!ConfigurePortRouting(Msg.SetupPortRouting, IfbDev))
-			{
-				spdlog::error("Failed to configure port routing");
-			}
 		}
 	}
 

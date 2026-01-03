@@ -8,53 +8,26 @@
 #include <spdlog/spdlog.h>
 
 #include "Messages.hpp"
-#include "DaemonSocket.hpp"
 #include "Rules/RuleManager.hpp"
 
-void WDaemonClient::ListenThreadFunction()
+void WDaemonClient::OnDataReceived(WBuffer& RecvBuf)
 {
-	WBuffer RecvBuf;
-	while (Running)
+
+	// Extract the full message
+	auto Type = ReadMessageTypeFromBuffer(RecvBuf);
+	if (Type == MT_Invalid)
 	{
-		bool bHaveFrame = ClientSocket->ReceiveFramed(RecvBuf);
-
-		if (!ClientSocket->IsConnected())
-		{
-			Running = false;
-			break;
-		}
-
-		if (!bHaveFrame)
-		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(50));
-			continue;
-		}
-
-		// Extract the full message
-		auto Type = ReadMessageTypeFromBuffer(RecvBuf);
-		if (Type == MT_Invalid)
-		{
-			spdlog::warn("Received invalid message type from daemon client");
-			continue;
-		}
-		spdlog::info("Received message: {}", static_cast<int>(Type));
-
-		switch (Type)
-		{
-			case MT_RuleUpdate:
-				WRuleManager::GetInstance().HandleRuleChange(RecvBuf);
-				break;
-			default:
-				break;
-		}
-		RecvBuf.Compact();
+		spdlog::warn("Received invalid message type from daemon client");
+		return;
 	}
-	ClientSocket->Close();
-	spdlog::info("Client disconnected");
-}
+	spdlog::info("Received message: {}", static_cast<int>(Type));
 
-void WDaemonClient::StartListenThread()
-{
-	Running = true;
-	ListenThread = std::thread(&WDaemonClient::ListenThreadFunction, this);
+	switch (Type)
+	{
+		case MT_RuleUpdate:
+			WRuleManager::GetInstance().HandleRuleChange(RecvBuf);
+			break;
+		default:
+			break;
+	}
 }

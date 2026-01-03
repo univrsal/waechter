@@ -38,7 +38,6 @@ void WDaemonSocket::ListenThreadFunction()
 		{
 			spdlog::info("Client connected");
 			auto NewClient = std::make_shared<WDaemonClient>(ClientSocket, this);
-			NewClient->StartListenThread();
 
 			// create a binary stream for cereal to write to
 			auto& SystemMap = WSystemMap::GetInstance();

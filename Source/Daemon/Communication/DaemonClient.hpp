@@ -31,30 +31,19 @@ class WDaemonClient
 	std::shared_ptr<WClientSocket> ClientSocket;
 	WDaemonSocket*                 ParentSocket{};
 
-	WProcessId        ClientPid{ 0 };
-	std::atomic<bool> Running{ true };
-	std::thread       ListenThread{};
+	WProcessId ClientPid{ 0 };
 
-	WBuffer SendBuffer{};
-
-	void ListenThreadFunction();
+	static void OnDataReceived(WBuffer& RecvBuf);
 
 public:
 	WDaemonClient(std::shared_ptr<WClientSocket> CS, WDaemonSocket* PS) : ClientSocket(std::move(CS)), ParentSocket(PS)
 	{
+		ClientSocket->OnData.connect(std::bind(&WDaemonClient::OnDataReceived, std::placeholders::_1));
+		ClientSocket->OnClosed.connect([] { spdlog::info("Client disconnected"); });
+		ClientSocket->StartListenThread();
 	}
 
-	~WDaemonClient()
-	{
-		Running = false;
-		ClientSocket->Close();
-		if (ListenThread.joinable())
-		{
-			ListenThread.join();
-		}
-	}
-
-	void StartListenThread();
+	~WDaemonClient() { ClientSocket->Close(); }
 
 	[[nodiscard]] bool IsRunning() const { return ClientSocket->IsConnected(); }
 

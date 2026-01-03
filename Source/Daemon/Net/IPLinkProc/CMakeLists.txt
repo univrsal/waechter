@@ -7,4 +7,5 @@ target_link_libraries(waechter-iplink
         waechter::util
         thirdparty::spdlog
         thirdparty::cereal
+        thirdparty::sigslot
 )

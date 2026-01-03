@@ -15,6 +15,8 @@
 #include <utility>
 #include <atomic>
 #include <fcntl.h>
+#include <thread>
+#include <sigslot/signal.hpp>
 #include <cereal/archives/binary.hpp>
 
 #include "Buffer.hpp"
@@ -37,10 +39,17 @@ public:
 class WClientSocket : public WSocket
 {
 	// Stores raw bytes read from the socket until a full frame is assembled
-	WBuffer IncomingBuffer{ 4096 };
-	bool    bIsConnected{ false };
+	WBuffer           IncomingBuffer{ 4096 };
+	bool              bIsConnected{ false };
+	std::thread       ListenerThread;
+	std::atomic<bool> bListenThreadRunning{ false };
+
+	void ListenThreadFunction();
 
 public:
+	sigslot::signal<WBuffer&> OnData;
+	sigslot::signal<>         OnClosed;
+
 	explicit WClientSocket(int SocketFd_) : WSocket(SocketFd_), bIsConnected(true) { assert(SocketFd_ > 0); }
 	explicit WClientSocket(std::string const& SocketPath_) : WSocket(SocketPath_) {}
 
@@ -48,6 +57,19 @@ public:
 
 	// Establishes connection if not already connected
 	bool Connect();
+
+	void StartListenThread()
+	{
+		if (!bListenThreadRunning)
+		{
+			if (ListenerThread.joinable())
+			{
+				ListenerThread.join();
+			}
+			bListenThreadRunning = true;
+			ListenerThread = std::thread(&WClientSocket::ListenThreadFunction, this);
+		}
+	}
 
 	// Closes the socket and resets buffers
 	void Close();
@@ -126,7 +148,7 @@ public:
 		return true;
 	}
 
-	std::shared_ptr<WClientSocket> Accept(int TimeoutMs = -1) const
+	[[nodiscard]] std::shared_ptr<WClientSocket> Accept(int TimeoutMs = -1) const
 	{
 		pollfd Pfd{ SocketFd, POLLIN, 0 };
 		if (poll(&Pfd, 1, TimeoutMs) > 0 && (Pfd.revents & POLLIN))
