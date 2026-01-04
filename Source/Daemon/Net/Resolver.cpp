@@ -5,10 +5,8 @@
 
 #include "Resolver.hpp"
 
-#include "ErrnoUtil.hpp"
-#include "common/TracySystem.hpp"
-
 #include <netdb.h>
+#include <tracy/Tracy.hpp>
 #include <spdlog/spdlog.h>
 
 void WResolver::ResolveAddress(WIPAddress const& Address)
