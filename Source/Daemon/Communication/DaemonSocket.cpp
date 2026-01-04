@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <spdlog/spdlog.h>
 #include <cstdint>
+#include <tracy/Tracy.hpp>
 
 // ReSharper disable CppUnusedIncludeDirective
 #include <cereal/types/array.hpp>
@@ -27,10 +28,10 @@
 #include "Data/Protocol.hpp"
 #include "Data/SystemMap.hpp"
 #include "Net/Resolver.hpp"
-#include "tracy/Tracy.hpp"
 
 void WDaemonSocket::ListenThreadFunction()
 {
+	tracy::SetThreadName("DaemonSocket");
 	WBuffer Buffer;
 	while (Running)
 	{
