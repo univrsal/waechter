@@ -397,6 +397,7 @@ void WSystemMap::PushOutgoingTraffic(WSocketEvent const& Event)
 
 std::vector<std::string> WSystemMap::GetActiveApplicationPaths()
 {
+	ZoneScopedN("GetActiveApplicationPaths");
 	std::lock_guard          Lock(DataMutex);
 	std::vector<std::string> ActiveApps{};
 

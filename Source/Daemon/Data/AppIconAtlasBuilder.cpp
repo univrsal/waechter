@@ -8,6 +8,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_RECT_PACK_IMPLEMENTATION
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "tracy/Tracy.hpp"
+
 #include <memory>
 #include <spdlog/spdlog.h>
 #include <stb_image.h>
@@ -25,6 +27,7 @@ struct WPackedIcon
 bool WAppIconAtlasBuilder::GetAtlasData(WAppIconAtlasData& outData, std::vector<std::string> const& BinaryNames,
 	std::size_t AtlasSize, std::size_t IconSize)
 {
+	ZoneScopedN("GetAtlasData");
 	std::vector<WPackedIcon> PackedIcons{};
 	PackedIcons.reserve(BinaryNames.size());
 	spdlog::debug("Building atlas for {} apps", BinaryNames.size());

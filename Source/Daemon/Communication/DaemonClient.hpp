@@ -51,6 +51,7 @@ public:
 
 	[[nodiscard]] ssize_t SendFramedData(std::string const& Data) const
 	{
+		ZoneScopedN("SendFramedData");
 		if (!ClientSocket->IsConnected())
 		{
 			return 0;
@@ -63,6 +64,7 @@ public:
 	{
 		std::stringstream AtlasOs{};
 		{
+			ZoneScopedN("SerializeMessage");
 			AtlasOs << Type;
 			cereal::BinaryOutputArchive AtlasArchive(AtlasOs);
 			AtlasArchive(Data);
