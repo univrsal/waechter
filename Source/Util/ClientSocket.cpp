@@ -114,7 +114,7 @@ bool WClientSocket::Send(void const* Data, size_t Size)
 bool WClientSocket::SendFramed(void const* Data, size_t Size)
 {
 	// 1. Send Length Header (uint32)
-	uint32_t Length = static_cast<uint32_t>(Size);
+	auto Length = static_cast<uint32_t>(Size);
 	if (!Send(&Length, sizeof(Length)))
 	{
 		return false;
