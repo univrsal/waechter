@@ -118,10 +118,10 @@ void WDaemonSocket::BroadcastTrafficUpdate()
 	for (auto const& Client : Clients)
 	{
 		ZoneScopedN("SendTrafficUpdate");
-		auto Sent = Client->SendFramedData(Str);
-		if (Sent < 0)
+		if (Client->SendFramedData(Str) < 0)
 		{
 			spdlog::error("Failed to send traffic update to client: {}", WErrnoUtil::StrError());
+			Client->GetSocket()->Close();
 		}
 	}
 }
