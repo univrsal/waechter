@@ -7,7 +7,6 @@
 
 #include <spdlog/spdlog.h>
 #include <tracy/Tracy.hpp>
-#include <common/TracySystem.hpp>
 
 #include "DaemonConfig.hpp"
 #include "ErrnoUtil.hpp"
