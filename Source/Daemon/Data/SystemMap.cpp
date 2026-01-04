@@ -209,6 +209,8 @@ std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketEvent const& Event,
 			CmdlIne += ' ';
 	}
 
+	Comm = WStringFormat::Trim(Comm);
+
 	auto App = FindOrMapApplication(ExePath, CmdlIne, Comm);
 	auto Process = FindOrMapProcess(PID, App);
 	return FindOrMapSocket(SocketCookie, Process);
@@ -276,7 +278,7 @@ std::shared_ptr<WAppCounter> WSystemMap::FindOrMapApplication(
 		// FIXME: Using just argv[0] would group all python applications under the same
 		// tree entry, with the first one encountered used as the parent
 		// falsely grouping python processes of unrelated programs under that application
-		Key += " " + AppName;
+		Key = WStringFormat::Trim(Key + " " + AppName);
 	}
 
 	if (auto It = Applications.find(Key); It != Applications.end())
@@ -293,7 +295,7 @@ std::shared_ptr<WAppCounter> WSystemMap::FindOrMapApplication(
 	// Choose display name: AppName (comm) if provided, else basename of key
 	if (!AppName.empty())
 	{
-		AppItem->ApplicationName = WStringFormat::Trim(AppName);
+		AppItem->ApplicationName = AppName;
 	}
 	else
 	{
