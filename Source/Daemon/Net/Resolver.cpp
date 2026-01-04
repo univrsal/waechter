@@ -6,6 +6,7 @@
 #include "Resolver.hpp"
 
 #include "ErrnoUtil.hpp"
+#include "common/TracySystem.hpp"
 
 #include <netdb.h>
 #include <spdlog/spdlog.h>
@@ -77,6 +78,7 @@ void WResolver::ResolveAddress(WIPAddress const& Address)
 
 void WResolver::ResolverThreadFunc()
 {
+	tracy::SetThreadName("ResolverThread");
 	while (bRunning)
 	{
 		std::unique_lock Lock(QueueMutex);
