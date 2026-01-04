@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.xyz>
+ * Copyright (c) 2026, Alex <uni@vrsal.xyz>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -204,10 +204,18 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 	WRuleUpdate       Update{};
 	std::stringstream ss;
 	ss.write(Buf.GetData(), static_cast<long int>(Buf.GetWritePos()));
+	try
 	{
-		ss.seekg(5); // Skip message type and length for now
-		cereal::BinaryInputArchive iar(ss);
-		iar(Update);
+		{
+			ss.seekg(1); // Skip message type
+			cereal::BinaryInputArchive iar(ss);
+			iar(Update);
+		}
+	}
+	catch (std::exception const& e)
+	{
+		spdlog::error("Failed to deserialize rule update: {}", e.what());
+		return;
 	}
 
 	std::lock_guard Lock(Mutex);
