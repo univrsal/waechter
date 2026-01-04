@@ -129,16 +129,22 @@ void WDaemonSocket::BroadcastTrafficUpdate()
 
 void WDaemonSocket::BroadcastAtlasUpdate()
 {
-	auto&           SystemMap = WSystemMap::GetInstance();
-	std::lock_guard Lock(ClientsMutex);
-	spdlog::info("App icon atlas is dirty, broadcasting atlas update to clients");
+	auto&             SystemMap = WSystemMap::GetInstance();
+	std::lock_guard   Lock(ClientsMutex);
 	auto              ActiveApps = SystemMap.GetActiveApplicationPaths();
 	WAppIconAtlasData Data{};
 	if (WAppIconAtlasBuilder::GetInstance().GetAtlasData(Data, ActiveApps))
 	{
+		auto Msg = WDaemonClient::MakeMessage(MT_AppIconAtlasData, Data);
+		spdlog::info("App icon atlas is dirty, broadcasting atlas update with {} KiB to clients", Msg.length() / 1024);
+		ZoneScopedN("BroadcastAtlasUpdate.SendMessage");
 		for (auto const& Client : Clients)
 		{
-			Client->SendMessage(MT_AppIconAtlasData, Data);
+			if (Client->SendFramedData(Msg) < 0)
+			{
+				spdlog::error("Failed to send app icon atlas update to client: {}", WErrnoUtil::StrError());
+				Client->GetSocket()->Close();
+			}
 		}
 	}
 	WAppIconAtlasBuilder::GetInstance().ClearDirty();

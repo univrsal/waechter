@@ -10,6 +10,7 @@
 #include <utility>
 #include <thread>
 #include <spdlog/spdlog.h>
+#include <tracy/Tracy.hpp>
 
 // ReSharper disable CppUnusedIncludeDirective
 #include <cereal/types/array.hpp>
@@ -57,6 +58,19 @@ public:
 			return 0;
 		}
 		return ClientSocket->SendFramed(Data);
+	}
+
+	template <class T>
+	[[nodiscard]] static std::string MakeMessage(EMessageType Type, T const& Data)
+	{
+		std::stringstream AtlasOs{};
+		{
+			ZoneScopedN("SerializeMessage");
+			AtlasOs << Type;
+			cereal::BinaryOutputArchive AtlasArchive(AtlasOs);
+			AtlasArchive(Data);
+		}
+		return AtlasOs.str();
 	}
 
 	template <class T>
