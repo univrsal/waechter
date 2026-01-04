@@ -101,6 +101,8 @@ bool ConfigurePortRouting(std::shared_ptr<WConfigurePortRouting> const& SetupPor
 			SetupPortRouting->Handle);
 		SYSFMT("tc filter del dev {} protocol ip parent 1: prio {} handle {} flower", IfbDev, Priority,
 			SetupPortRouting->Handle + 1);
+		spdlog::info("Removed ingress port routing on interface {}: dport={}, qdisc id={}", IfbDev,
+			SetupPortRouting->Dport, SetupPortRouting->QDiscId);
 	}
 	else
 	{

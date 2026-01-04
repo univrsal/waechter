@@ -20,7 +20,6 @@ void WDaemonClient::OnDataReceived(WBuffer& RecvBuf)
 		spdlog::warn("Received invalid message type from daemon client");
 		return;
 	}
-	spdlog::info("Received message: {}", static_cast<int>(Type));
 
 	switch (Type)
 	{

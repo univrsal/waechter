@@ -179,7 +179,7 @@ void WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uin
 		if (Limit.Port == Dport && Limit.QDiscId == QDiscId)
 		{
 			// Already routed
-			spdlog::info("Port already routed for traffic item ID {}: dport={}, qdisc id={}", Item, Dport, QDiscId);
+			spdlog::debug("Port already routed for traffic item ID {}: dport={}, qdisc id={}", Item, Dport, QDiscId);
 			return;
 		}
 		auto const& ExistingLimit = IngressPortRoutings[Item];

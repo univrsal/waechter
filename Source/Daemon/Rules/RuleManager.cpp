@@ -165,7 +165,7 @@ void WRuleManager::SyncRules()
 		}
 		else
 		{
-			spdlog::info("Updated eBPF rules for socket cookie {}: UploadSwitch={}, DownloadSwitch={}", Cookie,
+			spdlog::debug("Updated eBPF rules for socket cookie {}: UploadSwitch={}, DownloadSwitch={}", Cookie,
 				static_cast<int>(SockRules.Rules.UploadSwitch), static_cast<int>(SockRules.Rules.DownloadSwitch));
 			SockRules.bDirty = false;
 		}

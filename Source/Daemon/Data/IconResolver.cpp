@@ -30,7 +30,7 @@ inline std::string FindDesktopFile(std::string const& BinaryName, std::vector<st
 					if (LineLowercase.rfind("exec=", 0) == 0
 						&& LineLowercase.find(BinaryNameLowercase) != std::string::npos)
 					{
-						spdlog::info(
+						spdlog::debug(
 							"Found desktop file for binary '{}' at path '{}'", BinaryName, Entry.path().string());
 						return Entry.path();
 					}

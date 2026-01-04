@@ -429,7 +429,7 @@ void WSystemMap::Cleanup()
 		if (auto const& Process = ProcessIt->second; Process->DueForRemoval())
 		{
 			bRemovedAny = true;
-			spdlog::info("Removing process {}.", ProcessIt->first);
+			spdlog::debug("Removing process {}.", ProcessIt->first);
 			TrafficCounter.PushIncomingTraffic(0); // Force state update
 			Process->ParentApp->PushIncomingTraffic(0);
 
