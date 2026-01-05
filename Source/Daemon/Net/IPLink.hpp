@@ -77,6 +77,8 @@ public:
 	void RemoveUploadLimit(WTrafficItemId const& ItemId);
 	void RemoveDownloadLimit(WTrafficItemId const& ItemId);
 
-	std::shared_ptr<WBandwidthLimit> GetUploadLimit(WTrafficItemId const& ItemId, WBytesPerSecond const& Limit);
-	std::shared_ptr<WBandwidthLimit> GetDownloadLimit(WTrafficItemId const& ItemId, WBytesPerSecond const& Limit);
+	std::shared_ptr<WBandwidthLimit> GetUploadLimit(
+		WTrafficItemId const& ItemId, WBytesPerSecond const& Limit, bool* bExists = nullptr);
+	std::shared_ptr<WBandwidthLimit> GetDownloadLimit(
+		WTrafficItemId const& ItemId, WBytesPerSecond const& Limit, bool* bExists = nullptr);
 };

@@ -194,7 +194,6 @@ void WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uin
 
 		Limit.Port = Dport;
 		Limit.QDiscId = QDiscId;
-
 		return;
 	}
 	WIngressPortRouting NewRouting;
@@ -311,7 +310,8 @@ void WIPLink::RemoveDownloadLimit(WTrafficItemId const& ItemId)
 	}
 }
 
-std::shared_ptr<WBandwidthLimit> WIPLink::GetUploadLimit(WTrafficItemId const& ItemId, WBytesPerSecond const& Limit)
+std::shared_ptr<WBandwidthLimit> WIPLink::GetUploadLimit(
+	WTrafficItemId const& ItemId, WBytesPerSecond const& Limit, bool* bExists)
 {
 	std::lock_guard Lock(Mutex);
 	if (ActiveUploadLimits.contains(ItemId))
@@ -323,7 +323,15 @@ std::shared_ptr<WBandwidthLimit> WIPLink::GetUploadLimit(WTrafficItemId const& I
 			ExistingLimit->RateLimit = Limit;
 			SetupEgressHTBClass(ExistingLimit);
 		}
+		if (bExists)
+		{
+			*bExists = true;
+		}
 		return ExistingLimit;
+	}
+	if (bExists)
+	{
+		*bExists = false;
 	}
 	auto NewLimit = std::make_shared<WBandwidthLimit>(
 		NextMark.fetch_add(1), NextMinorId.fetch_add(1), Limit, ELimitDirection::Upload);
@@ -335,7 +343,8 @@ std::shared_ptr<WBandwidthLimit> WIPLink::GetUploadLimit(WTrafficItemId const& I
 	return NewLimit;
 }
 
-std::shared_ptr<WBandwidthLimit> WIPLink::GetDownloadLimit(WTrafficItemId const& ItemId, WBytesPerSecond const& Limit)
+std::shared_ptr<WBandwidthLimit> WIPLink::GetDownloadLimit(
+	WTrafficItemId const& ItemId, WBytesPerSecond const& Limit, bool* bExists)
 {
 	std::lock_guard Lock(Mutex);
 	if (ActiveDownloadLimits.contains(ItemId))
@@ -347,7 +356,15 @@ std::shared_ptr<WBandwidthLimit> WIPLink::GetDownloadLimit(WTrafficItemId const&
 			ExistingLimit->RateLimit = Limit;
 			SetupIngressHTBClass(ExistingLimit);
 		}
+		if (bExists)
+		{
+			*bExists = true;
+		}
 		return ActiveDownloadLimits[ItemId];
+	}
+	if (bExists)
+	{
+		*bExists = false;
 	}
 
 	auto NewLimit = std::make_shared<WBandwidthLimit>(
