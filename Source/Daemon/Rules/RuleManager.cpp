@@ -33,6 +33,15 @@ inline uint32_t GetEffectiveMark(uint32_t ParentMark, uint32_t ItemMark)
 	return ItemMark;
 }
 
+inline WBytesPerSecond GetEffectiveLimit(WBytesPerSecond ParentLimit, WBytesPerSecond ItemLimit)
+{
+	if (ParentLimit != 0)
+	{
+		return ParentLimit;
+	}
+	return ItemLimit;
+}
+
 inline WTrafficItemRules GetEffectiveRules(WTrafficItemRules const& ParentRules, WTrafficItemRules const& ItemRules)
 {
 	WTrafficItemRules EffectiveRules = ItemRules;
@@ -40,6 +49,8 @@ inline WTrafficItemRules GetEffectiveRules(WTrafficItemRules const& ParentRules,
 	EffectiveRules.DownloadSwitch = GetEffectiveSwitchState(ParentRules.DownloadSwitch, ItemRules.DownloadSwitch);
 	EffectiveRules.UploadMark = GetEffectiveMark(ParentRules.UploadMark, ItemRules.UploadMark);
 	EffectiveRules.DownloadQdiscId = GetEffectiveMark(ParentRules.DownloadQdiscId, ItemRules.DownloadQdiscId);
+	EffectiveRules.DownloadLimit = GetEffectiveLimit(ParentRules.DownloadLimit, ItemRules.DownloadLimit);
+	EffectiveRules.UploadLimit = GetEffectiveLimit(ParentRules.UploadLimit, ItemRules.UploadLimit);
 	return EffectiveRules;
 }
 
@@ -61,12 +72,40 @@ void WRuleManager::OnSocketConnected(WSocketCounter const* Socket)
 	auto            ProcessItem = Socket->ParentProcess->TrafficItem->ItemId;
 	auto            AppItem = Socket->ParentProcess->ParentApp->TrafficItem->ItemId;
 
+	auto App = Socket->ParentProcess->ParentApp;
+
 	auto              AppRules = ApplicationRules.contains(AppItem) ? ApplicationRules[AppItem] : WTrafficItemRules{};
 	auto              ProcRules = ProcessRules.contains(ProcessItem) ? ProcessRules[ProcessItem] : WTrafficItemRules{};
 	WTrafficItemRules EffectiveProcRules = GetEffectiveRules(AppRules, ProcRules);
 
 	if (!IsRuleDefault(EffectiveProcRules))
 	{
+		bool bDlExists = false;
+		bool bUlExists = false;
+		// todo: As of now sockets will always prefer the limits higher up in the hierarchy
+		//       i.e. a socket will never use its own limit if the process or application has one set
+		//       this ensures that the higher ranked limit is always enforced but it could technically mean
+		//       that a lower ranked limit is exceeded. Ideally we'd set up a hierarchy of the different HTB limits
+		//       so that both limits are enforced properly.
+		if (EffectiveProcRules.UploadLimit > 0)
+		{
+			WIPLink::GetInstance().GetUploadLimit(
+				Socket->TrafficItem->ItemId, EffectiveProcRules.UploadLimit, &bUlExists);
+		}
+
+		if (EffectiveProcRules.DownloadLimit > 0)
+		{
+			WIPLink::GetInstance().GetDownloadLimit(
+				Socket->TrafficItem->ItemId, EffectiveProcRules.DownloadLimit, &bDlExists);
+		}
+
+		if (!bDlExists || !bUlExists)
+		{
+			spdlog::info("Socket {} has non default rules, DL limit: {}, UL limit: {}, Parent App: {}",
+				Socket->TrafficItem->SocketTuple.LocalEndpoint.Port, EffectiveProcRules.DownloadLimit,
+				EffectiveProcRules.UploadLimit, App->TrafficItem->ApplicationName);
+		}
+
 		SocketRules[Socket->TrafficItem->ItemId] = ProcRules;
 		SocketCookieRules[Socket->TrafficItem->Cookie] = WSocketRules{
 			.Rules = EffectiveProcRules.AsBase(), .SocketId = Socket->TrafficItem->ItemId, .bDirty = true
@@ -217,6 +256,8 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 		spdlog::error("Failed to deserialize rule update: {}", e.what());
 		return;
 	}
+
+	spdlog::info("Rule Change: {}", Update.Rules.ToString());
 
 	std::lock_guard Lock(Mutex);
 
