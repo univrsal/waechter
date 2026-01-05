@@ -252,7 +252,6 @@ void OnDataReceived(WBuffer& RecvBuffer, WSignalHandler& Handler, WMsgQueue& Que
 	// Keep allocations modest.
 	std::stringstream SS(std::string(RecvBuffer.GetData(), RecvBuffer.GetReadableSize()));
 	WIPLinkMsg        Msg;
-	spdlog::info("{} Data received", RecvBuffer.GetReadableSize());
 	try
 	{
 		cereal::BinaryInputArchive Iar(SS);
