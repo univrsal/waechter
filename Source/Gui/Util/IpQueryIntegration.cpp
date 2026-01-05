@@ -5,13 +5,12 @@
 
 #include "IpQueryIntegration.hpp"
 
-#include "Icons/IconAtlas.hpp"
-
 #include <algorithm>
-
-#include "Windows/GlfwWindow.hpp"
-
 #include <thread>
+#include <spdlog/spdlog.h>
+
+#include "Icons/IconAtlas.hpp"
+#include "Windows/GlfwWindow.hpp"
 
 WIpInfoData const* WIpQueryIntegration::GetIpInfo(std::string const& IP)
 {
@@ -29,6 +28,17 @@ WIpInfoData const* WIpQueryIntegration::GetIpInfo(std::string const& IP)
 		std::string Error;
 		auto        Json =
 			WGlfwWindow::GetInstance().GetMainWindow()->GetLibCurl().GetJson("https://api.ipquery.io/" + QT_IP, Error);
+
+		if (!Error.empty() || !Json.is_object())
+		{
+			spdlog::error("Failed to query ipquery.io for IP '{}': {}", QT_IP, Error);
+			WIpInfoData ResultData{};
+			ResultData.bIsPendingRequest = false;
+			ResultData.Asn = "AS0"; // Indicates failure
+			std::lock_guard Lock(Mutex);
+			IpInfoCache[QT_IP] = ResultData;
+			return;
+		}
 
 		WIpInfoData ResultData{};
 		auto        Isp = Json["isp"];
