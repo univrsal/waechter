@@ -20,6 +20,11 @@
 
 #include <filesystem>
 
+// Added for async message handling
+#include <condition_variable>
+#include <mutex>
+#include <deque>
+
 #define SYSFMT(_fmt, ...)                                                                                             \
 	if (auto RC = SafeSystem(fmt::format(_fmt, __VA_ARGS__).c_str()); RC != 0)                                        \
 	{                                                                                                                 \
@@ -37,6 +42,54 @@
 
 // Sole purpose of this executable is to run `tc` commands which require root
 // Commands are sent via unix socket from waechterd after it has dropped privileges
+
+// A tiny bounded-ish queue to avoid unbounded RAM usage if the sender outruns `tc`.
+// If it grows too large, we log warnings so it's visible in the logs.
+struct WMsgQueue
+{
+	std::mutex              Mutex;
+	std::condition_variable Cv;
+	std::deque<WIPLinkMsg>  Queue;
+	std::atomic<bool>       bStop{ false };
+
+	// soft limit; we only warn when exceeded
+	size_t WarnLimit{ 256 };
+
+	void Push(WIPLinkMsg&& Msg)
+	{
+		{
+			std::lock_guard<std::mutex> Lock(Mutex);
+			Queue.emplace_back(std::move(Msg));
+			if (Queue.size() == WarnLimit)
+			{
+				spdlog::warn("[tc] Message queue reached {} items; tc execution might be slow", Queue.size());
+			}
+		}
+		Cv.notify_one();
+	}
+
+	// Returns false if stopping and queue is empty.
+	bool Pop(WIPLinkMsg& Out)
+	{
+		std::unique_lock<std::mutex> Lock(Mutex);
+		Cv.wait(Lock, [&] { return bStop.load() || !Queue.empty(); });
+		if (Queue.empty())
+		{
+			return false;
+		}
+		Out = std::move(Queue.front());
+		Queue.pop_front();
+		return true;
+	}
+
+	void Stop()
+	{
+		bStop = true;
+		Cv.notify_all();
+	}
+};
+
+static void ProcessMessage(WIPLinkMsg const& Msg, WSignalHandler& Handler, std::string const& IfbDev);
 
 int SafeSystem(std::string const& Command)
 {
@@ -65,7 +118,7 @@ std::string SanitizeInterfaceName(std::string const& IfName)
 bool SetupHtbClass(std::shared_ptr<WSetupHtbClassMsg> const& SetupHtbClass)
 {
 	auto const IfName = SanitizeInterfaceName(SetupHtbClass->InterfaceName);
-	spdlog::info("Setting up HTB class on interface {}: classid=1:{}, mark=0x{:x}, rate={} B/s", IfName,
+	spdlog::debug("Setting up HTB class on interface {}: classid=1:{}, mark=0x{:x}, rate={} B/s", IfName,
 		SetupHtbClass->MinorId, SetupHtbClass->Mark, SetupHtbClass->RateLimit);
 	SYSFMT("tc class replace dev {} parent 1:1 classid 1:{} htb rate {}bit ceil {}bit", IfName, SetupHtbClass->MinorId,
 		static_cast<uint64_t>(SetupHtbClass->RateLimit * 8), static_cast<uint64_t>(SetupHtbClass->RateLimit * 8));
@@ -81,7 +134,7 @@ bool SetupHtbClass(std::shared_ptr<WSetupHtbClassMsg> const& SetupHtbClass)
 bool RemoveHtbClass(std::shared_ptr<WRemoveHtbClassMsg> const& RemoveHtbClass)
 {
 	auto const& IfName = SanitizeInterfaceName(RemoveHtbClass->InterfaceName);
-	spdlog::info("Removing HTB class on interface {}: classid=1:{}, mark=0x{:x}", IfName, RemoveHtbClass->MinorId,
+	spdlog::debug("Removing HTB class on interface {}: classid=1:{}, mark=0x{:x}", IfName, RemoveHtbClass->MinorId,
 		RemoveHtbClass->Mark);
 	if (RemoveHtbClass->bIsUpload)
 	{
@@ -145,6 +198,83 @@ bool Init(std::string const& IfbDev, std::string const& IngressInterface)
 	return true;
 }
 
+static void WorkerThreadMain(WMsgQueue& Queue, WSignalHandler& Handler, std::string IfbDev)
+{
+	WIPLinkMsg Msg;
+	while (!Handler.bStop)
+	{
+		// Wait for work (or stop)
+		if (!Queue.Pop(Msg))
+		{
+			break;
+		}
+		ProcessMessage(Msg, Handler, IfbDev);
+	}
+}
+
+static void ProcessMessage(WIPLinkMsg const& Msg, WSignalHandler& Handler, std::string const& IfbDev)
+{
+	if (Msg.Type == EIPLinkMsgType::Exit)
+	{
+		spdlog::info("Received exit message, shutting down");
+		Handler.bStop = true;
+		return;
+	}
+	if (Msg.Type == EIPLinkMsgType::SetupHtbClass && Msg.SetupHtbClass)
+	{
+		if (!SetupHtbClass(Msg.SetupHtbClass))
+		{
+			spdlog::error("Failed to setup HTB class");
+		}
+		return;
+	}
+	if (Msg.Type == EIPLinkMsgType::RemoveHtbClass && Msg.RemoveHtbClass)
+	{
+		if (!RemoveHtbClass(Msg.RemoveHtbClass))
+		{
+			spdlog::error("Failed to remove HTB class");
+		}
+		return;
+	}
+	if (Msg.Type == EIPLinkMsgType::ConfigurePortRouting && Msg.SetupPortRouting)
+	{
+		if (!ConfigurePortRouting(Msg.SetupPortRouting, IfbDev))
+		{
+			spdlog::error("Failed to configure port routing");
+		}
+		return;
+	}
+}
+
+void OnDataReceived(WBuffer& RecvBuffer, WSignalHandler& Handler, WMsgQueue& Queue)
+{
+	// Important: do not execute any slow system calls here. Just deserialize and enqueue.
+	// Keep allocations modest.
+	std::stringstream SS(std::string(RecvBuffer.GetData(), RecvBuffer.GetReadableSize()));
+	WIPLinkMsg        Msg;
+	spdlog::info("{} Data received", RecvBuffer.GetReadableSize());
+	try
+	{
+		cereal::BinaryInputArchive Iar(SS);
+		Iar(Msg);
+	}
+	catch (std::exception const& e)
+	{
+		spdlog::error("Failed to deserialize message: {}", e.what());
+		return;
+	}
+
+	// Fast path: Exit can stop everything quickly.
+	if (Msg.Type == EIPLinkMsgType::Exit)
+	{
+		Handler.bStop = true;
+		Queue.Stop();
+		return;
+	}
+
+	Queue.Push(std::move(Msg));
+}
+
 // For bandwidth limiting we need
 //  - A new interface ifb0 for ingress redirection
 //	- HTB on the main interface (egress)
@@ -190,59 +320,30 @@ int main(int Argc, char** Argv)
 
 	WSignalHandler Handler;
 	WBuffer        RecvBuffer;
+	WMsgQueue      Queue;
+
+	// Worker thread runs all slow operations.
+	std::thread Worker([&Queue, &Handler, IfbDev] { WorkerThreadMain(Queue, Handler, IfbDev); });
+
+	ClientSocket->OnClosed.connect([&Handler, &Queue, &Worker]() {
+		spdlog::info("Daemon socket closed, exiting");
+		Handler.bStop = true;
+		Queue.Stop();
+		// Don't join here: OnClosed is invoked from the listener thread.
+	});
+	ClientSocket->OnData.connect([&Handler, &Queue](WBuffer& Data) { OnDataReceived(Data, Handler, Queue); });
+
+	ClientSocket->StartListenThread();
 
 	while (!Handler.bStop)
 	{
-		bool bHaveFrame = ClientSocket->ReceiveFramed(RecvBuffer);
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
 
-		if (bHaveFrame)
-		{
-			std::stringstream SS(std::string(RecvBuffer.GetData(), RecvBuffer.GetReadableSize()));
-			WIPLinkMsg        Msg;
-			try
-			{
-				cereal::BinaryInputArchive Iar(SS);
-				Iar(Msg);
-			}
-			catch (std::exception const& e)
-			{
-				spdlog::error("Failed to deserialize message: {}", e.what());
-				continue;
-			}
-
-			if (Msg.Type == EIPLinkMsgType::Exit)
-			{
-				spdlog::info("Received exit message, shutting down");
-				Handler.bStop = true;
-			}
-			else if (Msg.Type == EIPLinkMsgType::SetupHtbClass && Msg.SetupHtbClass)
-			{
-				if (!SetupHtbClass(Msg.SetupHtbClass))
-				{
-					spdlog::error("Failed to setup HTB class");
-				}
-			}
-			else if (Msg.Type == EIPLinkMsgType::RemoveHtbClass && Msg.RemoveHtbClass)
-			{
-				if (!RemoveHtbClass(Msg.RemoveHtbClass))
-				{
-					spdlog::error("Failed to remove HTB class");
-				}
-			}
-			else if (Msg.Type == EIPLinkMsgType::ConfigurePortRouting && Msg.SetupPortRouting)
-			{
-				if (!ConfigurePortRouting(Msg.SetupPortRouting, IfbDev))
-				{
-					spdlog::error("Failed to configure port routing");
-				}
-			}
-		}
-
-		if (!ClientSocket->IsConnected())
-		{
-			spdlog::info("Daemon disconnected from IP link process socket, exiting");
-			break;
-		}
+	Queue.Stop();
+	if (Worker.joinable())
+	{
+		Worker.join();
 	}
 
 	// Cleanup
