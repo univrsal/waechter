@@ -24,6 +24,7 @@
 
 #include "Socket.hpp"
 #include "ErrnoUtil.hpp"
+#include "Types.hpp"
 
 class WDaemonSocket;
 
