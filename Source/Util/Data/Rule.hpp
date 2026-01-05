@@ -4,6 +4,8 @@
  */
 
 #pragma once
+#include <spdlog/fmt/fmt.h>
+
 #include "EBPFCommon.h"
 #include "Types.hpp"
 
@@ -26,5 +28,13 @@ struct WTrafficItemRules : WTrafficItemRulesBase
 			.UploadMark = UploadMark,
 			.DownloadQdiscId = DownloadQdiscId,
 		};
+	}
+
+	std::string ToString() const
+	{
+		return fmt::format(
+			"UploadSwitch={}, DownloadSwitch={}, UploadLimit={}, DownloadLimit={}, UploadMark={}, DownloadQdiscId={}",
+			static_cast<int>(UploadSwitch), static_cast<int>(DownloadSwitch), UploadLimit, DownloadLimit, UploadMark,
+			DownloadQdiscId);
 	}
 };
