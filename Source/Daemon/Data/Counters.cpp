@@ -113,6 +113,7 @@ void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 		TrafficItem->SocketTuple.LocalEndpoint.Port = Event.Data.SocketAcceptEventData.SourcePort;
 		TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv4Uint32(
 			Event.Data.SocketAcceptEventData.DestinationAddr4);
+		WNetworkEvents::GetInstance().OnSocketConnected(this);
 	}
 	else if (Event.EventType == NE_SocketAccept_6)
 	{
@@ -130,6 +131,7 @@ void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 		TrafficItem->SocketTuple.RemoteEndpoint.Address.FromIPv6Array(Event.Data.SocketAcceptEventData.SourceAddr6);
 		TrafficItem->SocketTuple.LocalEndpoint.Port = Event.Data.SocketAcceptEventData.DestinationPort;
 		TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv6Array(Event.Data.SocketAcceptEventData.DestinationAddr6);
+		WNetworkEvents::GetInstance().OnSocketConnected(this);
 	}
 
 	WSystemMap::GetInstance().GetMapUpdate().AddStateChange(
