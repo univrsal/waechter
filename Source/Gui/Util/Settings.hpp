@@ -13,6 +13,7 @@ class WSettings : public TSingleton<WSettings>
 {
 public:
 	bool bShowUninitalizedSockets{ false };
+	bool bShowOfflineProcesses{ false };
 
 	std::string RegisteredUsername{};
 	std::string RegistrationSerialKey{};
@@ -26,7 +27,7 @@ public:
 	void serialize(Archive& archive)
 	{
 		archive(CEREAL_NVP(bShowUninitalizedSockets), CEREAL_NVP(RegisteredUsername), CEREAL_NVP(RegistrationSerialKey),
-			CEREAL_NVP(SocketPath));
+			CEREAL_NVP(SocketPath), CEREAL_NVP(bShowOfflineProcesses));
 	}
 
 	void Load();

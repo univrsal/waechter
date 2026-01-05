@@ -110,6 +110,10 @@ void WMainWindow::Draw()
 			{
 				WSettings::GetInstance().Save();
 			}
+			if (ImGui::MenuItem("Show Offline Processes", "", &WSettings::GetInstance().bShowOfflineProcesses))
+			{
+				WSettings::GetInstance().Save();
+			}
 			ImGui::EndMenu();
 		}
 

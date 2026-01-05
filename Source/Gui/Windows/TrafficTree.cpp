@@ -498,7 +498,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 			continue;
 		}
 
-		if (Child->NoChildren())
+		if (Child->NoChildren() && !WSettings::GetInstance().bShowOfflineProcesses)
 		{
 			continue;
 		}
@@ -539,7 +539,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 
 		for (auto const& [PID, Process] : Child->Processes)
 		{
-			if (Process->Sockets.empty())
+			if (Process->Sockets.empty() && !WSettings::GetInstance().bShowOfflineProcesses)
 			{
 				continue;
 			}
