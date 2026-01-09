@@ -15,8 +15,13 @@
 #include "Data/NetworkEvents.hpp"
 #include "Net/IPLink.hpp"
 
-inline ESwitchState GetEffectiveSwitchState(ESwitchState ParentState, ESwitchState ItemState)
+inline ESwitchState GetEffectiveSwitchState(ESwitchState ParentState, ESwitchState ItemState, ERuleType ItemRuleType)
 {
+	if (ItemRuleType == ERuleType::Implicit)
+	{
+		return ParentState;
+	}
+
 	if (ItemState == SS_None)
 	{
 		return ParentState;
@@ -24,8 +29,12 @@ inline ESwitchState GetEffectiveSwitchState(ESwitchState ParentState, ESwitchSta
 	return ItemState;
 }
 
-inline uint32_t GetEffectiveMark(uint32_t ParentMark, uint32_t ItemMark)
+inline uint32_t GetEffectiveMark(uint32_t ParentMark, uint32_t ItemMark, ERuleType ItemRuleType)
 {
+	if (ItemRuleType == ERuleType::Implicit)
+	{
+		return ParentMark;
+	}
 	if (ItemMark == 0)
 	{
 		return ParentMark;
@@ -33,8 +42,12 @@ inline uint32_t GetEffectiveMark(uint32_t ParentMark, uint32_t ItemMark)
 	return ItemMark;
 }
 
-inline WBytesPerSecond GetEffectiveLimit(WBytesPerSecond ParentLimit, WBytesPerSecond ItemLimit)
+inline WBytesPerSecond GetEffectiveLimit(WBytesPerSecond ParentLimit, WBytesPerSecond ItemLimit, ERuleType ItemRuleType)
 {
+	if (ItemRuleType == ERuleType::Implicit)
+	{
+		return ParentLimit;
+	}
 	if (ParentLimit != 0)
 	{
 		return ParentLimit;
@@ -45,19 +58,17 @@ inline WBytesPerSecond GetEffectiveLimit(WBytesPerSecond ParentLimit, WBytesPerS
 inline WTrafficItemRules GetEffectiveRules(WTrafficItemRules const& ParentRules, WTrafficItemRules const& ItemRules)
 {
 	WTrafficItemRules EffectiveRules = ItemRules;
-	EffectiveRules.UploadSwitch = GetEffectiveSwitchState(ParentRules.UploadSwitch, ItemRules.UploadSwitch);
-	EffectiveRules.DownloadSwitch = GetEffectiveSwitchState(ParentRules.DownloadSwitch, ItemRules.DownloadSwitch);
-	EffectiveRules.UploadMark = GetEffectiveMark(ParentRules.UploadMark, ItemRules.UploadMark);
-	EffectiveRules.DownloadQdiscId = GetEffectiveMark(ParentRules.DownloadQdiscId, ItemRules.DownloadQdiscId);
-	EffectiveRules.DownloadLimit = GetEffectiveLimit(ParentRules.DownloadLimit, ItemRules.DownloadLimit);
-	EffectiveRules.UploadLimit = GetEffectiveLimit(ParentRules.UploadLimit, ItemRules.UploadLimit);
+	EffectiveRules.UploadSwitch =
+		GetEffectiveSwitchState(ParentRules.UploadSwitch, ItemRules.UploadSwitch, ItemRules.RuleType);
+	EffectiveRules.DownloadSwitch =
+		GetEffectiveSwitchState(ParentRules.DownloadSwitch, ItemRules.DownloadSwitch, ItemRules.RuleType);
+	EffectiveRules.UploadMark = GetEffectiveMark(ParentRules.UploadMark, ItemRules.UploadMark, ItemRules.RuleType);
+	EffectiveRules.DownloadQdiscId =
+		GetEffectiveMark(ParentRules.DownloadQdiscId, ItemRules.DownloadQdiscId, ItemRules.RuleType);
+	EffectiveRules.DownloadLimit =
+		GetEffectiveLimit(ParentRules.DownloadLimit, ItemRules.DownloadLimit, ItemRules.RuleType);
+	EffectiveRules.UploadLimit = GetEffectiveLimit(ParentRules.UploadLimit, ItemRules.UploadLimit, ItemRules.RuleType);
 	return EffectiveRules;
-}
-
-inline bool IsRuleDefault(WTrafficItemRules const& Rules)
-{
-	return Rules.UploadSwitch == SS_None && Rules.DownloadSwitch == SS_None && Rules.UploadMark == 0
-		&& Rules.DownloadQdiscId == 0;
 }
 
 inline bool operator==(WTrafficItemRulesBase const& A, WTrafficItemRules const& B)
@@ -78,7 +89,7 @@ void WRuleManager::OnSocketConnected(WSocketCounter const* Socket)
 	auto              ProcRules = ProcessRules.contains(ProcessItem) ? ProcessRules[ProcessItem] : WTrafficItemRules{};
 	WTrafficItemRules EffectiveProcRules = GetEffectiveRules(AppRules, ProcRules);
 
-	if (!IsRuleDefault(EffectiveProcRules))
+	if (!EffectiveProcRules.IsDefault())
 	{
 		bool bDlExists = false;
 		bool bUlExists = false;
@@ -97,13 +108,6 @@ void WRuleManager::OnSocketConnected(WSocketCounter const* Socket)
 		{
 			WIPLink::GetInstance().GetDownloadLimit(
 				Socket->TrafficItem->ItemId, EffectiveProcRules.DownloadLimit, &bDlExists);
-		}
-
-		if (!bDlExists || !bUlExists)
-		{
-			spdlog::info("Socket {} has non default rules, DL limit: {}, UL limit: {}, Parent App: {}",
-				Socket->TrafficItem->SocketTuple.LocalEndpoint.Port, EffectiveProcRules.DownloadLimit,
-				EffectiveProcRules.UploadLimit, App->TrafficItem->ApplicationName);
 		}
 
 		SocketRules[Socket->TrafficItem->ItemId] = ProcRules;
@@ -228,6 +232,39 @@ void WRuleManager::SyncRules()
 	}
 }
 
+void WRuleManager::RemoveEmptyRules()
+{
+	auto CleanUp = [](std::unordered_map<WTrafficItemId, WTrafficItemRules>& Map) {
+		for (auto It = Map.begin(); It != Map.end();)
+		{
+			if (It->second.IsDefault())
+			{
+				It = Map.erase(It);
+			}
+			else
+			{
+				++It;
+			}
+		}
+	};
+	CleanUp(ApplicationRules);
+	CleanUp(ProcessRules);
+	CleanUp(SocketRules);
+
+	for (auto It = SocketCookieRules.begin(); It != SocketCookieRules.end();)
+	{
+		if (It->second.Rules.DownloadQdiscId == 0 && It->second.Rules.UploadMark == 0
+			&& It->second.Rules.UploadSwitch == SS_None && It->second.Rules.DownloadSwitch == SS_None)
+		{
+			It = SocketCookieRules.erase(It);
+		}
+		else
+		{
+			++It;
+		}
+	}
+}
+
 void WRuleManager::RegisterSignalHandlers()
 {
 	WNetworkEvents::GetInstance().OnSocketConnected.connect(
@@ -298,7 +335,6 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 	switch (Item->GetType())
 	{
 		case TI_Application:
-			spdlog::info("Got application rule update for ID {}", Update.TrafficItemId);
 			ApplicationRules[Update.TrafficItemId] = Update.Rules;
 			break;
 		case TI_Process:
@@ -311,5 +347,6 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 	}
 
 	UpdateRuleCache(AppItem);
+	RemoveEmptyRules();
 	SyncRules();
 }

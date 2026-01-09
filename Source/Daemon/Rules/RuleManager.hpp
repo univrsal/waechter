@@ -43,6 +43,8 @@ class WRuleManager : public TSingleton<WRuleManager>
 
 	void SyncRules();
 
+	void RemoveEmptyRules();
+
 public:
 	void RegisterSignalHandlers();
 	void HandleRuleChange(WBuffer const& Buf);

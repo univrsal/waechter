@@ -43,6 +43,7 @@ namespace
 			if (WIconAtlas::GetInstance().DrawIconButton(
 					fmt::format("{}_{}", IconName, Item->ItemId).c_str(), IconName, GRuleIconSize))
 			{
+				Rule.RuleType = ERuleType::Explicit;
 				WTrafficItemId ParentApp = 0;
 				if (Args.ParentApp)
 				{
@@ -101,7 +102,8 @@ namespace
 		if (ImGui::Button("Ok##limit_ok"))
 		{
 			// send update
-			auto&            Rule = WClientRuleManager::GetInstance().GetOrCreateRules(Item->ItemId);
+			auto& Rule = WClientRuleManager::GetInstance().GetOrCreateRules(Item->ItemId);
+			Rule.RuleType = ERuleType::Explicit;
 			WBytesPerSecond& LimitVal = bIsUpload ? Rule.UploadLimit : Rule.DownloadLimit;
 			LimitVal = WTrafficFormat::ConvertToBps(CurrentLimit, SelectedUnit);
 			WTrafficItemId ParentApp = 0;
