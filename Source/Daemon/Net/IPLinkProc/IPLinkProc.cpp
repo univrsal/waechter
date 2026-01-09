@@ -118,7 +118,7 @@ std::string SanitizeInterfaceName(std::string const& IfName)
 bool SetupHtbClass(std::shared_ptr<WSetupHtbClassMsg> const& SetupHtbClass)
 {
 	auto const IfName = SanitizeInterfaceName(SetupHtbClass->InterfaceName);
-	spdlog::debug("Setting up HTB class on interface {}: classid=1:{}, mark=0x{:x}, rate={} B/s", IfName,
+	spdlog::info("Setting up HTB class on interface {}: classid=1:{}, mark=0x{:x}, rate={} B/s", IfName,
 		SetupHtbClass->MinorId, SetupHtbClass->Mark, SetupHtbClass->RateLimit);
 	SYSFMT("tc class replace dev {} parent 1:1 classid 1:{} htb rate {}bit ceil {}bit", IfName, SetupHtbClass->MinorId,
 		static_cast<uint64_t>(SetupHtbClass->RateLimit * 8), static_cast<uint64_t>(SetupHtbClass->RateLimit * 8));
@@ -134,7 +134,7 @@ bool SetupHtbClass(std::shared_ptr<WSetupHtbClassMsg> const& SetupHtbClass)
 bool RemoveHtbClass(std::shared_ptr<WRemoveHtbClassMsg> const& RemoveHtbClass)
 {
 	auto const& IfName = SanitizeInterfaceName(RemoveHtbClass->InterfaceName);
-	spdlog::debug("Removing HTB class on interface {}: classid=1:{}, mark=0x{:x}", IfName, RemoveHtbClass->MinorId,
+	spdlog::info("Removing HTB class on interface {}: classid=1:{}, mark=0x{:x}", IfName, RemoveHtbClass->MinorId,
 		RemoveHtbClass->Mark);
 	if (RemoveHtbClass->bIsUpload)
 	{
@@ -248,6 +248,7 @@ static void ProcessMessage(WIPLinkMsg const& Msg, WSignalHandler& Handler, std::
 
 void OnDataReceived(WBuffer& RecvBuffer, WSignalHandler& Handler, WMsgQueue& Queue)
 {
+	spdlog::info("Received {} bytes on IP link socket", RecvBuffer.GetReadableSize());
 	// Important: do not execute any slow system calls here. Just deserialize and enqueue.
 	// Keep allocations modest.
 	std::stringstream SS(std::string(RecvBuffer.GetData(), RecvBuffer.GetReadableSize()));

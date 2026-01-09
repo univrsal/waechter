@@ -10,6 +10,7 @@
 #include <mutex>
 #include <atomic>
 #include <memory>
+#include <spdlog/spdlog.h>
 
 #include "Singleton.hpp"
 #include "Types.hpp"
@@ -80,4 +81,10 @@ public:
 		WTrafficItemId const& ItemId, WBytesPerSecond const& Limit, bool* bExists = nullptr);
 	std::shared_ptr<WBandwidthLimit> GetDownloadLimit(
 		WTrafficItemId const& ItemId, WBytesPerSecond const& Limit, bool* bExists = nullptr);
+
+	void PrintStats() const
+	{
+		spdlog::info("{} active upload limits, {} active download limits, {} ingress port routings",
+			ActiveUploadLimits.size(), ActiveDownloadLimits.size(), IngressPortRoutings.size());
+	}
 };

@@ -336,4 +336,7 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 	UpdateRuleCache(AppItem);
 	RemoveEmptyRules();
 	SyncRules();
+	spdlog::info("{} app rules, {} proc rules, {} sock rules, {} sock cookie rules in cache", ApplicationRules.size(),
+		ProcessRules.size(), SocketRules.size(), SocketCookieRules.size());
+	WIPLink::GetInstance().PrintStats();
 }
