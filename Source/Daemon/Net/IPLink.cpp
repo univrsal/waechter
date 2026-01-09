@@ -58,8 +58,8 @@ WBandwidthLimit::~WBandwidthLimit()
 void WIPLink::SetupHTBLimitClass(
 	std::shared_ptr<WBandwidthLimit> const& Limit, std::string const& IfName, bool bAttachMarkFilter) const
 {
-	spdlog::info("Setting up HTB class on interface {}: classid=1:{}, mark=0x{:x}, rate={} B/s", IfName, Limit->MinorId,
-		Limit->Mark, Limit->RateLimit);
+	spdlog::debug("Setting up HTB class on interface {}: classid=1:{}, mark=0x{:x}, rate={} B/s", IfName,
+		Limit->MinorId, Limit->Mark, Limit->RateLimit);
 
 	WIPLinkMsg Msg{};
 	Msg.Type = EIPLinkMsgType::SetupHtbClass;
