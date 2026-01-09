@@ -91,29 +91,12 @@ void WRuleManager::OnSocketConnected(WSocketCounter const* Socket)
 
 	if (!EffectiveProcRules.IsDefault())
 	{
-		bool bDlExists = false;
-		bool bUlExists = false;
 		// todo: As of now sockets will always prefer the limits higher up in the hierarchy
 		//       i.e. a socket will never use its own limit if the process or application has one set
 		//       this ensures that the higher ranked limit is always enforced but it could technically mean
 		//       that a lower ranked limit is exceeded. Ideally we'd set up a hierarchy of the different HTB limits
 		//       so that both limits are enforced properly.
-		if (EffectiveProcRules.UploadLimit > 0)
-		{
-			WIPLink::GetInstance().GetUploadLimit(
-				Socket->TrafficItem->ItemId, EffectiveProcRules.UploadLimit, &bUlExists);
-		}
-
-		if (EffectiveProcRules.DownloadLimit > 0)
-		{
-			WIPLink::GetInstance().GetDownloadLimit(
-				Socket->TrafficItem->ItemId, EffectiveProcRules.DownloadLimit, &bDlExists);
-		}
-
-		SocketRules[Socket->TrafficItem->ItemId] = ProcRules;
-		SocketCookieRules[Socket->TrafficItem->Cookie] = WSocketRules{
-			.Rules = EffectiveProcRules.AsBase(), .SocketId = Socket->TrafficItem->ItemId, .bDirty = true
-		};
+		UpdateRuleCache(App->TrafficItem);
 		SyncRules();
 	}
 }
