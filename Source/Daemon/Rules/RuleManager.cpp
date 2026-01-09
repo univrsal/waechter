@@ -203,7 +203,7 @@ void WRuleManager::SyncRules()
 			{
 				if (SockRules.Rules.DownloadQdiscId == 0)
 				{
-					WIPLink::GetInstance().RemoveIngressPortRouting(SockRules.SocketId);
+					WIPLink::GetInstance().RemoveIngressPortRouting(SocketItem->SocketTuple.LocalEndpoint.Port);
 				}
 				else if (SocketItem->SocketTuple.LocalEndpoint.Port != 0)
 				{
@@ -292,7 +292,11 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 
 	if (Update.Rules.DownloadLimit == 0)
 	{
-		WIPLink::GetInstance().RemoveIngressPortRouting(Update.TrafficItemId);
+		auto SocketItem = std::dynamic_pointer_cast<WSocketItem>(Item);
+		if (SocketItem)
+		{
+			WIPLink::GetInstance().RemoveIngressPortRouting(SocketItem->SocketTuple.LocalEndpoint.Port);
+		}
 		WIPLink::GetInstance().RemoveDownloadLimit(Update.TrafficItemId);
 	}
 	else

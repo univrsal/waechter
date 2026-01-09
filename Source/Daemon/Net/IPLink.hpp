@@ -35,7 +35,6 @@ struct WBandwidthLimit
 
 struct WIngressPortRouting
 {
-	uint16_t Port{ 0 };
 	uint32_t QDiscId{ 0 };
 	uint32_t Handle{ 0 };
 };
@@ -53,7 +52,7 @@ class WIPLink : public TSingleton<WIPLink>
 	std::unordered_map<WTrafficItemId, std::shared_ptr<WBandwidthLimit>> ActiveUploadLimits;
 	std::unordered_map<WTrafficItemId, std::shared_ptr<WBandwidthLimit>> ActiveDownloadLimits;
 
-	std::unordered_map<WTrafficItemId, WIngressPortRouting> IngressPortRoutings;
+	std::unordered_map<uint16_t, WIngressPortRouting> IngressPortRoutings;
 
 	std::unique_ptr<WClientSocket> IpProcSocket;
 
@@ -72,7 +71,7 @@ public:
 	void SetupIngressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit);
 
 	void SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uint16_t Dport);
-	void RemoveIngressPortRouting(WTrafficItemId Item);
+	void RemoveIngressPortRouting(uint16_t Dport);
 
 	void RemoveUploadLimit(WTrafficItemId const& ItemId);
 	void RemoveDownloadLimit(WTrafficItemId const& ItemId);

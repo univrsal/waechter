@@ -74,7 +74,7 @@ void WIPLink::SetupHTBLimitClass(
 
 void WIPLink::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket)
 {
-	RemoveIngressPortRouting(Socket->TrafficItem->ItemId);
+	RemoveIngressPortRouting(Socket->TrafficItem->SocketTuple.LocalEndpoint.Port);
 	RemoveDownloadLimit(Socket->TrafficItem->ItemId);
 	RemoveUploadLimit(Socket->TrafficItem->ItemId);
 }
@@ -172,14 +172,14 @@ void WIPLink::SetupIngressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit
 void WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uint16_t Dport)
 {
 	std::lock_guard Lock(Mutex);
-	if (IngressPortRoutings.contains(Item))
+	if (IngressPortRoutings.contains(Dport))
 	{
-		auto& Limit = IngressPortRoutings[Item];
+		auto& Limit = IngressPortRoutings[Dport];
 
-		if (Limit.Port == Dport && Limit.QDiscId == QDiscId)
+		if (Limit.QDiscId == QDiscId)
 		{
 			// Already routed
-			spdlog::debug("Port already routed for traffic item ID {}: dport={}, qdisc id={}", Item, Dport, QDiscId);
+			spdlog::info("Port already routed for dport={}, qdisc id={}", Item, Dport, QDiscId);
 			return;
 		}
 		auto const& ExistingLimit = IngressPortRoutings[Item];
@@ -192,15 +192,15 @@ void WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uin
 		Msg.SetupPortRouting->Handle = ExistingLimit.Handle;
 		IpProcSocket->SendMessage(Msg);
 
-		Limit.Port = Dport;
 		Limit.QDiscId = QDiscId;
+		spdlog::info("Updated port routing for traffic item ID {}: dport={}, qdisc id={}", Item, Dport, QDiscId);
 		return;
 	}
+	spdlog::info("Setting up port routing for traffic item ID {}: dport={}, qdisc id={}", Item, Dport, QDiscId);
 	WIngressPortRouting NewRouting;
-	NewRouting.Port = Dport;
 	NewRouting.QDiscId = QDiscId;
 	NewRouting.Handle = NextFilterhandle.fetch_add(2); // TCP and UDP each get one handle
-	IngressPortRoutings[Item] = NewRouting;
+	IngressPortRoutings[Dport] = NewRouting;
 
 	WIPLinkMsg Msg{};
 	Msg.Type = EIPLinkMsgType::ConfigurePortRouting;
@@ -211,85 +211,25 @@ void WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uin
 	IpProcSocket->SendMessage(Msg);
 }
 
-void WIPLink::RemoveIngressPortRouting(WTrafficItemId Item)
+void WIPLink::RemoveIngressPortRouting(uint16_t Dport)
 {
 	std::lock_guard Lock(Mutex);
-	auto            TrafficItem = WSystemMap::GetInstance().GetTrafficItemById(Item);
-	if (!TrafficItem)
+
+	if (!IngressPortRoutings.contains(Dport))
 	{
-		// shouldn't happen
-		assert(false);
 		return;
 	}
-
-	auto SendRemovalMessage = [this](WTrafficItemId Id) {
-		if (!IngressPortRoutings.contains(Id))
-		{
-			return;
-		}
-		auto&      Limit = IngressPortRoutings[Id];
-		WIPLinkMsg Msg{};
-		Msg.Type = EIPLinkMsgType::ConfigurePortRouting;
-		Msg.SetupPortRouting = std::make_shared<WConfigurePortRouting>();
-		Msg.SetupPortRouting->Dport = Limit.Port;
-		Msg.SetupPortRouting->QDiscId = Limit.QDiscId;
-		Msg.SetupPortRouting->bRemove = true;
-		Msg.SetupPortRouting->Handle = Limit.Handle;
-		IpProcSocket->SendMessage(Msg);
-		IngressPortRoutings.erase(Id);
-	};
-
-	if (TrafficItem->GetType() == TI_Application)
-	{
-		spdlog::info("Removing ingress port routing for application traffic item ID {}", Item);
-		std::vector<WTrafficItemId> SocketsToRemove{};
-		auto const                  App = std::dynamic_pointer_cast<WApplicationItem>(TrafficItem);
-
-		if (!App)
-		{
-			spdlog::error("Failed to cast traffic item ID {} to application item", Item);
-			return;
-		}
-
-		for (auto const& ProcessItem : App->Processes | std::views::values)
-		{
-			for (auto const& SocketItem : ProcessItem->Sockets | std::views::values)
-			{
-				SocketsToRemove.push_back(SocketItem->ItemId);
-			}
-		}
-		for (auto const& SocketId : SocketsToRemove)
-		{
-			SendRemovalMessage(SocketId);
-		}
-		spdlog::info("Removing ingress port routing for app item ID {}, {} sockets", Item, SocketsToRemove.size());
-	}
-	else if (TrafficItem->GetType() == TI_Process)
-	{
-		std::vector<WTrafficItemId> SocketsToRemove{};
-		auto const                  Proc = std::dynamic_pointer_cast<WProcessItem>(TrafficItem);
-
-		if (!Proc)
-		{
-			spdlog::error("Failed to cast traffic item ID {} to process item", Item);
-			return;
-		}
-
-		for (auto const& SocketItem : Proc->Sockets | std::views::values)
-		{
-			SocketsToRemove.push_back(SocketItem->ItemId);
-		}
-		spdlog::info(
-			"Removing ingress port routing for process traffic item ID {}, {} sockets", Item, SocketsToRemove.size());
-		for (auto const& SocketId : SocketsToRemove)
-		{
-			SendRemovalMessage(SocketId);
-		}
-	}
-	else if (TrafficItem->GetType() == TI_Socket)
-	{
-		SendRemovalMessage(Item);
-	}
+	auto&      Limit = IngressPortRoutings[Dport];
+	WIPLinkMsg Msg{};
+	Msg.Type = EIPLinkMsgType::ConfigurePortRouting;
+	Msg.SetupPortRouting = std::make_shared<WConfigurePortRouting>();
+	Msg.SetupPortRouting->Dport = Dport;
+	Msg.SetupPortRouting->QDiscId = Limit.QDiscId;
+	Msg.SetupPortRouting->bRemove = true;
+	Msg.SetupPortRouting->Handle = Limit.Handle;
+	IpProcSocket->SendMessage(Msg);
+	IngressPortRoutings.erase(Dport);
+	spdlog::info("Removing ingress port routing dport={}", Dport);
 }
 
 void WIPLink::RemoveUploadLimit(WTrafficItemId const& ItemId)
