@@ -58,7 +58,7 @@ struct WMsgQueue
 	void Push(WIPLinkMsg&& Msg)
 	{
 		{
-			std::lock_guard<std::mutex> Lock(Mutex);
+			std::lock_guard Lock(Mutex);
 			Queue.emplace_back(std::move(Msg));
 			if (Queue.size() == WarnLimit)
 			{
@@ -71,7 +71,7 @@ struct WMsgQueue
 	// Returns false if stopping and queue is empty.
 	bool Pop(WIPLinkMsg& Out)
 	{
-		std::unique_lock<std::mutex> Lock(Mutex);
+		std::unique_lock Lock(Mutex);
 		Cv.wait(Lock, [&] { return bStop.load() || !Queue.empty(); });
 		if (Queue.empty())
 		{
