@@ -157,8 +157,47 @@ bool WClientSocket::ReceiveFramed(WBuffer& OutputBuffer)
 		return false;
 	}
 
-	// 1. Read available data from network into our internal accumulator
-	// We read a chunk at a time.
+	// Helper lambda to try extracting a frame from IncomingBuffer.
+	// Returns true if a complete frame was extracted.
+	auto TryExtractFrame = [&]() -> bool {
+		if (IncomingBuffer.GetReadableSize() < sizeof(uint32_t))
+		{
+			return false;
+		}
+
+		uint32_t FrameLen = 0;
+		std::memcpy(&FrameLen, IncomingBuffer.PeekReadPtr(), sizeof(uint32_t));
+
+		// Do we have the full body?
+		if (IncomingBuffer.GetReadableSize() < sizeof(uint32_t) + FrameLen)
+		{
+			return false;
+		}
+
+		// We have a full frame. Extract it.
+		IncomingBuffer.Consume(sizeof(uint32_t)); // Skip header
+
+		OutputBuffer.Reset();
+		OutputBuffer.Write(IncomingBuffer.PeekReadPtr(), FrameLen);
+		IncomingBuffer.Consume(FrameLen);
+
+		if (IncomingBuffer.GetReadPos() > 2048)
+		{
+			IncomingBuffer.Compact();
+		}
+
+		return true;
+	};
+
+	// 1. First check if we already have a complete frame buffered from a previous read.
+	//    This avoids blocking on recv() when we already have data to process.
+	if (TryExtractFrame())
+	{
+		return true;
+	}
+
+	// 2. No complete frame buffered, so read more data from the network.
+	//    This is a blocking call.
 	char    IoBuf[4096];
 	ssize_t BytesRead = ReceiveRaw(IoBuf, sizeof(IoBuf));
 
@@ -169,43 +208,6 @@ bool WClientSocket::ReceiveFramed(WBuffer& OutputBuffer)
 	// If BytesRead < 0 (error) or == 0 (closed), IsConnected() will likely be false now,
 	// but we might still have data in IncomingBuffer to process, so we continue.
 
-	// 2. Do we have enough for a header?
-	if (IncomingBuffer.GetReadableSize() < sizeof(uint32_t))
-	{
-		return false;
-	}
-
-	// 3. Peek the length
-	uint32_t FrameLen = 0;
-	std::memcpy(&FrameLen, IncomingBuffer.PeekReadPtr(), sizeof(uint32_t));
-
-	// 4. Do we have the full body?
-	if (IncomingBuffer.GetReadableSize() < sizeof(uint32_t) + FrameLen)
-	{
-		// Not enough data yet, wait for next call
-		// Optional: Compact here if buffer is getting full but fragmented
-		if (IncomingBuffer.GetSize() > 8192 && IncomingBuffer.GetReadPos() > 1024)
-		{
-			IncomingBuffer.Compact();
-		}
-		return false;
-	}
-
-	// 5. We have a full frame. Extract it.
-	IncomingBuffer.Consume(sizeof(uint32_t)); // Skip header
-
-	OutputBuffer.Reset();
-	// Ensure space and copy directly
-	// Note: WBuffer::Write ensures capacity
-	OutputBuffer.Write(IncomingBuffer.PeekReadPtr(), FrameLen);
-
-	IncomingBuffer.Consume(FrameLen);
-
-	// Optional: Auto-compact to keep memory usage low over time
-	if (IncomingBuffer.GetReadPos() > 2048)
-	{
-		IncomingBuffer.Compact();
-	}
-
-	return true;
+	// 3. Try to extract a frame now
+	return TryExtractFrame();
 }
