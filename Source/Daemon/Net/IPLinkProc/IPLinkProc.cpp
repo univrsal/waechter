@@ -436,6 +436,8 @@ int main(int Argc, char** Argv)
 	}
 	spdlog::info("All worker threads finished");
 
+	Queue.HtbUsageMap.HTBUseCounter.clear();
+
 	// Cleanup
 	SYSFMT2("tc filter delete dev {} parent ffff:", IngressInterface);
 	SYSFMT2("tc qdisc delete dev {} root", IfbDev);
