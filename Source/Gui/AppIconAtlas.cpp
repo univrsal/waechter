@@ -84,5 +84,5 @@ void WAppIconAtlas::UploadPendingIfAny()
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	spdlog::info("Uploaded app icon atlas texture: {}x{}, icons={}", Data.AtlasSize, Data.AtlasSize, UvData.size());
+	spdlog::debug("Uploaded app icon atlas texture: {}x{}, icons={}", Data.AtlasSize, Data.AtlasSize, UvData.size());
 }

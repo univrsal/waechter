@@ -136,7 +136,7 @@ void WDaemonSocket::BroadcastAtlasUpdate()
 	if (WAppIconAtlasBuilder::GetInstance().GetAtlasData(Data, ActiveApps))
 	{
 		auto Msg = WDaemonClient::MakeMessage(MT_AppIconAtlasData, Data);
-		spdlog::info("App icon atlas is dirty, broadcasting atlas update with {} KiB to clients", Msg.length() / 1024);
+		spdlog::debug("App icon atlas is dirty, broadcasting atlas update with {} KiB to clients", Msg.length() / 1024);
 		ZoneScopedN("BroadcastAtlasUpdate.SendMessage");
 		for (auto const& Client : Clients)
 		{
