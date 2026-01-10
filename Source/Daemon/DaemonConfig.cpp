@@ -112,7 +112,7 @@ void WDaemonConfig::SetDefaults()
 
 void WDaemonConfig::BumpMemlockRlimit()
 {
-	spdlog::info("bumping memlock rlimit");
+	spdlog::debug("bumping memlock rlimit");
 	rlimit r = { RLIM_INFINITY, RLIM_INFINITY };
 	setrlimit(RLIMIT_MEMLOCK, &r);
 }

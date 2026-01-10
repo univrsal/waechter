@@ -104,7 +104,7 @@ bool WIPLink::Init()
 
 			if (WFilesystem::Exists(IpLinkProcPath))
 			{
-				spdlog::info("Found waechter-iplink at {}", IpLinkProcPath);
+				spdlog::debug("Found waechter-iplink at {}", IpLinkProcPath);
 				IPLinkProcPath = IpLinkProcPath;
 			}
 			else
@@ -121,7 +121,7 @@ bool WIPLink::Init()
 	std::string Cmd = fmt::format(
 		"{} {} {} {}", IPLinkProcPath, WDaemonConfig::GetInstance().IpLinkProcSocketPath, IfbDev, IngressInterface);
 
-	spdlog::info("Launching waechter-iplink process: {}", Cmd);
+	spdlog::debug("Launching waechter-iplink process: {}", Cmd);
 	// Start the process
 	if (!LaunchDetachedProcess(Cmd))
 	{
@@ -145,7 +145,7 @@ bool WIPLink::Init()
 		return false;
 	}
 
-	spdlog::info("IP link process socket connected");
+	spdlog::debug("IP link process socket connected");
 
 	WaechterIngressIfIndex = WNetworkInterface::GetIfIndex(IfbDev);
 	return true;
