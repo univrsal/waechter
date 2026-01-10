@@ -119,8 +119,9 @@ bool WIPLink::Init()
 #endif
 	// Launch IPLinkProc as root with arguments [socket path] [secret] [ifb dev] [ingress interface]
 	std::string IngressInterface = WDaemonConfig::GetInstance().IngressNetworkInterfaceName;
-	std::string Cmd = fmt::format(
-		"{} {} {} {}", IPLinkProcPath, WDaemonConfig::GetInstance().IpLinkProcSocketPath, IfbDev, IngressInterface);
+	std::string MainInterface = WDaemonConfig::GetInstance().NetworkInterfaceName;
+	std::string Cmd = fmt::format("{} {} {} {} {}", IPLinkProcPath, WDaemonConfig::GetInstance().IpLinkProcSocketPath,
+		IfbDev, IngressInterface, MainInterface);
 
 	spdlog::debug("Launching waechter-iplink process: {}", Cmd);
 	// Start the process

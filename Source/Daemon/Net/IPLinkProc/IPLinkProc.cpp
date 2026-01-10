@@ -236,14 +236,14 @@ static bool ConfigurePortRouting(
 	return true;
 }
 
-static bool Init(std::string const& IfbDev, std::string const& IngressInterface)
+static bool Init(std::string const& IfbDev, std::string const& IngressInterface, std::string const& MainInterface)
 {
 	// Create the ifb0 interface
 	SafeSystem(fmt::format("ip link delete {}", IfbDev));
 	SafeSystem(fmt::format("ip link add {0} type ifb", IfbDev));
 	SYSFMT("ip link set {0} up", IfbDev);
 
-	// Ingress HTB setup
+	// Ingress HTB setup (on IFB device)
 	SYSFMT("tc qdisc replace dev {} root handle 1: htb default 0x10", IfbDev);
 	SYSFMT("tc class replace dev {} parent 1: classid 1:1 htb rate 1Gbit ceil 1Gbit", IfbDev);
 
@@ -259,6 +259,16 @@ static bool Init(std::string const& IfbDev, std::string const& IngressInterface)
 	SYSFMT(
 		"tc filter replace dev {} parent ffff: protocol all prio 100 u32 match u32 0 0 action mirred egress redirect dev {}",
 		IngressInterface, IfbDev);
+
+	// Egress HTB setup (on the actual network interface)
+
+	spdlog::info("Setting up egress HTB qdisc on interface {}", MainInterface);
+	// get rid of it if it exists
+	SafeSystem(fmt::format("tc qdisc delete dev {} root", MainInterface));
+	SYSFMT("tc qdisc add dev {} root handle 1: htb default 0x10", MainInterface);
+	SYSFMT("tc class replace dev {} parent 1: classid 1:1 htb rate 1Gbit ceil 1Gbit", MainInterface);
+	// leaf class for egress
+	SYSFMT("tc class replace dev {} parent 1:1 classid 1:10 htb rate 1Gbit ceil 1Gbit", MainInterface);
 
 	return true;
 }
@@ -347,6 +357,13 @@ void OnDataReceived(WBuffer& RecvBuffer, WSignalHandler& Handler, WMsgQueue& Que
 	Queue.Push(std::move(Msg));
 }
 
+static void Cleanup(std::string const& IfbDev, std::string const& IngressInterface)
+{
+	SYSFMT2("tc filter delete dev {} parent ffff:", IngressInterface);
+	SYSFMT2("tc qdisc delete dev {} root", IfbDev);
+	SYSFMT2("ip link delete {}", IfbDev);
+}
+
 // For bandwidth limiting we need
 //  - A new interface ifb0 for ingress redirection
 //	- HTB on the main interface (egress)
@@ -361,13 +378,15 @@ int main(int Argc, char** Argv)
 
 	if (Argc < 4)
 	{
-		spdlog::error("Usage: waechter-iplink [socket path] [ifb dev] [ingress interface]");
+		spdlog::error("Usage: waechter-iplink [socket path] [ifb dev] [ingress interface] [main interface]");
 		return -1;
 	}
 
 	std::string SocketPath = Argv[1];
 	std::string IfbDev = SanitizeInterfaceName(Argv[2]);
 	std::string IngressInterface = SanitizeInterfaceName(Argv[3]);
+	std::string MainInterface = SanitizeInterfaceName(Argv[4]);
+
 	if (std::filesystem::exists(SocketPath))
 	{
 		unlink(SocketPath.c_str());
@@ -377,12 +396,14 @@ int main(int Argc, char** Argv)
 	if (!Socket.BindAndListen())
 	{
 		spdlog::error("Failed to bind and listen on socket {}", SocketPath);
+		Cleanup(IfbDev, IngressInterface);
 		return -1;
 	}
 
-	if (!Init(IfbDev, IngressInterface))
+	if (!Init(IfbDev, IngressInterface, MainInterface))
 	{
 		spdlog::error("Failed to setup");
+		Cleanup(IfbDev, IngressInterface);
 		return -1;
 	}
 
@@ -437,10 +458,6 @@ int main(int Argc, char** Argv)
 	spdlog::info("All worker threads finished");
 
 	Queue.HtbUsageMap.HTBUseCounter.clear();
-
-	// Cleanup
-	SYSFMT2("tc filter delete dev {} parent ffff:", IngressInterface);
-	SYSFMT2("tc qdisc delete dev {} root", IfbDev);
-	SYSFMT2("ip link delete {}", IfbDev);
+	Cleanup(IfbDev, IngressInterface);
 	return 0;
 }
