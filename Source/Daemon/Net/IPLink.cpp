@@ -181,7 +181,7 @@ void WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uin
 		if (Limit.QDiscId == QDiscId)
 		{
 			// Already routed
-			spdlog::info("Port already routed for dport={}, qdisc id={}", Item, Dport, QDiscId);
+			spdlog::debug("Port already routed for dport={}, qdisc id={}", Item, Dport, QDiscId);
 			return;
 		}
 		auto const& ExistingLimit = IngressPortRoutings[Item];
@@ -195,10 +195,10 @@ void WIPLink::SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uin
 		IpProcSocket->SendMessage(Msg);
 
 		Limit.QDiscId = QDiscId;
-		spdlog::info("Updated port routing for traffic item ID {}: dport={}, qdisc id={}", Item, Dport, QDiscId);
+		spdlog::debug("Updated port routing for traffic item ID {}: dport={}, qdisc id={}", Item, Dport, QDiscId);
 		return;
 	}
-	spdlog::info("Setting up port routing for traffic item ID {}: dport={}, qdisc id={}", Item, Dport, QDiscId);
+	spdlog::debug("Setting up port routing for traffic item ID {}: dport={}, qdisc id={}", Item, Dport, QDiscId);
 	WIngressPortRouting NewRouting;
 	NewRouting.QDiscId = QDiscId;
 	NewRouting.Handle = NextFilterhandle.fetch_add(2); // TCP and UDP each get one handle
@@ -231,7 +231,7 @@ void WIPLink::RemoveIngressPortRouting(uint16_t Dport)
 	Msg.SetupPortRouting->Handle = Limit.Handle;
 	IpProcSocket->SendMessage(Msg);
 	IngressPortRoutings.erase(Dport);
-	spdlog::info("Removing ingress port routing dport={}", Dport);
+	spdlog::debug("Removing ingress port routing dport={}", Dport);
 }
 
 void WIPLink::RemoveUploadLimit(WTrafficItemId const& ItemId)

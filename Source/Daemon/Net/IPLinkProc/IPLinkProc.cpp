@@ -182,7 +182,7 @@ static std::string SanitizeInterfaceName(std::string const& IfName)
 static bool SetupHtbClass(std::shared_ptr<WSetupHtbClassMsg> const& SetupHtbClass)
 {
 	auto const IfName = SanitizeInterfaceName(SetupHtbClass->InterfaceName);
-	spdlog::info("Setting up HTB class on interface {}: classid=1:{}, mark=0x{:x}, rate={} B/s", IfName,
+	spdlog::debug("Setting up HTB class on interface {}: classid=1:{}, mark=0x{:x}, rate={} B/s", IfName,
 		SetupHtbClass->MinorId, SetupHtbClass->Mark, SetupHtbClass->RateLimit);
 	SYSFMT("tc class replace dev {} parent 1:1 classid 1:{} htb rate {}bit ceil {}bit", IfName, SetupHtbClass->MinorId,
 		static_cast<uint64_t>(SetupHtbClass->RateLimit * 8), static_cast<uint64_t>(SetupHtbClass->RateLimit * 8));
@@ -224,7 +224,7 @@ static bool ConfigurePortRouting(
 	}
 	else
 	{
-		spdlog::info("Setting up ingress port routing on interface {}: dport={}, qdisc id={}", IfbDev,
+		spdlog::debug("Setting up ingress port routing on interface {}: dport={}, qdisc id={}", IfbDev,
 			SetupPortRouting->Dport, SetupPortRouting->QDiscId);
 		SYSFMT(
 			"tc filter add dev {} parent 1: protocol ip prio {} handle {} flower ip_proto tcp dst_port {} classid 1:{}",
@@ -261,7 +261,6 @@ static bool Init(std::string const& IfbDev, std::string const& IngressInterface,
 		IngressInterface, IfbDev);
 
 	// Egress HTB setup (on the actual network interface)
-
 	spdlog::info("Setting up egress HTB qdisc on interface {}", MainInterface);
 	// get rid of it if it exists
 	SafeSystem(fmt::format("tc qdisc delete dev {} root", MainInterface));
