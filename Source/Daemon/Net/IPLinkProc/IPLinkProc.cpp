@@ -198,7 +198,7 @@ static bool SetupHtbClass(std::shared_ptr<WSetupHtbClassMsg> const& SetupHtbClas
 static bool RemoveHtbClass(std::shared_ptr<WRemoveHtbClassMsg> const& RemoveHtbClass)
 {
 	auto const& IfName = SanitizeInterfaceName(RemoveHtbClass->InterfaceName);
-	spdlog::info("Removing HTB class on interface {}: classid=1:{}, mark=0x{:x}", IfName, RemoveHtbClass->MinorId,
+	spdlog::debug("Removing HTB class on interface {}: classid=1:{}, mark=0x{:x}", IfName, RemoveHtbClass->MinorId,
 		RemoveHtbClass->Mark);
 	if (RemoveHtbClass->bIsUpload)
 	{
@@ -219,7 +219,7 @@ static bool ConfigurePortRouting(
 			SetupPortRouting->Handle);
 		SYSFMT("tc filter del dev {} protocol ip parent 1: prio {} handle {} flower", IfbDev, Priority,
 			SetupPortRouting->Handle + 1);
-		spdlog::info("Removed ingress port routing on interface {}: dport={}, qdisc id={}", IfbDev,
+		spdlog::debug("Removed ingress port routing on interface {}: dport={}, qdisc id={}", IfbDev,
 			SetupPortRouting->Dport, SetupPortRouting->QDiscId);
 	}
 	else
@@ -321,7 +321,6 @@ static void ProcessMessage(WMsgQueue& Queue, WIPLinkMsg const& Msg, WSignalHandl
 
 void OnDataReceived(WBuffer& RecvBuffer, WSignalHandler& Handler, WMsgQueue& Queue)
 {
-	spdlog::info("Received {} bytes on IP link socket", RecvBuffer.GetReadableSize());
 	// Important: do not execute any slow system calls here. Just deserialize and enqueue.
 	// Keep allocations modest.
 	std::stringstream SS(std::string(RecvBuffer.GetData(), RecvBuffer.GetReadableSize()));

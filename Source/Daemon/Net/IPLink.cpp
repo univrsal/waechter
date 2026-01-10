@@ -41,6 +41,7 @@ WBandwidthLimit::WBandwidthLimit(
 
 WBandwidthLimit::~WBandwidthLimit()
 {
+	spdlog::debug("HTB limit class being removed: classid=1:{}, rate={} B/s", MinorId, RateLimit);
 	// clean up tc classes and filters
 	std::string IfName =
 		(Direction == ELimitDirection::Upload) ? WDaemonConfig::GetInstance().NetworkInterfaceName : WIPLink::IfbDev;
