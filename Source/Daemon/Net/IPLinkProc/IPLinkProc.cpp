@@ -23,6 +23,9 @@
 #include "IPLinkMsg.hpp"
 #include "SignalHandler.hpp"
 
+// Sole purpose of this executable is to run `tc` commands which require root
+// Commands are sent via unix socket from waechterd after it has dropped privileges
+
 #define SYSFMT(_fmt, ...)                                                                                             \
 	if (auto RC = SafeSystem(fmt::format(_fmt, __VA_ARGS__).c_str()); RC != 0)                                        \
 	{                                                                                                                 \
@@ -38,8 +41,71 @@
 		spdlog::error("Failed to execute system command '{}': {} (RC={})", CmdFormatted, WErrnoUtil::StrError(), RC); \
 	}
 
-// Sole purpose of this executable is to run `tc` commands which require root
-// Commands are sent via unix socket from waechterd after it has dropped privileges
+struct WMsgQueue;
+
+static bool RemoveHtbClass(std::shared_ptr<WRemoveHtbClassMsg> const& RemoveHtbClass);
+
+static void ProcessMessage(WMsgQueue& Queue, WIPLinkMsg const& Msg, WSignalHandler& Handler, std::string const& IfbDev);
+
+struct HTBMapEntry
+{
+	uint16_t                            UseCount{};
+	std::shared_ptr<WRemoveHtbClassMsg> PendingRemoveMsg{};
+
+	~HTBMapEntry()
+	{
+		if (PendingRemoveMsg != nullptr)
+		{
+			RemoveHtbClass(PendingRemoveMsg);
+		}
+	}
+};
+
+struct WHTBMap
+{
+	std::mutex                                                 Mutex;
+	std::unordered_map<uint16_t, std::shared_ptr<HTBMapEntry>> HTBUseCounter; // minor id -> amount of ports using it
+
+	void AddUsage(uint16_t MinorId)
+	{
+		std::lock_guard Lock(Mutex);
+		if (HTBUseCounter.find(MinorId) == HTBUseCounter.end())
+		{
+			HTBUseCounter[MinorId] = std::make_shared<HTBMapEntry>();
+		}
+		HTBUseCounter[MinorId]->UseCount++;
+	}
+
+	bool MarkPendingRemove(uint16_t MinorId, std::shared_ptr<WRemoveHtbClassMsg> const& Msg)
+	{
+		std::lock_guard Lock(Mutex);
+		auto            It = HTBUseCounter.find(MinorId);
+		if (It != HTBUseCounter.end())
+		{
+			It->second->PendingRemoveMsg = Msg;
+			return true;
+		}
+		// just remove immediately
+		return RemoveHtbClass(Msg);
+	}
+
+	void RemoveUsage(uint16_t MinorId)
+	{
+		std::lock_guard Lock(Mutex);
+		auto            It = HTBUseCounter.find(MinorId);
+		if (It != HTBUseCounter.end())
+		{
+			if (It->second->UseCount > 0)
+			{
+				It->second->UseCount--;
+			}
+			if (It->second->UseCount == 0)
+			{
+				HTBUseCounter.erase(It);
+			}
+		}
+	}
+};
 
 // A tiny bounded-ish queue to avoid unbounded RAM usage if the sender outruns `tc`.
 // If it grows too large, we log warnings so it's visible in the logs.
@@ -49,6 +115,8 @@ struct WMsgQueue
 	std::condition_variable Cv;
 	std::deque<WIPLinkMsg>  Queue;
 	std::atomic<bool>       bStop{ false };
+
+	WHTBMap HtbUsageMap;
 
 	// soft limit; we only warn when exceeded
 	size_t WarnLimit{ 256 };
@@ -87,9 +155,7 @@ struct WMsgQueue
 	}
 };
 
-static void ProcessMessage(WIPLinkMsg const& Msg, WSignalHandler& Handler, std::string const& IfbDev);
-
-int SafeSystem(std::string const& Command)
+static int SafeSystem(std::string const& Command)
 {
 	// Check if the command contains any dangerous characters
 	for (char c : Command)
@@ -103,7 +169,7 @@ int SafeSystem(std::string const& Command)
 	return system(Command.c_str());
 }
 
-std::string SanitizeInterfaceName(std::string const& IfName)
+static std::string SanitizeInterfaceName(std::string const& IfName)
 {
 	// only allow alphanumeric characters, underscores and dashes to prevent command injection
 	std::string Result = IfName;
@@ -113,7 +179,7 @@ std::string SanitizeInterfaceName(std::string const& IfName)
 	return Result;
 }
 
-bool SetupHtbClass(std::shared_ptr<WSetupHtbClassMsg> const& SetupHtbClass)
+static bool SetupHtbClass(std::shared_ptr<WSetupHtbClassMsg> const& SetupHtbClass)
 {
 	auto const IfName = SanitizeInterfaceName(SetupHtbClass->InterfaceName);
 	spdlog::info("Setting up HTB class on interface {}: classid=1:{}, mark=0x{:x}, rate={} B/s", IfName,
@@ -129,7 +195,7 @@ bool SetupHtbClass(std::shared_ptr<WSetupHtbClassMsg> const& SetupHtbClass)
 	return true;
 }
 
-bool RemoveHtbClass(std::shared_ptr<WRemoveHtbClassMsg> const& RemoveHtbClass)
+static bool RemoveHtbClass(std::shared_ptr<WRemoveHtbClassMsg> const& RemoveHtbClass)
 {
 	auto const& IfName = SanitizeInterfaceName(RemoveHtbClass->InterfaceName);
 	spdlog::info("Removing HTB class on interface {}: classid=1:{}, mark=0x{:x}", IfName, RemoveHtbClass->MinorId,
@@ -143,7 +209,8 @@ bool RemoveHtbClass(std::shared_ptr<WRemoveHtbClassMsg> const& RemoveHtbClass)
 	return true;
 }
 
-bool ConfigurePortRouting(std::shared_ptr<WConfigurePortRouting> const& SetupPortRouting, std::string const& IfbDev)
+static bool ConfigurePortRouting(
+	std::shared_ptr<WConfigurePortRouting> const& SetupPortRouting, std::string const& IfbDev)
 {
 	int const Priority = 1;
 	if (SetupPortRouting->bRemove)
@@ -169,7 +236,7 @@ bool ConfigurePortRouting(std::shared_ptr<WConfigurePortRouting> const& SetupPor
 	return true;
 }
 
-bool Init(std::string const& IfbDev, std::string const& IngressInterface)
+static bool Init(std::string const& IfbDev, std::string const& IngressInterface)
 {
 	// Create the ifb0 interface
 	SafeSystem(fmt::format("ip link delete {}", IfbDev));
@@ -196,7 +263,7 @@ bool Init(std::string const& IfbDev, std::string const& IngressInterface)
 	return true;
 }
 
-static void WorkerThreadMain(WMsgQueue& Queue, WSignalHandler& Handler, std::string IfbDev)
+static void WorkerThreadMain(WMsgQueue& Queue, WSignalHandler& Handler, std::string const& IfbDev)
 {
 	WIPLinkMsg Msg;
 	while (!Handler.bStop)
@@ -206,11 +273,11 @@ static void WorkerThreadMain(WMsgQueue& Queue, WSignalHandler& Handler, std::str
 		{
 			break;
 		}
-		ProcessMessage(Msg, Handler, IfbDev);
+		ProcessMessage(Queue, Msg, Handler, IfbDev);
 	}
 }
 
-static void ProcessMessage(WIPLinkMsg const& Msg, WSignalHandler& Handler, std::string const& IfbDev)
+static void ProcessMessage(WMsgQueue& Queue, WIPLinkMsg const& Msg, WSignalHandler& Handler, std::string const& IfbDev)
 {
 	if (Msg.Type == EIPLinkMsgType::Exit)
 	{
@@ -228,7 +295,7 @@ static void ProcessMessage(WIPLinkMsg const& Msg, WSignalHandler& Handler, std::
 	}
 	if (Msg.Type == EIPLinkMsgType::RemoveHtbClass && Msg.RemoveHtbClass)
 	{
-		if (!RemoveHtbClass(Msg.RemoveHtbClass))
+		if (!Queue.HtbUsageMap.MarkPendingRemove(Msg.RemoveHtbClass->MinorId, Msg.RemoveHtbClass))
 		{
 			spdlog::error("Failed to remove HTB class");
 		}
@@ -239,6 +306,14 @@ static void ProcessMessage(WIPLinkMsg const& Msg, WSignalHandler& Handler, std::
 		if (!ConfigurePortRouting(Msg.SetupPortRouting, IfbDev))
 		{
 			spdlog::error("Failed to configure port routing");
+		}
+		if (Msg.SetupPortRouting->bRemove)
+		{
+			Queue.HtbUsageMap.RemoveUsage(Msg.SetupPortRouting->QDiscId);
+		}
+		else
+		{
+			Queue.HtbUsageMap.AddUsage(Msg.SetupPortRouting->QDiscId);
 		}
 		return;
 	}
