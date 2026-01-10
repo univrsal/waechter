@@ -12,18 +12,16 @@
 #include <thread>
 #include <spdlog/fmt/fmt.h>
 #include <atomic>
+#include <filesystem>
+#include <condition_variable>
+#include <mutex>
+#include <deque>
+#include <vector>
 
 #include "Socket.hpp"
 #include "ErrnoUtil.hpp"
 #include "IPLinkMsg.hpp"
 #include "SignalHandler.hpp"
-
-#include <filesystem>
-
-// Added for async message handling
-#include <condition_variable>
-#include <mutex>
-#include <deque>
 
 #define SYSFMT(_fmt, ...)                                                                                             \
 	if (auto RC = SafeSystem(fmt::format(_fmt, __VA_ARGS__).c_str()); RC != 0)                                        \
@@ -322,10 +320,23 @@ int main(int Argc, char** Argv)
 	WBuffer        RecvBuffer;
 	WMsgQueue      Queue;
 
-	// Worker thread runs all slow operations.
-	std::thread Worker([&Queue, &Handler, IfbDev] { WorkerThreadMain(Queue, Handler, IfbDev); });
+	// Create a thread pool to process messages in parallel
+	// Using hardware concurrency, but capping at reasonable limit
+	size_t ThreadCount = std::min(std::thread::hardware_concurrency(), 8u);
+	if (ThreadCount == 0)
+	{
+		ThreadCount = 4; // fallback default
+	}
+	spdlog::info("Starting thread pool with {} worker threads", ThreadCount);
 
-	ClientSocket->OnClosed.connect([&Handler, &Queue, &Worker]() {
+	std::vector<std::thread> WorkerPool;
+	WorkerPool.reserve(ThreadCount);
+	for (size_t i = 0; i < ThreadCount; ++i)
+	{
+		WorkerPool.emplace_back([&Queue, &Handler, IfbDev] { WorkerThreadMain(Queue, Handler, IfbDev); });
+	}
+
+	ClientSocket->OnClosed.connect([&Handler, &Queue]() {
 		spdlog::info("Daemon socket closed, exiting");
 		Handler.bStop = true;
 		Queue.Stop();
@@ -341,10 +352,15 @@ int main(int Argc, char** Argv)
 	}
 
 	Queue.Stop();
-	if (Worker.joinable())
+	spdlog::info("Waiting for worker threads to finish...");
+	for (auto& Worker : WorkerPool)
 	{
-		Worker.join();
+		if (Worker.joinable())
+		{
+			Worker.join();
+		}
 	}
+	spdlog::info("All worker threads finished");
 
 	// Cleanup
 	SYSFMT2("tc filter delete dev {} parent ffff:", IngressInterface);
