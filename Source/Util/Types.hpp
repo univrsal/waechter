@@ -15,6 +15,7 @@
 using WProcessId = pid_t;
 using WSocketCookie = uint64_t;
 using WMsec = int64_t;
+using WSec = int64_t;
 using WBytes = uint64_t;
 using WBytesPerSecond = double;
 using WUsec = std::chrono::microseconds;
