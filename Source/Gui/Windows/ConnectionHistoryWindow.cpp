@@ -17,7 +17,14 @@ void WConnectionHistoryWindow::PushNewItem(WNewConnectionHistoryEntry const& New
 	ListItem.DataOut = NewEntry.DataOut;
 	ListItem.RemoteEndpoint = NewEntry.RemoteEndpoint;
 	ListItem.StartTime = WTimeFormat::FormatUnixTime(NewEntry.StartTime);
-	ListItem.EndTime = WTimeFormat::FormatUnixTime(NewEntry.EndTime);
+	if (NewEntry.EndTime > 0)
+	{
+		ListItem.EndTime = WTimeFormat::FormatUnixTime(NewEntry.EndTime);
+	}
+	else
+	{
+		ListItem.EndTime = "n/a";
+	}
 
 	if (NewEntry.AppId > 0)
 	{
@@ -55,8 +62,8 @@ void WConnectionHistoryWindow::Draw()
 				ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY))
 		{
 			ImGui::TableSetupColumn("App Name", ImGuiTableColumnFlags_WidthStretch);
-			ImGui::TableSetupColumn("Endpoint Address", ImGuiTableColumnFlags_WidthStretch);
-			ImGui::TableSetupColumn("Endpoint Port", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+			ImGui::TableSetupColumn("IP", ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableSetupColumn("Port", ImGuiTableColumnFlags_WidthFixed, 80.0f);
 			ImGui::TableSetupColumn("Data In", ImGuiTableColumnFlags_WidthFixed, 100.0f);
 			ImGui::TableSetupColumn("Data Out", ImGuiTableColumnFlags_WidthFixed, 100.0f);
 			ImGui::TableSetupColumn("Start Time", ImGuiTableColumnFlags_WidthFixed, 150.0f);
@@ -66,6 +73,17 @@ void WConnectionHistoryWindow::Draw()
 
 			for (auto const& Item : HistoryItems)
 			{
+				if (Item.DataIn == 0 && Item.DataOut == 0)
+				{
+					continue;
+				}
+
+				if (Item.RemoteEndpoint.Address.IsZero() || Item.RemoteEndpoint.Address.IsBroadcast()
+					|| Item.RemoteEndpoint.Port == 0)
+				{
+					continue;
+				}
+
 				ImGui::TableNextRow();
 
 				ImGui::TableNextColumn();
