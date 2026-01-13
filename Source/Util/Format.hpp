@@ -48,9 +48,9 @@ public:
 class WTimeFormat
 {
 public:
-	static std::string FormatUnixTime(WSec UnixTime, std::string_view Format = "%Y-%m-%d %H:%M:%S")
+	static std::string FormatUnixTime(WSec UnixTime, std::string_view Format = "{:%Y-%m-%d %H:%M:%S}")
 	{
-		std::time_t const TimeT = static_cast<std::time_t>(UnixTime);
+		std::time_t const TimeT = UnixTime;
 		return fmt::format(fmt::runtime(std::string{ Format }), fmt::localtime(TimeT));
 	}
 };
