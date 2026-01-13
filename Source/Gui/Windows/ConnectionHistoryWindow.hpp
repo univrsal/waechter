@@ -11,6 +11,7 @@
 #include "Buffer.hpp"
 #include "IPAddress.hpp"
 #include "Types.hpp"
+#include "Data/TrafficItem.hpp"
 
 struct WApplicationItem;
 struct WNewConnectionHistoryEntry;
@@ -18,6 +19,7 @@ struct WNewConnectionHistoryEntry;
 struct WConnectionHistoryListItem
 {
 	std::shared_ptr<WApplicationItem> App;
+	WTrafficItemId                    ConnectionId;
 
 	WEndpoint   RemoteEndpoint{};
 	WBytes      DataIn{ 0 };

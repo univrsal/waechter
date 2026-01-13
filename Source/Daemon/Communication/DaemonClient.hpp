@@ -75,7 +75,7 @@ public:
 	}
 
 	template <class T>
-	void SendMessage(EMessageType Type, T const& Data)
+	ssize_t SendMessage(EMessageType Type, T const& Data)
 	{
 		std::stringstream AtlasOs{};
 		{
@@ -90,5 +90,6 @@ public:
 			spdlog::error(
 				"Failed to send message of type {} to client: {}", static_cast<int>(Type), WErrnoUtil::StrError());
 		}
+		return Sent;
 	}
 };

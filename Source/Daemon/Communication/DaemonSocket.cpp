@@ -128,6 +128,19 @@ void WDaemonSocket::BroadcastTrafficUpdate()
 	}
 }
 
+void WDaemonSocket::BroadcastConnectionHistoryUpdate(WConnectionHistoryUpdate const& Update)
+{
+	std::lock_guard Lock(ClientsMutex);
+	for (auto const& Client : Clients)
+	{
+		if (Client->SendMessage(MT_ConnectionHistoryUpdate, Update) < 0)
+		{
+			spdlog::error("Failed to send app icon atlas update to client: {}", WErrnoUtil::StrError());
+			Client->GetSocket()->Close();
+		}
+	}
+}
+
 void WDaemonSocket::BroadcastAtlasUpdate()
 {
 	auto&             SystemMap = WSystemMap::GetInstance();

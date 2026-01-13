@@ -83,7 +83,11 @@ void WDaemon::RunLoop()
 			}
 			{
 				ZoneScopedN("WConnectionHistory::Update");
-				WConnectionHistory::GetInstance().Update();
+				auto Updates = WConnectionHistory::GetInstance().Update();
+				if (!Updates.Changes.empty())
+				{
+					DaemonSocket->BroadcastConnectionHistoryUpdate(Updates);
+				}
 			}
 
 			if (DaemonSocket->HasClients() && WAppIconAtlasBuilder::GetInstance().IsDirty())

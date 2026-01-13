@@ -16,6 +16,7 @@ enum EMessageType : int8_t
 	MT_RuleUpdate,
 	MT_Handshake,
 	MT_ConnectionHistory,
+	MT_ConnectionHistoryUpdate,
 
 	MT_Count
 };

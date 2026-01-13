@@ -29,6 +29,7 @@ struct WConnectionHistoryChange
 struct WNewConnectionHistoryEntry
 {
 	WTrafficItemId AppId{};
+	WTrafficItemId ConnectionId{};
 	WEndpoint      RemoteEndpoint{};
 	WSec           StartTime{};
 	WSec           EndTime{ 0 };
@@ -38,7 +39,7 @@ struct WNewConnectionHistoryEntry
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(AppId, RemoteEndpoint, StartTime, EndTime, DataIn, DataOut);
+		archive(AppId, ConnectionId, RemoteEndpoint, StartTime, EndTime, DataIn, DataOut);
 	}
 };
 

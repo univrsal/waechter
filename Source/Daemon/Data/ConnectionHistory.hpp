@@ -14,6 +14,8 @@
 #include "Types.hpp"
 #include "Data/ConnectionHistoryUpdate.hpp"
 
+#include <cassert>
+
 class WAppCounter;
 class WSocketItem;
 class WSocketCounter;
@@ -25,6 +27,7 @@ struct WConnectionHistoryEntry
 	std::shared_ptr<WAppCounter> App{};
 	std::shared_ptr<WSocketItem> Socket{};
 	std::shared_ptr<WTupleItem>  Tuple{}; // set if this is a UDP connection
+	WTrafficItemId               ConectionItemId{};
 
 	WEndpoint RemoteEndpoint{};
 	WSec      StartTime{ WTime::GetUnixNow() };
@@ -32,7 +35,10 @@ struct WConnectionHistoryEntry
 	WBytes    DataIn{ 0 };
 	WBytes    DataOut{ 0 };
 
-	void Update();
+	bool Update(); // return true if anything changed
+
+	WConnectionHistoryEntry(std::shared_ptr<WAppCounter> App_, std::shared_ptr<WSocketItem> Socket_,
+		std::shared_ptr<WTupleItem> Tuple_, WEndpoint const& RemoteEndpoint_);
 };
 
 class WConnectionHistory : public TSingleton<WConnectionHistory>
@@ -58,17 +64,13 @@ class WConnectionHistory : public TSingleton<WConnectionHistory>
 	void Push(std::shared_ptr<WAppCounter> const& App, std::shared_ptr<WSocketItem> const& Socket,
 		std::shared_ptr<WTupleItem> const& Tuple, WEndpoint const& RemoteEndpoint)
 	{
-		WConnectionHistoryEntry Entry{};
-		Entry.App = App;
-		Entry.Socket = Socket;
-		Entry.Tuple = Tuple;
-		Entry.RemoteEndpoint = RemoteEndpoint;
+		WConnectionHistoryEntry Entry{ App, Socket, Tuple, RemoteEndpoint };
 		PushInternal(Entry);
 	}
 
 public:
 	void RegisterSignalHandlers();
-	void Update();
 
+	WConnectionHistoryUpdate Update();
 	WConnectionHistoryUpdate Serialize();
 };

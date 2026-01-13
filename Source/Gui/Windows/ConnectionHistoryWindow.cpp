@@ -17,6 +17,7 @@ void WConnectionHistoryWindow::PushNewItem(WNewConnectionHistoryEntry const& New
 	ListItem.DataOut = NewEntry.DataOut;
 	ListItem.RemoteEndpoint = NewEntry.RemoteEndpoint;
 	ListItem.StartTime = WTimeFormat::FormatUnixTime(NewEntry.StartTime);
+	ListItem.ConnectionId = NewEntry.ConnectionId;
 	if (NewEntry.EndTime > 0)
 	{
 		ListItem.EndTime = WTimeFormat::FormatUnixTime(NewEntry.EndTime);
@@ -151,7 +152,7 @@ void WConnectionHistoryWindow::HandleUpdate(WBuffer& Update)
 
 	for (auto& Item : HistoryItems)
 	{
-		if (auto It = HistoryUpdate.Changes.find(Item.App->ItemId); It != HistoryUpdate.Changes.end())
+		if (auto It = HistoryUpdate.Changes.find(Item.ConnectionId); It != HistoryUpdate.Changes.end())
 		{
 			auto const& Change = It->second;
 			Item.DataIn += Change.NewDataIn;

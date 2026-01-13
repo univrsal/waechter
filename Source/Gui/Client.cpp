@@ -47,6 +47,9 @@ void WClient::OnDataReceived(WBuffer& Buf)
 		case MT_ConnectionHistory:
 			WGlfwWindow::GetInstance().GetMainWindow()->GetConnectionHistoryWindow().Initialize(Buf);
 			break;
+		case MT_ConnectionHistoryUpdate:
+			WGlfwWindow::GetInstance().GetMainWindow()->GetConnectionHistoryWindow().HandleUpdate(Buf);
+			break;
 		default:
 			spdlog::warn("Received unknown message type from server: {}", static_cast<int>(Type));
 			break;

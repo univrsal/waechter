@@ -4,23 +4,35 @@
 
 #include "ConnectionHistory.hpp"
 
+#include <cassert>
+#include <spdlog/spdlog.h>
+
 #include "Counters.hpp"
 #include "NetworkEvents.hpp"
 
-void WConnectionHistoryEntry::Update()
+bool WConnectionHistoryEntry::Update()
 {
 	if (!Socket)
 	{
-		return;
+		return false;
 	}
+	bool bChanged = false;
 
 	if (Tuple)
 	{
+		if (DataIn != Tuple->TotalDownloadBytes || DataOut != Tuple->TotalUploadBytes)
+		{
+			bChanged = true;
+		}
 		DataIn = Tuple->TotalDownloadBytes;
 		DataOut = Tuple->TotalUploadBytes;
 	}
 	else
 	{
+		if (DataIn != Socket->TotalDownloadBytes || DataOut != Socket->TotalUploadBytes)
+		{
+			bChanged = true;
+		}
 		DataIn = Socket->TotalDownloadBytes;
 		DataOut = Socket->TotalUploadBytes;
 	}
@@ -31,7 +43,17 @@ void WConnectionHistoryEntry::Update()
 		Tuple = nullptr;
 		// technically we should set this when the socket actually closes but this is close enough
 		EndTime = WTime::GetUnixNow();
+		bChanged = true;
 	}
+	return bChanged;
+}
+
+WConnectionHistoryEntry::WConnectionHistoryEntry(std::shared_ptr<WAppCounter> App_,
+	std::shared_ptr<WSocketItem> Socket_, std::shared_ptr<WTupleItem> Tuple_, WEndpoint const& RemoteEndpoint_)
+	: App(std::move(App_)), Socket(std::move(Socket_)), Tuple(std::move(Tuple_)), RemoteEndpoint(RemoteEndpoint_)
+{
+	ConectionItemId = Socket ? Socket->ItemId : (Tuple ? Tuple->ItemId : 0);
+	assert(ConectionItemId != 0);
 }
 
 void WConnectionHistory::OnSocketConnected(WSocketCounter const* SocketCounter)
@@ -58,13 +80,22 @@ void WConnectionHistory::RegisterSignalHandlers()
 		[this](WSocketCounter const* SocketCounter) { OnSocketConnected(SocketCounter); });
 }
 
-void WConnectionHistory::Update()
+WConnectionHistoryUpdate WConnectionHistory::Update()
 {
-	std::scoped_lock Lock(Mutex);
+	WConnectionHistoryUpdate Update{};
+	std::scoped_lock         Lock(Mutex);
 	for (auto& Entry : History)
 	{
-		Entry.Update();
+		if (Entry.Update())
+		{
+			Update.Changes[Entry.ConectionItemId] = WConnectionHistoryChange{
+				.NewDataIn = Entry.DataIn,
+				.NewDataOut = Entry.DataOut,
+				.NewEndTime = Entry.EndTime,
+			};
+		}
 	}
+	return Update;
 }
 
 WConnectionHistoryUpdate WConnectionHistory::Serialize()
@@ -80,6 +111,7 @@ WConnectionHistoryUpdate WConnectionHistory::Serialize()
 		NewEntry.EndTime = Entry.EndTime;
 		NewEntry.DataIn = Entry.DataIn;
 		NewEntry.DataOut = Entry.DataOut;
+		NewEntry.ConnectionId = Entry.ConectionItemId;
 		Update.NewEntries.push_back(NewEntry);
 	}
 
