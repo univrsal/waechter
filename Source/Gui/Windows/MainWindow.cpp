@@ -141,12 +141,11 @@ void WMainWindow::Draw()
 		Init(Main);
 	}
 
-	// Create windows so they can be saved/restored by ImGui ini
-	WClient::GetInstance().GetTrafficTree()->Draw(Main);
 	LogWindow.Draw();
 	NetworkGraphWindow.Draw();
 	DetailsWindow.Draw();
 	AboutDialog.Draw();
 	RegisterDialog.Draw();
 	ConnectionHistoryWindow.Draw();
+	WClient::GetInstance().GetTrafficTree()->Draw(Main);
 }
