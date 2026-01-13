@@ -10,4 +10,6 @@ target_sources(waechterd
         MapUpdate.hpp
         Counters.hpp
         Counters.cpp
+        ConnectionHistory.cpp
+        ConnectionHistory.hpp
 )

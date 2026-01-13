@@ -9,18 +9,20 @@
 #include "NetworkGraphWindow.hpp"
 #include "DetailsWindow.hpp"
 #include "RegisterDialog.hpp"
+#include "ConnectionHistoryWindow.hpp"
 #include "Util/FlagAtlas.hpp"
 #include "Util/LibCurl.hpp"
 
 class WMainWindow
 {
-	WAboutDialog        AboutDialog{};
-	WLogWindow          LogWindow{};
-	WNetworkGraphWindow NetworkGraphWindow{};
-	WDetailsWindow      DetailsWindow{};
-	WFlagAtlas          FlagAtlas{};
-	WLibCurl            LibCurl{};
-	WRegisterDialog     RegisterDialog{};
+	WAboutDialog             AboutDialog{};
+	WLogWindow               LogWindow{};
+	WNetworkGraphWindow      NetworkGraphWindow{};
+	WDetailsWindow           DetailsWindow{};
+	WFlagAtlas               FlagAtlas{};
+	WLibCurl                 LibCurl{};
+	WRegisterDialog          RegisterDialog{};
+	WConnectionHistoryWindow ConnectionHistoryWindow{};
 
 	bool bInit{ false };
 	void DrawConnectionIndicator();
@@ -32,6 +34,8 @@ public:
 	WLibCurl& GetLibCurl() { return LibCurl; }
 
 	WNetworkGraphWindow& GetNetworkGraphWindow() { return NetworkGraphWindow; }
+
+	WConnectionHistoryWindow& GetConnectionHistoryWindow() { return ConnectionHistoryWindow; }
 
 	bool IsRegistered() const { return RegisterDialog.IsRegistered(); }
 

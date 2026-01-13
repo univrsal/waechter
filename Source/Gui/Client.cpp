@@ -12,6 +12,7 @@
 #include "Messages.hpp"
 #include "Data/Protocol.hpp"
 #include "Util/Settings.hpp"
+#include "Windows/GlfwWindow.hpp"
 
 void WClient::OnDataReceived(WBuffer& Buf)
 {
@@ -42,6 +43,9 @@ void WClient::OnDataReceived(WBuffer& Buf)
 			break;
 		case MT_ResolvedAddresses:
 			TrafficTree->SetResolvedAddresses(Buf);
+			break;
+		case MT_ConnectionHistory:
+			WGlfwWindow::GetInstance().GetMainWindow()->GetConnectionHistoryWindow().Initialize(Buf);
 			break;
 		default:
 			spdlog::warn("Received unknown message type from server: {}", static_cast<int>(Type));

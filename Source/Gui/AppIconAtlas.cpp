@@ -37,8 +37,16 @@ void WAppIconAtlas::FromAtlasData(WBuffer& Buffer)
 	ss.write(Buffer.GetData(), static_cast<long int>(Buffer.GetWritePos()));
 	{
 		ss.seekg(1); // Skip message type
-		cereal::BinaryInputArchive iar(ss);
-		iar(Data);
+		try
+		{
+			cereal::BinaryInputArchive iar(ss);
+			iar(Data);
+		}
+		catch (std::exception const& e)
+		{
+			spdlog::error("Failed to deserialize app icon atlas data: {}", e.what());
+			return;
+		}
 	}
 
 	std::lock_guard Lock(Mutex);

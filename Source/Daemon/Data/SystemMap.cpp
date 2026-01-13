@@ -131,6 +131,7 @@ std::shared_ptr<WTupleCounter> WSystemMap::GetOrCreateUDPTupleCounter(
 
 	auto TupleCounter = std::make_shared<WTupleCounter>(NewItem, SockCounter);
 	SockCounter->UDPPerConnectionCounters[Endpoint] = TupleCounter;
+	WNetworkEvents::GetInstance().OnUDPTupleCreated(TupleCounter, Endpoint);
 	return TupleCounter;
 }
 

@@ -4,7 +4,10 @@
  */
 
 #pragma once
+#include <ctime>
 #include <spdlog/fmt/fmt.h>
+#include <spdlog/fmt/chrono.h>
+#include <string_view>
 
 #include "Types.hpp"
 
@@ -39,6 +42,16 @@ public:
 		}
 		size_t const Last = Str.find_last_not_of(' ');
 		return Str.substr(First, (Last - First + 1));
+	}
+};
+
+class WTimeFormat
+{
+public:
+	static std::string FormatUnixTime(WSec UnixTime, std::string_view Format = "%Y-%m-%d %H:%M:%S")
+	{
+		std::time_t const TimeT = static_cast<std::time_t>(UnixTime);
+		return fmt::format(fmt::runtime(std::string{ Format }), fmt::localtime(TimeT));
 	}
 };
 

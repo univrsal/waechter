@@ -25,6 +25,7 @@
 #include "Filesystem.hpp"
 #include "Messages.hpp"
 #include "Data/AppIconAtlasBuilder.hpp"
+#include "Data/ConnectionHistory.hpp"
 #include "Data/Protocol.hpp"
 #include "Data/SystemMap.hpp"
 #include "Net/Resolver.hpp"
@@ -41,6 +42,8 @@ static void SendInitialDataToClient(std::shared_ptr<WDaemonClient> const& Client
 		std::lock_guard Lock(WResolver::GetInstance().ResolvedAddressesMutex);
 		Client->SendMessage(MT_ResolvedAddresses, WResolver::GetInstance().GetResolvedAddresses());
 	}
+
+	Client->SendMessage(MT_ConnectionHistory, WConnectionHistory::GetInstance().Serialize());
 
 	// Send app icon atlas
 	auto              ActiveApps = SystemMap.GetActiveApplicationPaths();

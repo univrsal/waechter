@@ -14,7 +14,10 @@ enum EMessageType : int8_t
 	MT_TrafficTreeUpdate,
 	MT_AppIconAtlasData,
 	MT_RuleUpdate,
-	MT_Handshake
+	MT_Handshake,
+	MT_ConnectionHistory,
+
+	MT_Count
 };
 
 #pragma GCC diagnostic push
@@ -22,11 +25,16 @@ enum EMessageType : int8_t
 
 static EMessageType ReadMessageTypeFromBuffer(WBuffer& Buf)
 {
-	EMessageType Type;
+	int8_t Type;
 	if (!Buf.Read(Type))
 	{
 		return MT_Invalid;
 	}
 
-	return Type;
+	if (Type < 0 || Type > static_cast<int8_t>(MT_Count))
+	{
+		return MT_Invalid;
+	}
+
+	return static_cast<EMessageType>(Type);
 }

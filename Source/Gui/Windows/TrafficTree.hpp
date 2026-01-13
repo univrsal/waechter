@@ -72,4 +72,14 @@ public:
 	std::optional<WEndpoint> GetSelectedTupleEndpoint() const { return SelectedTupleEndpoint; }
 
 	ETrafficItemType GetSelectedItemType() const { return SelectedItemType; }
+
+	std::shared_ptr<ITrafficItem> GetItemFromId(WTrafficItemId ItemId)
+	{
+		std::lock_guard Lock(DataMutex);
+		if (auto const It = TrafficItems.find(ItemId); It != TrafficItems.end())
+		{
+			return It->second;
+		}
+		return {};
+	}
 };
