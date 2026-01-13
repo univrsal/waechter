@@ -47,50 +47,53 @@ void WConnectionHistoryWindow::PushNewItem(WNewConnectionHistoryEntry const& New
 
 void WConnectionHistoryWindow::Draw()
 {
-	std::scoped_lock Lock(Mutex);
-
-	if (ImGui::BeginTable("ConnectionHistoryTable", 7,
-			ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_Sortable
-				| ImGuiTableFlags_ScrollY))
+	if (ImGui::Begin("Connection History", nullptr, ImGuiWindowFlags_NoCollapse))
 	{
-		ImGui::TableSetupColumn("App Name", ImGuiTableColumnFlags_WidthStretch);
-		ImGui::TableSetupColumn("Endpoint Address", ImGuiTableColumnFlags_WidthStretch);
-		ImGui::TableSetupColumn("Endpoint Port", ImGuiTableColumnFlags_WidthFixed, 80.0f);
-		ImGui::TableSetupColumn("Data In", ImGuiTableColumnFlags_WidthFixed, 100.0f);
-		ImGui::TableSetupColumn("Data Out", ImGuiTableColumnFlags_WidthFixed, 100.0f);
-		ImGui::TableSetupColumn("Start Time", ImGuiTableColumnFlags_WidthFixed, 150.0f);
-		ImGui::TableSetupColumn("End Time", ImGuiTableColumnFlags_WidthFixed, 150.0f);
-		ImGui::TableSetupScrollFreeze(0, 1);
-		ImGui::TableHeadersRow();
+		std::scoped_lock Lock(Mutex);
 
-		for (auto const& Item : HistoryItems)
+		if (ImGui::BeginTable("ConnectionHistoryTable", 7,
+				ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY))
 		{
-			ImGui::TableNextRow();
+			ImGui::TableSetupColumn("App Name", ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableSetupColumn("Endpoint Address", ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableSetupColumn("Endpoint Port", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+			ImGui::TableSetupColumn("Data In", ImGuiTableColumnFlags_WidthFixed, 100.0f);
+			ImGui::TableSetupColumn("Data Out", ImGuiTableColumnFlags_WidthFixed, 100.0f);
+			ImGui::TableSetupColumn("Start Time", ImGuiTableColumnFlags_WidthFixed, 150.0f);
+			ImGui::TableSetupColumn("End Time", ImGuiTableColumnFlags_WidthFixed, 150.0f);
+			ImGui::TableSetupScrollFreeze(0, 1);
+			ImGui::TableHeadersRow();
 
-			ImGui::TableNextColumn();
-			ImGui::Text("%s", Item.App ? Item.App->ApplicationName.c_str() : "");
+			for (auto const& Item : HistoryItems)
+			{
+				ImGui::TableNextRow();
 
-			ImGui::TableNextColumn();
-			ImGui::Text("%s", Item.RemoteEndpoint.Address.ToString().c_str());
+				ImGui::TableNextColumn();
+				ImGui::Text("%s", Item.App ? Item.App->ApplicationName.c_str() : "");
 
-			ImGui::TableNextColumn();
-			ImGui::Text("%u", Item.RemoteEndpoint.Port);
+				ImGui::TableNextColumn();
+				ImGui::Text("%s", Item.RemoteEndpoint.Address.ToString().c_str());
 
-			ImGui::TableNextColumn();
-			ImGui::Text("%s", WStorageFormat::AutoFormat(Item.DataIn).c_str());
+				ImGui::TableNextColumn();
+				ImGui::Text("%u", Item.RemoteEndpoint.Port);
 
-			ImGui::TableNextColumn();
-			ImGui::Text("%s", WStorageFormat::AutoFormat(Item.DataOut).c_str());
+				ImGui::TableNextColumn();
+				ImGui::Text("%s", WStorageFormat::AutoFormat(Item.DataIn).c_str());
 
-			ImGui::TableNextColumn();
-			ImGui::Text("%s", Item.StartTime.c_str());
+				ImGui::TableNextColumn();
+				ImGui::Text("%s", WStorageFormat::AutoFormat(Item.DataOut).c_str());
 
-			ImGui::TableNextColumn();
-			ImGui::Text("%s", Item.EndTime.c_str());
+				ImGui::TableNextColumn();
+				ImGui::Text("%s", Item.StartTime.c_str());
+
+				ImGui::TableNextColumn();
+				ImGui::Text("%s", Item.EndTime.c_str());
+			}
+
+			ImGui::EndTable();
 		}
-
-		ImGui::EndTable();
 	}
+	ImGui::End();
 }
 
 void WConnectionHistoryWindow::Initialize(WBuffer& Update)
