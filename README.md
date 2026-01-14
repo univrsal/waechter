@@ -22,6 +22,9 @@ Build requirements:
 - `bpftool` to create vmlinux.h
 - `clang` and `llvm` to compile eBPF programs
 
+If you have questions, you can use [discussions](https://github.com/univrsal/waechter/discussions), the IRC
+channel [#waechter](https://rizon.net/chat) on irc.rizon.net or the [discord server](https://discord.gg/kZsHuncu3q).
+
 ### Roadmap
 
 Wächter is still in early development. Currently implemented features are:
