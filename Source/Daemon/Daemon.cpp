@@ -12,6 +12,7 @@
 #include "ErrnoUtil.hpp"
 #include "SignalHandler.hpp"
 #include "Data/AppIconAtlasBuilder.hpp"
+#include "Data/ConnectionHistory.hpp"
 #include "Data/SystemMap.hpp"
 #include "Rules/RuleManager.hpp"
 
@@ -79,6 +80,14 @@ void WDaemon::RunLoop()
 			{
 				ZoneScopedN("BroadcastTrafficUpdate");
 				DaemonSocket->BroadcastTrafficUpdate();
+			}
+			{
+				ZoneScopedN("WConnectionHistory::Update");
+				auto Updates = WConnectionHistory::GetInstance().Update();
+				if (!Updates.Changes.empty())
+				{
+					DaemonSocket->BroadcastConnectionHistoryUpdate(Updates);
+				}
 			}
 
 			if (DaemonSocket->HasClients() && WAppIconAtlasBuilder::GetInstance().IsDirty())

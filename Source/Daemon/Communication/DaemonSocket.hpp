@@ -13,6 +13,8 @@
 #include "Socket.hpp"
 #include "DaemonClient.hpp"
 
+struct WConnectionHistoryUpdate;
+
 class WDaemonSocket
 {
 	WServerSocket Socket;
@@ -72,6 +74,6 @@ public:
 	}
 
 	void BroadcastTrafficUpdate();
-
+	void BroadcastConnectionHistoryUpdate(WConnectionHistoryUpdate const& Update);
 	void BroadcastAtlasUpdate();
 };

@@ -5,6 +5,7 @@
 
 #include "Daemon.hpp"
 #include "DaemonConfig.hpp"
+#include "Data/ConnectionHistory.hpp"
 
 #include <spdlog/spdlog.h>
 #include <unistd.h>
@@ -51,6 +52,7 @@ int main()
 	}
 
 	WDaemon::RegisterSignalHandlers();
+	WConnectionHistory::GetInstance().RegisterSignalHandlers();
 
 	spdlog::info("Ebpf programs loaded and attached");
 	WDaemon::GetInstance().RunLoop();

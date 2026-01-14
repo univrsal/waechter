@@ -110,6 +110,17 @@ struct WIPAddress
 		return true;
 	}
 
+	[[nodiscard]] bool IsBroadcast() const
+	{
+		if (Family == EIPFamily::IPv4)
+		{
+			return (Bytes[0] == 255 && Bytes[1] == 255 && Bytes[2] == 255 && Bytes[3] == 255);
+		}
+
+		// IPv6 has no broadcast address
+		return false;
+	}
+
 	template <class Archive>
 	void serialize(Archive& archive)
 	{

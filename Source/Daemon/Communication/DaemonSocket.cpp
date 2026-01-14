@@ -25,9 +25,35 @@
 #include "Filesystem.hpp"
 #include "Messages.hpp"
 #include "Data/AppIconAtlasBuilder.hpp"
+#include "Data/ConnectionHistory.hpp"
 #include "Data/Protocol.hpp"
 #include "Data/SystemMap.hpp"
 #include "Net/Resolver.hpp"
+
+static void SendInitialDataToClient(std::shared_ptr<WDaemonClient> const& Client)
+{
+	auto& SystemMap = WSystemMap::GetInstance();
+	Client->SendMessage(MT_Handshake, WProtocolHandshake{ WAECHTER_PROTOCOL_VERSION, GIT_COMMIT_HASH });
+	{
+		std::lock_guard Lock(SystemMap.DataMutex);
+		Client->SendMessage(MT_TrafficTree, *SystemMap.GetSystemItem());
+	}
+	{
+		std::lock_guard Lock(WResolver::GetInstance().ResolvedAddressesMutex);
+		Client->SendMessage(MT_ResolvedAddresses, WResolver::GetInstance().GetResolvedAddresses());
+	}
+
+	Client->SendMessage(MT_ConnectionHistory, WConnectionHistory::GetInstance().Serialize());
+
+	// Send app icon atlas
+	auto              ActiveApps = SystemMap.GetActiveApplicationPaths();
+	WAppIconAtlasData Data{};
+	if (WAppIconAtlasBuilder::GetInstance().GetAtlasData(Data, ActiveApps))
+	{
+		spdlog::info("Atlas has {} icons", Data.UvData.size());
+		Client->SendMessage(MT_AppIconAtlasData, Data);
+	}
+}
 
 void WDaemonSocket::ListenThreadFunction()
 {
@@ -39,32 +65,7 @@ void WDaemonSocket::ListenThreadFunction()
 		{
 			spdlog::info("Client connected");
 			auto NewClient = std::make_shared<WDaemonClient>(ClientSocket, this);
-
-			// create a binary stream for cereal to write to
-			auto& SystemMap = WSystemMap::GetInstance();
-			NewClient->SendMessage(MT_Handshake, WProtocolHandshake{ WAECHTER_PROTOCOL_VERSION, GIT_COMMIT_HASH });
-			{
-				std::lock_guard Lock(SystemMap.DataMutex);
-				NewClient->SendMessage(MT_TrafficTree, *SystemMap.GetSystemItem());
-			}
-			{
-				std::lock_guard Lock(WResolver::GetInstance().ResolvedAddressesMutex);
-				NewClient->SendMessage(MT_ResolvedAddresses, WResolver::GetInstance().GetResolvedAddresses());
-			}
-
-			// Send app icon atlas
-			auto              ActiveApps = SystemMap.GetActiveApplicationPaths();
-			WAppIconAtlasData Data{};
-			if (WAppIconAtlasBuilder::GetInstance().GetAtlasData(Data, ActiveApps))
-			{
-				spdlog::info("Atlas has {} icons", Data.UvData.size());
-				NewClient->SendMessage(MT_AppIconAtlasData, Data);
-			}
-			else
-			{
-				spdlog::warn("No app icon atlas data to send to client");
-			}
-
+			SendInitialDataToClient(NewClient);
 			ClientsMutex.lock();
 			Clients.push_back(NewClient);
 			ClientsMutex.unlock();
@@ -122,6 +123,19 @@ void WDaemonSocket::BroadcastTrafficUpdate()
 		if (Client->SendFramedData(Str) < 0)
 		{
 			spdlog::error("Failed to send traffic update to client: {}", WErrnoUtil::StrError());
+			Client->GetSocket()->Close();
+		}
+	}
+}
+
+void WDaemonSocket::BroadcastConnectionHistoryUpdate(WConnectionHistoryUpdate const& Update)
+{
+	std::lock_guard Lock(ClientsMutex);
+	for (auto const& Client : Clients)
+	{
+		if (Client->SendMessage(MT_ConnectionHistoryUpdate, Update) < 0)
+		{
+			spdlog::error("Failed to send app icon atlas update to client: {}", WErrnoUtil::StrError());
 			Client->GetSocket()->Close();
 		}
 	}

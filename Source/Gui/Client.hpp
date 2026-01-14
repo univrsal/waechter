@@ -81,4 +81,24 @@ public:
 				"Failed to send message of type {} to daemon: {}", static_cast<int>(Type), WErrnoUtil::StrError());
 		}
 	}
+
+	template <class T>
+	static bool ReadMessage(WBuffer& Buffer, T& OutData)
+	{
+		std::stringstream ss;
+		ss.write(Buffer.GetData(), static_cast<long int>(Buffer.GetWritePos()));
+		{
+			ss.seekg(1); // Skip message type
+			try
+			{
+				cereal::BinaryInputArchive iar(ss);
+				iar(OutData);
+			}
+			catch (std::exception const& e)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
 };

@@ -82,6 +82,7 @@ void WMainWindow::Init(ImGuiID Main)
 		ImGuiID DockIdDown = ImGui::DockBuilderSplitNode(DockIdMain, ImGuiDir_Down, 0.25f, nullptr, &DockIdMain);
 		ImGuiID DockIdRight = ImGui::DockBuilderSplitNode(DockIdMain, ImGuiDir_Right, 0.20f, nullptr, &DockIdMain);
 		ImGui::DockBuilderDockWindow("Traffic Tree", DockIdMain);
+		ImGui::DockBuilderDockWindow("Connection History", DockIdMain);
 		ImGui::DockBuilderDockWindow("Log", DockIdDown);
 		ImGui::DockBuilderDockWindow("Network activity", DockIdDown);
 		ImGui::DockBuilderDockWindow("Details", DockIdRight);
@@ -140,11 +141,11 @@ void WMainWindow::Draw()
 		Init(Main);
 	}
 
-	// Create windows so they can be saved/restored by ImGui ini
-	WClient::GetInstance().GetTrafficTree()->Draw(Main);
 	LogWindow.Draw();
 	NetworkGraphWindow.Draw();
 	DetailsWindow.Draw();
 	AboutDialog.Draw();
 	RegisterDialog.Draw();
+	ConnectionHistoryWindow.Draw();
+	WClient::GetInstance().GetTrafficTree()->Draw(Main);
 }

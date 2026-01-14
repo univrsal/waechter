@@ -7,4 +7,5 @@ target_sources(util
         SocketItem.hpp
         AppIconAtlasData.hpp
         TrafficTreeUpdate.hpp
+        ConnectionHistoryUpdate.hpp
 )

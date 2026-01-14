@@ -23,6 +23,12 @@ namespace WTime
 			.count();
 	}
 
+	static int64_t GetUnixNow()
+	{
+		return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch())
+			.count();
+	}
+
 	static std::string FormatTime(long Time)
 	{
 		// format as HH:MM:SS

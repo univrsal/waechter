@@ -16,4 +16,6 @@ target_sources(waechter
         NetworkGraphWindow.hpp
         RegisterDialog.cpp
         RegisterDialog.hpp
+        ConnectionHistoryWindow.cpp
+        ConnectionHistoryWindow.hpp
 )
