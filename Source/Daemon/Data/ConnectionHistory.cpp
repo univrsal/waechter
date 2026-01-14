@@ -95,6 +95,30 @@ WConnectionHistoryUpdate WConnectionHistory::Update()
 			};
 		}
 	}
+
+	// get the new items since last update
+	if (NewItemCounter > 0)
+	{
+		auto It = History.end();
+		for (uint32_t i = 0; i < NewItemCounter; ++i)
+		{
+			--It;
+		}
+		for (; It != History.end(); ++It)
+		{
+			auto const&                Entry = *It;
+			WNewConnectionHistoryEntry NewEntry{};
+			NewEntry.AppId = Entry.App->TrafficItem->ItemId;
+			NewEntry.RemoteEndpoint = Entry.RemoteEndpoint;
+			NewEntry.StartTime = Entry.StartTime;
+			NewEntry.EndTime = Entry.EndTime;
+			NewEntry.DataIn = Entry.DataIn;
+			NewEntry.DataOut = Entry.DataOut;
+			NewEntry.ConnectionId = Entry.ConectionItemId;
+			Update.NewEntries.push_back(NewEntry);
+		}
+		NewItemCounter = 0;
+	}
 	return Update;
 }
 

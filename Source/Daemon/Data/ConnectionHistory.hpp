@@ -46,18 +46,7 @@ class WConnectionHistory : public TSingleton<WConnectionHistory>
 	std::mutex Mutex;
 
 	std::deque<WConnectionHistoryEntry> History;
-
-	// todo: (maybe) the rest should be pushed into the database
-
-	void PushInternal(WConnectionHistoryEntry const& Entry)
-	{
-		std::scoped_lock Lock(Mutex);
-		History.push_back(Entry);
-		if (History.size() > kMaxHistorySize)
-		{
-			History.pop_front();
-		}
-	}
+	uint32_t                            NewItemCounter{ 0 };
 
 	void OnSocketConnected(WSocketCounter const* SocketCounter);
 	void OnUDPTupleCreated(std::shared_ptr<WTupleCounter> const& TupleCounter, WEndpoint const& Endpoint);
@@ -65,7 +54,14 @@ class WConnectionHistory : public TSingleton<WConnectionHistory>
 		std::shared_ptr<WTupleItem> const& Tuple, WEndpoint const& RemoteEndpoint)
 	{
 		WConnectionHistoryEntry Entry{ App, Socket, Tuple, RemoteEndpoint };
-		PushInternal(Entry);
+		// todo: (maybe) the rest should be pushed into the database
+		std::scoped_lock Lock(Mutex);
+		History.push_back(Entry);
+		++NewItemCounter;
+		if (History.size() > kMaxHistorySize)
+		{
+			History.pop_front();
+		}
 	}
 
 public:
