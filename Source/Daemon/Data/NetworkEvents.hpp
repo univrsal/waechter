@@ -11,6 +11,7 @@
 
 struct WSocketCounter;
 struct WProcessCounter;
+struct WTupleCounter;
 
 class WNetworkEvents final : public TSingleton<WNetworkEvents>
 {
