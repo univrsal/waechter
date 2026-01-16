@@ -12,6 +12,8 @@ target_sources(waechter
         ProtocolDB.hpp
         ImageUtil.cpp
         ImageUtil.hpp
+        IP2Asn.cpp
+        IP2Asn.hpp
 )
 
 add_subdirectory(Keylogic)

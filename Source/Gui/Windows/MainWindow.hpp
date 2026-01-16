@@ -25,7 +25,7 @@ class WMainWindow
 	WConnectionHistoryWindow ConnectionHistoryWindow{};
 
 	bool bInit{ false };
-	void DrawConnectionIndicator();
+	static void DrawConnectionIndicator();
 	void Init(ImGuiID Main);
 
 public:

@@ -10,6 +10,7 @@
 #include <string>
 
 #include "Client.hpp"
+#include "Util/IP2Asn.hpp"
 #include "Util/ProtocolDB.hpp"
 #include "Util/Settings.hpp"
 
@@ -91,6 +92,7 @@ void WMainWindow::Init(ImGuiID Main)
 	FlagAtlas.Load();
 	LibCurl.Load();
 	WProtocolDB::GetInstance().Init();
+	WIP2Asn::GetInstance().Init();
 	RegisterDialog.Init();
 	bInit = true;
 }

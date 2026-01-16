@@ -32,3 +32,4 @@ target_compile_options(util PRIVATE
 )
 
 add_subdirectory(Data)
+add_subdirectory(IP2Asn)

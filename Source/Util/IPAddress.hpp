@@ -7,6 +7,7 @@
 #include <array>
 #include <string>
 #include <cstring>
+#include <optional>
 #include <functional>
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -39,6 +40,10 @@ struct WIPAddress
 	// IPv4: first 4 bytes used; IPv6: all 16 bytes used.
 	std::array<uint8_t, 16> Bytes{};
 	EIPFamily::Type         Family{};
+
+	bool operator<(WIPAddress const& Other) const { return Bytes < Other.Bytes; }
+	bool operator<=(WIPAddress const& Other) const { return Bytes <= Other.Bytes; }
+	bool operator>=(WIPAddress const& Other) const { return Bytes >= Other.Bytes; }
 
 	[[nodiscard]] std::string ToString() const
 	{
@@ -147,6 +152,59 @@ struct WIPAddress
 			Bytes[i * 4 + 3] = static_cast<uint8_t>(IPv6Addr_NetworkByteOrder[i] & 0xFF);
 		}
 		Family = EIPFamily::IPv6;
+	}
+
+	static std::optional<WIPAddress> FromStringV4(std::string const& IPStr)
+	{
+		WIPAddress Addr{};
+		in_addr    IPV4Addr{};
+
+		if (inet_pton(AF_INET, IPStr.c_str(), &IPV4Addr) != 1)
+		{
+			return std::nullopt;
+		}
+
+		// IPv4-mapped IPv6
+		Addr.Bytes[10] = 0xff;
+		Addr.Bytes[11] = 0xff;
+
+		auto const* Bytes = reinterpret_cast<uint8_t const*>(&IPV4Addr.s_addr);
+		Addr.Bytes[12] = Bytes[0];
+		Addr.Bytes[13] = Bytes[1];
+		Addr.Bytes[14] = Bytes[2];
+		Addr.Bytes[15] = Bytes[3];
+		Addr.Family = EIPFamily::IPv4;
+
+		return Addr;
+	}
+
+	static std::optional<WIPAddress> FromStringV6(std::string const& IPStr)
+	{
+		WIPAddress Addr{};
+		in6_addr   IPV6Addr{};
+
+		if (inet_pton(AF_INET6, IPStr.c_str(), &IPV6Addr) != 1)
+		{
+			return std::nullopt;
+		}
+
+		for (uint8_t i = 0; i < 16; ++i)
+		{
+			Addr.Bytes[i] = IPV6Addr.s6_addr[i];
+		}
+
+		Addr.Family = EIPFamily::IPv6;
+
+		return Addr;
+	}
+
+	static std::optional<WIPAddress> FromString(std::string const& IPStr)
+	{
+		if (IPStr.find('.') != std::string::npos && IPStr.find(':') == std::string::npos)
+		{
+			return FromStringV4(IPStr);
+		}
+		return FromStringV6(IPStr);
 	}
 };
 
