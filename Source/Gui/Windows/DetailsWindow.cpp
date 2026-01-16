@@ -15,6 +15,7 @@
 #include "Format.hpp"
 #include "TrafficTree.hpp"
 #include "Data/SystemItem.hpp"
+#include "Util/IP2Asn.hpp"
 #include "Util/ProtocolDB.hpp"
 
 static char const* SocketConnectionStateToString(ESocketConnectionState State)
@@ -206,13 +207,6 @@ void WDetailsWindow::DrawSocketDetails()
 		ImGui::Separator();
 		ImGui::Text("Total Downloaded: %s", WStorageFormat::AutoFormat(Sock->TotalDownloadBytes).c_str());
 		ImGui::Text("Total Uploaded: %s", WStorageFormat::AutoFormat(Sock->TotalUploadBytes).c_str());
-
-#if WAECHTER_WITH_IPQUERY_IO_API
-		if (!bIsZero && WGlfwWindow::GetInstance().GetMainWindow()->GetLibCurl().IsLoaded())
-		{
-			IpQueryIntegration.Draw(Sock);
-		}
-#endif
 	}
 }
 
@@ -261,6 +255,25 @@ void WDetailsWindow::Draw()
 			case TI_Tuple:
 				DrawTupleDetails();
 				break;
+		}
+	}
+
+	if (WIP2Asn::GetInstance().HasDatabase())
+	{
+		auto const Sock = Tree->GetSeletedTrafficItem<WSocketItem>();
+		if (Sock)
+		{
+			auto LookupResult = WIP2Asn::GetInstance().Lookup(Sock->SocketTuple.RemoteEndpoint.Address.ToString());
+			if (LookupResult.has_value() && LookupResult->ASN != 0)
+			{
+				ImGui::Separator();
+				ImGui::InputText("ASN", const_cast<char*>(fmt::format("AS{}", LookupResult->ASN).c_str()), 64,
+					ImGuiInputTextFlags_ReadOnly);
+				ImGui::InputText(
+					"Country", const_cast<char*>(LookupResult->Country.c_str()), 64, ImGuiInputTextFlags_ReadOnly);
+				ImGui::InputText("Organization", const_cast<char*>(LookupResult->Organization.c_str()), 128,
+					ImGuiInputTextFlags_ReadOnly);
+			}
 		}
 	}
 	ImGui::End();

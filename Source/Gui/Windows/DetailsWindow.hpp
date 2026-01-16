@@ -5,21 +5,13 @@
 
 #pragma once
 #include <string>
-
-#if WAECHTER_WITH_IPQUERY_IO_API
-	#include "Util/IpQueryIntegration.hpp"
-#endif
+#include <memory>
 
 class WTrafficTree;
 
 class WDetailsWindow
 {
 	std::shared_ptr<WTrafficTree> Tree{};
-
-#if WAECHTER_WITH_IPQUERY_IO_API
-	WIpQueryIntegration IpQueryIntegration{};
-	WIpInfoData const*  CurrentIpInfo{ nullptr };
-#endif
 
 	void DrawSystemDetails();
 	void DrawApplicationDetails();

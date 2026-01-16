@@ -6,6 +6,7 @@
 #pragma once
 #include <ctime>
 #include <spdlog/fmt/fmt.h>
+#include <cassert>
 #include <spdlog/fmt/chrono.h>
 #include <string_view>
 

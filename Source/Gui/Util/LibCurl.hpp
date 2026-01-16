@@ -5,8 +5,11 @@
 
 #pragma once
 #include <string>
+#include <filesystem>
 
 #include "Json.hpp"
+
+#include <functional>
 
 class WLibCurl
 {
@@ -50,4 +53,7 @@ public:
 
 	// Perform a blocking HTTP GET to the given URL and parse the response body as JSON.
 	WJson GetJson(std::string const& Url, std::string& OutError) const;
+
+	void DownloadFile(std::string const& Url, std::filesystem::path const& DestinationPath,
+		std::function<void(float)> OnProgress, std::function<void(std::string const&)> const& OnError) const;
 };

@@ -52,6 +52,9 @@ target_compile_options(waechter PRIVATE
 include("${CMAKE_SOURCE_DIR}/Meta/Licenses.cmake")
 add_thirdparty_licenses(waechter)
 
+find_package(ZLIB REQUIRED)
+target_link_libraries(waechter PRIVATE ZLIB::ZLIB)
+
 install(TARGETS waechter
         RUNTIME DESTINATION bin)
 

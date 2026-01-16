@@ -10,6 +10,7 @@
 #include <string>
 
 #include "Client.hpp"
+#include "Util/IP2Asn.hpp"
 #include "Util/ProtocolDB.hpp"
 #include "Util/Settings.hpp"
 
@@ -91,6 +92,7 @@ void WMainWindow::Init(ImGuiID Main)
 	FlagAtlas.Load();
 	LibCurl.Load();
 	WProtocolDB::GetInstance().Init();
+	WIP2Asn::GetInstance().Init();
 	RegisterDialog.Init();
 	bInit = true;
 }
@@ -114,6 +116,16 @@ void WMainWindow::Draw()
 			if (ImGui::MenuItem("Show Offline Processes", "", &WSettings::GetInstance().bShowOfflineProcesses))
 			{
 				WSettings::GetInstance().Save();
+			}
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("Tools"))
+		{
+			bool bEnabled = !WIP2Asn::GetInstance().IsUpdateInProgress();
+			if (ImGui::MenuItem("Update IP2Asn DB", nullptr, false, bEnabled))
+			{
+				WIP2Asn::GetInstance().UpdateDatabase();
 			}
 			ImGui::EndMenu();
 		}
