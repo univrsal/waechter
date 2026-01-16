@@ -206,13 +206,6 @@ void WDetailsWindow::DrawSocketDetails()
 		ImGui::Separator();
 		ImGui::Text("Total Downloaded: %s", WStorageFormat::AutoFormat(Sock->TotalDownloadBytes).c_str());
 		ImGui::Text("Total Uploaded: %s", WStorageFormat::AutoFormat(Sock->TotalUploadBytes).c_str());
-
-#if WAECHTER_WITH_IPQUERY_IO_API
-		if (!bIsZero && WGlfwWindow::GetInstance().GetMainWindow()->GetLibCurl().IsLoaded())
-		{
-			IpQueryIntegration.Draw(Sock);
-		}
-#endif
 	}
 }
 
