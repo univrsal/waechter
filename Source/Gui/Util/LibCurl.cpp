@@ -7,6 +7,7 @@
 
 #include <dlfcn.h>
 #include <string>
+#include <cstdio>
 #include <spdlog/spdlog.h>
 
 namespace
@@ -20,13 +21,31 @@ namespace
 	constexpr int CURLOPT_TIMEOUT = 13;            // seconds
 	constexpr int CURLOPT_CONNECTTIMEOUT = 78;     // seconds
 	constexpr int CURLOPT_ACCEPT_ENCODING = 10102; // "" to enable all supported
+	constexpr int CURLOPT_NOPROGRESS = 43;
+	constexpr int CURLOPT_XFERINFOFUNCTION = 20219;
+	constexpr int CURLOPT_XFERINFODATA = 10220;
 	constexpr int CURLE_OK = 0;
 
-	size_t WriteCallback(char* ptr, size_t size, size_t nmemb, void* userdata)
+	size_t WriteCallback(char* Ptr, size_t Size, size_t NMemB, void* UserData)
 	{
-		auto* buf = reinterpret_cast<std::string*>(userdata);
-		buf->append(ptr, size * nmemb);
-		return size * nmemb;
+		auto* Buf = reinterpret_cast<std::string*>(UserData);
+		Buf->append(Ptr, Size * NMemB);
+		return Size * NMemB;
+	}
+
+	size_t WriteFileCallback(char* ptr, size_t size, size_t nmemb, void* userdata)
+	{
+		return std::fwrite(ptr, size, nmemb, static_cast<FILE*>(userdata));
+	}
+
+	int ProgressCallback(void* Client, long long DlTotal, long long DlNow, long long, long long)
+	{
+		auto* OnProgress = reinterpret_cast<std::function<void(float)>*>(Client);
+		if (OnProgress && *OnProgress && DlTotal > 0)
+		{
+			(*OnProgress)(static_cast<float>(DlNow) / static_cast<float>(DlTotal));
+		}
+		return 0;
 	}
 } // namespace
 
@@ -165,4 +184,68 @@ WJson WLibCurl::GetJson(std::string const& Url, std::string& OutError) const
 		return {};
 	}
 	return Json;
+}
+void WLibCurl::DownloadFile(std::string const& Url, std::filesystem::path const& DestinationPath,
+	std::function<void(float)> OnProgress, std::function<void(std::string const&)> const& OnError) const
+{
+	if (!IsLoaded())
+	{
+		OnError("libcurl not loaded");
+		return;
+	}
+
+	CURL* Curl = curl_easy_init_fp();
+	if (!Curl)
+	{
+		OnError("curl_easy_init failed");
+		return;
+	}
+
+	auto File = std::fopen(DestinationPath.string().c_str(), "wb");
+	if (!File)
+	{
+		OnError("fopen failed");
+		curl_easy_cleanup_fp(Curl);
+		return;
+	}
+
+	auto SetOpt = [&](int Opt, auto Val) -> bool {
+		auto code = curl_easy_setopt_fp(Curl, Opt, Val);
+		if (code != CURLE_OK)
+		{
+			OnError(curl_easy_strerror_fp ? curl_easy_strerror_fp(code) : "curl_easy_setopt failed");
+			return false;
+		}
+		return true;
+	};
+
+	bool bOk = SetOpt(CURLOPT_URL, Url.c_str()) && SetOpt(CURLOPT_WRITEFUNCTION, WriteFileCallback)
+		&& SetOpt(CURLOPT_WRITEDATA, File) && SetOpt(CURLOPT_USERAGENT, "waechter/1.0 (+https://github.com/)")
+		&& SetOpt(CURLOPT_FOLLOWLOCATION, 1L) && SetOpt(CURLOPT_MAXREDIRS, 5L) && SetOpt(CURLOPT_TIMEOUT, 30L)
+		&& SetOpt(CURLOPT_CONNECTTIMEOUT, 10L);
+
+	if (bOk && OnProgress)
+	{
+		bOk = SetOpt(CURLOPT_NOPROGRESS, 0L) && SetOpt(CURLOPT_XFERINFOFUNCTION, ProgressCallback)
+			&& SetOpt(CURLOPT_XFERINFODATA, &OnProgress);
+	}
+
+	if (!bOk)
+	{
+		std::fclose(File);
+		std::remove(DestinationPath.string().c_str());
+		curl_easy_cleanup_fp(Curl);
+		return;
+	}
+
+	CURLcode ReturnCode = curl_easy_perform_fp(Curl);
+	std::fclose(File);
+
+	if (ReturnCode != CURLE_OK)
+	{
+		OnError(curl_easy_strerror_fp ? curl_easy_strerror_fp(ReturnCode) : "curl_easy_perform failed");
+		std::remove(DestinationPath.string().c_str());
+	}
+
+	curl_easy_cleanup_fp(Curl);
 }

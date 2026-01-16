@@ -120,6 +120,16 @@ void WMainWindow::Draw()
 			ImGui::EndMenu();
 		}
 
+		if (ImGui::BeginMenu("Tools"))
+		{
+			bool bEnabled = !WIP2Asn::GetInstance().IsUpdateInProgress();
+			if (ImGui::MenuItem("Update IP2Asn DB", nullptr, false, bEnabled))
+			{
+				WIP2Asn::GetInstance().UpdateDatabase();
+			}
+			ImGui::EndMenu();
+		}
+
 		if (ImGui::BeginMenu("Help"))
 		{
 			if (ImGui::MenuItem("Register..."))

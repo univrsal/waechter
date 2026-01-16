@@ -86,7 +86,7 @@ std::optional<WIP2AsnLookupResult> WIP2AsnDB::ReadEntryAtOffset(std::streampos O
 		return std::nullopt;
 	}
 
-	auto ParseResult = std::from_chars(EndStr.data(), EndStr.data() + EndStr.size(), Result.ASN);
+	auto ParseResult = std::from_chars(AsnStr.data(), AsnStr.data() + AsnStr.size(), Result.ASN);
 	if (ParseResult.ec != std::errc())
 	{
 		Result.ASN = 0;
