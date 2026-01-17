@@ -266,6 +266,8 @@ void WDetailsWindow::Draw()
 			auto LookupResult = WIP2Asn::GetInstance().Lookup(Sock->SocketTuple.RemoteEndpoint.Address.ToString());
 			if (LookupResult.has_value() && LookupResult->ASN != 0)
 			{
+				WMainWindow::Get().GetFlagAtlas().DrawFlag(LookupResult->Country, ImVec2(32, 24));
+				ImGui::SameLine();
 				ImGui::Separator();
 				ImGui::InputText("ASN", const_cast<char*>(fmt::format("AS{}", LookupResult->ASN).c_str()), 64,
 					ImGuiInputTextFlags_ReadOnly);

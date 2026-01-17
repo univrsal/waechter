@@ -10,6 +10,7 @@
 #include <string>
 
 #include "Client.hpp"
+#include "GlfwWindow.hpp"
 #include "Util/IP2Asn.hpp"
 #include "Util/ProtocolDB.hpp"
 #include "Util/Settings.hpp"
@@ -95,6 +96,11 @@ void WMainWindow::Init(ImGuiID Main)
 	WIP2Asn::GetInstance().Init();
 	RegisterDialog.Init();
 	bInit = true;
+}
+
+WMainWindow& WMainWindow::Get()
+{
+	return *WGlfwWindow::GetInstance().GetMainWindow();
 }
 
 void WMainWindow::Draw()

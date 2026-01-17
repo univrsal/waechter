@@ -29,6 +29,7 @@ class WMainWindow
 	void Init(ImGuiID Main);
 
 public:
+	static WMainWindow& Get();
 	void Draw();
 
 	WLibCurl& GetLibCurl() { return LibCurl; }

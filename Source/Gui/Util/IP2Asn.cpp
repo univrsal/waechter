@@ -98,7 +98,7 @@ void WIP2Asn::UpdateDatabase()
 	}
 	bUpdateInProgress = true;
 	DownloadThread = std::thread([this]() {
-		auto const& cURL = WGlfwWindow::GetInstance().GetMainWindow()->GetLibCurl();
+		auto const& cURL = WMainWindow::Get().GetLibCurl();
 		auto        DatabasePath = WSettings::GetConfigFolder() / "ip2asn_db.tsv.gz";
 		cURL.DownloadFile(
 			URL, DatabasePath,
@@ -127,6 +127,10 @@ std::optional<WIP2AsnLookupResult> WIP2Asn::Lookup(std::string const& IpAddress)
 	}
 	std::scoped_lock Lock(DownloadMutex);
 	auto             Result = Database->Lookup(IpAddress);
+
+	auto CountryLowerCase = Result->Country;
+	std::ranges::transform(CountryLowerCase, CountryLowerCase.begin(), [](unsigned char c) { return std::tolower(c); });
+	Result->Country = CountryLowerCase;
 	Cache[IpAddress] = Result;
 	return Result;
 }
