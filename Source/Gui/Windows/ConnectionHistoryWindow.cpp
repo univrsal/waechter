@@ -155,8 +155,8 @@ void WConnectionHistoryWindow::HandleUpdate(WBuffer& Update)
 		if (auto It = HistoryUpdate.Changes.find(Item.ConnectionId); It != HistoryUpdate.Changes.end())
 		{
 			auto const& Change = It->second;
-			Item.DataIn += Change.NewDataIn;
-			Item.DataOut += Change.NewDataOut;
+			Item.DataIn = Change.NewDataIn;
+			Item.DataOut = Change.NewDataOut;
 			if (Change.NewEndTime > 0)
 			{
 				Item.EndTime = WTimeFormat::FormatUnixTime(Change.NewEndTime);
