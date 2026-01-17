@@ -53,11 +53,6 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 			RemoteEndpoint = PacketHeader.Src;
 		}
 
-		{
-			// ZoneScopedN("ResolveLocalEndpoint");
-			// WResolver::GetInstance().Resolve(RemoteEndpoint.Address);
-		}
-
 		if (!bHaveLocalEndpoint)
 		{
 			Item->SocketTuple.LocalEndpoint = LocalEndpoint;
