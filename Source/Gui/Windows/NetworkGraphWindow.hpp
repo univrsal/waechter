@@ -45,10 +45,13 @@ class WNetworkGraphWindow
 {
 	double Time{};
 	double History{ 60.0 };
+	int    HistoryIndex{ 0 }; // 0=1min, 1=5min, 2=15min
 
-	WBytesPerSecond  CurrentMaxRateInGraph{};
-	WScrollingBuffer UploadBuffer{};
-	WScrollingBuffer DownloadBuffer{};
+	float            LineWidth{ 1.0f };
+	WBytesPerSecond  CurrentMaxUploadRate{};
+	WBytesPerSecond  CurrentMaxDownloadRate{};
+	WScrollingBuffer UploadBuffer{ 900 }; // 15 minutes at 1 sample/sec
+	WScrollingBuffer DownloadBuffer{ 900 };
 	std::mutex       Mutex{};
 
 public:
@@ -56,7 +59,9 @@ public:
 	{
 		char const* Label{ "B/s" }; // e.g., "KiB/s"
 		double      Factor{ 1.0 };  // 1, 1024, 1024^2, ...
-	} TrafficFmt{};
+	};
+	WUnitFmt UploadFmt{};
+	WUnitFmt DownloadFmt{};
 
 	WNetworkGraphWindow()
 	{
@@ -67,36 +72,49 @@ public:
 
 	void AddData(WBytesPerSecond Upload, WBytesPerSecond Download)
 	{
-		std::lock_guard lock(Mutex);
+		std::lock_guard Lock(Mutex);
 		UploadBuffer.AddPoint(static_cast<float>(Time), static_cast<float>(Upload));
 		DownloadBuffer.AddPoint(static_cast<float>(Time), static_cast<float>(Download));
 
-		CurrentMaxRateInGraph = 0.0;
+		CurrentMaxUploadRate = 0.0;
+		CurrentMaxDownloadRate = 0.0;
 		double const T0 = Time - History;
 
-		auto CalcMaxRate = [&](auto const& Buffer) {
+		auto CalcMaxRate = [&](auto const& Buffer, WBytesPerSecond& MaxRate) {
 			for (auto const& Point : Buffer.Data)
 			{
 				if (std::isfinite(static_cast<double>(Point.y)) && static_cast<double>(Point.x) >= T0)
 				{
-					if (static_cast<double>(Point.y) > CurrentMaxRateInGraph)
+					if (static_cast<double>(Point.y) > MaxRate)
 					{
-						CurrentMaxRateInGraph = static_cast<double>(Point.y);
+						MaxRate = static_cast<double>(Point.y);
 					}
 				}
 			}
 		};
 
-		CalcMaxRate(UploadBuffer);
-		CalcMaxRate(DownloadBuffer);
+		CalcMaxRate(UploadBuffer, CurrentMaxUploadRate);
+		CalcMaxRate(DownloadBuffer, CurrentMaxDownloadRate);
 
-		// 2) Choose unit and factor (binary prefixes)
-		if (CurrentMaxRateInGraph >= 1 WGiB)
-			TrafficFmt = { "GiB/s", 1 WGiB };
-		else if (CurrentMaxRateInGraph >= 1 WMiB)
-			TrafficFmt = { "MiB/s", 1 WMiB };
-		else if (CurrentMaxRateInGraph >= 1 WKiB)
-			TrafficFmt = { "KiB/s", 1 WKiB };
+		// Choose unit and factor (binary prefixes) independently for each
+		auto ChooseUnit = [](WBytesPerSecond Rate) -> WUnitFmt {
+			if (Rate >= 1 WGiB)
+			{
+				return { "GiB/s", 1 WGiB };
+			}
+			if (Rate >= 1 WMiB)
+			{
+				return { "MiB/s", 1 WMiB };
+			}
+			if (Rate >= 1 WKiB)
+			{
+				return { "KiB/s", 1 WKiB };
+			}
+			return { "B/s", 1.0 };
+		};
+
+		UploadFmt = ChooseUnit(CurrentMaxUploadRate);
+		DownloadFmt = ChooseUnit(CurrentMaxDownloadRate);
 	}
 	void Draw();
 };
