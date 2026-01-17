@@ -33,6 +33,7 @@ target_link_libraries(waechter PRIVATE
         thirdparty::flags
         thirdparty::sigslot
         thirdparty::cereal
+        thirdparty::tracy
         waechter::util
         dl
 )
