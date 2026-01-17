@@ -15,6 +15,7 @@
 #include "Data/ConnectionHistoryUpdate.hpp"
 
 #include <cassert>
+#include <unordered_set>
 
 class WAppCounter;
 class WSocketItem;
@@ -22,12 +23,25 @@ class WSocketCounter;
 class WTupleCounter;
 class WTupleItem;
 
+struct WConnectionSet
+{
+	std::unordered_set<std::shared_ptr<ITrafficItem>> Connections;
+
+	// When a socket/tuple disconnects it gets removed from the set
+	// however this also means it won't contribute to the data counts anymore
+	// so we store the total data in/out of all disconnected items here
+	// to keep the totals correct
+	WBytes BaseDataIn{ 0 };
+	WBytes BaseDataOut{ 0 };
+
+	WConnectionSet() = default;
+};
+
 struct WConnectionHistoryEntry
 {
 	std::shared_ptr<WAppCounter> App{};
-	std::shared_ptr<WSocketItem> Socket{};
-	std::shared_ptr<WTupleItem>  Tuple{}; // set if this is a UDP connection
-	WTrafficItemId               ConectionItemId{};
+	std::shared_ptr<WConnectionSet> Set{};
+	WTrafficItemId                  ConnectionId{};
 
 	WEndpoint RemoteEndpoint{};
 	WSec      StartTime{ WTime::GetUnixNow() };
@@ -37,25 +51,40 @@ struct WConnectionHistoryEntry
 
 	bool Update(); // return true if anything changed
 
-	WConnectionHistoryEntry(std::shared_ptr<WAppCounter> App_, std::shared_ptr<WSocketItem> Socket_,
-		std::shared_ptr<WTupleItem> Tuple_, WEndpoint const& RemoteEndpoint_);
+	WConnectionHistoryEntry(
+		std::shared_ptr<WAppCounter> App_, std::shared_ptr<WConnectionSet> Set_, WEndpoint const& RemoteEndpoint_);
+};
+
+struct WConnectionKeyHash
+{
+	size_t operator()(std::pair<std::string, WEndpoint> const& Key) const noexcept
+	{
+		size_t H1 = std::hash<std::string>{}(Key.first);
+		size_t H2 = WEndpointHash{}(Key.second);
+		return H1 ^ (H2 + 0x9e3779b97f4a7c15ULL + (H1 << 6) + (H1 >> 2));
+	}
 };
 
 class WConnectionHistory : public TSingleton<WConnectionHistory>
 {
 	std::mutex Mutex;
 
-	std::deque<WConnectionHistoryEntry> History;
 	uint32_t                            NewItemCounter{ 0 };
+	std::deque<WConnectionHistoryEntry> History;
+
+	std::unordered_map<std::pair<std::string, WEndpoint>, std::shared_ptr<WConnectionSet>, WConnectionKeyHash>
+		ActiveConnections;
 
 	void OnSocketConnected(WSocketCounter const* SocketCounter);
+	void OnSocketRemoved(std::shared_ptr<WSocketCounter> const& SocketCounter);
+
 	void OnUDPTupleCreated(std::shared_ptr<WTupleCounter> const& TupleCounter, WEndpoint const& Endpoint);
-	void Push(std::shared_ptr<WAppCounter> const& App, std::shared_ptr<WSocketItem> const& Socket,
-		std::shared_ptr<WTupleItem> const& Tuple, WEndpoint const& RemoteEndpoint)
+
+	void Push(std::shared_ptr<WAppCounter> const& App, std::shared_ptr<WConnectionSet> const& Set,
+		WEndpoint const& RemoteEndpoint)
 	{
-		WConnectionHistoryEntry Entry{ App, Socket, Tuple, RemoteEndpoint };
+		WConnectionHistoryEntry Entry{ App, Set, RemoteEndpoint };
 		// todo: (maybe) the rest should be pushed into the database
-		std::scoped_lock Lock(Mutex);
 		History.push_back(Entry);
 		++NewItemCounter;
 		if (History.size() > kMaxHistorySize)

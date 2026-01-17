@@ -52,8 +52,6 @@ class WSystemMap : public TSingleton<WSystemMap>
 
 	void Cleanup();
 
-	WTrafficItemId GetNextItemId() { return NextItemId.fetch_add(1); }
-
 	void DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSocketCounter> const& SockCounter);
 
 	std::shared_ptr<WTupleCounter> GetOrCreateUDPTupleCounter(
@@ -64,6 +62,8 @@ public:
 	~WSystemMap() override = default;
 
 	std::mutex DataMutex;
+
+	WTrafficItemId GetNextItemId() { return NextItemId.fetch_add(1); }
 
 	std::shared_ptr<WSocketCounter> MapSocket(WSocketEvent const& Event, WProcessId PID, bool bSilentFail = false);
 
