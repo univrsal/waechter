@@ -5,6 +5,7 @@
 
 #pragma once
 #include <array>
+#include <cassert>
 #include <string>
 #include <cstring>
 #include <optional>
@@ -132,6 +133,13 @@ struct WIPAddress
 		archive(Bytes, Family);
 	}
 
+	uint32_t ToInt() const
+	{
+		assert(Family == EIPFamily::IPv4);
+		return (static_cast<uint32_t>(Bytes[0]) << 24) | (static_cast<uint32_t>(Bytes[1]) << 16)
+			| (static_cast<uint32_t>(Bytes[2]) << 8) | static_cast<uint32_t>(Bytes[3]);
+	}
+
 	void FromIPv4Uint32(uint32_t IPv4Addr_NetworkByteOrder)
 	{
 		auto IPv4Addr_HostByteOrder = ntohl(IPv4Addr_NetworkByteOrder);
@@ -164,15 +172,11 @@ struct WIPAddress
 			return std::nullopt;
 		}
 
-		// IPv4-mapped IPv6
-		Addr.Bytes[10] = 0xff;
-		Addr.Bytes[11] = 0xff;
-
 		auto const* Bytes = reinterpret_cast<uint8_t const*>(&IPV4Addr.s_addr);
-		Addr.Bytes[12] = Bytes[0];
-		Addr.Bytes[13] = Bytes[1];
-		Addr.Bytes[14] = Bytes[2];
-		Addr.Bytes[15] = Bytes[3];
+		Addr.Bytes[0] = Bytes[0];
+		Addr.Bytes[1] = Bytes[1];
+		Addr.Bytes[2] = Bytes[2];
+		Addr.Bytes[3] = Bytes[3];
 		Addr.Family = EIPFamily::IPv4;
 
 		return Addr;
