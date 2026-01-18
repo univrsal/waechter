@@ -234,6 +234,11 @@ WConnectionHistoryUpdate WConnectionHistory::Serialize()
 	std::scoped_lock         Lock(Mutex);
 	for (auto const& Entry : History)
 	{
+		if (!Entry.App)
+		{
+			// connection exited before we could send it
+			continue;
+		}
 		WNewConnectionHistoryEntry NewEntry{};
 		NewEntry.AppId = Entry.App->TrafficItem->ItemId;
 		NewEntry.RemoteEndpoint = Entry.RemoteEndpoint;

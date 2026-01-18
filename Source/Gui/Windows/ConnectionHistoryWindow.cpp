@@ -127,7 +127,6 @@ void WConnectionHistoryWindow::Initialize(WBuffer& Update)
 		return;
 	}
 
-	auto const& TT = WClient::GetInstance().GetTrafficTree();
 	for (auto const& NewEntry : HistoryUpdate.NewEntries)
 	{
 		PushNewItem(NewEntry);
