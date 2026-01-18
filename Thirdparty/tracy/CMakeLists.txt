@@ -5,5 +5,5 @@ target_include_directories(tracy PUBLIC public)
 add_library(thirdparty::tracy ALIAS tracy)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_definitions(tracy PUBLIC TRACY_ENABLE)
+    #target_compile_definitions(tracy PUBLIC TRACY_ENABLE)
 endif ()
