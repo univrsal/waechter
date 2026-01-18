@@ -53,43 +53,43 @@ EEbpfInitResult WWaechterEbpf::Init()
 
 	Data = std::make_shared<WEbpfData>(*this);
 
-	if (!this->FindAndAttachProgram("cgskb_ingress", BPF_CGROUP_INET_INGRESS))
+	if (!FindAndAttachProgram("cgskb_ingress", BPF_CGROUP_INET_INGRESS))
 	{
 		spdlog::critical("Failed to find and attach ingress");
 		return EEbpfInitResult::Attach_Failed;
 	}
 
-	if (!this->FindAndAttachProgram("cgskb_egress", BPF_CGROUP_INET_EGRESS))
+	if (!FindAndAttachProgram("cgskb_egress", BPF_CGROUP_INET_EGRESS))
 	{
 		spdlog::critical("Failed to find and attach ingress");
 		return EEbpfInitResult::Attach_Failed;
 	}
 
-	if (!this->FindAndAttachProgram("on_sock_create", BPF_CGROUP_INET_SOCK_CREATE))
+	if (!FindAndAttachProgram("on_sock_create", BPF_CGROUP_INET_SOCK_CREATE))
 	{
 		spdlog::critical("Failed to attach on_sock_create (BPF_CGROUP_INET_SOCK_CREATE).");
 		return EEbpfInitResult::Attach_Failed;
 	}
 
-	if (!this->FindAndAttachProgram("on_connect4", BPF_CGROUP_INET4_CONNECT))
+	if (!FindAndAttachProgram("on_connect4", BPF_CGROUP_INET4_CONNECT))
 	{
 		spdlog::critical("Failed to attach on_connect4 (BPF_CGROUP_INET4_CONNECT).");
 		return EEbpfInitResult::Attach_Failed;
 	}
 
-	if (!this->FindAndAttachProgram("on_connect6", BPF_CGROUP_INET6_CONNECT))
+	if (!FindAndAttachProgram("on_connect6", BPF_CGROUP_INET6_CONNECT))
 	{
 		spdlog::critical("Failed to attach on_connect6 (BPF_CGROUP_INET6_CONNECT).");
 		return EEbpfInitResult::Attach_Failed;
 	}
 
-	if (!this->CreateAndAttachTcxProgram(Skeleton->progs.cls_egress))
+	if (!CreateAndAttachTcxProgram(Skeleton->progs.cls_egress))
 	{
 		spdlog::critical("Failed to create and attach egress tcx program.");
 		return EEbpfInitResult::Attach_Failed;
 	}
 
-	if (!this->CreateAndAttachTcxProgram(Skeleton->progs.cls_ingress))
+	if (!CreateAndAttachTcxProgram(Skeleton->progs.cls_ingress))
 	{
 		spdlog::critical("Failed to create and attach ingress tcx program.");
 		return EEbpfInitResult::Attach_Failed;
