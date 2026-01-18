@@ -119,7 +119,12 @@ void WConnectionHistory::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& 
 		ConnectionSet->BaseDataIn += SocketCounter->TrafficItem->TotalDownloadBytes;
 		ConnectionSet->BaseDataOut += SocketCounter->TrafficItem->TotalUploadBytes;
 		ConnectionSet->Connections.erase(SocketCounter->TrafficItem);
-		return;
+
+		// The history entry will still maintain a reference until it's popped from the deque
+		if (ConnectionSet->Connections.empty())
+		{
+			ActiveConnections.erase(Key);
+		}
 	}
 
 	for (auto const& [TupleEndpoint, UDPCounter] : SocketCounter->UDPPerConnectionCounters)
@@ -135,6 +140,11 @@ void WConnectionHistory::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& 
 		ConnectionSet->BaseDataIn += UDPCounter->TrafficItem->TotalDownloadBytes;
 		ConnectionSet->BaseDataOut += UDPCounter->TrafficItem->TotalUploadBytes;
 		ConnectionSet->Connections.erase(UDPCounter->TrafficItem);
+
+		if (ConnectionSet->Connections.empty())
+		{
+			ActiveConnections.erase(TupleKey);
+		}
 	}
 }
 
