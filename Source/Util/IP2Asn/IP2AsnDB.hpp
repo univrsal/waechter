@@ -4,10 +4,11 @@
  */
 
 #pragma once
+#include <array>
+#include <cstdint>
 #include <filesystem>
-#include <utility>
-#include <vector>
 #include <optional>
+#include <string>
 
 #include "IPAddress.hpp"
 #include "Singleton.hpp"
@@ -19,29 +20,69 @@ struct WIP2AsnLookupResult
 	std::string Organization;
 };
 
-struct WIPIndexEntry
+#pragma pack(push, 1)
+struct WIP2AsnIndexHeader
 {
-	WIPAddress     RangeStart;
-	WIPAddress     RangeEnd;
-	std::streampos FileOffset; // Offset to the line in the file
+	uint32_t Magic{}; // "IP2A"
+	uint16_t Version{};
+	uint16_t EntrySizeV4{};
+	uint16_t EntrySizeV6{};
+	uint16_t Reserved{};
+	uint64_t CountV4{};
+	uint64_t CountV6{};
+	uint64_t TSVSize{}; // so we can detect truncated DB
+};
 
-	bool operator<(WIPIndexEntry const& Other) const { return RangeStart < Other.RangeStart; }
+struct WIP2AsnIndexEntryV4
+{
+	uint32_t Start{};  // IPv4 address in host byte order
+	uint32_t End{};    // inclusive
+	uint64_t Offset{}; // byte offset in the TSV
+};
+
+struct WIP2AsnIndexEntryV6
+{
+	std::array<uint8_t, 16> Start{};
+	std::array<uint8_t, 16> End{};
+	uint64_t                Offset{}; // byte offset in the TSV
+};
+#pragma pack(pop)
+
+struct WIP2AsnIndexView
+{
+	WIP2AsnIndexHeader const*  Header{};
+	WIP2AsnIndexEntryV4 const* V4Entries{};
+	WIP2AsnIndexEntryV6 const* V6Entries{};
 };
 
 class WIP2AsnDB
 {
-	std::filesystem::path                            DatabasePath;
-	std::vector<WIPIndexEntry>                       Index;
-	[[nodiscard]] std::optional<WIP2AsnLookupResult> ReadEntryAtOffset(std::streampos offset) const;
+	std::filesystem::path DatabasePath;
+	std::filesystem::path IndexPath;
+
+	int              IndexFd{ -1 };
+	void*            IndexMapping{ nullptr };
+	size_t           IndexMappingSize{ 0 };
+	WIP2AsnIndexView IndexView{};
+
+	[[nodiscard]] std::optional<WIP2AsnLookupResult> ReadEntryAtOffset(uint64_t offset) const;
+
+	bool BuildIndex() const;
+	bool MapIndex();
+	void UnmapIndex();
+
+	std::optional<WIP2AsnLookupResult> LookupIPv4(uint32_t IP) const;
+	std::optional<WIP2AsnLookupResult> LookupIPv6(std::array<uint8_t, 16> const& IPBytes) const;
 
 public:
-	explicit WIP2AsnDB(std::filesystem::path Path) : DatabasePath(std::move(Path)) {}
+	explicit WIP2AsnDB(std::filesystem::path Path);
+	~WIP2AsnDB();
 
-	bool Parse();
+	bool Init();
 
-	std::optional<WIP2AsnLookupResult> Lookup(std::string const& IPStr);
+	std::optional<WIP2AsnLookupResult> Lookup(std::string const& IPStr) const;
 
-	[[nodiscard]] std::size_t GetSize() const { return Index.size(); }
+	[[nodiscard]] std::size_t GetSize() const;
 
-	[[nodiscard]] std::size_t MemoryUsage() const { return GetSize() * sizeof(WIPIndexEntry); }
+	[[nodiscard]] std::size_t MemoryUsage() const { return IndexMappingSize; }
 };

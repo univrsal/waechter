@@ -62,7 +62,7 @@ void WIP2Asn::Init()
 	if (std::filesystem::exists(DatabasePath))
 	{
 		Database = std::make_unique<WIP2AsnDB>(DatabasePath);
-		if (Database->Parse())
+		if (Database->Init())
 		{
 			spdlog::info("Loaded IP2ASN database with {} entries (memory usage: {})", Database->GetSize(),
 				WStorageFormat::AutoFormat(Database->MemoryUsage()));
@@ -92,6 +92,11 @@ void WIP2Asn::UpdateDatabase()
 		std::filesystem::remove(OldDatabasePath);
 	}
 	OldDatabasePath = WSettings::GetConfigFolder() / "ip2asn_db.tsv.gz";
+	if (std::filesystem::exists(OldDatabasePath))
+	{
+		std::filesystem::remove(OldDatabasePath);
+	}
+	OldDatabasePath = WSettings::GetConfigFolder() / "ip2asn_db.tsv.idx";
 	if (std::filesystem::exists(OldDatabasePath))
 	{
 		std::filesystem::remove(OldDatabasePath);
