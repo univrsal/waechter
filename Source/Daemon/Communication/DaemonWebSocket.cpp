@@ -75,7 +75,7 @@ void WDaemonWebSocket::ListenThreadFunction() const
 
 	while (Running && Context)
 	{
-		lws_service(Context, 50);
+		lws_service(Context, 0);
 	}
 }
 
@@ -140,6 +140,12 @@ bool WDaemonWebSocket::StartListenThread()
 void WDaemonWebSocket::Stop()
 {
 	Running = false;
+
+	// Wake up lws_service() so it can exit promptly
+	if (Context)
+	{
+		lws_cancel_service(Context);
+	}
 
 	if (ListenThread.joinable())
 	{
