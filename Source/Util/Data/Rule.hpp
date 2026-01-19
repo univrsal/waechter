@@ -34,20 +34,20 @@ struct WTrafficItemRules : WTrafficItemRulesBase
 			.UploadSwitch = UploadSwitch,
 			.DownloadSwitch = DownloadSwitch,
 			.UploadMark = UploadMark,
-			.DownloadQdiscId = DownloadQdiscId,
+			.DownloadMark = DownloadMark,
 		};
 	}
 
 	std::string ToString() const
 	{
 		return fmt::format(
-			"UploadSwitch={}, DownloadSwitch={}, UploadLimit={}, DownloadLimit={}, UploadMark={}, DownloadQdiscId={}",
+			"UploadSwitch={}, DownloadSwitch={}, UploadLimit={}, DownloadLimit={}, UploadMark={}, DownloadMark={}",
 			static_cast<int>(UploadSwitch), static_cast<int>(DownloadSwitch), UploadLimit, DownloadLimit, UploadMark,
-			DownloadQdiscId);
+			DownloadMark);
 	}
 
 	bool IsDefault() const
 	{
-		return UploadSwitch == SS_None && DownloadSwitch == SS_None && UploadMark == 0 && DownloadQdiscId == 0;
+		return UploadSwitch == SS_None && DownloadSwitch == SS_None && UploadMark == 0 && DownloadMark == 0;
 	}
 };

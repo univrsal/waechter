@@ -63,8 +63,8 @@ inline WTrafficItemRules GetEffectiveRules(WTrafficItemRules const& ParentRules,
 	EffectiveRules.DownloadSwitch =
 		GetEffectiveSwitchState(ParentRules.DownloadSwitch, ItemRules.DownloadSwitch, ItemRules.RuleType);
 	EffectiveRules.UploadMark = GetEffectiveMark(ParentRules.UploadMark, ItemRules.UploadMark, ItemRules.RuleType);
-	EffectiveRules.DownloadQdiscId =
-		GetEffectiveMark(ParentRules.DownloadQdiscId, ItemRules.DownloadQdiscId, ItemRules.RuleType);
+	EffectiveRules.DownloadMark =
+		GetEffectiveMark(ParentRules.DownloadMark, ItemRules.DownloadMark, ItemRules.RuleType);
 	EffectiveRules.DownloadLimit =
 		GetEffectiveLimit(ParentRules.DownloadLimit, ItemRules.DownloadLimit, ItemRules.RuleType);
 	EffectiveRules.UploadLimit = GetEffectiveLimit(ParentRules.UploadLimit, ItemRules.UploadLimit, ItemRules.RuleType);
@@ -74,7 +74,7 @@ inline WTrafficItemRules GetEffectiveRules(WTrafficItemRules const& ParentRules,
 inline bool operator==(WTrafficItemRulesBase const& A, WTrafficItemRules const& B)
 {
 	return A.UploadSwitch == B.UploadSwitch && A.DownloadSwitch == B.DownloadSwitch && A.UploadMark == B.UploadMark
-		&& A.DownloadQdiscId == B.DownloadQdiscId;
+		&& A.DownloadMark == B.DownloadMark;
 }
 
 void WRuleManager::OnSocketConnected(WSocketCounter const* Socket)
@@ -201,14 +201,14 @@ void WRuleManager::SyncRules()
 			auto SocketItem = std::dynamic_pointer_cast<WSocketItem>(TrafficItem);
 			if (SocketItem)
 			{
-				if (SockRules.Rules.DownloadQdiscId == 0)
+				if (SockRules.Rules.DownloadMark == 0)
 				{
 					WIPLink::GetInstance().RemoveIngressPortRouting(SocketItem->SocketTuple.LocalEndpoint.Port);
 				}
 				else if (SocketItem->SocketTuple.LocalEndpoint.Port != 0)
 				{
-					WIPLink::GetInstance().SetupIngressPortRouting(SockRules.SocketId, SockRules.Rules.DownloadQdiscId,
-						SocketItem->SocketTuple.LocalEndpoint.Port);
+					WIPLink::GetInstance().SetupIngressPortRouting(
+						SockRules.SocketId, SockRules.Rules.DownloadMark, SocketItem->SocketTuple.LocalEndpoint.Port);
 				}
 			}
 		}
@@ -236,7 +236,7 @@ void WRuleManager::RemoveEmptyRules()
 
 	for (auto It = SocketCookieRules.begin(); It != SocketCookieRules.end();)
 	{
-		if (It->second.Rules.DownloadQdiscId == 0 && It->second.Rules.UploadMark == 0
+		if (It->second.Rules.DownloadMark == 0 && It->second.Rules.UploadMark == 0
 			&& It->second.Rules.UploadSwitch == SS_None && It->second.Rules.DownloadSwitch == SS_None)
 		{
 			It = SocketCookieRules.erase(It);
@@ -304,7 +304,7 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 		auto const Limit = WIPLink::GetInstance().GetDownloadLimit(Update.TrafficItemId, Update.Rules.DownloadLimit);
 		spdlog::info("Set download limit for traffic item ID {} to {} B/s (class id: {}, mark: {})",
 			Update.TrafficItemId, Limit->RateLimit, Limit->MinorId, Limit->Mark);
-		Update.Rules.DownloadQdiscId = Limit->MinorId;
+		Update.Rules.DownloadMark = Limit->Mark;
 	}
 
 	if (Update.Rules.UploadLimit == 0)

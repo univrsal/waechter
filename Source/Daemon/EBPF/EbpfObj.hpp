@@ -47,5 +47,5 @@ public:
 
 	operator bpf_object*() const { return Obj; }
 
-	bool CreateAndAttachTcxProgram(bpf_program* Program);
+	bool CreateAndAttachTcxProgram(bpf_program* Program, int ifboverride = -1);
 };

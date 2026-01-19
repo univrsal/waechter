@@ -17,6 +17,7 @@ class WEbpfData
 public:
 	std::unique_ptr<TEbpfRingBuffer<WSocketEvent>>                  SocketEvents;
 	std::unique_ptr<TEbpfMap<WSocketCookie, WTrafficItemRulesBase>> SocketRules;
+	std::unique_ptr<TEbpfMap<uint16_t, uint16_t>>                   SocketMarks;
 
 	[[nodiscard]] bool IsValid() const { return SocketEvents && SocketEvents->IsValid(); }
 

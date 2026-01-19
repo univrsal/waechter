@@ -110,7 +110,7 @@ int WEbpfObj::FindMapFd(std::string const& MapFdPath) const
 	return bpf_object__find_map_fd_by_name(this->Obj, MapFdPath.c_str());
 }
 
-bool WEbpfObj::CreateAndAttachTcxProgram(bpf_program* Program)
+bool WEbpfObj::CreateAndAttachTcxProgram(bpf_program* Program, int ifboverride)
 {
 	if (IfIndex == 0)
 	{
@@ -121,7 +121,9 @@ bool WEbpfObj::CreateAndAttachTcxProgram(bpf_program* Program)
 	bpf_tcx_opts Opts{};
 	Opts.sz = sizeof(Opts);
 
-	auto* Link = bpf_program__attach_tcx(Program, static_cast<int>(IfIndex), &Opts);
+	int If = ifboverride > 0 ? ifboverride : static_cast<int>(IfIndex);
+
+	auto* Link = bpf_program__attach_tcx(Program, If, &Opts);
 	if (!Link)
 	{
 		spdlog::critical("Link attachment for tcx program  failed: {}", WErrnoUtil::StrError());

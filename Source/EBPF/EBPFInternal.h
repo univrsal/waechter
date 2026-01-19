@@ -77,6 +77,14 @@ struct
 	__type(value, struct WSharedSocketData);
 } shared_socket_data_map SEC(".maps");
 
+struct
+{
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, 65536);
+	__type(key, __u16);
+	__type(value, __u16);
+} ingress_port_marks SEC(".maps");
+
 static __always_inline struct WSocketEvent* MakeSocketEvent(__u64 Cookie, __u8 EventType)
 {
 	if (Cookie == 0)

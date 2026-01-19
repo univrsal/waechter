@@ -187,8 +187,9 @@ static bool SetupHtbClass(std::shared_ptr<WSetupHtbClassMsg> const& SetupHtbClas
 	SYSFMT("tc class replace dev {} parent 1:1 classid 1:{} htb rate {}bit ceil {}bit", IfName, SetupHtbClass->MinorId,
 		static_cast<uint64_t>(SetupHtbClass->RateLimit * 8), static_cast<uint64_t>(SetupHtbClass->RateLimit * 8));
 
-	if (SetupHtbClass->bAddMarkFilter)
+	// if (SetupHtbClass->bAddMarkFilter)
 	{
+		spdlog::info("Setup filter with mark {}", SetupHtbClass->Mark);
 		SYSFMT("tc filter replace dev {} parent 1: protocol ip pref 1 handle 0x{:x} fw classid 1:{}", IfName,
 			SetupHtbClass->Mark, SetupHtbClass->MinorId);
 	}
@@ -200,7 +201,7 @@ static bool RemoveHtbClass(std::shared_ptr<WRemoveHtbClassMsg> const& RemoveHtbC
 	auto const& IfName = SanitizeInterfaceName(RemoveHtbClass->InterfaceName);
 	spdlog::debug("Removing HTB class on interface {}: classid=1:{}, mark=0x{:x}", IfName, RemoveHtbClass->MinorId,
 		RemoveHtbClass->Mark);
-	if (RemoveHtbClass->bIsUpload)
+	// if (RemoveHtbClass->bIsUpload)
 	{
 		SYSFMT2("tc filter delete dev {} parent 1: protocol ip pref 1 handle 0x{:x} fw classid 1:{}", IfName,
 			RemoveHtbClass->Mark, RemoveHtbClass->MinorId);
@@ -257,7 +258,9 @@ static bool Init(std::string const& IfbDev, std::string const& IngressInterface,
 	// Redirect ingress traffic to ifb0
 	SYSFMT("tc qdisc replace dev {} handle ffff: ingress", IngressInterface);
 	SYSFMT(
-		"tc filter replace dev {} parent ffff: protocol all prio 100 u32 match u32 0 0 action mirred egress redirect dev {}",
+		// "tc filter replace dev {} parent ffff: protocol all prio 100 u32 match u32 0 0 action mirred egress redirect
+	    // dev {}",
+		"tc filter replace dev {} parent ffff: protocol all prio 100 matchall action mirred egress redirect dev {}",
 		IngressInterface, IfbDev);
 
 	// Egress HTB setup (on the actual network interface)

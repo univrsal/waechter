@@ -122,6 +122,106 @@ int cls_egress(struct __sk_buff* skb)
 	return TC_ACT_OK;
 }
 
+#ifndef ETH_P_8021Q
+	#define ETH_P_8021Q 0x8100
+#endif
+#ifndef ETH_P_8021AD
+	#define ETH_P_8021AD 0x88A8
+#endif
+#ifndef IPPROTO_TCP
+	#define IPPROTO_TCP 6
+#endif
+#ifndef IPPROTO_UDP
+	#define IPPROTO_UDP 17
+#endif
+
+SEC("tcx/egress")
+int ifb_cls_egress(struct __sk_buff* skb)
+{
+	void* data = (void*)(long)skb->data;
+	void* data_end = (void*)(long)skb->data_end;
+
+	struct iphdr* ip = NULL;
+	__u16         dst_port = 0;
+	__u8          ip_proto;
+	__u32         ip_hdr_len;
+
+	// First, check if data starts with a valid IP header directly
+	// This handles raw IP packets from tunnels/ifb devices
+	__u8* first_byte = data;
+	if ((void*)(first_byte + 1) > data_end)
+		return TC_ACT_OK;
+	u8 version = (*first_byte) >> 4;
+
+	if (version == 4)
+	{
+		// Starts with IPv4 header directly (raw IP packet)
+		ip = data;
+	}
+	else if (version == 6)
+	{
+		// IPv6 - skip for now
+		return TC_ACT_OK;
+	}
+	else
+	{
+		// Likely has Ethernet header, check for IPv4
+		struct ethhdr* eth = data;
+		if ((void*)(eth + 1) > data_end)
+			return TC_ACT_OK;
+		if (eth->h_proto != bpf_htons(ETH_P_IP))
+			return TC_ACT_OK;
+		ip = (void*)(eth + 1);
+	}
+
+	// Validate IP header bounds
+	if ((void*)(ip + 1) > data_end)
+		return TC_ACT_OK;
+
+	// Double-check it's IPv4
+	if (ip->version != 4)
+		return TC_ACT_OK;
+
+	ip_proto = ip->protocol;
+	ip_hdr_len = ip->ihl * 4;
+
+	// Bounds check for variable IP header length
+	if (ip_hdr_len < 20 || ip_hdr_len > 60)
+		return TC_ACT_OK;
+
+	// Ensure we can access transport header
+	void* transport_hdr = (void*)ip + ip_hdr_len;
+
+	if (ip_proto == IPPROTO_TCP)
+	{
+		struct tcphdr* tcp = transport_hdr;
+		if ((void*)(tcp + 1) > data_end)
+			return TC_ACT_OK;
+		dst_port = bpf_ntohs(tcp->dest);
+	}
+	else if (ip_proto == IPPROTO_UDP)
+	{
+		struct udphdr* udp = transport_hdr;
+		if ((void*)(udp + 1) > data_end)
+			return TC_ACT_OK;
+		dst_port = bpf_ntohs(udp->dest);
+	}
+	else
+	{
+		return TC_ACT_OK;
+	}
+
+	__u16* Mark = bpf_map_lookup_elem(&ingress_port_marks, &dst_port);
+
+	if (Mark)
+	{
+		bpf_printk("dst_port=%u mark=%i", dst_port, *Mark);
+		skb->mark = *Mark;
+	}
+
+	return TC_ACT_OK;
+}
+
 SEC("tcx/ingress")
 int cls_ingress(struct __sk_buff* ctx)
 {
