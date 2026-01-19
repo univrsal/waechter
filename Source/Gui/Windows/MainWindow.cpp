@@ -91,9 +91,10 @@ void WMainWindow::Init(ImGuiID Main)
 		ImGui::DockBuilderFinish(Main);
 	}
 	FlagAtlas.Load();
-	LibCurl.Load();
 	WProtocolDB::GetInstance().Init();
 	WIP2Asn::GetInstance().Init();
+
+	spdlog::info("libcurl version: {}", WLibCurl::GetLoadedVersion());
 	RegisterDialog.Init();
 	bInit = true;
 }

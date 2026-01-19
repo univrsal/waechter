@@ -20,7 +20,6 @@ class WMainWindow
 	WNetworkGraphWindow      NetworkGraphWindow{};
 	WDetailsWindow           DetailsWindow{};
 	WFlagAtlas               FlagAtlas{};
-	WLibCurl                 LibCurl{};
 	WRegisterDialog          RegisterDialog{};
 	WConnectionHistoryWindow ConnectionHistoryWindow{};
 
@@ -31,8 +30,6 @@ class WMainWindow
 public:
 	static WMainWindow& Get();
 	void Draw();
-
-	WLibCurl& GetLibCurl() { return LibCurl; }
 
 	WNetworkGraphWindow& GetNetworkGraphWindow() { return NetworkGraphWindow; }
 

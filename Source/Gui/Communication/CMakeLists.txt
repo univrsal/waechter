@@ -3,4 +3,6 @@ target_sources(waechter
         IDaemonSocket.hpp
         UnixSocketSource.cpp
         UnixSocketSource.hpp
+        WebSocketSource.cpp
+        WebSocketSource.hpp
 )

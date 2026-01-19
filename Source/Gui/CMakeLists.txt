@@ -20,6 +20,9 @@ add_subdirectory(Util)
 add_subdirectory(Icons)
 add_subdirectory(Communication)
 
+# find libcurl
+find_package(CURL REQUIRED)
+
 target_link_libraries(waechter PRIVATE
         thirdparty::spdlog
         thirdparty::inih
@@ -35,6 +38,7 @@ target_link_libraries(waechter PRIVATE
         thirdparty::sigslot
         thirdparty::cereal
         thirdparty::tracy
+        CURL::libcurl
         waechter::util
         dl
 )

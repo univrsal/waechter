@@ -11,6 +11,7 @@
 #include "AppIconAtlas.hpp"
 #include "Messages.hpp"
 #include "Communication/UnixSocketSource.hpp"
+#include "Communication/WebSocketSource.hpp"
 #include "Data/Protocol.hpp"
 #include "Util/Settings.hpp"
 #include "Windows/GlfwWindow.hpp"
@@ -97,9 +98,11 @@ WClient::WClient()
 {
 	TrafficTree = std::make_shared<WTrafficTree>();
 
-	if (WSettings::GetInstance().SocketPath.starts_with("ws") || WSettings::GetInstance().SocketPath.starts_with("wss"))
+	if (WSettings::GetInstance().SocketPath.starts_with("ws://")
+		|| WSettings::GetInstance().SocketPath.starts_with("wss://"))
 	{
-		spdlog::error("WebSocket protocol is WIP");
+		DaemonSocket = std::make_shared<WWebSocketSource>(WSettings::GetInstance().SocketPath);
+		DaemonSocket->GetDataSignal().connect(std::bind(&WClient::OnDataReceived, this, std::placeholders::_1));
 	}
 	else if (WSettings::GetInstance().SocketPath.starts_with('/'))
 	{
