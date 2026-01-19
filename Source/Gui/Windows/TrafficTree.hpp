@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.xyz>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.xyz>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -7,7 +7,6 @@
 #include <imgui.h>
 #include <unordered_set>
 
-#include "Format.hpp"
 #include "Buffer.hpp"
 #include "Data/SystemItem.hpp"
 #include "Util/RuleWidget.hpp"
@@ -26,8 +25,6 @@ class WTrafficTree
 {
 	WRuleWidget                  RuleWidget{};
 	std::shared_ptr<WSystemItem> Root = std::make_shared<WSystemItem>();
-
-	ETrafficUnit Unit = TU_Auto;
 
 	std::unordered_map<WTrafficItemId, std::shared_ptr<ITrafficItem>> TrafficItems;
 	std::unordered_set<WTrafficItemId>                                MarkedForRemovalItems;

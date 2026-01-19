@@ -1,17 +1,18 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.xyz>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.xyz>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "NetworkGraphWindow.hpp"
-
-#include "tracy/Tracy.hpp"
 
 #include <cmath>
 #include <imgui.h>
 #include <implot.h>
 #include <cstdio>
 #include <limits>
+
+#include "Util/Settings.hpp"
+#include "tracy/Tracy.hpp"
 
 int FormatBandwidth(double Value, char* Buf, int Size, void* UserData)
 {
@@ -35,6 +36,63 @@ int FormatTimeAgo(double Value, char* Buf, int Size, void*)
 	return std::snprintf(Buf, static_cast<size_t>(Size), "%.1f h", Hours);
 }
 
+WNetworkGraphWindow::WNetworkGraphWindow()
+{
+	UploadBuffer.AddPoint(0, 0);
+	DownloadBuffer.AddPoint(0, 0);
+	auto Val = std::clamp(WSettings::GetInstance().NetworkGraphHistorySetting, 0, NGH_Count - 1);
+	History = HistoryDuration[Val];
+}
+
+void WNetworkGraphWindow::AddData(WBytesPerSecond Upload, WBytesPerSecond Download)
+{
+	std::lock_guard Lock(Mutex);
+	UploadBuffer.AddPoint(static_cast<float>(Time), static_cast<float>(Upload));
+	DownloadBuffer.AddPoint(static_cast<float>(Time), static_cast<float>(Download));
+
+	CurrentMaxUploadRate = 0.0;
+	CurrentMaxDownloadRate = 0.0;
+	double const T0 = Time - HistoryDuration[WSettings::GetInstance().NetworkGraphHistorySetting];
+
+	auto CalcMaxRate = [&](auto const& Buffer, WBytesPerSecond& MaxRate) {
+		for (auto const& Point : Buffer.Data)
+		{
+			if (std::isfinite(static_cast<double>(Point.y)) && static_cast<double>(Point.x) >= T0)
+			{
+				if (static_cast<double>(Point.y) > MaxRate)
+				{
+					MaxRate = static_cast<double>(Point.y);
+				}
+			}
+		}
+	};
+
+	CalcMaxRate(UploadBuffer, CurrentMaxUploadRate);
+	CalcMaxRate(DownloadBuffer, CurrentMaxDownloadRate);
+
+	spdlog::info("max ul: {} B/s, max dl: {} B/s", CurrentMaxUploadRate, CurrentMaxDownloadRate);
+
+	// Choose unit and factor (binary prefixes) independently for each
+	auto ChooseUnit = [](WBytesPerSecond Rate) -> WUnitFmt {
+		if (Rate >= 1 WGiB)
+		{
+			return { "GiB/s", 1 WGiB };
+		}
+		if (Rate >= 1 WMiB)
+		{
+			return { "MiB/s", 1 WMiB };
+		}
+		if (Rate >= 1 WKiB)
+		{
+			return { "KiB/s", 1 WKiB };
+		}
+		return { "B/s", 1.0 };
+	};
+
+	UploadFmt = ChooseUnit(CurrentMaxUploadRate);
+	DownloadFmt = ChooseUnit(CurrentMaxDownloadRate);
+}
+
 void WNetworkGraphWindow::Draw()
 {
 	ZoneScopedN("WNetworkGraphWindow::Draw");
@@ -43,15 +101,16 @@ void WNetworkGraphWindow::Draw()
 	{
 		// History duration dropdown
 		static char const*  HistoryOptions[] = { "1 min", "5 min", "15 min" };
-		static double const HistoryValues[] = { 60.0, 300.0, 900.0 };
+
 		ImGui::SetNextItemWidth(100);
-		if (ImGui::Combo("Duration", &HistoryIndex, HistoryOptions, IM_ARRAYSIZE(HistoryOptions)))
+		if (ImGui::Combo("Duration", &WSettings::GetInstance().NetworkGraphHistorySetting, HistoryOptions,
+				IM_ARRAYSIZE(HistoryOptions)))
 		{
-			History = HistoryValues[HistoryIndex];
+			History = HistoryDuration[WSettings::GetInstance().NetworkGraphHistorySetting];
 		}
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(100);
-		ImGui::SliderFloat("Line width", &LineWidth, 0.5f, 5.0f, "%.1f");
+		ImGui::SliderFloat("Line width", &WSettings::GetInstance().NetworkGraphLineWidth, 0.5f, 5.0f, "%.1f");
 
 		if (ImPlot::BeginPlot("##Scrolling", ImVec2(-1, -1)))
 		{
@@ -96,13 +155,13 @@ void WNetworkGraphWindow::Draw()
 
 			// Plot Upload on Y2 (right axis)
 			ImPlot::SetAxes(ImAxis_X1, ImAxis_Y2);
-			ImPlot::SetNextLineStyle(ImVec4(0.9f, 0.3f, 0.05f, 1.0f), LineWidth);
+			ImPlot::SetNextLineStyle(ImVec4(0.9f, 0.3f, 0.05f, 1.0f), WSettings::GetInstance().NetworkGraphLineWidth);
 			ImPlot::PlotStairs(
 				"Upload", &UploadInverted[0].x, &UploadInverted[0].y, UploadInverted.size(), 0, 0, 2 * sizeof(float));
 
 			// Plot Download on Y1 (left axis)
 			ImPlot::SetAxes(ImAxis_X1, ImAxis_Y1);
-			ImPlot::SetNextLineStyle(ImVec4(0.2f, 0.4f, 0.8f, 1.0f), LineWidth);
+			ImPlot::SetNextLineStyle(ImVec4(0.2f, 0.4f, 0.8f, 1.0f), WSettings::GetInstance().NetworkGraphLineWidth);
 			ImPlot::PlotStairs("Download", &DownloadInverted[0].x, &DownloadInverted[0].y, DownloadInverted.size(), 0,
 				0, 2 * sizeof(float));
 			ImPlot::EndPlot();

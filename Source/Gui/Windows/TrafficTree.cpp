@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.xyz>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.xyz>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -169,7 +169,8 @@ bool WTrafficTree::RenderItem(WRenderItemArgs const& Args)
 	ImGui::TableSetColumnIndex(1);
 	if (Args.Item->DownloadSpeed > 0)
 	{
-		ImGui::Text("%s", WTrafficFormat::Format(Args.Item->DownloadSpeed, Unit).c_str());
+		ImGui::Text("%s",
+			WTrafficFormat::Format(Args.Item->DownloadSpeed, WSettings::GetInstance().TrafficTreeUnitSetting).c_str());
 	}
 	else
 	{
@@ -181,7 +182,8 @@ bool WTrafficTree::RenderItem(WRenderItemArgs const& Args)
 	ImGui::TableSetColumnIndex(2);
 	if (Args.Item->UploadSpeed > 0)
 	{
-		ImGui::Text("%s", WTrafficFormat::Format(Args.Item->UploadSpeed, Unit).c_str());
+		ImGui::Text("%s",
+			WTrafficFormat::Format(Args.Item->UploadSpeed, WSettings::GetInstance().TrafficTreeUnitSetting).c_str());
 	}
 	else
 	{
@@ -449,7 +451,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 	}
 
 	// Toolbar
-	DrawUnitCombo(Unit);
+	DrawUnitCombo(WSettings::GetInstance().TrafficTreeUnitSetting);
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(200.0f);
 	ImGui::InputTextWithHint("##search", "Search applications...", SearchBuffer, sizeof(SearchBuffer));

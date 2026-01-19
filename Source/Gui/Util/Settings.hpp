@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.xyz>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.xyz>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -8,6 +8,8 @@
 
 #include "Singleton.hpp"
 #include "Filesystem.hpp"
+#include "Format.hpp"
+#include "Windows/NetworkGraphWindow.hpp"
 
 class WSettings : public TSingleton<WSettings>
 {
@@ -20,6 +22,10 @@ public:
 
 	std::string SocketPath{ "/var/run/waechterd.sock" };
 
+	float        NetworkGraphLineWidth{ 1.0f };
+	int          NetworkGraphHistorySetting{ NGH_5Min };
+	ETrafficUnit TrafficTreeUnitSetting{ TU_Auto };
+
 	WSettings();
 	~WSettings() override = default;
 
@@ -27,7 +33,8 @@ public:
 	void serialize(Archive& archive)
 	{
 		archive(CEREAL_NVP(bShowUninitalizedSockets), CEREAL_NVP(RegisteredUsername), CEREAL_NVP(RegistrationSerialKey),
-			CEREAL_NVP(SocketPath), CEREAL_NVP(bShowOfflineProcesses));
+			CEREAL_NVP(SocketPath), CEREAL_NVP(bShowOfflineProcesses), CEREAL_NVP(NetworkGraphLineWidth),
+			CEREAL_NVP(NetworkGraphHistorySetting), CEREAL_NVP(TrafficTreeUnitSetting));
 	}
 
 	void Load();
