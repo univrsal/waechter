@@ -12,6 +12,44 @@
 #include "DaemonClient.hpp"
 #include "DaemonConfig.hpp"
 
+void LwsLogCallback(int Level, char const* Line)
+{
+	std::string Msg(Line);
+	while (!Msg.empty() && (Msg.back() == '\n' || Msg.back() == '\r'))
+	{
+		Msg.pop_back();
+	}
+
+	// Strip libwebsockets timestamp prefix (format: [YYYY/MM/DD HH:MM:SS:FFFF] )
+	if (Msg.size() > 30)
+	{
+		Msg = Msg.substr(30);
+	}
+
+	switch (Level)
+	{
+		case LLL_ERR:
+			spdlog::error("{}", Msg);
+			break;
+		case LLL_WARN:
+			spdlog::warn("{}", Msg);
+			break;
+		case LLL_NOTICE:
+		case LLL_INFO:
+			spdlog::info("{}", Msg);
+			break;
+		case LLL_DEBUG:
+		case LLL_PARSER:
+		case LLL_HEADER:
+		case LLL_EXT:
+		case LLL_CLIENT:
+		case LLL_LATENCY:
+		default:
+			spdlog::debug("{}", Msg);
+			break;
+	}
+}
+
 int WebSocketCallback(lws* Wsi, lws_callback_reasons Reason, void* User, void* In, size_t Len)
 {
 	auto* DaemonWebSocket = static_cast<WDaemonWebSocket*>(User);
@@ -89,6 +127,9 @@ WDaemonWebSocket::~WDaemonWebSocket()
 bool WDaemonWebSocket::StartListenThread()
 {
 	auto const& Cfg = WDaemonConfig::GetInstance();
+
+	// Redirect libwebsockets logging to spdlog
+	lws_set_log_level(LLL_ERR | LLL_WARN | LLL_NOTICE, LwsLogCallback);
 
 	// Parse port from the socket path (format: ws://host:port or just port number)
 	int         Port = 9876; // default port
