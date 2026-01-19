@@ -8,7 +8,7 @@
 #include <cstring>
 #include <spdlog/spdlog.h>
 
-WClientWebSocket::WClientWebSocket(lws* Wsi_) : Wsi(Wsi_) {}
+WClientWebSocket::WClientWebSocket(lws* Wsi_, lws_context* Context_) : Wsi(Wsi_), Context(Context_) {}
 
 void WClientWebSocket::StartListenThread()
 {
@@ -125,5 +125,10 @@ void WClientWebSocket::RequestWrite()
 	if (Wsi && bConnected)
 	{
 		lws_callback_on_writable(Wsi);
+		// Wake up the service loop to process the write callback immediately
+		if (Context)
+		{
+			lws_cancel_service(Context);
+		}
 	}
 }

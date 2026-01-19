@@ -17,6 +17,7 @@
 class WClientWebSocket final : public IClientSocket
 {
 	lws*              Wsi{ nullptr };
+	lws_context*      Context{ nullptr };
 	std::atomic<bool> bConnected{ true };
 
 	sigslot::signal<WBuffer&> OnData;
@@ -30,7 +31,7 @@ class WClientWebSocket final : public IClientSocket
 	std::vector<char> ReceiveBuffer;
 
 public:
-	explicit WClientWebSocket(lws* Wsi_);
+	explicit WClientWebSocket(lws* Wsi_, lws_context* Context_);
 
 	sigslot::signal<WBuffer&>& GetDataSignal() override { return OnData; }
 	sigslot::signal<>&         GetClosedSignal() override { return OnClosed; }

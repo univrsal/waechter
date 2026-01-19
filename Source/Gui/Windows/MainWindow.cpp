@@ -10,8 +10,9 @@
 #include <string>
 
 #include "Client.hpp"
-#include "GlfwWindow.hpp"
+#include "Windows/GlfwWindow.hpp"
 #include "Util/IP2Asn.hpp"
+#include "Util/LibCurl.hpp"
 #include "Util/ProtocolDB.hpp"
 #include "Util/Settings.hpp"
 
@@ -134,6 +135,10 @@ void WMainWindow::Draw()
 			{
 				WIP2Asn::GetInstance().UpdateDatabase();
 			}
+			if (ImGui::MenuItem("Settings", nullptr, false))
+			{
+				SettingsWindow.Show();
+			}
 			ImGui::EndMenu();
 		}
 
@@ -166,5 +171,6 @@ void WMainWindow::Draw()
 	AboutDialog.Draw();
 	RegisterDialog.Draw();
 	ConnectionHistoryWindow.Draw();
+	SettingsWindow.Draw();
 	WClient::GetInstance().GetTrafficTree()->Draw(Main);
 }

@@ -89,28 +89,34 @@ void WClient::HandleHandshake(WBuffer& Buf)
 	}
 }
 
-void WClient::Start() const
+void WClient::Start()
 {
-	DaemonSocket->Start();
+	Stop();
+#if WAECHTER_WITH_WEBSOCKETCLIENT
+	if (WSettings::GetInstance().SocketPath.starts_with("ws://")
+		|| WSettings::GetInstance().SocketPath.starts_with("wss://"))
+	{
+		DaemonSocket = std::make_shared<WWebSocketSource>(WSettings::GetInstance().SocketPath);
+		DaemonSocket->GetDataSignal().connect([this](WBuffer& Buf) { OnDataReceived(Buf); });
+	}
+	else
+#endif
+		if (WSettings::GetInstance().SocketPath.starts_with('/'))
+	{
+		DaemonSocket = std::make_shared<WUnixSocketSource>();
+		DaemonSocket->GetDataSignal().connect([this](WBuffer& Buf) { OnDataReceived(Buf); });
+	}
+	else
+	{
+		spdlog::error("Invalid socket path: {}", WSettings::GetInstance().SocketPath);
+	}
+	if (DaemonSocket)
+	{
+		DaemonSocket->Start();
+	}
 }
 
 WClient::WClient()
 {
 	TrafficTree = std::make_shared<WTrafficTree>();
-
-	if (WSettings::GetInstance().SocketPath.starts_with("ws://")
-		|| WSettings::GetInstance().SocketPath.starts_with("wss://"))
-	{
-		DaemonSocket = std::make_shared<WWebSocketSource>(WSettings::GetInstance().SocketPath);
-		DaemonSocket->GetDataSignal().connect(std::bind(&WClient::OnDataReceived, this, std::placeholders::_1));
-	}
-	else if (WSettings::GetInstance().SocketPath.starts_with('/'))
-	{
-		DaemonSocket = std::make_shared<WUnixSocketSource>();
-		DaemonSocket->GetDataSignal().connect(std::bind(&WClient::OnDataReceived, this, std::placeholders::_1));
-	}
-	else
-	{
-		spdlog::critical("Invalid socket path: {}", WSettings::GetInstance().SocketPath);
-	}
 }

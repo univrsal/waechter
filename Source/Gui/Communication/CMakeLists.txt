@@ -3,6 +3,12 @@ target_sources(waechter
         IDaemonSocket.hpp
         UnixSocketSource.cpp
         UnixSocketSource.hpp
-        WebSocketSource.cpp
-        WebSocketSource.hpp
 )
+
+if (WAECHTER_WITH_WEBSOCKETCLIENT)
+    target_sources(waechter
+            PRIVATE
+            WebSocketSource.cpp
+            WebSocketSource.hpp
+    )
+endif ()

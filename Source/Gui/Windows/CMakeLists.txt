@@ -18,4 +18,6 @@ target_sources(waechter
         RegisterDialog.hpp
         ConnectionHistoryWindow.cpp
         ConnectionHistoryWindow.hpp
+        SettingsWindow.cpp
+        SettingsWindow.hpp
 )

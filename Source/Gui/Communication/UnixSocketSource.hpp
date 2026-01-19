@@ -14,9 +14,11 @@ class WUnixSocketSource : public IDaemonSocket
 {
 	std::shared_ptr<WClientSocket> Socket;
 	mutable std::mutex             SocketMutex;
+	int                            TimerId{ -1 };
 
 public:
 	WUnixSocketSource();
+	~WUnixSocketSource();
 
 	void Start() override;
 	void Stop() override { Socket->Close(); }

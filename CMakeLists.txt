@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(WAECHTER_WITH_WEBSOCKETSERVER "Enable websocket server" ON)
+option(WAECHTER_WITH_WEBSOCKETCLIENT "Enable websocket client" ON)
 
 add_subdirectory(Thirdparty)
 add_subdirectory(Source)

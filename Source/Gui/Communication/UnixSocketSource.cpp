@@ -13,11 +13,19 @@ WUnixSocketSource::WUnixSocketSource()
 	Socket = std::make_shared<WClientSocket>(WSettings::GetInstance().SocketPath);
 }
 
+WUnixSocketSource::~WUnixSocketSource()
+{
+	if (TimerId != -1)
+	{
+		WTimerManager::GetInstance().RemoveTimer(TimerId);
+	}
+}
+
 void WUnixSocketSource::Start()
 {
 	Socket->StartListenThread();
 
-	WTimerManager::GetInstance().AddTimer(0.5, [this] {
+	TimerId = WTimerManager::GetInstance().AddTimer(0.5, [this] {
 		if (!Socket->IsConnected())
 		{
 			Socket->Connect();

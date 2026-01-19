@@ -4,14 +4,14 @@
  */
 
 #pragma once
-#include "AboutDialog.hpp"
-#include "LogWindow.hpp"
-#include "NetworkGraphWindow.hpp"
-#include "DetailsWindow.hpp"
-#include "RegisterDialog.hpp"
-#include "ConnectionHistoryWindow.hpp"
+#include "Windows/AboutDialog.hpp"
+#include "Windows/LogWindow.hpp"
+#include "Windows/NetworkGraphWindow.hpp"
+#include "Windows/DetailsWindow.hpp"
+#include "Windows/RegisterDialog.hpp"
+#include "Windows/SettingsWindow.hpp"
+#include "Windows/ConnectionHistoryWindow.hpp"
 #include "Util/FlagAtlas.hpp"
-#include "Util/LibCurl.hpp"
 
 class WMainWindow
 {
@@ -21,6 +21,7 @@ class WMainWindow
 	WDetailsWindow           DetailsWindow{};
 	WFlagAtlas               FlagAtlas{};
 	WRegisterDialog          RegisterDialog{};
+	WSettingsWindow          SettingsWindow{};
 	WConnectionHistoryWindow ConnectionHistoryWindow{};
 
 	bool bInit{ false };

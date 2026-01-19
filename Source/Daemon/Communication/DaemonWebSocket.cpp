@@ -50,11 +50,17 @@ void LwsLogCallback(int Level, char const* Line)
 	}
 }
 
-int WebSocketCallback(lws* Wsi, lws_callback_reasons Reason, void* User, void* In, size_t Len)
+int WebSocketCallback(lws* Wsi, lws_callback_reasons Reason, void*, void* In, size_t Len)
 {
-	auto* DaemonWebSocket = static_cast<WDaemonWebSocket*>(User);
+	spdlog::debug("WebSocket callback triggered: reason={}", static_cast<int>(Reason));
+
+	// Get the context and retrieve our server pointer
+	lws_context* Context = lws_get_context(Wsi);
+	auto*        DaemonWebSocket = static_cast<WDaemonWebSocket*>(lws_context_user(Context));
+
 	if (!DaemonWebSocket)
 	{
+		spdlog::warn("WebSocket callback: DaemonWebSocket pointer is null");
 		return 0;
 	}
 
@@ -63,7 +69,8 @@ int WebSocketCallback(lws* Wsi, lws_callback_reasons Reason, void* User, void* I
 		case LWS_CALLBACK_ESTABLISHED:
 		{
 			spdlog::info("WebSocket client connected");
-			auto ClientWs = std::make_shared<WClientWebSocket>(Wsi);
+			lws_context* NewContext = lws_get_context(Wsi);
+			auto         ClientWs = std::make_shared<WClientWebSocket>(Wsi, NewContext);
 			DaemonWebSocket->RegisterClient(Wsi, ClientWs);
 
 			auto NewClient = std::make_shared<WDaemonClient>(ClientWs);
@@ -113,7 +120,7 @@ void WDaemonWebSocket::ListenThreadFunction() const
 
 	while (Running && Context)
 	{
-		lws_service(Context, 0);
+		lws_service(Context, 10); // 10ms timeout for processing
 	}
 }
 
@@ -129,7 +136,7 @@ bool WDaemonWebSocket::StartListenThread()
 	auto const& Cfg = WDaemonConfig::GetInstance();
 
 	// Redirect libwebsockets logging to spdlog
-	lws_set_log_level(LLL_ERR | LLL_WARN | LLL_NOTICE, LwsLogCallback);
+	lws_set_log_level(LLL_ERR | LLL_WARN, LwsLogCallback);
 
 	// Parse port from the socket path (format: ws://host:port or just port number)
 	int         Port = 9876; // default port
@@ -152,14 +159,16 @@ bool WDaemonWebSocket::StartListenThread()
 		}
 	}
 
-	static lws_protocols Protocols[] = {
-		{ "waechter-protocol", WebSocketCallback, 0, 65536, 0, this, 0 }, { nullptr, nullptr, 0, 0, 0, nullptr, 0 }
+	static lws_protocols Protocols[] = { // Default protocol (no subprotocol specified)
+		{ "waechter-protocol", WebSocketCallback, 0, 65536, 0, nullptr, 0 },
 		// Null terminator
+		{ nullptr, nullptr, 0, 0, 0, nullptr, 0 }
 	};
 
 	lws_context_creation_info Info{};
 	Info.port = Port;
 	Info.protocols = Protocols;
+	Info.user = this; // Set the user pointer to this instance
 	Info.gid = static_cast<gid_t>(-1);
 	Info.uid = static_cast<uid_t>(-1);
 	Info.options = LWS_SERVER_OPTION_VALIDATE_UTF8;

@@ -6,29 +6,38 @@
 #pragma once
 #include <atomic>
 #include <mutex>
+#include <queue>
 #include <string>
 #include <thread>
+#include <vector>
 
-#include <curl/curl.h>
+#include <libwebsockets.h>
 #include <sigslot/signal.hpp>
 
 #include "Communication/IDaemonSocket.hpp"
 
 class WWebSocketSource : public IDaemonSocket
 {
-	std::string Url;
-	CURL*       Curl{ nullptr };
-
+	std::string               Url;
+	lws_context*              Context{ nullptr };
+	lws*                      Wsi{ nullptr };
+	int                       TimerId{ -1 };
 	sigslot::signal<WBuffer&> OnData;
 	sigslot::signal<>         OnClosed;
 
-	std::thread        ListenerThread;
-	std::atomic<bool>  bListenThreadRunning{ false };
-	std::atomic<bool>  bConnected{ false };
-	mutable std::mutex CurlMutex;
+	std::thread       ListenerThread;
+	std::atomic<bool> bListenThreadRunning{ false };
+	std::atomic<bool> bConnected{ false };
+	std::atomic<bool> bConnectionFailed{ false };
+
+	// Outgoing message queue
+	std::mutex                    SendMutex;
+	std::queue<std::vector<char>> SendQueue;
+
+	// Buffer for receiving fragmented messages
+	std::vector<char> ReceiveBuffer;
 
 	void ListenThreadFunction();
-	bool Connect();
 
 public:
 	explicit WWebSocketSource(std::string WebSocketUrl);
@@ -42,4 +51,12 @@ public:
 
 	bool SendFramed(std::string const& Data) override;
 	bool IsConnected() const override;
+
+	// Called by callback
+	void OnConnected();
+	void OnConnectionError();
+	void OnConnectionClosed();
+	void HandleReceive(char const* Data, size_t Len);
+	void HandleWritable();
+	void RequestWrite() const;
 };

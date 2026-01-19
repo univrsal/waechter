@@ -11,6 +11,8 @@
 #include "Singleton.hpp"
 #include "Types.hpp"
 
+#include <atomic>
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 
@@ -41,8 +43,9 @@ namespace WTime
 
 class WTimer
 {
-	double const          Interval{};
+	double                Interval{};
 	double                ElapsedTime{ 0.0 };
+	int                   Id{};
 	std::function<void()> Callback{};
 	friend class WTimerManager;
 	bool Update(double DeltaTime)
@@ -55,19 +58,27 @@ class WTimer
 		}
 		return false;
 	}
-	WTimer(double IntervalSeconds, std::function<void()> Callback_);
+	WTimer(double IntervalSeconds, std::function<void()> Callback_, int Id_);
 };
 
 class WTimerManager : public TSingleton<WTimerManager>
 {
 	std::vector<WTimer> Timers{};
 	double              LastUpdateTime{};
+	std::atomic<int>    TimerIdCounter{ 0 };
 
 public:
-	void AddTimer(double IntervalSeconds, std::function<void()> Callback)
+	int AddTimer(double IntervalSeconds, std::function<void()> Callback)
 	{
-		WTimer Timer(IntervalSeconds, std::move(Callback));
+		auto   NewId = TimerIdCounter++;
+		WTimer Timer(IntervalSeconds, std::move(Callback), NewId);
 		Timers.push_back(Timer);
+		return NewId;
+	}
+
+	void RemoveTimer(int TimerId)
+	{
+		std::erase_if(Timers, [TimerId](WTimer const& Timer) { return Timer.Id == TimerId; });
 	}
 
 	void Start(double CurrentTime) { LastUpdateTime = CurrentTime; }

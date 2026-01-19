@@ -49,7 +49,7 @@ public:
 	std::atomic<WBytesPerSecond> DaemonToClientTrafficRate{ 0 };
 	std::atomic<WBytesPerSecond> ClientToDaemonTrafficRate{ 0 };
 
-	void Start() const;
+	void Start();
 	void Stop() const
 	{
 		if (DaemonSocket)
