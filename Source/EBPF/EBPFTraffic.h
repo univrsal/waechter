@@ -138,27 +138,32 @@ int cls_egress(struct __sk_buff* skb)
 SEC("tcx/egress")
 int ifb_cls_egress(struct __sk_buff* skb)
 {
-	void* data = (void*)(long)skb->data;
-	void* data_end = (void*)(long)skb->data_end;
+	// I'd be lying if I said I know what's going on here
+	// but we can't access skb->local_port/skb->remote port
+	// so this magic seems to just get the port in a very
+	// round-about-way from the packet data itself
 
-	struct iphdr* ip = NULL;
-	__u16         dst_port = 0;
-	__u8          ip_proto;
-	__u32         ip_hdr_len;
+	void* Data = (void*)(long)skb->data;
+	void* DataEnd = (void*)(long)skb->data_end;
+
+	struct iphdr* IP = NULL;
+	__u16         DstPort = 0;
+	__u8          IPProto;
+	__u32         IPHeaderLen;
 
 	// First, check if data starts with a valid IP header directly
 	// This handles raw IP packets from tunnels/ifb devices
-	__u8* first_byte = data;
-	if ((void*)(first_byte + 1) > data_end)
+	__u8* FirstByte = Data;
+	if ((void*)(FirstByte + 1) > DataEnd)
 		return TC_ACT_OK;
-	u8 version = (*first_byte) >> 4;
+	u8 Version = (*FirstByte) >> 4;
 
-	if (version == 4)
+	if (Version == 4)
 	{
 		// Starts with IPv4 header directly (raw IP packet)
-		ip = data;
+		IP = Data;
 	}
-	else if (version == 6)
+	else if (Version == 6)
 	{
 		// IPv6 - skip for now
 		return TC_ACT_OK;
@@ -166,64 +171,59 @@ int ifb_cls_egress(struct __sk_buff* skb)
 	else
 	{
 		// Likely has Ethernet header, check for IPv4
-		struct ethhdr* eth = data;
-		if ((void*)(eth + 1) > data_end)
+		struct ethhdr* Eth = Data;
+		if ((void*)(Eth + 1) > DataEnd)
 			return TC_ACT_OK;
-		if (eth->h_proto != bpf_htons(ETH_P_IP))
+		if (Eth->h_proto != bpf_htons(ETH_P_IP))
 			return TC_ACT_OK;
-		ip = (void*)(eth + 1);
+		IP = (void*)(Eth + 1);
 	}
 
 	// Validate IP header bounds
-	if ((void*)(ip + 1) > data_end)
+	if ((void*)(IP + 1) > DataEnd)
 		return TC_ACT_OK;
 
 	// Double-check it's IPv4
-	if (ip->version != 4)
+	if (IP->version != 4)
 		return TC_ACT_OK;
 
-	ip_proto = ip->protocol;
-	ip_hdr_len = ip->ihl * 4;
+	IPProto = IP->protocol;
+	IPHeaderLen = IP->ihl * 4;
 
 	// Bounds check for variable IP header length
-	if (ip_hdr_len < 20 || ip_hdr_len > 60)
+	if (IPHeaderLen < 20 || IPHeaderLen > 60)
+	{
 		return TC_ACT_OK;
+	}
 
 	// Ensure we can access transport header
-	void* transport_hdr = (void*)ip + ip_hdr_len;
+	void* Transportheader = (void*)IP + IPHeaderLen;
 
-	if (ip_proto == IPPROTO_TCP)
+	if (IPProto == IPPROTO_TCP)
 	{
-		struct tcphdr* tcp = transport_hdr;
-		if ((void*)(tcp + 1) > data_end)
+		struct tcphdr* tcp = Transportheader;
+		if ((void*)(tcp + 1) > DataEnd)
 			return TC_ACT_OK;
-		dst_port = bpf_ntohs(tcp->dest);
+		DstPort = bpf_ntohs(tcp->dest);
 	}
-	else if (ip_proto == IPPROTO_UDP)
+	else if (IPProto == IPPROTO_UDP)
 	{
-		struct udphdr* udp = transport_hdr;
-		if ((void*)(udp + 1) > data_end)
+		struct udphdr* Udp = Transportheader;
+		if ((void*)(Udp + 1) > DataEnd)
 			return TC_ACT_OK;
-		dst_port = bpf_ntohs(udp->dest);
+		DstPort = bpf_ntohs(Udp->dest);
 	}
 	else
 	{
 		return TC_ACT_OK;
 	}
 
-	__u16* Mark = bpf_map_lookup_elem(&ingress_port_marks, &dst_port);
+	__u16* Mark = bpf_map_lookup_elem(&ingress_port_marks, &DstPort);
 
 	if (Mark)
 	{
-		bpf_printk("dst_port=%u mark=%i", dst_port, *Mark);
 		skb->mark = *Mark;
 	}
 
-	return TC_ACT_OK;
-}
-
-SEC("tcx/ingress")
-int cls_ingress(struct __sk_buff* ctx)
-{
 	return TC_ACT_OK;
 }
