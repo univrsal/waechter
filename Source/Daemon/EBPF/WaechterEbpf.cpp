@@ -90,7 +90,7 @@ EEbpfInitResult WWaechterEbpf::Init()
 		return EEbpfInitResult::Attach_Failed;
 	}
 
-	auto IfbIndex = static_cast<int>(WNetworkInterface::GetIfIndex("ifb0"));
+	auto const IfbIndex = static_cast<int>(WNetworkInterface::GetIfIndex(WIPLink::IfbDev));
 	if (!CreateAndAttachTcxProgram(Skeleton->progs.ifb_cls_egress, IfbIndex))
 	{
 		spdlog::critical("Failed to create and attach egress tcx program.");
