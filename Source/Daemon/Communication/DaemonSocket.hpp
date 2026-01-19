@@ -4,58 +4,39 @@
  */
 
 #pragma once
-#include <thread>
-#include <atomic>
 #include <vector>
 #include <memory>
 #include <algorithm>
+#include <functional>
 
-#include "Socket.hpp"
 #include "DaemonClient.hpp"
+#include "Communication/IServerSocket.hpp"
 
 struct WConnectionHistoryUpdate;
 
 class WDaemonSocket
 {
-	WServerSocket Socket;
-
-	std::atomic<bool> Running{ false };
-	std::thread       ListenThread{};
-	std::mutex        ClientsMutex{};
-	std::string       SocketPath{};
+	std::unique_ptr<IServerSocket> Socket;
 	std::string       Hostname{};
 
+	std::mutex                                  ClientsMutex{};
 	std::vector<std::shared_ptr<WDaemonClient>> Clients;
 
-	void ListenThreadFunction();
+	void OnNewConnection(std::shared_ptr<WDaemonClient> const& NewClient);
 
 public:
-	explicit WDaemonSocket(std::string const& Path) : Socket(Path), SocketPath(Path)
+	explicit WDaemonSocket(std::string const& Path);
+
+	bool StartListenThread()
 	{
-		char hostname[HOST_NAME_MAX];
-		if (gethostname(hostname, HOST_NAME_MAX) == 0)
-		{
-			Hostname = hostname;
-		}
-		else
-		{
-			Hostname = "System";
-		}
+		Socket->GetNewConnectionSignal().connect(
+			std::bind(&WDaemonSocket::OnNewConnection, this, std::placeholders::_1));
+		return Socket->StartListenThread();
 	}
 
-	void Stop()
-	{
-		Running = false;
-		Socket.Close();
-		if (ListenThread.joinable())
-		{
-			ListenThread.join();
-		}
-	}
+	void Stop() const { Socket->Stop(); }
 
 	~WDaemonSocket() { Stop(); }
-
-	bool StartListenThread();
 
 	std::vector<std::shared_ptr<WDaemonClient>>& GetClients() { return Clients; }
 

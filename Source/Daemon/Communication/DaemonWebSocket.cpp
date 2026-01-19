@@ -1,0 +1,180 @@
+/*
+ * Copyright (c) 2026, Alex <uni@vrsal.cc>
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+#include "DaemonWebSocket.hpp"
+
+#include <spdlog/spdlog.h>
+#include <tracy/Tracy.hpp>
+
+#include "ClientWebSocket.hpp"
+#include "DaemonClient.hpp"
+#include "DaemonConfig.hpp"
+
+int WebSocketCallback(lws* Wsi, lws_callback_reasons Reason, void* User, void* In, size_t Len)
+{
+	auto* DaemonWebSocket = static_cast<WDaemonWebSocket*>(User);
+	if (!DaemonWebSocket)
+	{
+		return 0;
+	}
+
+	switch (Reason)
+	{
+		case LWS_CALLBACK_ESTABLISHED:
+		{
+			spdlog::info("WebSocket client connected");
+			auto ClientWs = std::make_shared<WClientWebSocket>(Wsi);
+			DaemonWebSocket->RegisterClient(Wsi, ClientWs);
+
+			auto NewClient = std::make_shared<WDaemonClient>(ClientWs);
+			DaemonWebSocket->GetNewConnectionSignal()(NewClient);
+			break;
+		}
+
+		case LWS_CALLBACK_CLOSED:
+		{
+			spdlog::info("WebSocket client disconnected");
+			if (auto Client = DaemonWebSocket->GetClient(Wsi))
+			{
+				Client->HandleClose();
+			}
+			DaemonWebSocket->UnregisterClient(Wsi);
+			break;
+		}
+
+		case LWS_CALLBACK_RECEIVE:
+		{
+			if (auto Client = DaemonWebSocket->GetClient(Wsi))
+			{
+				Client->HandleReceive(static_cast<char*>(In), Len);
+			}
+			break;
+		}
+
+		case LWS_CALLBACK_SERVER_WRITEABLE:
+		{
+			if (auto Client = DaemonWebSocket->GetClient(Wsi))
+			{
+				Client->HandleWritable();
+			}
+			break;
+		}
+
+		default:
+			break;
+	}
+
+	return 0;
+}
+
+void WDaemonWebSocket::ListenThreadFunction() const
+{
+	tracy::SetThreadName("WebSocketServer");
+
+	while (Running && Context)
+	{
+		lws_service(Context, 50);
+	}
+}
+
+WDaemonWebSocket::WDaemonWebSocket() = default;
+
+WDaemonWebSocket::~WDaemonWebSocket()
+{
+	Stop();
+}
+
+bool WDaemonWebSocket::StartListenThread()
+{
+	auto const& Cfg = WDaemonConfig::GetInstance();
+
+	// Parse port from the socket path (format: ws://host:port or just port number)
+	int         Port = 9876; // default port
+	std::string SocketPath = Cfg.DaemonSocketPath;
+
+	// Try to extract port from ws:// URL
+	if (SocketPath.starts_with("ws://"))
+	{
+		auto ColonPos = SocketPath.rfind(':');
+		if (ColonPos != std::string::npos && ColonPos > 5)
+		{
+			try
+			{
+				Port = std::stoi(SocketPath.substr(ColonPos + 1));
+			}
+			catch (...)
+			{
+				spdlog::warn("Failed to parse port from {}, using default {}", SocketPath, Port);
+			}
+		}
+	}
+
+	static lws_protocols Protocols[] = {
+		{ "waechter-protocol", WebSocketCallback, 0, 65536, 0, this, 0 }, { nullptr, nullptr, 0, 0, 0, nullptr, 0 }
+		// Null terminator
+	};
+
+	lws_context_creation_info Info{};
+	Info.port = Port;
+	Info.protocols = Protocols;
+	Info.gid = static_cast<gid_t>(-1);
+	Info.uid = static_cast<uid_t>(-1);
+	Info.options = LWS_SERVER_OPTION_VALIDATE_UTF8;
+
+	Context = lws_create_context(&Info);
+	if (!Context)
+	{
+		spdlog::error("Failed to create libwebsockets context");
+		return false;
+	}
+
+	Running = true;
+	ListenThread = std::thread(&WDaemonWebSocket::ListenThreadFunction, this);
+
+	spdlog::info("WebSocket server started on port {}", Port);
+	return true;
+}
+
+void WDaemonWebSocket::Stop()
+{
+	Running = false;
+
+	if (ListenThread.joinable())
+	{
+		ListenThread.join();
+	}
+
+	if (Context)
+	{
+		lws_context_destroy(Context);
+		Context = nullptr;
+	}
+
+	std::lock_guard Lock(ClientsMutex);
+	Clients.clear();
+}
+
+void WDaemonWebSocket::RegisterClient(lws* Wsi, std::shared_ptr<WClientWebSocket> Client)
+{
+	std::lock_guard Lock(ClientsMutex);
+	Clients[Wsi] = std::move(Client);
+}
+
+void WDaemonWebSocket::UnregisterClient(lws* Wsi)
+{
+	std::lock_guard Lock(ClientsMutex);
+	Clients.erase(Wsi);
+}
+
+std::shared_ptr<WClientWebSocket> WDaemonWebSocket::GetClient(lws* Wsi)
+{
+	std::lock_guard Lock(ClientsMutex);
+	auto            It = Clients.find(Wsi);
+	if (It != Clients.end())
+	{
+		return It->second;
+	}
+	return nullptr;
+}

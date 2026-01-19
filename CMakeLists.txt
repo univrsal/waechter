@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-option(WAECHTER_WITH_IPQUERY_IO_API "Enable ipquery.io API integration" ON)
+option(WAECHTER_WITH_WEBSOCKETSERVER "Enable websocket server" ON)
 
 add_subdirectory(Thirdparty)
 add_subdirectory(Source)
