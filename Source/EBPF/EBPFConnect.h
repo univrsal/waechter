@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.xyz>
+ * Copyright (c) 2025, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
