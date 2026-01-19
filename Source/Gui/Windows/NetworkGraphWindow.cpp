@@ -70,8 +70,6 @@ void WNetworkGraphWindow::AddData(WBytesPerSecond Upload, WBytesPerSecond Downlo
 	CalcMaxRate(UploadBuffer, CurrentMaxUploadRate);
 	CalcMaxRate(DownloadBuffer, CurrentMaxDownloadRate);
 
-	spdlog::info("max ul: {} B/s, max dl: {} B/s", CurrentMaxUploadRate, CurrentMaxDownloadRate);
-
 	// Choose unit and factor (binary prefixes) independently for each
 	auto ChooseUnit = [](WBytesPerSecond Rate) -> WUnitFmt {
 		if (Rate >= 1 WGiB)

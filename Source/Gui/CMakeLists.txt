@@ -18,6 +18,7 @@ target_compile_definitions(waechter PRIVATE
 add_subdirectory(Windows)
 add_subdirectory(Util)
 add_subdirectory(Icons)
+add_subdirectory(Communication)
 
 target_link_libraries(waechter PRIVATE
         thirdparty::spdlog

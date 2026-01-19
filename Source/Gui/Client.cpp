@@ -10,6 +10,7 @@
 
 #include "AppIconAtlas.hpp"
 #include "Messages.hpp"
+#include "Communication/UnixSocketSource.hpp"
 #include "Data/Protocol.hpp"
 #include "Util/Settings.hpp"
 #include "Windows/GlfwWindow.hpp"
@@ -87,25 +88,26 @@ void WClient::HandleHandshake(WBuffer& Buf)
 	}
 }
 
-void WClient::Start()
+void WClient::Start() const
 {
-	Socket->OnData.connect(std::bind(&WClient::OnDataReceived, this, std::placeholders::_1));
-	Socket->StartListenThread();
-
-	WTimerManager::GetInstance().AddTimer(0.5, [this] {
-		if (!Socket->IsConnected())
-		{
-			Socket->Connect();
-			if (Socket->IsConnected())
-			{
-				Socket->StartListenThread();
-			}
-		}
-	});
+	DaemonSocket->Start();
 }
 
 WClient::WClient()
 {
-	Socket = std::make_shared<WClientSocket>(WSettings::GetInstance().SocketPath);
 	TrafficTree = std::make_shared<WTrafficTree>();
+
+	if (WSettings::GetInstance().SocketPath.starts_with("ws") || WSettings::GetInstance().SocketPath.starts_with("wss"))
+	{
+		spdlog::error("WebSocket protocol is WIP");
+	}
+	else if (WSettings::GetInstance().SocketPath.starts_with('/'))
+	{
+		DaemonSocket = std::make_shared<WUnixSocketSource>();
+		DaemonSocket->GetDataSignal().connect(std::bind(&WClient::OnDataReceived, this, std::placeholders::_1));
+	}
+	else
+	{
+		spdlog::critical("Invalid socket path: {}", WSettings::GetInstance().SocketPath);
+	}
 }
