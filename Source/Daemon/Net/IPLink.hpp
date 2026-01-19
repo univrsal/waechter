@@ -53,12 +53,9 @@ class WIPLink : public TSingleton<WIPLink>
 	std::unordered_map<WTrafficItemId, std::shared_ptr<WBandwidthLimit>> ActiveUploadLimits;
 	std::unordered_map<WTrafficItemId, std::shared_ptr<WBandwidthLimit>> ActiveDownloadLimits;
 
-	std::unordered_map<uint16_t, WIngressPortRouting> IngressPortRoutings;
-
 	std::unique_ptr<WClientSocket> IpProcSocket;
 
-	void SetupHTBLimitClass(
-		std::shared_ptr<WBandwidthLimit> const& Limit, std::string const& IfName, bool bAttachMarkFilter) const;
+	void SetupHTBLimitClass(std::shared_ptr<WBandwidthLimit> const& Limit, std::string const& IfName) const;
 	void OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket);
 
 public:
@@ -68,8 +65,8 @@ public:
 	bool Init();
 	bool Deinit();
 
-	void SetupEgressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit);
-	void SetupIngressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit);
+	void SetupEgressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit) const;
+	void SetupIngressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit) const;
 
 	void SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uint16_t Dport);
 	void RemoveIngressPortRouting(uint16_t Dport);
@@ -84,7 +81,7 @@ public:
 
 	void PrintStats() const
 	{
-		spdlog::info("{} active upload limits, {} active download limits, {} ingress port routings",
-			ActiveUploadLimits.size(), ActiveDownloadLimits.size(), IngressPortRoutings.size());
+		spdlog::info("{} active upload limits, {} active download limits", ActiveUploadLimits.size(),
+			ActiveDownloadLimits.size());
 	}
 };

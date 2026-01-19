@@ -61,52 +61,6 @@ struct HTBMapEntry
 	}
 };
 
-struct WHTBMap
-{
-	std::mutex                                                 Mutex;
-	std::unordered_map<uint16_t, std::shared_ptr<HTBMapEntry>> HTBUseCounter; // minor id -> amount of ports using it
-
-	void AddUsage(uint16_t MinorId)
-	{
-		std::lock_guard Lock(Mutex);
-		if (HTBUseCounter.find(MinorId) == HTBUseCounter.end())
-		{
-			HTBUseCounter[MinorId] = std::make_shared<HTBMapEntry>();
-		}
-		HTBUseCounter[MinorId]->UseCount++;
-	}
-
-	bool MarkPendingRemove(uint16_t MinorId, std::shared_ptr<WRemoveHtbClassMsg> const& Msg)
-	{
-		std::lock_guard Lock(Mutex);
-		auto            It = HTBUseCounter.find(MinorId);
-		if (It != HTBUseCounter.end())
-		{
-			It->second->PendingRemoveMsg = Msg;
-			return true;
-		}
-		// just remove immediately
-		return RemoveHtbClass(Msg);
-	}
-
-	void RemoveUsage(uint16_t MinorId)
-	{
-		std::lock_guard Lock(Mutex);
-		auto            It = HTBUseCounter.find(MinorId);
-		if (It != HTBUseCounter.end())
-		{
-			if (It->second->UseCount > 0)
-			{
-				It->second->UseCount--;
-			}
-			if (It->second->UseCount == 0)
-			{
-				HTBUseCounter.erase(It);
-			}
-		}
-	}
-};
-
 // A tiny bounded-ish queue to avoid unbounded RAM usage if the sender outruns `tc`.
 // If it grows too large, we log warnings so it's visible in the logs.
 struct WMsgQueue
@@ -115,8 +69,6 @@ struct WMsgQueue
 	std::condition_variable Cv;
 	std::deque<WIPLinkMsg>  Queue;
 	std::atomic<bool>       bStop{ false };
-
-	WHTBMap HtbUsageMap;
 
 	// soft limit; we only warn when exceeded
 	size_t WarnLimit{ 256 };
@@ -187,11 +139,9 @@ static bool SetupHtbClass(std::shared_ptr<WSetupHtbClassMsg> const& SetupHtbClas
 	SYSFMT("tc class replace dev {} parent 1:1 classid 1:{} htb rate {}bit ceil {}bit", IfName, SetupHtbClass->MinorId,
 		static_cast<uint64_t>(SetupHtbClass->RateLimit * 8), static_cast<uint64_t>(SetupHtbClass->RateLimit * 8));
 
-	if (SetupHtbClass->bAddMarkFilter)
-	{
-		SYSFMT("tc filter replace dev {} parent 1: protocol ip pref 1 handle 0x{:x} fw classid 1:{}", IfName,
-			SetupHtbClass->Mark, SetupHtbClass->MinorId);
-	}
+	spdlog::info("Setup filter with mark {}", SetupHtbClass->Mark);
+	SYSFMT("tc filter replace dev {} parent 1: protocol ip pref 1 handle 0x{:x} fw classid 1:{}", IfName,
+		SetupHtbClass->Mark, SetupHtbClass->MinorId);
 	return true;
 }
 
@@ -200,39 +150,10 @@ static bool RemoveHtbClass(std::shared_ptr<WRemoveHtbClassMsg> const& RemoveHtbC
 	auto const& IfName = SanitizeInterfaceName(RemoveHtbClass->InterfaceName);
 	spdlog::debug("Removing HTB class on interface {}: classid=1:{}, mark=0x{:x}", IfName, RemoveHtbClass->MinorId,
 		RemoveHtbClass->Mark);
-	if (RemoveHtbClass->bIsUpload)
-	{
-		SYSFMT2("tc filter delete dev {} parent 1: protocol ip pref 1 handle 0x{:x} fw classid 1:{}", IfName,
-			RemoveHtbClass->Mark, RemoveHtbClass->MinorId);
-	}
-	SYSFMT("tc class delete dev {} classid 1:{}", IfName, RemoveHtbClass->MinorId);
-	return true;
-}
 
-static bool ConfigurePortRouting(
-	std::shared_ptr<WConfigurePortRouting> const& SetupPortRouting, std::string const& IfbDev)
-{
-	int const Priority = 1;
-	if (SetupPortRouting->bRemove)
-	{
-		SYSFMT("tc filter del dev {} protocol ip parent 1: prio {} handle {} flower", IfbDev, Priority,
-			SetupPortRouting->Handle);
-		SYSFMT("tc filter del dev {} protocol ip parent 1: prio {} handle {} flower", IfbDev, Priority,
-			SetupPortRouting->Handle + 1);
-		spdlog::debug("Removed ingress port routing on interface {}: dport={}, qdisc id={}", IfbDev,
-			SetupPortRouting->Dport, SetupPortRouting->QDiscId);
-	}
-	else
-	{
-		spdlog::debug("Setting up ingress port routing on interface {}: dport={}, qdisc id={}", IfbDev,
-			SetupPortRouting->Dport, SetupPortRouting->QDiscId);
-		SYSFMT(
-			"tc filter add dev {} parent 1: protocol ip prio {} handle {} flower ip_proto tcp dst_port {} classid 1:{}",
-			IfbDev, Priority, SetupPortRouting->Handle, SetupPortRouting->Dport, SetupPortRouting->QDiscId);
-		SYSFMT(
-			"tc filter add dev {} parent 1: protocol ip prio {} handle {} flower ip_proto udp dst_port {} classid 1:{}",
-			IfbDev, Priority, SetupPortRouting->Handle + 1, SetupPortRouting->Dport, SetupPortRouting->QDiscId);
-	}
+	SYSFMT2("tc filter delete dev {} parent 1: protocol ip pref 1 handle 0x{:x} fw classid 1:{}", IfName,
+		RemoveHtbClass->Mark, RemoveHtbClass->MinorId);
+	SYSFMT("tc class delete dev {} classid 1:{}", IfName, RemoveHtbClass->MinorId);
 	return true;
 }
 
@@ -257,7 +178,9 @@ static bool Init(std::string const& IfbDev, std::string const& IngressInterface,
 	// Redirect ingress traffic to ifb0
 	SYSFMT("tc qdisc replace dev {} handle ffff: ingress", IngressInterface);
 	SYSFMT(
-		"tc filter replace dev {} parent ffff: protocol all prio 100 u32 match u32 0 0 action mirred egress redirect dev {}",
+		// "tc filter replace dev {} parent ffff: protocol all prio 100 u32 match u32 0 0 action mirred egress redirect
+	    // dev {}",
+		"tc filter replace dev {} parent ffff: protocol all prio 100 matchall action mirred egress redirect dev {}",
 		IngressInterface, IfbDev);
 
 	// Egress HTB setup (on the actual network interface)
@@ -304,26 +227,7 @@ static void ProcessMessage(WMsgQueue& Queue, WIPLinkMsg const& Msg, WSignalHandl
 	}
 	if (Msg.Type == EIPLinkMsgType::RemoveHtbClass && Msg.RemoveHtbClass)
 	{
-		if (!Queue.HtbUsageMap.MarkPendingRemove(Msg.RemoveHtbClass->MinorId, Msg.RemoveHtbClass))
-		{
-			spdlog::error("Failed to remove HTB class");
-		}
-		return;
-	}
-	if (Msg.Type == EIPLinkMsgType::ConfigurePortRouting && Msg.SetupPortRouting)
-	{
-		if (!ConfigurePortRouting(Msg.SetupPortRouting, IfbDev))
-		{
-			spdlog::error("Failed to configure port routing");
-		}
-		if (Msg.SetupPortRouting->bRemove)
-		{
-			Queue.HtbUsageMap.RemoveUsage(Msg.SetupPortRouting->QDiscId);
-		}
-		else
-		{
-			Queue.HtbUsageMap.AddUsage(Msg.SetupPortRouting->QDiscId);
-		}
+		RemoveHtbClass(Msg.RemoveHtbClass);
 		return;
 	}
 }
@@ -456,7 +360,6 @@ int main(int Argc, char** Argv)
 	}
 	spdlog::info("All worker threads finished");
 
-	Queue.HtbUsageMap.HTBUseCounter.clear();
 	Cleanup(IfbDev, IngressInterface);
 	return 0;
 }

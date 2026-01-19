@@ -13,6 +13,7 @@
 #include "EBPFCommon.h"
 #include "Types.hpp"
 #include "Format.hpp"
+#include "NetworkInterface.hpp"
 #include "Data/SystemMap.hpp"
 #include "Net/IPLink.hpp"
 
@@ -84,6 +85,13 @@ EEbpfInitResult WWaechterEbpf::Init()
 	}
 
 	if (!CreateAndAttachTcxProgram(Skeleton->progs.cls_egress))
+	{
+		spdlog::critical("Failed to create and attach egress tcx program.");
+		return EEbpfInitResult::Attach_Failed;
+	}
+
+	auto ifbindex = static_cast<int>(WNetworkInterface::GetIfIndex("ifb0"));
+	if (!CreateAndAttachTcxProgram(Skeleton->progs.ifb_cls_egress, ifbindex))
 	{
 		spdlog::critical("Failed to create and attach egress tcx program.");
 		return EEbpfInitResult::Attach_Failed;
