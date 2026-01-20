@@ -54,7 +54,7 @@ install(FILES Meta/Package/waechterd.service
         DESTINATION lib/systemd/system)
 
 install(FILES Meta/Package/waechterd.ini
-        DESTINATION /etc/waechter)
+        DESTINATION etc/waechter)
 
 # CPack configuration for .deb packages
 set(CPACK_GENERATOR "DEB")
