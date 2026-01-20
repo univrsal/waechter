@@ -19,6 +19,7 @@
 class WWebSocketSource : public IDaemonSocket
 {
 	std::string               Url;
+	std::string               AuthToken;
 	lws_context*              Context{ nullptr };
 	lws*                      Wsi{ nullptr };
 	int                       TimerId{ -1 };
@@ -40,7 +41,7 @@ class WWebSocketSource : public IDaemonSocket
 	void ListenThreadFunction();
 
 public:
-	explicit WWebSocketSource(std::string WebSocketUrl);
+	explicit WWebSocketSource(std::string WebSocketUrl, std::string AuthToken);
 	~WWebSocketSource() override;
 
 	void Start() override;
@@ -59,4 +60,7 @@ public:
 	void HandleReceive(char const* Data, size_t Len);
 	void HandleWritable();
 	void RequestWrite() const;
+
+	// Get the auth token
+	std::string const& GetAuthToken() const { return AuthToken; }
 };

@@ -96,7 +96,8 @@ void WClient::Start()
 	if (WSettings::GetInstance().SocketPath.starts_with("ws://")
 		|| WSettings::GetInstance().SocketPath.starts_with("wss://"))
 	{
-		DaemonSocket = std::make_shared<WWebSocketSource>(WSettings::GetInstance().SocketPath);
+		DaemonSocket = std::make_shared<WWebSocketSource>(
+			WSettings::GetInstance().SocketPath, WSettings::GetInstance().WebSocketAuthToken);
 		DaemonSocket->GetDataSignal().connect([this](WBuffer& Buf) { OnDataReceived(Buf); });
 	}
 	else

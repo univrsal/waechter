@@ -26,6 +26,8 @@ void WSettingsWindow::Draw()
 			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
 	{
 		ImGui::InputText("Socket path", &WSettings::GetInstance().SocketPath);
+		ImGui::InputText(
+			"WebSocket auth token", &WSettings::GetInstance().WebSocketAuthToken, ImGuiInputTextFlags_Password);
 
 		if (ImGui::Button("Connect"))
 		{

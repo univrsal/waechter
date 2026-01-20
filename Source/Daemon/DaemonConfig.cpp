@@ -14,6 +14,7 @@
 #include "ErrnoUtil.hpp"
 #include "Filesystem.hpp"
 #include "NetworkInterface.hpp"
+#include "Random.hpp"
 
 WDaemonConfig::WDaemonConfig()
 {
@@ -88,8 +89,15 @@ void WDaemonConfig::Load(std::string const& Path)
 	SafeGet("daemon", "group", DaemonGroup);
 	SafeGet("daemon", "socket_path", DaemonSocketPath);
 	SafeGet("daemon", "ip_proc_socket_path", IpLinkProcSocketPath);
+	SafeGet("daemon", "websocket_auth_token", WebSocketAuthToken);
 	DaemonSocketMode = static_cast<mode_t>(Reader.GetInteger("daemon", "socket_permissions", DaemonSocketMode));
 	SafeGet("daemon", "ebpf_program_object_path", EbpfProgramObjectPath);
+
+	if (WebSocketAuthToken.empty() || WebSocketAuthToken == "change_me")
+	{
+		WebSocketAuthToken = WRandom::GenerateRandomHexString(24);
+		spdlog::warn("No WebSocket auth token specified in config generated random token: {}", WebSocketAuthToken);
+	}
 }
 
 void WDaemonConfig::SetDefaults()

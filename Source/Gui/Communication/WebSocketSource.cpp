@@ -21,6 +21,23 @@ static int ClientWebSocketCallback(
 
 	switch (Reason)
 	{
+		case LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER:
+		{
+			auto**      P = static_cast<unsigned char**>(In);
+			auto*       End = *P + Len;
+			std::string AuthHeader = "Authorization: Bearer " + Source->GetAuthToken() + "\x0d\x0a";
+
+			if (End - *P < static_cast<int>(AuthHeader.size()))
+			{
+				spdlog::error("Not enough space to add Authorization header");
+				return -1;
+			}
+
+			std::memcpy(*P, AuthHeader.data(), AuthHeader.size());
+			*P += AuthHeader.size();
+			break;
+		}
+
 		case LWS_CALLBACK_CLIENT_ESTABLISHED:
 			spdlog::info("WebSocket client connected");
 			Source->OnConnected();
@@ -51,7 +68,8 @@ static int ClientWebSocketCallback(
 	return 0;
 }
 
-WWebSocketSource::WWebSocketSource(std::string WebSocketUrl) : Url(std::move(WebSocketUrl))
+WWebSocketSource::WWebSocketSource(std::string WebSocketUrl, std::string AuthToken_)
+	: Url(std::move(WebSocketUrl)), AuthToken(std::move(AuthToken_))
 {
 }
 

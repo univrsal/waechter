@@ -66,6 +66,15 @@ You'll have to adjust the following entries:
   use it here. If you do not use a VPN you can just set this to the same value as `interface`
 - `user` and `group` the daemon does not run as root, it only needs it run during initialization, afterward the daemon
   will run as this user. For testing, you can just set to your current user.
+- `socket_path` the gui communicates with the daemon via a unix socket, you can change where this socket is created
+  here.
+  Alternatively you can change the path to `ws://x.x.x.x:port` to use a WebSocket instead (i.e. `ws://127.0.0.1:9876`).
+  Note that you'll need a `websocket_auth_token` to connect and a reverse proxy to use secure WebSocket connections over
+  TLS.
+- `websocket_auth_token` (optional), if you're using WebSocket connections instead of Unix sockets, you can set an
+  authentication
+  token here. When set, clients must provide this token in the `Authorization` header as a Bearer token. This helps
+  secure remote connections to the daemon. Leave this empty or commented out if you're using Unix sockets.
 
 Make sure that any user that wants to use the GUI to connect to the daemon is part of the group specified in the config,
 otherwise the GUI won't be able to access the daemon socket.

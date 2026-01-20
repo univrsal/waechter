@@ -66,6 +66,32 @@ int WebSocketCallback(lws* Wsi, lws_callback_reasons Reason, void*, void* In, si
 
 	switch (Reason)
 	{
+		case LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION:
+		{
+			// Check authentication before connection is established
+			auto const& Cfg = WDaemonConfig::GetInstance();
+			char        AuthHeaderBuf[256];
+			int HeaderLen = lws_hdr_copy(Wsi, AuthHeaderBuf, sizeof(AuthHeaderBuf), WSI_TOKEN_HTTP_AUTHORIZATION);
+
+			if (HeaderLen <= 0)
+			{
+				spdlog::warn("WebSocket connection rejected: missing Authorization header");
+				return -1; // Reject connection
+			}
+
+			std::string AuthHeader(AuthHeaderBuf, static_cast<size_t>(HeaderLen));
+			std::string ExpectedAuth = "Bearer " + Cfg.WebSocketAuthToken;
+
+			if (AuthHeader != ExpectedAuth)
+			{
+				spdlog::warn("WebSocket connection rejected: invalid auth token");
+				return -1; // Reject connection
+			}
+
+			spdlog::debug("WebSocket connection authenticated successfully");
+			break;
+		}
+
 		case LWS_CALLBACK_ESTABLISHED:
 		{
 			spdlog::info("WebSocket client connected");
@@ -134,6 +160,8 @@ WDaemonWebSocket::~WDaemonWebSocket()
 bool WDaemonWebSocket::StartListenThread()
 {
 	auto const& Cfg = WDaemonConfig::GetInstance();
+
+	assert(!Cfg.WebSocketAuthToken.empty());
 
 	// Redirect libwebsockets logging to spdlog
 	lws_set_log_level(LLL_ERR | LLL_WARN, LwsLogCallback);
