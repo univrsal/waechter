@@ -110,7 +110,14 @@ bool WGlfwWindow::Init()
 		static_cast<void*>(NonConstFontData), static_cast<int>(GFontSize), FontSize, &Cfg);
 	Io.FontDefault = FontData;
 	// Setup Dear ImGui style
-	ImGui::StyleColorsLight();
+	if (WSettings::GetInstance().bUseDarkTheme)
+	{
+		ImGui::StyleColorsDark();
+	}
+	else
+	{
+		ImGui::StyleColorsLight();
+	}
 	ImGuiStyle& Style = ImGui::GetStyle();
 	Style.ScaleAllSizes(MainScale);
 	Style.FontScaleDpi = MainScale;

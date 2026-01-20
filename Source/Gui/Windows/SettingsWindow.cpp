@@ -29,6 +29,18 @@ void WSettingsWindow::Draw()
 		ImGui::InputText(
 			"WebSocket auth token", &WSettings::GetInstance().WebSocketAuthToken, ImGuiInputTextFlags_Password);
 
+		if (ImGui::Checkbox("Use dark theme", &WSettings::GetInstance().bUseDarkTheme))
+		{
+			if (WSettings::GetInstance().bUseDarkTheme)
+			{
+				ImGui::StyleColorsDark();
+			}
+			else
+			{
+				ImGui::StyleColorsLight();
+			}
+		}
+
 		if (ImGui::Button("Connect"))
 		{
 			WClient::GetInstance().Start();
