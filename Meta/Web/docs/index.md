@@ -6,6 +6,10 @@ Wächter is a tool to monitor and control network traffic on Linux.
 
 It's currently in early development so there's no ready to use builds but it can be compiled from source for testing.
 
+If you have questions you can
+use [discussions](https://github.com/univrsal/waechter/discussions), #waechter on [rizon](https://rizon.net)
+or [discord](https://discord.gg/kZsHuncu3q).
+
 ## Quickstart
 
 If you're using an Arch-based distribution you can install waechter from
