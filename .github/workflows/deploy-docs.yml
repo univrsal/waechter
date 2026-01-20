@@ -55,6 +55,7 @@ jobs:
           ssh-keyscan -p 22033 -H "$SERVER_IP" >> ~/.ssh/known_hosts
           
           # Deploy using rsync over SSH
+          scp -P 22033 -r Meta/Web/.vitepress/dist/* "$SERVER_USER@$SERVER_IP:$SERVER_PATH"
           rsync --port 22033 -avz \
             -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
             "Meta/Web/.vitepress/dist/" "$SERVER_USER@$SERVER_IP:$SERVER_PATH"
