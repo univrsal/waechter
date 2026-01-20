@@ -114,22 +114,6 @@ enum key_status is_valid_string(char const* str, int len, char const* valid_char
 	return KEY_STATUS_VALID;
 }
 
-static keychar_t generate_random_chunk_value(void)
-{
-#if defined(__linux__)
-	unsigned char byte = 0;
-	if (getrandom(&byte, sizeof(byte), 0) == (ssize_t)sizeof(byte))
-		return (keychar_t)(byte & 0x1Fu);
-#endif
-	static int seeded = 0;
-	if (!seeded)
-	{
-		seeded = 1;
-		srand((unsigned int)(time(NULL) ^ (unsigned int)getpid()));
-	}
-	return (keychar_t)(rand() & 0x1F);
-}
-
 static void compute_payload_chunks(
 	char const* username, keychar_t const* salt_chunks, keychar_t payload[KEY_PAYLOAD_CHUNKS])
 {
@@ -218,48 +202,6 @@ enum key_status validate_key(const struct key* k)
 			return KEY_STATUS_INVALID;
 	}
 	return KEY_STATUS_VALID;
-}
-
-// Generates a key for the given username that is valid according to the validation logic
-void generate_key_for_user(char const* username, char out_key[30])
-{
-	if (!out_key)
-		return;
-	out_key[0] = '\0';
-	if (!username)
-		return;
-
-	int uname_len = str_len(username);
-	if (uname_len <= 0 || uname_len >= KEY_USERNAME_CAPACITY)
-		return;
-
-	if (is_valid_string(username, uname_len, valid_user_chars, 0) == KEY_STATUS_INVALID)
-		return;
-
-	keychar_t salt_chunks[KEY_SALT_CHUNKS] = { 0 };
-	for (int i = 0; i < KEY_SALT_CHUNKS; ++i)
-		salt_chunks[i] = generate_random_chunk_value();
-
-	keychar_t payload_chunks[KEY_PAYLOAD_CHUNKS] = { 0 };
-	compute_payload_chunks(username, salt_chunks, payload_chunks);
-
-	keychar_t final_chunks[KEY_TOTAL_CHARS] = { 0 };
-	for (int i = 0; i < KEY_SALT_CHUNKS; ++i)
-		final_chunks[i] = salt_chunks[i];
-	for (int i = 0; i < KEY_PAYLOAD_CHUNKS; ++i)
-		final_chunks[KEY_SALT_CHUNKS + i] = payload_chunks[i];
-
-	int out_index = 0;
-	for (int i = 0; i < KEY_TOTAL_CHARS; ++i)
-	{
-		keychar_t chunk = final_chunks[i];
-		if (chunk >= VALID_KEY_CHAR_COUNT)
-			return;
-		out_key[out_index++] = valid_key_chars[chunk];
-		if ((i + 1) % KEY_SECTION_CHARS == 0 && i < KEY_TOTAL_CHARS - 1)
-			out_key[out_index++] = '-';
-	}
-	out_key[out_index] = '\0';
 }
 
 enum key_status parse_key(char const* key_str, struct key* k)
