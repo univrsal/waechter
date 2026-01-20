@@ -8,7 +8,6 @@
 
 #include <atomic>
 #include <utility>
-#include <thread>
 #include <spdlog/spdlog.h>
 #include <tracy/Tracy.hpp>
 
@@ -25,23 +24,23 @@
 #include "Socket.hpp"
 #include "ErrnoUtil.hpp"
 #include "Types.hpp"
+#include "Communication/IClientSocket.hpp"
 
 class WDaemonSocket;
 
 class WDaemonClient
 {
-	std::shared_ptr<WClientSocket> ClientSocket;
-	WDaemonSocket*                 ParentSocket{};
+	std::shared_ptr<IClientSocket> ClientSocket;
 
 	WProcessId ClientPid{ 0 };
 
 	static void OnDataReceived(WBuffer& RecvBuf);
 
 public:
-	WDaemonClient(std::shared_ptr<WClientSocket> CS, WDaemonSocket* PS) : ClientSocket(std::move(CS)), ParentSocket(PS)
+	explicit WDaemonClient(std::shared_ptr<IClientSocket> CS) : ClientSocket(std::move(CS))
 	{
-		ClientSocket->OnData.connect(std::bind(&WDaemonClient::OnDataReceived, std::placeholders::_1));
-		ClientSocket->OnClosed.connect([] { spdlog::info("Client disconnected"); });
+		ClientSocket->GetDataSignal().connect([](WBuffer& Buffer) { OnDataReceived(Buffer); });
+		ClientSocket->GetClosedSignal().connect([] { spdlog::info("Client disconnected"); });
 		ClientSocket->StartListenThread();
 	}
 
@@ -49,7 +48,7 @@ public:
 
 	[[nodiscard]] bool IsRunning() const { return ClientSocket->IsConnected(); }
 
-	[[nodiscard]] std::shared_ptr<WClientSocket> GetSocket() const { return ClientSocket; }
+	[[nodiscard]] std::shared_ptr<IClientSocket> GetSocket() const { return ClientSocket; }
 
 	[[nodiscard]] ssize_t SendFramedData(std::string const& Data) const
 	{

@@ -21,6 +21,7 @@ public:
 	std::string RegistrationSerialKey{};
 
 	std::string SocketPath{ "/var/run/waechterd.sock" };
+	std::string WebSocketAuthToken{};
 
 	float        NetworkGraphLineWidth{ 1.0f };
 	int          NetworkGraphHistorySetting{ NGH_5Min };
@@ -33,8 +34,9 @@ public:
 	void serialize(Archive& archive)
 	{
 		archive(CEREAL_NVP(bShowUninitalizedSockets), CEREAL_NVP(RegisteredUsername), CEREAL_NVP(RegistrationSerialKey),
-			CEREAL_NVP(SocketPath), CEREAL_NVP(bShowOfflineProcesses), CEREAL_NVP(NetworkGraphLineWidth),
-			CEREAL_NVP(NetworkGraphHistorySetting), CEREAL_NVP(TrafficTreeUnitSetting));
+			CEREAL_NVP(SocketPath), CEREAL_NVP(WebSocketAuthToken), CEREAL_NVP(bShowOfflineProcesses),
+			CEREAL_NVP(NetworkGraphLineWidth), CEREAL_NVP(NetworkGraphHistorySetting),
+			CEREAL_NVP(TrafficTreeUnitSetting));
 	}
 
 	void Load();

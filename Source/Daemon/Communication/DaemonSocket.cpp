@@ -20,7 +20,11 @@
 #include <cereal/archives/binary.hpp>
 // ReSharper restore CppUnusedIncludeDirective
 
+#if WAECHTER_WITH_WEBSOCKETSERVER
+	#include "DaemonWebSocket.hpp"
+#endif
 #include "DaemonConfig.hpp"
+#include "DaemonUnixSocket.hpp"
 #include "ErrnoUtil.hpp"
 #include "Filesystem.hpp"
 #include "Messages.hpp"
@@ -55,45 +59,37 @@ static void SendInitialDataToClient(std::shared_ptr<WDaemonClient> const& Client
 	}
 }
 
-void WDaemonSocket::ListenThreadFunction()
+void WDaemonSocket::OnNewConnection(std::shared_ptr<WDaemonClient> const& NewClient)
 {
-	tracy::SetThreadName("DaemonSocket");
-	WBuffer Buffer;
-	while (Running)
-	{
-		if (auto ClientSocket = Socket.Accept(500))
-		{
-			spdlog::info("Client connected");
-			auto NewClient = std::make_shared<WDaemonClient>(ClientSocket, this);
-			SendInitialDataToClient(NewClient);
-			ClientsMutex.lock();
-			Clients.push_back(NewClient);
-			ClientsMutex.unlock();
-		}
-		RemoveInactiveClients();
-	}
+	SendInitialDataToClient(NewClient);
+	ClientsMutex.lock();
+	Clients.push_back(NewClient);
+	ClientsMutex.unlock();
+	RemoveInactiveClients();
 }
 
-bool WDaemonSocket::StartListenThread()
+WDaemonSocket::WDaemonSocket(std::string const& Path)
 {
-	if (std::filesystem::exists(SocketPath))
+	char hostname[HOST_NAME_MAX];
+	if (gethostname(hostname, HOST_NAME_MAX) == 0)
 	{
-		unlink(SocketPath.c_str());
+		Hostname = hostname;
+	}
+	else
+	{
+		Hostname = "System";
 	}
 
-	if (!Socket.BindAndListen())
+	if (Path.starts_with("/"))
 	{
-		return false;
+		Socket = std::make_unique<WDaemonUnixSocket>();
 	}
-
-	auto const& Cfg = WDaemonConfig::GetInstance();
-	if (!WFilesystem::SetSocketOwnerAndPermsByName(SocketPath, Cfg.DaemonUser, Cfg.DaemonGroup, Cfg.DaemonSocketMode))
+#if WAECHTER_WITH_WEBSOCKETSERVER
+	else if (Path.starts_with("ws"))
 	{
-		return false;
+		Socket = std::make_unique<WDaemonWebSocket>();
 	}
-	Running = true;
-	ListenThread = std::thread(&WDaemonSocket::ListenThreadFunction, this);
-	return true;
+#endif
 }
 
 void WDaemonSocket::BroadcastTrafficUpdate()

@@ -15,6 +15,14 @@ target_compile_options(waechterd PRIVATE
         -Werror
 )
 
+if (WAECHTER_WITH_WEBSOCKETSERVER)
+    target_compile_definitions(waechterd PRIVATE WAECHTER_WITH_WEBSOCKETSERVER)
+    # find libwebsockets
+    find_package(LibWebSockets REQUIRED)
+    target_include_directories(waechterd PRIVATE ${LIBWEBSOCKETS_INCLUDE_DIRS})
+    target_link_libraries(waechterd PRIVATE ${LIBWEBSOCKETS_LIBRARIES})
+endif ()
+
 include(FindPkgConfig)
 pkg_check_modules(LIBBPF REQUIRED libbpf)
 

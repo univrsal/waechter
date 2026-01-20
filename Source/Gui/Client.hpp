@@ -26,6 +26,7 @@
 #include "Windows/TrafficTree.hpp"
 #include "TrafficCounter.hpp"
 #include "Singleton.hpp"
+#include "Communication/IDaemonSocket.hpp"
 #include "Data/TrafficItem.hpp"
 
 struct WClientItem : ITrafficItem
@@ -35,9 +36,8 @@ struct WClientItem : ITrafficItem
 
 class WClient : public TSingleton<WClient>
 {
-	std::shared_ptr<WClientSocket> Socket;
-	mutable std::mutex             SocketMutex;
 	std::shared_ptr<WTrafficTree>  TrafficTree{};
+	std::shared_ptr<IDaemonSocket> DaemonSocket{};
 
 	TTrafficCounter<WClientItem> TrafficCounter{ std::make_shared<WClientItem>() };
 
@@ -50,7 +50,13 @@ public:
 	std::atomic<WBytesPerSecond> ClientToDaemonTrafficRate{ 0 };
 
 	void Start();
-	void Stop() const { Socket->Close(); }
+	void Stop() const
+	{
+		if (DaemonSocket)
+		{
+			DaemonSocket->Stop();
+		}
+	}
 
 	WClient();
 	~WClient() override = default;
@@ -58,13 +64,16 @@ public:
 	// Return whether client socket is currently connected
 	[[nodiscard]] bool IsConnected() const
 	{
-		std::lock_guard lk(SocketMutex);
-		return Socket && Socket->IsConnected();
+		if (!DaemonSocket)
+		{
+			return false;
+		}
+		return DaemonSocket->IsConnected();
 	}
 
 	std::shared_ptr<WTrafficTree> GetTrafficTree() { return TrafficTree; }
 
-	ssize_t SendFramedData(std::string const& Data) const { return Socket->SendFramed(Data); }
+	ssize_t SendFramedData(std::string const& Data) const { return DaemonSocket->SendFramed(Data); }
 
 	template <class T>
 	void SendMessage(EMessageType Type, T const& Data) const
@@ -75,7 +84,7 @@ public:
 			cereal::BinaryOutputArchive AtlasArchive(AtlasOs);
 			AtlasArchive(Data);
 		}
-		if (!Socket->SendFramed(AtlasOs.str()))
+		if (!DaemonSocket->SendFramed(AtlasOs.str()))
 		{
 			spdlog::error(
 				"Failed to send message of type {} to daemon: {}", static_cast<int>(Type), WErrnoUtil::StrError());

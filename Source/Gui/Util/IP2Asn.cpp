@@ -103,9 +103,8 @@ void WIP2Asn::UpdateDatabase()
 	}
 	bUpdateInProgress = true;
 	DownloadThread = std::thread([this]() {
-		auto const& cURL = WMainWindow::Get().GetLibCurl();
 		auto        DatabasePath = WSettings::GetConfigFolder() / "ip2asn_db.tsv.gz";
-		cURL.DownloadFile(
+		WLibCurl::DownloadFile(
 			URL, DatabasePath,
 			[](float Progress) { spdlog::info("Downloading IP2ASN database... {:.2f}%", Progress * 100.0f); },
 			[](std::string const& Error) { spdlog::error("Failed to download IP2ASN database: {}", Error); });

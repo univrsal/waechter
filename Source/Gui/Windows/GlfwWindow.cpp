@@ -21,6 +21,8 @@
 #include "Icons/IconAtlas.hpp"
 #include "Util/Settings.hpp"
 
+#include <curl/curl.h>
+
 INCBIN(Icon, ICON_PATH);
 INCBIN(Font, FONT_PATH);
 
@@ -31,6 +33,7 @@ static void GlfwErrorCallback(int Error, char const* Description)
 
 bool WGlfwWindow::Init()
 {
+	curl_global_init(CURL_GLOBAL_DEFAULT);
 	glfwSetErrorCallback(GlfwErrorCallback);
 	MainWindow = std::make_unique<WMainWindow>();
 
@@ -183,6 +186,7 @@ void WGlfwWindow::Destroy()
 
 	glfwDestroyWindow(Window);
 	glfwTerminate();
+	curl_global_cleanup();
 }
 
 void WGlfwWindow::SetTitle(std::string const& Title)

@@ -10,6 +10,8 @@
 
 #include "AppIconAtlas.hpp"
 #include "Messages.hpp"
+#include "Communication/UnixSocketSource.hpp"
+#include "Communication/WebSocketSource.hpp"
 #include "Data/Protocol.hpp"
 #include "Util/Settings.hpp"
 #include "Windows/GlfwWindow.hpp"
@@ -89,23 +91,33 @@ void WClient::HandleHandshake(WBuffer& Buf)
 
 void WClient::Start()
 {
-	Socket->OnData.connect(std::bind(&WClient::OnDataReceived, this, std::placeholders::_1));
-	Socket->StartListenThread();
-
-	WTimerManager::GetInstance().AddTimer(0.5, [this] {
-		if (!Socket->IsConnected())
-		{
-			Socket->Connect();
-			if (Socket->IsConnected())
-			{
-				Socket->StartListenThread();
-			}
-		}
-	});
+	Stop();
+#if WAECHTER_WITH_WEBSOCKETCLIENT
+	if (WSettings::GetInstance().SocketPath.starts_with("ws://")
+		|| WSettings::GetInstance().SocketPath.starts_with("wss://"))
+	{
+		DaemonSocket = std::make_shared<WWebSocketSource>(
+			WSettings::GetInstance().SocketPath, WSettings::GetInstance().WebSocketAuthToken);
+		DaemonSocket->GetDataSignal().connect([this](WBuffer& Buf) { OnDataReceived(Buf); });
+	}
+	else
+#endif
+		if (WSettings::GetInstance().SocketPath.starts_with('/'))
+	{
+		DaemonSocket = std::make_shared<WUnixSocketSource>();
+		DaemonSocket->GetDataSignal().connect([this](WBuffer& Buf) { OnDataReceived(Buf); });
+	}
+	else
+	{
+		spdlog::error("Invalid socket path: {}", WSettings::GetInstance().SocketPath);
+	}
+	if (DaemonSocket)
+	{
+		DaemonSocket->Start();
+	}
 }
 
 WClient::WClient()
 {
-	Socket = std::make_shared<WClientSocket>(WSettings::GetInstance().SocketPath);
 	TrafficTree = std::make_shared<WTrafficTree>();
 }

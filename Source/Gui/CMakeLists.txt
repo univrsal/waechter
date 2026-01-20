@@ -18,6 +18,16 @@ target_compile_definitions(waechter PRIVATE
 add_subdirectory(Windows)
 add_subdirectory(Util)
 add_subdirectory(Icons)
+add_subdirectory(Communication)
+
+find_package(CURL REQUIRED)
+
+if (WAECHTER_WITH_WEBSOCKETCLIENT)
+    target_compile_definitions(waechter PRIVATE WAECHTER_WITH_WEBSOCKETCLIENT)
+    find_package(LibWebSockets REQUIRED)
+    target_include_directories(waechter PRIVATE ${LIBWEBSOCKETS_INCLUDE_DIRS})
+    target_link_libraries(waechter PRIVATE ${LIBWEBSOCKETS_LIBRARIES})
+endif ()
 
 target_link_libraries(waechter PRIVATE
         thirdparty::spdlog
@@ -34,6 +44,7 @@ target_link_libraries(waechter PRIVATE
         thirdparty::sigslot
         thirdparty::cereal
         thirdparty::tracy
+        CURL::libcurl
         waechter::util
         dl
 )
