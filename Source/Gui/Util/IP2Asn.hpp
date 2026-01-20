@@ -29,7 +29,7 @@ class WIP2Asn : public TSingleton<WIP2Asn>
 
 public:
 	WIP2Asn() = default;
-	~WIP2Asn()
+	~WIP2Asn() override
 	{
 		if (DownloadThread.joinable())
 		{

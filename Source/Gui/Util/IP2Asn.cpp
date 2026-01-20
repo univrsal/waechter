@@ -84,6 +84,10 @@ void WIP2Asn::UpdateDatabase()
 	{
 		return;
 	}
+	if (DownloadThread.joinable())
+	{
+		DownloadThread.join();
+	}
 	static std::string const URL = "https://waechter.st/ip2asn-combined.tsv.gz";
 	DownloadMutex.lock();
 	// remove old database files
