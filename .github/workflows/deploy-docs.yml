@@ -44,6 +44,7 @@ jobs:
           SERVER_KNOWN_HOST: ${{ secrets.SERVER_KNOWN_HOST }}
           SERVER_IP: ${{ secrets.SERVER_IP }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_PATH: ${{ secrets.SERVER_PATH }}
         run: |
           # Create SSH directory and add private key
           mkdir -p ~/.ssh
@@ -54,9 +55,9 @@ jobs:
           ssh-keyscan -p 22033 -H "$SERVER_IP" >> ~/.ssh/known_hosts
           
           # Deploy using rsync over SSH
-          #rsync --port 22033 -avz --delete \
-          #  -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
-          #  "Meta/Web/.vitepress/dist/" "$SERVER_USER@$SERVER_IP:/"
+          rsync --port 22033 -avz \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            "Meta/Web/.vitepress/dist/" "$SERVER_USER@$SERVER_IP:$SERVER_PATH"
           
           # Clean up
           rm -f ~/.ssh/deploy_key
