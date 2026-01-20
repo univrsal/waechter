@@ -33,10 +33,10 @@ Wächter is still in early development. Currently implemented features are:
 - View connection information (local/remote endpoints, hostname)
 - Block upload/download per connection
 - Throttle upload/download per connection
+- Connection history to log what connections are made by which application
 
 Planned features:
 
-- Connection history to log what connections are made by which application
 - Persistent rules that are saved and loaded on startup
 - Long-term traffic statistics and graphs
 
