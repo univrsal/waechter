@@ -51,7 +51,7 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           
           # Add server to known_hosts to avoid interactive prompt
-          echo "$SERVER_KNOWN_HOST" >> ~/.ssh/known_hosts
+          ssh-keyscan -p 22033 -H "$SERVER_IP" >> ~/.ssh/known_hosts
           
           # Deploy using rsync over SSH
           rsync --port 22033 -avz --delete \
