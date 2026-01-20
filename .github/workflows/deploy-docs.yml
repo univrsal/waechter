@@ -51,7 +51,7 @@ jobs:
           ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts
           
           # Deploy using rsync over SSH
-          rsync --port 22022 -avz --delete \
+          rsync --port 22033 -avz --delete \
             -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
             Meta/Web/.vitepress/dist/* \
             "$SERVER_USER@$SERVER_IP"
