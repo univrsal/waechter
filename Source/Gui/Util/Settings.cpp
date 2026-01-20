@@ -4,6 +4,9 @@
  */
 
 #include "Settings.hpp"
+
+#include "DbusUtil.hpp"
+
 #include <cereal/archives/json.hpp>
 #include <fstream>
 #include <spdlog/spdlog.h>
@@ -30,6 +33,8 @@ WSettings::WSettings()
 	}
 	else
 	{
+		bFirstRun = true;
+		bUseDarkTheme = WDbusUtil::IsUsingDarkTheme();
 		spdlog::info("Creating default settings");
 		Save();
 	}

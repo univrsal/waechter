@@ -14,6 +14,7 @@
 class WSettings : public TSingleton<WSettings>
 {
 public:
+	bool bFirstRun{ false };
 	bool bShowUninitalizedSockets{ false };
 	bool bShowOfflineProcesses{ false };
 

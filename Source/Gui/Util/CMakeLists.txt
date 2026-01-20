@@ -14,6 +14,8 @@ target_sources(waechter
         ImageUtil.hpp
         IP2Asn.cpp
         IP2Asn.hpp
+        DbusUtil.cpp
+        DbusUtil.hpp
 )
 
 add_subdirectory(Keylogic)
