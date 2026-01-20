@@ -28,6 +28,7 @@ export default defineConfig({
     socialLinks: [
       // Add your repo link when you want it visible in the header:
       { icon: 'github', link: 'https://github.com/univrsal/waechter' },
+      { icon: 'discord', link: 'https://discord.gg/kZsHuncu3q' },
     ],
   },
 });
