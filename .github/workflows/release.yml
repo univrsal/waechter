@@ -1,0 +1,116 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - '*.*.*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies (APT)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            ninja-build \
+            pkg-config \
+            clang llvm \
+            linux-tools-common \
+            libbpf-dev \
+            libelf-dev \
+            libcurl4-gnutls-dev \
+            zlib1g-dev \
+            libwebsockets-dev \
+            libx11-dev libxrandr-dev libxi-dev libxinerama-dev libxcursor-dev libxxf86vm-dev \
+            libgl1-mesa-dev \
+            libwayland-dev wayland-protocols libxkbcommon-dev \
+            ccache
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ./.ccache
+          key: ${{ runner.os }}-ccache-release-${{ hashFiles('**/CMakeLists.txt', '**/*.cpp', '**/*.c', '**/*.h') }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-release-
+            ${{ runner.os }}-ccache-
+
+      - name: Show ccache stats (before)
+        run: |
+          ccache --version || true
+          ccache -s || true
+
+      - name: Configure (CMake + Ninja)
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/artifacts" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+      - name: Build
+        run: |
+          cmake --build build --config Release -- -k 0
+
+      - name: Show ccache stats (after)
+        run: |
+          ccache -s || true
+
+      - name: Package (Install)
+        run: |
+          cmake --install build --prefix artifacts
+
+      - name: Package (DEB)
+        run: |
+          cd build
+          cpack -G DEB
+
+      - name: Get tag name
+        id: tag
+        run: |
+          echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+
+      - name: Create tarball of installed files
+        run: |
+          cd artifacts
+          tar -czf ../waechter-${{ steps.tag.outputs.TAG_NAME }}-linux-x86_64.tar.gz .
+          cd ..
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          cat > release_notes.md << 'EOF'
+          ## Waechter Release ${{ steps.tag.outputs.TAG_NAME }}
+          
+          **Note:** This is a draft release. Please test before marking as final.
+          EOF
+          
+          # Make release notes available to the next step
+          echo "RELEASE_NOTES<<EOF" >> "$GITHUB_OUTPUT"
+          cat release_notes.md >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          prerelease: false
+          name: Waechter ${{ steps.tag.outputs.TAG_NAME }}
+          body_path: release_notes.md
+          files: |
+            build/*.deb
+            waechter-${{ steps.tag.outputs.TAG_NAME }}-linux-x86_64.tar.gz
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
