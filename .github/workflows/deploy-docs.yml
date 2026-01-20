@@ -55,7 +55,7 @@ jobs:
           # Deploy using rsync over SSH
           rsync --port 22033 -avz --delete \
             -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
-            Meta/Web/.vitepress/dist/* "$SERVER_USER@$SERVER_IP:/"
+            "Meta/Web/.vitepress/dist/" "$SERVER_USER@$SERVER_IP:/"
           
           # Clean up
           rm -f ~/.ssh/deploy_key
