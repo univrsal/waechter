@@ -54,16 +54,9 @@ jobs:
           echo "$SERVER_KNOWN_HOST" >> ~/.ssh/known_hosts
           
           # Deploy using rsync over SSH
-          #rsync --port 22033 -avz --delete \
-          #  -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
-          #  "Meta/Web/.vitepress/dist/" "$SERVER_USER@$SERVER_IP:/"
+          rsync --port 22033 -avz --delete \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            "Meta/Web/.vitepress/dist/" "$SERVER_USER@$SERVER_IP:/"
           
           # Clean up
           rm -f ~/.ssh/deploy_key
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: vitepress-site
-          path: Meta/Web/.vitepress/dist
-          retention-days: 7
