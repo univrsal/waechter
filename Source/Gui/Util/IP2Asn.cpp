@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <spdlog/spdlog.h>
 #include <zlib.h>
+#include <imgui.h>
 
 #include "Format.hpp"
 #include "LibCurl.hpp"
@@ -58,7 +59,7 @@ bool WIP2Asn::ExtractDatabase(std::filesystem::path const& GzPath, std::filesyst
 void WIP2Asn::Init()
 {
 	auto DatabasePath = WSettings::GetConfigFolder() / "ip2asn_db.tsv";
-
+	Database = nullptr;
 	if (std::filesystem::exists(DatabasePath))
 	{
 		Database = std::make_unique<WIP2AsnDB>(DatabasePath);
@@ -102,11 +103,10 @@ void WIP2Asn::UpdateDatabase()
 		std::filesystem::remove(OldDatabasePath);
 	}
 	bUpdateInProgress = true;
-	DownloadThread = std::thread([this]() {
+	DownloadThread = std::thread([this] {
 		auto        DatabasePath = WSettings::GetConfigFolder() / "ip2asn_db.tsv.gz";
 		WLibCurl::DownloadFile(
-			URL, DatabasePath,
-			[](float Progress) { spdlog::info("Downloading IP2ASN database... {:.2f}%", Progress * 100.0f); },
+			URL, DatabasePath, [&](float Progress) { DownloadProgress = Progress; },
 			[](std::string const& Error) { spdlog::error("Failed to download IP2ASN database: {}", Error); });
 		if (ExtractDatabase(DatabasePath, DatabasePath.parent_path() / "ip2asn_db.tsv"))
 		{
@@ -116,6 +116,24 @@ void WIP2Asn::UpdateDatabase()
 		DownloadMutex.unlock();
 		bUpdateInProgress = false;
 	});
+}
+
+void WIP2Asn::DrawDownloadProgressWindow()
+{
+	if (!bUpdateInProgress)
+	{
+		return;
+	}
+	ImGuiIO& Io = ImGui::GetIO();
+	auto     DisplaySize = Io.DisplaySize;
+	ImGui::SetNextWindowPos(ImVec2(DisplaySize.x * 0.5f, DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+	ImGui::SetNextWindowSize(ImVec2(400, 80), ImGuiCond_Always);
+	if (ImGui::Begin("Updating IP2Asn database", nullptr,
+			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
+	{
+		ImGui::ProgressBar(DownloadProgress.load(), ImVec2(-1.0f, 0.0f));
+	}
+	ImGui::End();
 }
 
 std::optional<WIP2AsnLookupResult> WIP2Asn::Lookup(std::string const& IpAddress)

@@ -172,5 +172,6 @@ void WMainWindow::Draw()
 	RegisterDialog.Draw();
 	ConnectionHistoryWindow.Draw();
 	SettingsWindow.Draw();
+	WIP2Asn::GetInstance().DrawDownloadProgressWindow();
 	WClient::GetInstance().GetTrafficTree()->Draw(Main);
 }

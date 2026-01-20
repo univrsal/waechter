@@ -19,6 +19,7 @@ class WIP2Asn : public TSingleton<WIP2Asn>
 	std::atomic<bool> bUpdateInProgress{ false };
 	std::thread       DownloadThread{};
 	std::mutex        DownloadMutex{};
+	std::atomic<float> DownloadProgress{ 0.0f };
 
 	std::unique_ptr<WIP2AsnDB> Database{};
 
@@ -38,6 +39,8 @@ public:
 	void Init();
 
 	void UpdateDatabase();
+
+	void DrawDownloadProgressWindow();
 
 	bool IsUpdateInProgress() const noexcept { return bUpdateInProgress.load(); }
 	bool HasDatabase() const noexcept { return Database != nullptr; }

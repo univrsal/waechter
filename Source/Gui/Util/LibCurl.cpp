@@ -46,6 +46,26 @@ namespace
 		}
 		return true;
 	}
+
+	bool GetHttpResponseCode(CURL* Curl, long& OutCode)
+	{
+		OutCode = 0;
+		if (!Curl)
+		{
+			return false;
+		}
+		return curl_easy_getinfo(Curl, CURLINFO_RESPONSE_CODE, &OutCode) == CURLE_OK;
+	}
+
+	std::string GetEffectiveUrl(CURL* Curl)
+	{
+		char* Url = nullptr;
+		if (Curl && curl_easy_getinfo(Curl, CURLINFO_EFFECTIVE_URL, &Url) == CURLE_OK && Url)
+		{
+			return Url;
+		}
+		return {};
+	}
 } // namespace
 
 
@@ -84,6 +104,25 @@ WJson WLibCurl::GetJson(std::string const& Url, std::string& OutError)
 	if (ReturnCode != CURLE_OK)
 	{
 		OutError = curl_easy_strerror(ReturnCode);
+		curl_easy_cleanup(Curl);
+		return {};
+	}
+
+	// Only accept a successful HTTP 200 response.
+	long HttpCode = 0;
+	GetHttpResponseCode(Curl, HttpCode);
+	if (HttpCode != 200)
+	{
+		auto EffectiveUrl = GetEffectiveUrl(Curl);
+		if (HttpCode == 0)
+		{
+			OutError = EffectiveUrl.empty() ? "non-HTTP response" : fmt::format("non-HTTP response ({})", EffectiveUrl);
+		}
+		else
+		{
+			OutError = EffectiveUrl.empty() ? fmt::format("HTTP {}", HttpCode)
+											: fmt::format("HTTP {} ({})", HttpCode, EffectiveUrl);
+		}
 		curl_easy_cleanup(Curl);
 		return {};
 	}
@@ -142,9 +181,26 @@ void WLibCurl::DownloadFile(std::string const& Url, std::filesystem::path const&
 	CURLcode ReturnCode = curl_easy_perform(Curl);
 	std::fclose(File);
 
+	long HttpCode = 0;
+	GetHttpResponseCode(Curl, HttpCode);
+
 	if (ReturnCode != CURLE_OK)
 	{
 		OnError(curl_easy_strerror(ReturnCode));
+		std::remove(DestinationPath.string().c_str());
+	}
+	else if (HttpCode != 200)
+	{
+		auto EffectiveUrl = GetEffectiveUrl(Curl);
+		if (HttpCode == 0)
+		{
+			OnError(EffectiveUrl.empty() ? "non-HTTP response" : fmt::format("non-HTTP response ({})", EffectiveUrl));
+		}
+		else
+		{
+			OnError(EffectiveUrl.empty() ? fmt::format("HTTP {}", HttpCode)
+										 : fmt::format("HTTP {} ({})", HttpCode, EffectiveUrl));
+		}
 		std::remove(DestinationPath.string().c_str());
 	}
 
