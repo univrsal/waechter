@@ -10,3 +10,6 @@ target_link_libraries(waechter-iplink
         thirdparty::sigslot
         thirdparty::tracy
 )
+
+install(TARGETS waechter-iplink
+        RUNTIME DESTINATION bin)
