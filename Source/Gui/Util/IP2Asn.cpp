@@ -125,12 +125,17 @@ std::optional<WIP2AsnLookupResult> WIP2Asn::Lookup(std::string const& IpAddress)
 		return std::nullopt;
 	}
 
-	if (auto It = Cache.find(IpAddress); It != Cache.end())
+	if (auto const It = Cache.find(IpAddress); It != Cache.end())
 	{
 		return It->second;
 	}
 	std::scoped_lock Lock(DownloadMutex);
 	auto             Result = Database->Lookup(IpAddress);
+	if (!Result)
+	{
+		Cache[IpAddress] = std::nullopt;
+		return std::nullopt;
+	}
 
 	auto CountryLowerCase = Result->Country;
 	std::ranges::transform(CountryLowerCase, CountryLowerCase.begin(), [](unsigned char c) { return std::tolower(c); });
