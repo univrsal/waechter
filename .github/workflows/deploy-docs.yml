@@ -6,11 +6,6 @@ on:
     paths:
       - 'Meta/Web/**'
       - '.github/workflows/deploy-docs.yml'
-  pull_request:
-    branches: [ master ]
-    paths:
-      - 'Meta/Web/**'
-      - '.github/workflows/deploy-docs.yml'
   workflow_dispatch:
 
 jobs:
