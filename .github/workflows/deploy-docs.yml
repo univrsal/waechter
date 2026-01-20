@@ -41,6 +41,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_KNOWN_HOST: ${{ secrets.SERVER_KNOWN_HOST }}
           SERVER_IP: ${{ secrets.SERVER_IP }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
         run: |
@@ -50,12 +51,12 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           
           # Add server to known_hosts to avoid interactive prompt
-          ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "$SERVER_KNOWN_HOST" >> ~/.ssh/known_hosts
           
           # Deploy using rsync over SSH
-          rsync --port 22033 -avz --delete \
-            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
-            "Meta/Web/.vitepress/dist/" "$SERVER_USER@$SERVER_IP:/"
+          #rsync --port 22033 -avz --delete \
+          #  -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+          #  "Meta/Web/.vitepress/dist/" "$SERVER_USER@$SERVER_IP:/"
           
           # Clean up
           rm -f ~/.ssh/deploy_key
