@@ -1,0 +1,13 @@
+#!/bin/sh
+exit 0
+
+fi
+    fi
+        systemctl disable waechterd.service || true
+        fi
+            systemctl stop waechterd.service || true
+        if systemctl is-active --quiet waechterd.service; then
+    if [ -d /run/systemd/system ]; then
+if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
+
+set -e

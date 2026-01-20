@@ -1,0 +1,20 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
+    if [ -d /run/systemd/system ]; then
+        systemctl daemon-reload || true
+    fi
+fi
+
+if [ "$1" = "purge" ]; then
+    if id -u waechter >/dev/null 2>&1; then
+        userdel waechter || true
+    fi
+
+    if [ -d /etc/waechter ]; then
+        rm -rf /etc/waechter || true
+    fi
+fi
+
+exit 0

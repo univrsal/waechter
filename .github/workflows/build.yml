@@ -83,18 +83,31 @@ jobs:
         run: |
           ccache -s || true
 
-      - name: Package
+      - name: Package (Install)
         run: |
-          cmake --install build || true
+          cmake --install build --prefix artifacts || true
+
+      - name: Package (DEB)
+        run: |
+          cd build
+          cpack -G DEB
 
       - name: Get short commit
         run: |
           # put the short git commit into the Actions environment so it can be used in later steps
           echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
 
-      - name: Upload Artifacts
+      - name: Upload Artifacts (Installed Files)
         uses: actions/upload-artifact@v4
         with:
           name: waechter-ubuntu-${{ env.SHORT_SHA }}
           path: artifacts
           if-no-files-found: ignore
+
+      - name: Upload Artifacts (DEB Package)
+        uses: actions/upload-artifact@v4
+        with:
+          name: waechter-deb-${{ env.SHORT_SHA }}
+          path: build/*.deb
+          if-no-files-found: error
+

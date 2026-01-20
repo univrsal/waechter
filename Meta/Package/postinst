@@ -1,0 +1,39 @@
+#!/bin/sh
+set -e
+
+if ! id -u waechter >/dev/null 2>&1; then
+    useradd --system --no-create-home --shell /usr/sbin/nologin \
+        --comment "Waechter daemon user" waechter
+fi
+
+if [ ! -d /etc/waechter ]; then
+    mkdir -p /etc/waechter
+    chown root:waechter /etc/waechter
+    chmod 750 /etc/waechter
+fi
+
+if [ -f /etc/waechter/waechterd.ini ]; then
+    chown root:waechter /etc/waechter/waechterd.ini
+    chmod 640 /etc/waechter/waechterd.ini
+fi
+
+if [ -d /run/systemd/system ]; then
+    systemctl daemon-reload || true
+fi
+
+if [ "$1" = "configure" ] && [ -z "$2" ]; then
+    if [ -d /run/systemd/system ]; then
+        systemctl enable waechterd.service || true
+        echo "Waechter daemon has been enabled. Start it with: systemctl start waechterd.service"
+    fi
+fi
+
+if [ "$1" = "configure" ] && [ -n "$2" ]; then
+    if [ -d /run/systemd/system ]; then
+        if systemctl is-active --quiet waechterd.service; then
+            systemctl restart waechterd.service || true
+        fi
+    fi
+fi
+
+exit 0
