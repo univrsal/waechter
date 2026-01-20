@@ -309,6 +309,18 @@ bool WWebSocketSource::SendFramed(std::string const& Data)
 		return false;
 	}
 
+	if (Data.size() > UINT32_MAX)
+	{
+		spdlog::error("WebSocket send data too large: {} bytes", Data.size());
+		return false;
+	}
+
+	if (Data.empty())
+	{
+		spdlog::error("WebSocket send data is empty");
+		return false;
+	}
+
 	// Prepare framed data with 4-byte length prefix and LWS_PRE padding
 	auto const        Length = static_cast<uint32_t>(Data.size());
 	std::vector<char> FramedData(LWS_PRE + sizeof(uint32_t) + Data.size());

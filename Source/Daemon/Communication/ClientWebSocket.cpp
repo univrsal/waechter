@@ -33,6 +33,18 @@ ssize_t WClientWebSocket::SendFramed(std::string const& Data)
 		return -1;
 	}
 
+	if (Data.size() > UINT32_MAX)
+	{
+		spdlog::error("WebSocket send data too large: {} bytes", Data.size());
+		return -1;
+	}
+
+	if (Data.empty())
+	{
+		spdlog::error("WebSocket send data is empty");
+		return -1;
+	}
+
 	// Prepare framed data with 4-byte length prefix
 	auto const        Length = static_cast<uint32_t>(Data.size());
 	std::vector<char> FramedData(LWS_PRE + sizeof(uint32_t) + Data.size());
