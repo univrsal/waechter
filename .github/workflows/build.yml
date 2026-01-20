@@ -2,7 +2,7 @@ name: Build (Ubuntu)
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ master ]
     paths:
       - 'Source/**'
       - 'Thirdparty/**'
@@ -10,7 +10,7 @@ on:
       - '**/CMakeLists.txt'
       - '**/*.cmake'
   pull_request:
-    branches: [ main, master ]
+    branches: [ master ]
     paths:
       - 'Source/**'
       - 'Thirdparty/**'

@@ -1,0 +1,67 @@
+name: Deploy VitePress Documentation
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - 'Meta/Web/**'
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'Meta/Web/**'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: Meta/Web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: Meta/Web
+        run: npm ci
+
+      - name: Build VitePress site
+        working-directory: Meta/Web
+        run: npm run docs:build
+
+      - name: Deploy to server via rsync
+        # Only deploy on push to main/master, not on PRs
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+        run: |
+          # Create SSH directory and add private key
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          
+          # Add server to known_hosts to avoid interactive prompt
+          ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts
+          
+          # Deploy using rsync over SSH
+          rsync --port 22022 -avz --delete \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            Meta/Web/.vitepress/dist/* \
+            "$SERVER_USER@$SERVER_IP"
+          
+          # Clean up
+          rm -f ~/.ssh/deploy_key
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitepress-site
+          path: Meta/Web/.vitepress/dist
+          retention-days: 7
