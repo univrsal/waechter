@@ -85,7 +85,7 @@ struct
 	__type(value, __u16);
 } ingress_port_marks SEC(".maps");
 
-static __always_inline struct WSocketEvent* MakeSocketEvent(__u64 Cookie, __u8 EventType)
+static __always_inline struct WSocketEvent* MakeSocketEvent2(__u64 Cookie, __u8 EventType, bool bWithPID)
 {
 	if (Cookie == 0)
 	{
@@ -101,12 +101,25 @@ static __always_inline struct WSocketEvent* MakeSocketEvent(__u64 Cookie, __u8 E
 	}
 	__builtin_memset(&SocketEvent->Data, 0, sizeof(struct WSocketEventData));
 
-	SocketEvent->CgroupId = bpf_get_current_cgroup_id();
-	SocketEvent->PidTgId = bpf_get_current_pid_tgid();
+	if (bWithPID)
+	{
+		SocketEvent->CgroupId = bpf_get_current_cgroup_id();
+		SocketEvent->PidTgId = bpf_get_current_pid_tgid();
+	}
+	else
+	{
+		SocketEvent->CgroupId = 0;
+		SocketEvent->PidTgId = 0;
+	}
 	SocketEvent->Cookie = Cookie;
 	SocketEvent->EventType = EventType;
 
 	return SocketEvent;
+}
+
+static __always_inline struct WSocketEvent* MakeSocketEvent(__u64 Cookie, __u8 EventType)
+{
+	return MakeSocketEvent2(Cookie, EventType, false);
 }
 
 static __always_inline struct WTrafficItemRulesBase* GetSocketRules(__u64 Cookie)

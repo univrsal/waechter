@@ -31,7 +31,7 @@ int cgskb_ingress(struct __sk_buff* Skb)
 		return SK_DROP;
 	}
 
-	struct WSocketEvent* SocketEvent = MakeSocketEvent(Cookie, NE_Traffic);
+	struct WSocketEvent* SocketEvent = MakeSocketEvent2(Cookie, NE_Traffic, false);
 
 	if (SocketEvent)
 	{
@@ -78,7 +78,7 @@ int cgskb_egress(struct __sk_buff* Skb)
 		return SK_DROP;
 	}
 
-	struct WSocketEvent* SocketEvent = MakeSocketEvent(Cookie, NE_Traffic);
+	struct WSocketEvent* SocketEvent = MakeSocketEvent2(Cookie, NE_Traffic, false);
 	if (SocketEvent)
 	{
 		__builtin_memset(&SocketEvent->Data.TrafficEventData, 0, sizeof(SocketEvent->Data.TrafficEventData));
