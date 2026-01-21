@@ -2,6 +2,18 @@
 title: Documentation
 ---
 
+<iframe
+width="100%"
+style="aspect-ratio:16/9"
+src="https://www.youtube.com/embed/r0jEP4FqzbI"
+title="YouTube video player"
+frameborder="0"
+allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+allowfullscreen
+> </iframe>
+
+[Local version of the video](/intro.mp4)
+
 Wächter is a tool to monitor and control network traffic on Linux.
 
 It's currently in early development so there's no ready to use builds but it can be compiled from source for testing.
