@@ -78,26 +78,30 @@ jobs:
 
       - name: Import GPG key
         if: ${{ secrets.GPG_PRIVATE_KEY != '' }}
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         run: |
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
           gpg --list-secret-keys
 
       - name: Sign artifacts with GPG
         if: ${{ secrets.GPG_PRIVATE_KEY != '' }}
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
           # Sign the DEB package
           for deb in build/*.deb; do
-            gpg --batch --yes --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+            gpg --batch --yes --passphrase "$GPG_PASSPHRASE" \
               --pinentry-mode loopback --detach-sign --armor "$deb"
           done
           
           # Sign the tarball
-          gpg --batch --yes --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" \
             --pinentry-mode loopback --detach-sign --armor \
             waechter-${{ steps.tag.outputs.TAG_NAME }}-linux-x86_64.tar.gz
           
           # Sign the checksums file
-          gpg --batch --yes --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" \
             --pinentry-mode loopback --detach-sign --armor checksums.txt
 
       - name: Generate release notes
