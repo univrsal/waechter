@@ -18,8 +18,42 @@ The daemon config file will be installed to `/etc/waechterd/waechterd.ini`, see 
 information on how to adjust it, specifically the part about the network interface name and the daemon group.
 The AUR package automatically adds the `waechter` group to your system, so just add your user to it with:
 
-```terminal
+```shell
 sudo gpasswd -a $USER waechter
+```
+
+## Installing
+
+For arch-based distributions you can install `waechter-git` via your AUR manager. For Debian based distributions you can
+install the .deb package from the
+[releases page](https://github.com/univrsal/waechter/releases):
+
+```shell
+sudo dpkg -i waechter_<version>_linux-amd64.deb
+```
+
+For other distributions you'll have to compile Wächter
+from source,
+see [Compiling](#compiling) for instructions.
+
+### Verifying releases
+
+To verify the releases you can import the public key with:
+
+```shell
+curl -sL waechter.st/pub.asc | gpg --import
+```
+
+The keys fingerprint is:
+
+```shell
+C89F 8282 BB72 68E0 889A  7572 B463 3609 015D 13FF
+```
+
+Then you can verify the signature of the release files with:
+
+```shell
+gpg --verify waechter_<version>_linux-amd64.deb.asc waechter_<version>_linux-amd64.deb
 ```
 
 ## Build requirements
@@ -36,7 +70,7 @@ To compile and use Wächter you'll need the following things:
 
 After that the build process is fairly straight forward:
 
-```terminal
+```shell
 git clone https://github.com/univrsal/waechter &&
 cd waechter &&
 mkdir build &&
@@ -94,7 +128,6 @@ will need a reverse proxy like nginx or caddy that provides TLS encryption. An e
 this:
 
 ```nginx
-server {
     # ... other config options ...
     location /ws/ {
         proxy_pass http://127.0.0.1:8890;
@@ -112,7 +145,6 @@ server {
 
         proxy_buffering off;
     }
-}
 ```
 
 Afterward you can connect to the daemon using `wss://<your-domain>/ws/` as the socket path in the GUI under Tools >
