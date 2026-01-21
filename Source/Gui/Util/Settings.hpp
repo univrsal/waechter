@@ -5,6 +5,8 @@
 
 #pragma once
 #include <cereal/cereal.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/string.hpp>
 
 #include "Singleton.hpp"
 #include "Filesystem.hpp"
@@ -21,10 +23,11 @@ public:
 	std::string RegisteredUsername{};
 	std::string RegistrationSerialKey{};
 
-	std::string SocketPath{ "/var/run/waechterd.sock" };
-	std::string WebSocketAuthToken{};
-	bool        bAllowSelfSignedCertificates{ false };
-	bool        bSkipCertificateHostnameCheck{ false };
+	std::string              SocketPath{ "/var/run/waechterd.sock" };
+	std::vector<std::string> SocketPathHistory{};
+	std::string              WebSocketAuthToken{};
+	bool                     bAllowSelfSignedCertificates{ false };
+	bool                     bSkipCertificateHostnameCheck{ false };
 
 	bool         bUseDarkTheme{ false };
 	float        NetworkGraphLineWidth{ 1.0f };
@@ -38,14 +41,15 @@ public:
 	void serialize(Archive& archive)
 	{
 		archive(CEREAL_NVP(bShowUninitalizedSockets), CEREAL_NVP(RegisteredUsername), CEREAL_NVP(RegistrationSerialKey),
-			CEREAL_NVP(SocketPath), CEREAL_NVP(WebSocketAuthToken), CEREAL_NVP(bShowOfflineProcesses),
-			CEREAL_NVP(NetworkGraphLineWidth), CEREAL_NVP(NetworkGraphHistorySetting),
-			CEREAL_NVP(TrafficTreeUnitSetting), CEREAL_NVP(bUseDarkTheme), CEREAL_NVP(bAllowSelfSignedCertificates),
-			CEREAL_NVP(bSkipCertificateHostnameCheck));
+			CEREAL_NVP(SocketPath), CEREAL_NVP(SocketPathHistory), CEREAL_NVP(WebSocketAuthToken),
+			CEREAL_NVP(bShowOfflineProcesses), CEREAL_NVP(NetworkGraphLineWidth),
+			CEREAL_NVP(NetworkGraphHistorySetting), CEREAL_NVP(TrafficTreeUnitSetting), CEREAL_NVP(bUseDarkTheme),
+			CEREAL_NVP(bAllowSelfSignedCertificates), CEREAL_NVP(bSkipCertificateHostnameCheck));
 	}
 
 	void Load();
 	void Save();
+	void AddToSocketPathHistory(std::string const& Path);
 
 	static stdfs::path GetConfigFolder()
 	{

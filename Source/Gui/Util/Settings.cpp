@@ -7,6 +7,7 @@
 
 #include "DbusUtil.hpp"
 
+#include <algorithm>
 #include <cereal/archives/json.hpp>
 #include <fstream>
 #include <spdlog/spdlog.h>
@@ -80,4 +81,24 @@ void WSettings::Save()
 	{
 		spdlog::error("Failed to save settings to '{}': {}", Path, e.what());
 	}
+}
+
+void WSettings::AddToSocketPathHistory(std::string const& Path)
+{
+	// Remove if already exists
+	auto It = std::find(SocketPathHistory.begin(), SocketPathHistory.end(), Path);
+	if (It != SocketPathHistory.end())
+	{
+		SocketPathHistory.erase(It);
+	}
+	// Add to front
+	SocketPathHistory.insert(SocketPathHistory.begin(), Path);
+
+	// Keep only the last 10 entries
+	if (SocketPathHistory.size() > 10)
+	{
+		SocketPathHistory.resize(10);
+	}
+
+	Save();
 }
