@@ -85,20 +85,30 @@ void WSettings::Save()
 
 void WSettings::AddToSocketPathHistory(std::string const& Path)
 {
+	if (Path.empty())
+	{
+		return;
+	}
+
 	// Remove if already exists
 	auto It = std::find(SocketPathHistory.begin(), SocketPathHistory.end(), Path);
 	if (It != SocketPathHistory.end())
 	{
 		SocketPathHistory.erase(It);
 	}
-	// Add to front
-	SocketPathHistory.insert(SocketPathHistory.begin(), Path);
 
-	// Keep only the last 10 entries
-	if (SocketPathHistory.size() > 10)
+	// Add to front by creating a new vector
+	std::vector<std::string> NewHistory;
+	NewHistory.reserve(11); // Reserve space for new entry + up to 10 existing
+	NewHistory.push_back(Path);
+
+	// Copy existing entries (up to 9 more to make total of 10)
+	for (size_t i = 0; i < SocketPathHistory.size() && i < 9; ++i)
 	{
-		SocketPathHistory.resize(10);
+		NewHistory.push_back(SocketPathHistory[i]);
 	}
+
+	SocketPathHistory = std::move(NewHistory);
 
 	Save();
 }
