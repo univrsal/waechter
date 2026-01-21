@@ -179,9 +179,19 @@ void WWebSocketSource::ListenThreadFunction()
 	int         Port = 9001;
 	std::string Path = "/";
 
-	if (Url.starts_with("ws://"))
+	if (Url.starts_with("ws://") || Url.starts_with("wss://"))
 	{
-		std::string UrlRest = Url.substr(5); // Skip "ws://"
+		std::string UrlRest = Url;
+		if (Url.starts_with("ws://"))
+		{
+			UrlRest = Url.substr(5);
+			Port = 80;
+		}
+		else if (Url.starts_with("wss://"))
+		{
+			UrlRest = Url.substr(6);
+			Port = 443;
+		}
 		auto        ColonPos = UrlRest.find(':');
 		auto        SlashPos = UrlRest.find('/');
 
@@ -209,7 +219,8 @@ void WWebSocketSource::ListenThreadFunction()
 		}
 	}
 
-	spdlog::info("Connecting to WebSocket: {}:{}{}", Host, Port, Path);
+	bool const bIsSecure = Url.starts_with("wss://");
+	spdlog::info("Connecting to WebSocket: {}:{}{} (secure: {})", Host, Port, Path, bIsSecure);
 
 	// Set up libwebsockets logging to use spdlog
 	lws_set_log_level(LLL_ERR | LLL_WARN, nullptr);
@@ -223,6 +234,12 @@ void WWebSocketSource::ListenThreadFunction()
 	Info.gid = static_cast<gid_t>(-1);
 	Info.uid = static_cast<uid_t>(-1);
 	Info.options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
+
+	// Enable client-side SSL
+	if (bIsSecure)
+	{
+		Info.options |= LWS_SERVER_OPTION_PEER_CERT_NOT_REQUIRED;
+	}
 
 	Context = lws_create_context(&Info);
 	if (!Context)
@@ -241,6 +258,12 @@ void WWebSocketSource::ListenThreadFunction()
 	ConnectInfo.protocol = Protocols[0].name;
 	ConnectInfo.ietf_version_or_minus_one = -1;
 	ConnectInfo.userdata = this;
+
+	// Enable SSL for wss:// connections
+	if (bIsSecure)
+	{
+		ConnectInfo.ssl_connection = LCCSCF_USE_SSL | LCCSCF_ALLOW_SELFSIGNED | LCCSCF_SKIP_SERVER_CERT_HOSTNAME_CHECK;
+	}
 
 	Wsi = lws_client_connect_via_info(&ConnectInfo);
 	if (!Wsi)
