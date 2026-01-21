@@ -30,25 +30,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install dependencies (APT)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            cmake \
-            ninja-build \
-            pkg-config \
-            clang llvm \
-            linux-tools-common \
-            libbpf-dev \
-            libelf-dev \
-            libcurl4-gnutls-dev \
-            zlib1g-dev \
-            libwebsockets-dev \
-            libx11-dev libxrandr-dev libxi-dev libxinerama-dev libxcursor-dev libxxf86vm-dev \
-            libgl1-mesa-dev \
-            libwayland-dev wayland-protocols libxkbcommon-dev \
-            ccache
+      - name: Install dependencies
+        run: .github/scripts/install-dependencies.sh
 
       - name: Cache ccache
         uses: actions/cache@v4
