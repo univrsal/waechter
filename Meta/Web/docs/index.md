@@ -10,7 +10,7 @@ If you have questions you can
 use [discussions](https://github.com/univrsal/waechter/discussions), #waechter on [rizon](https://rizon.net)
 or [discord](https://discord.gg/kZsHuncu3q).
 
-## Quickstart
+# Quickstart
 
 If you're using an Arch-based distribution you can install waechter from
 the AUR package [waechter-git](https://aur.archlinux.org/packages/waechter-git/).
@@ -22,7 +22,7 @@ The AUR package automatically adds the `waechter` group to your system, so just 
 sudo gpasswd -a $USER waechter
 ```
 
-### Build requirements
+## Build requirements
 
 To compile and use Wächter you'll need the following things:
 
@@ -32,7 +32,7 @@ To compile and use Wächter you'll need the following things:
 - [git](https://git-scm.com)
 - A recent Linux kernel (currently only tested with 6.17 but 5 should be fine as well)
 
-### Compiling
+## Compiling
 
 After that the build process is fairly straight forward:
 
@@ -51,10 +51,11 @@ Once the build has finished you'll find the binaries here:
 - `./Source/Daemon/Net/IPLinkProc/waechter-iplink` - utility binary
 - `./Source/Gui/waechter` - the GUI
 
-The GUI is self-contained and can be placed anywhere you want. The `waechterd` and `waechter-iplink` binary need to
-placed together in a folder.
+The GUI is self-contained and can be placed anywhere you want. The daemon can also be placed anywhere and will look
+for its config file in `/etc/waechterd/waechterd.ini` or in the current working directory. The waechter-iplink utility
+has to be placed in a folder that is in your $PATH so the daemon can launch it.
 
-### Configuration
+## Configuration
 
 The daemon also needs a config file, if none is provided it will use the defaults which most likely won't work. An
 example config is provided
@@ -84,3 +85,36 @@ Make sure that any user that wants to use the GUI to connect to the daemon is pa
 otherwise the GUI won't be able to access the daemon socket.
 
 Then just run the daemon with root privileges and start the GUI to connect to it.
+
+## WebSocket remote connections
+
+If you want to connect to the daemon remotely you can make it use a websocket server instead of a unix socket by
+changing the `socket_path` entry in the config to something like `ws://127.0.0.1:<port>`. To secure the connection you
+will need a reverse proxy like nginx or caddy that provides TLS encryption. An example nginx config could look like
+this:
+
+```nginx
+server {
+    # ... other config options ...
+    location /ws/ {
+        proxy_pass http://127.0.0.1:8890;
+
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+        proxy_read_timeout 86400;
+        proxy_send_timeout 86400;
+
+        proxy_buffering off;
+    }
+}
+```
+
+Afterward you can connect to the daemon using `wss://<your-domain>/ws/` as the socket path in the GUI under Tools >
+Settings. Make sure to set
+a `websocket_auth_token` in the daemon config and provide the same token in the GUI to authenticate the connection.
