@@ -119,7 +119,7 @@ static __always_inline struct WSocketEvent* MakeSocketEvent2(__u64 Cookie, __u8 
 
 static __always_inline struct WSocketEvent* MakeSocketEvent(__u64 Cookie, __u8 EventType)
 {
-	return MakeSocketEvent2(Cookie, EventType, false);
+	return MakeSocketEvent2(Cookie, EventType, true);
 }
 
 static __always_inline struct WTrafficItemRulesBase* GetSocketRules(__u64 Cookie)
