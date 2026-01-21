@@ -23,6 +23,8 @@ public:
 
 	std::string SocketPath{ "/var/run/waechterd.sock" };
 	std::string WebSocketAuthToken{};
+	bool        bAllowSelfSignedCertificates{ false };
+	bool        bSkipCertificateHostnameCheck{ false };
 
 	bool         bUseDarkTheme{ false };
 	float        NetworkGraphLineWidth{ 1.0f };
@@ -38,7 +40,8 @@ public:
 		archive(CEREAL_NVP(bShowUninitalizedSockets), CEREAL_NVP(RegisteredUsername), CEREAL_NVP(RegistrationSerialKey),
 			CEREAL_NVP(SocketPath), CEREAL_NVP(WebSocketAuthToken), CEREAL_NVP(bShowOfflineProcesses),
 			CEREAL_NVP(NetworkGraphLineWidth), CEREAL_NVP(NetworkGraphHistorySetting),
-			CEREAL_NVP(TrafficTreeUnitSetting), CEREAL_NVP(bUseDarkTheme));
+			CEREAL_NVP(TrafficTreeUnitSetting), CEREAL_NVP(bUseDarkTheme), CEREAL_NVP(bAllowSelfSignedCertificates),
+			CEREAL_NVP(bSkipCertificateHostnameCheck));
 	}
 
 	void Load();

@@ -9,6 +9,7 @@
 #include <tracy/Tracy.hpp>
 
 #include "Time.hpp"
+#include "Util/Settings.hpp"
 
 static int ClientWebSocketCallback(
 	[[maybe_unused]] lws* Wsi, lws_callback_reasons Reason, void* User, void* In, size_t Len)
@@ -236,7 +237,7 @@ void WWebSocketSource::ListenThreadFunction()
 	Info.options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
 
 	// Enable client-side SSL
-	if (bIsSecure)
+	if (bIsSecure && WSettings::GetInstance().bAllowSelfSignedCertificates)
 	{
 		Info.options |= LWS_SERVER_OPTION_PEER_CERT_NOT_REQUIRED;
 	}
@@ -262,7 +263,15 @@ void WWebSocketSource::ListenThreadFunction()
 	// Enable SSL for wss:// connections
 	if (bIsSecure)
 	{
-		ConnectInfo.ssl_connection = LCCSCF_USE_SSL | LCCSCF_ALLOW_SELFSIGNED | LCCSCF_SKIP_SERVER_CERT_HOSTNAME_CHECK;
+		ConnectInfo.ssl_connection = LCCSCF_USE_SSL;
+		if (WSettings::GetInstance().bAllowSelfSignedCertificates)
+		{
+			ConnectInfo.ssl_connection |= LCCSCF_ALLOW_SELFSIGNED;
+		}
+		if (WSettings::GetInstance().bSkipCertificateHostnameCheck)
+		{
+			ConnectInfo.ssl_connection |= LCCSCF_SKIP_SERVER_CERT_HOSTNAME_CHECK;
+		}
 	}
 
 	Wsi = lws_client_connect_via_info(&ConnectInfo);
