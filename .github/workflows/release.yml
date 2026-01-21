@@ -70,6 +70,36 @@ jobs:
           tar -czf ../waechter-${{ steps.tag.outputs.TAG_NAME }}-linux-x86_64.tar.gz .
           cd ..
 
+      - name: Generate SHA256 checksums
+        run: |
+          sha256sum build/*.deb > checksums.txt
+          sha256sum waechter-${{ steps.tag.outputs.TAG_NAME }}-linux-x86_64.tar.gz >> checksums.txt
+          cat checksums.txt
+
+      - name: Import GPG key
+        if: ${{ secrets.GPG_PRIVATE_KEY != '' }}
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+          gpg --list-secret-keys
+
+      - name: Sign artifacts with GPG
+        if: ${{ secrets.GPG_PRIVATE_KEY != '' }}
+        run: |
+          # Sign the DEB package
+          for deb in build/*.deb; do
+            gpg --batch --yes --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+              --pinentry-mode loopback --detach-sign --armor "$deb"
+          done
+          
+          # Sign the tarball
+          gpg --batch --yes --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+            --pinentry-mode loopback --detach-sign --armor \
+            waechter-${{ steps.tag.outputs.TAG_NAME }}-linux-x86_64.tar.gz
+          
+          # Sign the checksums file
+          gpg --batch --yes --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+            --pinentry-mode loopback --detach-sign --armor checksums.txt
+
       - name: Generate release notes
         id: release_notes
         run: |
@@ -77,6 +107,16 @@ jobs:
           ## Waechter Release ${{ steps.tag.outputs.TAG_NAME }}
           
           **Note:** This is a draft release. Please test before marking as final.
+          
+          ### SHA256 Checksums
+          
+          ```
+          EOF
+          
+          cat checksums.txt >> release_notes.md
+          
+          cat >> release_notes.md << 'EOF'
+          ```
           EOF
           
           # Make release notes available to the next step
@@ -93,7 +133,11 @@ jobs:
           body_path: release_notes.md
           files: |
             build/*.deb
+            build/*.deb.asc
             waechter-${{ steps.tag.outputs.TAG_NAME }}-linux-x86_64.tar.gz
-          fail_on_unmatched_files: true
+            waechter-${{ steps.tag.outputs.TAG_NAME }}-linux-x86_64.tar.gz.asc
+            checksums.txt
+            checksums.txt.asc
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
