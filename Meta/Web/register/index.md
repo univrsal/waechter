@@ -5,8 +5,7 @@ title: Registering
 If you install an official build of Wächter it'll show as unregistered in the
 title bar and in the bottom right corner. This has no effect on the functionality
 of the application and is also trivial to remove or bypass, if you want to have
-a crack at it [this is the relevant
-code](https://github.com/univrsal/waechter/tree/master/Source/Gui/Util/Keylogic),
+a crack at it [this is the relevant code](https://github.com/univrsal/waechter/tree/master/Source/Gui/Util/Keylogic),
 don't look at the commit history, though. I accidentally committed the code to
 generate serial keys at one point.
 
@@ -26,5 +25,5 @@ authentic key by
 
 If you end up donating and include the transaction id in your email you'll get
 the source code to the free as in freedom keygen for Wächter shown at the end
-of the [intro video](http://localhost:5173/docs/) so you can generate as many
+of the [intro video](/docs/index.md) so you can generate as many
 keys as you want.

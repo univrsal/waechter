@@ -34,7 +34,7 @@ Pick whatever option you like:
 
 ### Why does it say "unregistered"?
 
-See [registering](/register).
+See [registering](/register/index.md).
 
 # Quickstart
 
