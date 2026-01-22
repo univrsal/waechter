@@ -53,7 +53,7 @@ void WRegisterDialog::Draw()
 	ImGuiIO& Io = ImGui::GetIO();
 	auto     DisplaySize = Io.DisplaySize;
 	ImGui::SetNextWindowPos(ImVec2(DisplaySize.x * 0.5f, DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-	ImGui::SetNextWindowSize({ 300, 135 });
+	ImGui::SetNextWindowSize({ 300, 155 });
 
 	if (ImGui::Begin("Register Wächter", &bVisible,
 			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
@@ -77,6 +77,7 @@ void WRegisterDialog::Draw()
 		}
 		else
 		{
+			ImGui::TextLinkOpenURL("About registration", "https://waechter.st/register");
 			if (ImGui::Button("Register"))
 			{
 				Validate();
