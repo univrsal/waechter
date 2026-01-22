@@ -5,4 +5,4 @@ It can safely be removed or ignored.
 
 While it mostly defeats the purpose the code for validation is included for transparency.
 
-See [waechter.st/register)[https://waechter.st/register] for more information.
+See [waechter.st/register](https://waechter.st/register) for more information.
