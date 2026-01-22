@@ -23,6 +23,19 @@ If you have questions you can
 use [discussions](https://github.com/univrsal/waechter/discussions), #waechter on [rizon](https://rizon.net)
 or [discord](https://discord.gg/kZsHuncu3q). Issues can be reported on [github](https://github.com/univrsal/waechter/issues).
 
+### How am I supposed to pronounce Wächter?
+
+Pick whatever option you like:
+
+- like the German word for guardian,
+- a weird variant of the word "vector",
+- the 'w' like the 'v' in vase, the 'ä' like the 'a' in bat, the 'ch' like an angry cat hissing, the 't' like in bat and the 'er' is basically the same in English or
+- something completely else.
+
+### Why does it say "unregistered"?
+
+See [registering](/register).
+
 # Quickstart
 
 If you're using an Arch-based distribution you can install waechter from
@@ -73,11 +86,11 @@ gpg --verify waechter_<version>_linux-amd64.deb.asc waechter_<version>_linux-amd
 
 To compile and use Wächter you'll need the following things:
 
-- [CMake](https://cmake.org)
-- [clang](https://llvm.org)
-- [libbpf](https://github.com/libbpf/libbpf)
-- [git](https://git-scm.com)
-- A recent Linux kernel (currently only tested with 6.17 but 5 should be fine as well)
+- [CMake](https://cmake.org),
+- [clang](https://llvm.org),
+- [libbpf](https://github.com/libbpf/libbpf),
+- [git](https://git-scm.com) and 
+- a recent Linux kernel (currently only tested with 6.17 but 5 should be fine as well).
 
 ## Compiling
 
@@ -94,9 +107,9 @@ make
 
 Once the build has finished you'll find the binaries here:
 
-- `./Source/Daemon/waechterd` - the daemon binary
-- `./Source/Daemon/Net/IPLinkProc/waechter-iplink` - utility binary
-- `./Source/Gui/waechter` - the GUI
+- `./Source/Daemon/waechterd` - the daemon binary,
+- `./Source/Daemon/Net/IPLinkProc/waechter-iplink` - utility binary and
+- `./Source/Gui/waechter` - the GUI.
 
 The GUI is self-contained and can be placed anywhere you want. The daemon can also be placed anywhere and will look
 for its config file in `/etc/waechterd/waechterd.ini` or in the current working directory. The waechter-iplink utility
@@ -123,10 +136,9 @@ You'll have to adjust the following entries:
   Alternatively you can change the path to `ws://x.x.x.x:port` to use a WebSocket instead (i.e. `ws://127.0.0.1:9876`).
   Note that you'll need a `websocket_auth_token` to connect and a reverse proxy to use secure WebSocket connections over
   TLS.
-- `websocket_auth_token` (optional), if you're using WebSocket connections instead of Unix sockets, you can set an
-  authentication
-  token here. When set, clients must provide this token in the `Authorization` header as a Bearer token. This helps
-  secure remote connections to the daemon. Leave this empty or commented out if you're using Unix sockets.
+- `websocket_auth_token`, if you're using WebSocket connections instead of Unix sockets, you have to set an
+  authentication token here. Clients must provide this token in the `Authorization` header as a Bearer token. If it is
+  left to the default value (`change_me`) the server will generate a random string at each startup.
 
 Make sure that any user that wants to use the GUI to connect to the daemon is part of the group specified in the config,
 otherwise the GUI won't be able to access the daemon socket.
