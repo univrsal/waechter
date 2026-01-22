@@ -16,11 +16,12 @@ allowfullscreen
 
 Wächter is a tool to monitor and control network traffic on Linux.
 
-It's currently in early development so there's no ready to use builds but it can be compiled from source for testing.
+It's currently in early development so expect some bugs and crashes but the basic
+features should be working.
 
 If you have questions you can
 use [discussions](https://github.com/univrsal/waechter/discussions), #waechter on [rizon](https://rizon.net)
-or [discord](https://discord.gg/kZsHuncu3q).
+or [discord](https://discord.gg/kZsHuncu3q). Issues can be reported on [github](https://github.com/univrsal/waechter/issues).
 
 # Quickstart
 
