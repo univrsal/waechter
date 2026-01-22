@@ -1,13 +1,13 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "LogWindow.hpp"
 
-#include <imgui.h>
-#include <imgui_internal.h>
-#include <spdlog/spdlog.h>
+#include "imgui.h"
+#include "imgui_internal.h"
+#include "spdlog/spdlog.h"
 
 void WImGuiLogSink::sink_it_(spdlog::details::log_msg const& Message)
 {
@@ -29,7 +29,6 @@ void WLogWindow::AttachToSpdlog()
 	if (Sink)
 		return;
 	Sink = std::make_shared<WImGuiLogSink>(this);
-	// Keep global logger config, just add our sink in addition to existing ones
 	spdlog::default_logger()->sinks().push_back(Sink);
 	spdlog::info("Wächter started");
 }

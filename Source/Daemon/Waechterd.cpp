@@ -1,15 +1,15 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
+
+#include <unistd.h>
+
+#include "spdlog/spdlog.h"
 
 #include "Daemon.hpp"
 #include "DaemonConfig.hpp"
 #include "Data/ConnectionHistory.hpp"
-
-#include <spdlog/spdlog.h>
-#include <unistd.h>
-
 #include "EBPF/WaechterEbpf.hpp"
 #include "Net/Resolver.hpp"
 #include "Net/IPLink.hpp"

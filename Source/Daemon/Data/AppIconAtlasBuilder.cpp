@@ -1,20 +1,20 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "AppIconAtlasBuilder.hpp"
 
+#include <memory>
+
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_RECT_PACK_IMPLEMENTATION
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "tracy/Tracy.hpp"
-
-#include <memory>
-#include <spdlog/spdlog.h>
-#include <stb_image.h>
-#include <stb_rect_pack.h>
-#include <stb_image_resize2.h>
+#include "spdlog/spdlog.h"
+#include "stb_image.h"
+#include "stb_rect_pack.h"
+#include "stb_image_resize2.h"
 
 struct WPackedIcon
 {
@@ -111,7 +111,6 @@ bool WAppIconAtlasBuilder::GetAtlasData(WAppIconAtlasData& outData, std::vector<
 			std::memcpy(&outData.AtlasImageData[Idx], &PackedIcons[i].Pixels[Idx2], W * 4);
 		}
 
-		// Calculate UV coordinates
 		WAtlasUv Uv{};
 		Uv.U1 = static_cast<float>(X) / static_cast<float>(AtlasSize);
 		Uv.V1 = static_cast<float>(Y) / static_cast<float>(AtlasSize);

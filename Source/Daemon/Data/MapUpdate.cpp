@@ -5,7 +5,7 @@
 
 #include "MapUpdate.hpp"
 
-#include <tracy/Tracy.hpp>
+#include "tracy/Tracy.hpp"
 
 #include "Daemon.hpp"
 #include "SystemMap.hpp"

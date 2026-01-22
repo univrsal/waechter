@@ -1,12 +1,12 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "ImageUtil.hpp"
 
-#include <stb_image.h>
-#include <spdlog/spdlog.h>
+#include "stb_image.h"
+#include "spdlog/spdlog.h"
 
 WTexture WImageUtils::LoadImageFromMemoryRGBA8(unsigned char const* ImageData, unsigned int ImageDataSize)
 {

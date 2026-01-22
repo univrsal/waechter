@@ -6,13 +6,14 @@
 #include "NetworkGraphWindow.hpp"
 
 #include <cmath>
-#include <imgui.h>
-#include <implot.h>
 #include <cstdio>
 #include <limits>
 
-#include "Util/Settings.hpp"
+#include "imgui.h"
+#include "implot.h"
 #include "tracy/Tracy.hpp"
+
+#include "Util/Settings.hpp"
 
 int FormatBandwidth(double Value, char* Buf, int Size, void* UserData)
 {
@@ -70,7 +71,6 @@ void WNetworkGraphWindow::AddData(WBytesPerSecond Upload, WBytesPerSecond Downlo
 	CalcMaxRate(UploadBuffer, CurrentMaxUploadRate);
 	CalcMaxRate(DownloadBuffer, CurrentMaxDownloadRate);
 
-	// Choose unit and factor (binary prefixes) independently for each
 	auto ChooseUnit = [](WBytesPerSecond Rate) -> WUnitFmt {
 		if (Rate >= 1 WGiB)
 		{
@@ -119,7 +119,7 @@ void WNetworkGraphWindow::Draw()
 			ImPlot::SetupAxisFormat(ImAxis_Y1, FormatBandwidth, &DownloadFmt);
 			ImPlot::SetupAxisFormat(ImAxis_X1, FormatTimeAgo, nullptr);
 
-			// X axis: offset by 1 second to avoid gap (show 1s ago to History+1s ago)
+			// X-axis: offset by 1 second to avoid gap (show 1s ago to History+1s ago)
 			// This ensures we only show the range of data we actually have
 			ImPlot::SetupAxisLimits(ImAxis_X1, 1.0, History + 1.0, ImGuiCond_Always);
 			// Y1 (left) for Download, Y2 (right) for Upload

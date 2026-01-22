@@ -9,7 +9,6 @@
 #include <mutex>
 #include <thread>
 #include <unordered_map>
-
 #include <libwebsockets.h>
 
 #include "Communication/IServerSocket.hpp"

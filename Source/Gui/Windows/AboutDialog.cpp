@@ -1,19 +1,17 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#define INCBIN_PREFIX G
-
 #include "AboutDialog.hpp"
 
+#define INCBIN_PREFIX G
+#include "imgui.h"
+#include "incbin.h"
+
 #include "GlfwWindow.hpp"
-#include "RegisterDialog.hpp"
 #include "Util/Settings.hpp"
 
-#include <imgui.h>
-#include <incbin.h>
-#include <spdlog/fmt/fmt.h>
 
 INCBIN(GladLicense, THIRD_PARTY_GLAD_LICENSE_PATH);
 INCBIN(GlfwLicense, THIRD_PARTY_GLFW_LICENSE_PATH);

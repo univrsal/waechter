@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -11,7 +11,6 @@
 #include "Buffer.hpp"
 #include "Data/Rule.hpp"
 #include "Singleton.hpp"
-#include "Data/RuleUpdate.hpp"
 #include "Data/TrafficItem.hpp"
 
 struct WSocketCounter;

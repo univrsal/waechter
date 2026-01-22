@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -26,5 +26,5 @@ public:
 
 	void Validate();
 
-	bool IsRegistered() const { return bValid; }
+	[[nodiscard]] bool IsRegistered() const { return bValid; }
 };

@@ -1,12 +1,13 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "Client.hpp"
 
 #include <cstdint>
-#include <spdlog/spdlog.h>
+
+#include "spdlog/spdlog.h"
 
 #include "AppIconAtlas.hpp"
 #include "Messages.hpp"

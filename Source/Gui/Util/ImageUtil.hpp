@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #pragma once
-#include <glad/glad.h>
+#include "glad/glad.h"
 
 struct WTexture
 {

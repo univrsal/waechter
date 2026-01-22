@@ -5,18 +5,21 @@
 
 #include "TrafficTree.hpp"
 
-// ReSharper disable CppUnusedIncludeDirective
-#include <imgui.h>
 #include <ranges>
 #include <algorithm>
-#include <spdlog/spdlog.h>
-#include <cereal/types/optional.hpp>
-#include <cereal/types/array.hpp>
-#include <cereal/types/vector.hpp>
-#include <cereal/types/unordered_map.hpp>
-#include <cereal/types/memory.hpp>
-#include <cereal/types/string.hpp>
-#include <cereal/archives/binary.hpp>
+
+#include "imgui.h"
+#include "spdlog/spdlog.h"
+#include "spdlog/fmt/bundled/chrono.h"
+#include "cereal/types/optional.hpp"
+#include "cereal/types/array.hpp"
+#include "cereal/types/vector.hpp"
+#include "cereal/types/unordered_map.hpp"
+// ReSharper disable CppUnusedIncludeDirective
+#include "cereal/types/memory.hpp"
+#include "cereal/types/string.hpp"
+// ReSharper enable CppUnusedIncludeDirective
+#include "cereal/archives/binary.hpp"
 
 #include "AppIconAtlas.hpp"
 #include "ClientRuleManager.hpp"
@@ -25,8 +28,8 @@
 #include "GlfwWindow.hpp"
 #include "Messages.hpp"
 #include "Data/TrafficTreeUpdate.hpp"
+#include "Icons/IconAtlas.hpp"
 #include "Util/Settings.hpp"
-#include "spdlog/fmt/bundled/chrono.h"
 
 // This isn't exactly efficient, we should probably have something
 // along the lines of ITrafficItem->Parent->RemoveChild or similar.
@@ -286,18 +289,15 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 
 	for (auto const& Addition : Updates.AddedSockets)
 	{
-		// Check if the socket already exists
 		if (TrafficItems.contains(Addition.ItemId))
 		{
 			spdlog::warn("{} already exists in traffic tree, skipping addition", Addition.ItemId);
 			continue;
 		}
-		// Find parent application
 		auto                              AppIt = Root->Applications.find(Addition.ApplicationPath);
 		std::shared_ptr<WApplicationItem> App;
 		if (AppIt == Root->Applications.end())
 		{
-			// Add new application if not found
 			App = std::make_shared<WApplicationItem>();
 			App->ApplicationName = Addition.ApplicationName;
 			App->ItemId = Addition.ApplicationItemId;
@@ -314,11 +314,9 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 			App = AppIt->second;
 		}
 
-		// Find parent process
 		auto ProcIt = App->Processes.find(Addition.ProcessId);
 		if (ProcIt == App->Processes.end())
 		{
-			// Add new process if not found
 			auto NewProc = std::make_shared<WProcessItem>();
 			NewProc->ProcessId = Addition.ProcessId;
 			NewProc->ItemId = Addition.ProcessItemId;
@@ -329,7 +327,6 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 
 		auto const& Proc = ProcIt->second;
 
-		// Create new socket item
 		auto NewSocket = std::make_shared<WSocketItem>();
 		NewSocket->ItemId = Addition.ItemId;
 		NewSocket->SocketTuple = Addition.SocketTuple;
@@ -340,7 +337,6 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 
 	for (auto const& Addition : Updates.AddedTuples)
 	{
-		// Check if the tuple already exists
 		if (TrafficItems.contains(Addition.ItemId))
 		{
 			spdlog::warn("{} already exists in traffic tree, skipping addition", Addition.ItemId);
@@ -505,17 +501,14 @@ void WTrafficTree::Draw(ImGuiID MainID)
 			continue;
 		}
 
-		// Filter by search term
 		if (SearchBuffer[0] != '\0')
 		{
 			std::string AppNameLower = Child->ApplicationName;
 			std::string SearchLower = SearchBuffer;
 
-			// Convert both to lowercase for case-insensitive search
-			std::transform(AppNameLower.begin(), AppNameLower.end(), AppNameLower.begin(), ::tolower);
-			std::transform(SearchLower.begin(), SearchLower.end(), SearchLower.begin(), ::tolower);
+			std::ranges::transform(AppNameLower, AppNameLower.begin(), ::tolower);
+			std::ranges::transform(SearchLower, SearchLower.begin(), ::tolower);
 
-			// Skip this application if it doesn't match the search
 			if (AppNameLower.find(SearchLower) == std::string::npos)
 			{
 				continue;
@@ -547,7 +540,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 			}
 
 			ImGui::TableNextRow();
-			ImGui::PushID(PID); // PID fits in int on Linux
+			ImGui::PushID(PID);
 			Args = {};
 			Args.Name = fmt::format("Process {}", PID);
 			Args.Item = Process;
@@ -569,7 +562,6 @@ void WTrafficTree::Draw(ImGuiID MainID)
 				}
 
 				ImGui::TableNextRow();
-				// Use string ID for potentially wide cookies
 				std::string SockId = std::string("sock:") + std::to_string(SocketCookie);
 				ImGui::PushID(SockId.c_str());
 				ImGuiTreeNodeFlags SocketFlags = 0;

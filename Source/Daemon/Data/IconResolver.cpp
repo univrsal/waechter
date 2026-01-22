@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -13,7 +13,7 @@
 inline std::string FindDesktopFile(std::string const& BinaryName, std::vector<std::string> const& DesktopDirs)
 {
 	auto BinaryNameLowercase = BinaryName;
-	std::transform(BinaryNameLowercase.begin(), BinaryNameLowercase.end(), BinaryNameLowercase.begin(), ::tolower);
+	std::ranges::transform(BinaryNameLowercase, BinaryNameLowercase.begin(), ::tolower);
 
 	for (auto const& Dir : DesktopDirs)
 	{

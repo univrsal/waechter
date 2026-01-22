@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -10,13 +10,15 @@
 #include <pwd.h>
 #include <csignal>
 #include <sys/stat.h>
-#include <spdlog/spdlog.h>
 #include <grp.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <vector>
 
+#include "spdlog/spdlog.h"
+
 #include "ErrnoUtil.hpp"
+#include "Format.hpp"
 #include "Types.hpp"
 
 namespace stdfs = std::filesystem;
@@ -47,14 +49,9 @@ public:
 		if (Content.empty())
 			return "";
 
-		// replace NUL separators with spaces
 		std::ranges::replace(Content, '\0', ' ');
 
-		// remove a trailing space that comes from the final NUL (if any)
-		if (!Content.empty() && Content.back() == ' ')
-			Content.pop_back();
-
-		return Content;
+		return WStringFormat::Trim(Content);
 	}
 
 	// Read /proc file containing NUL-separated strings into a vector of strings.
@@ -116,7 +113,6 @@ public:
 			{
 				return { Buf.data(), static_cast<size_t>(N) };
 			}
-			// Buffer too small, grow and retry
 			Buf.resize(Buf.size() * 2);
 		}
 	}
@@ -144,7 +140,6 @@ public:
 		return StripDeletedSuffix(Target);
 	}
 
-	// Returns the current working directory of the process (best-effort).
 	static std::string GetProcessCwd(WProcessId PID)
 	{
 		if (PID <= 0)

@@ -5,8 +5,8 @@
 
 #include "WebSocketSource.hpp"
 
-#include <spdlog/spdlog.h>
-#include <tracy/Tracy.hpp>
+#include "spdlog/spdlog.h"
+#include "tracy/Tracy.hpp"
 
 #include "Time.hpp"
 #include "Util/Settings.hpp"

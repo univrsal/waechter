@@ -6,9 +6,10 @@
 #include "IP2Asn.hpp"
 
 #include <cstdio>
-#include <spdlog/spdlog.h>
 #include <zlib.h>
-#include <imgui.h>
+
+#include "spdlog/spdlog.h"
+#include "imgui.h"
 
 #include "Format.hpp"
 #include "LibCurl.hpp"
@@ -17,7 +18,6 @@
 
 bool WIP2Asn::ExtractDatabase(std::filesystem::path const& GzPath, std::filesystem::path const& OutPath)
 {
-	// unzip the gz file with zlib
 	gzFile InputFile = gzopen(GzPath.string().c_str(), "rb");
 	if (!InputFile)
 	{
@@ -90,7 +90,7 @@ void WIP2Asn::UpdateDatabase()
 	}
 	static std::string const URL = "https://waechter.st/ip2asn-combined.tsv.gz";
 	DownloadMutex.lock();
-	// remove old database files
+
 	auto OldDatabasePath = WSettings::GetConfigFolder() / "ip2asn_db.tsv";
 	if (std::filesystem::exists(OldDatabasePath))
 	{
@@ -106,6 +106,7 @@ void WIP2Asn::UpdateDatabase()
 	{
 		std::filesystem::remove(OldDatabasePath);
 	}
+
 	bUpdateInProgress = true;
 	DownloadThread = std::thread([this] {
 		auto        DatabasePath = WSettings::GetConfigFolder() / "ip2asn_db.tsv.gz";
@@ -122,7 +123,7 @@ void WIP2Asn::UpdateDatabase()
 	});
 }
 
-void WIP2Asn::DrawDownloadProgressWindow()
+void WIP2Asn::DrawDownloadProgressWindow() const
 {
 	if (!bUpdateInProgress)
 	{

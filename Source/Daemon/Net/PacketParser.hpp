@@ -1,10 +1,7 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
-//
-// Created by usr on 23/10/2025.
 
 #pragma once
 #include "IPAddress.hpp"

@@ -1,12 +1,9 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "NetworkInterface.hpp"
-
-#include "ErrnoUtil.hpp"
-#include "spdlog/spdlog.h"
 
 #include <ifaddrs.h>
 #include <unordered_set>
@@ -14,7 +11,11 @@
 #include <string>
 #include <net/if.h>
 
-std::vector<std::string> WNetworkInterface::list()
+#include "spdlog/spdlog.h"
+
+#include "ErrnoUtil.hpp"
+
+std::vector<std::string> WNetworkInterface::List()
 {
 	std::vector<std::string>        Result;
 	std::unordered_set<std::string> Seen;
@@ -22,7 +23,7 @@ std::vector<std::string> WNetworkInterface::list()
 	ifaddrs* Ifaddr = nullptr;
 	if (getifaddrs(&Ifaddr) != 0 || !Ifaddr)
 	{
-		return Result; // return empty on failure
+		return Result;
 	}
 
 	for (ifaddrs* Ifa = Ifaddr; Ifa != nullptr; Ifa = Ifa->ifa_next)

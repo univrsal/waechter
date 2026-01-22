@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -9,15 +9,15 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
-#include <iostream>
 #include <memory>
 #include <cassert>
 #include <utility>
 #include <atomic>
 #include <fcntl.h>
 #include <thread>
-#include <sigslot/signal.hpp>
-#include <cereal/archives/binary.hpp>
+
+#include "sigslot/signal.hpp"
+#include "cereal/archives/binary.hpp"
 
 #include "Buffer.hpp"
 #include "Types.hpp"
@@ -55,7 +55,6 @@ public:
 
 	~WClientSocket();
 
-	// Establishes connection if not already connected
 	bool Connect();
 
 	void StartListenThread()
@@ -71,7 +70,6 @@ public:
 		}
 	}
 
-	// Closes the socket and resets buffers
 	void Close();
 
 	[[nodiscard]] bool IsConnected() const { return bIsConnected && SocketFd >= 0; }
@@ -90,7 +88,6 @@ public:
 	//  false -> Not enough data yet, or socket error (check IsConnected()).
 	bool ReceiveFramed(WBuffer& OutputBuffer);
 
-	// Standard receive into a buffer (raw bytes)
 	ssize_t ReceiveRaw(void* Buffer, size_t Capacity);
 
 	template <typename T>

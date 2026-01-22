@@ -40,7 +40,7 @@ public:
 
 	void UpdateDatabase();
 
-	void DrawDownloadProgressWindow();
+	void DrawDownloadProgressWindow() const;
 
 	bool IsUpdateInProgress() const noexcept { return bUpdateInProgress.load(); }
 	bool HasDatabase() const noexcept { return Database != nullptr; }

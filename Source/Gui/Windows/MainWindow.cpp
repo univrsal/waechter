@@ -1,13 +1,14 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "MainWindow.hpp"
 
-#include <imgui_internal.h>
-#include <imgui.h>
 #include <string>
+
+#include "imgui_internal.h"
+#include "imgui.h"
 
 #include "Client.hpp"
 #include "Windows/GlfwWindow.hpp"
@@ -107,11 +108,11 @@ WMainWindow& WMainWindow::Get()
 
 void WMainWindow::Draw()
 {
-	ImGuiIO& io = ImGui::GetIO();
-	ImVec2   display_size = io.DisplaySize; // Current window/swapchain size
+	ImGuiIO& Io = ImGui::GetIO();
+	ImVec2   DisplaySize = Io.DisplaySize;
 
 	ImGui::SetNextWindowPos(ImVec2(0, 0));
-	ImGui::SetNextWindowSize(display_size);
+	ImGui::SetNextWindowSize(DisplaySize);
 
 	if (ImGui::BeginMainMenuBar())
 	{

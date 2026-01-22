@@ -1,13 +1,14 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "WaechterEbpf.hpp"
 
 #include <bpf/bpf.h>
-#include <spdlog/spdlog.h>
-#include <tracy/Tracy.hpp>
+
+#include "spdlog/spdlog.h"
+#include "tracy/Tracy.hpp"
 
 #include "EbpfData.hpp"
 #include "EBPFCommon.h"

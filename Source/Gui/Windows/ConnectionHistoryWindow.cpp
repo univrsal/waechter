@@ -1,9 +1,14 @@
 /*
- * Copyright (c) 2026, Alex <uni@vrsal.cc>
+ * Copyright (c) 2026-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "ConnectionHistoryWindow.hpp"
+
+#include "cereal/types/unordered_map.hpp"
+#include "cereal/types/vector.hpp"
+// ReSharper disable once CppUnusedIncludeDirective
+#include "cereal/types/array.hpp"
 
 #include "Client.hpp"
 #include "TrafficTree.hpp"

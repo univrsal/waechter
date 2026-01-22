@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -283,10 +283,8 @@ struct WIPAddressHash
 	size_t operator()(WIPAddress const& Ip) const noexcept
 	{
 		ByteArray16Hash ByteHash;
-		// Hash the 16-byte array (for IPv4 only first 4 are meaningful, rest typically zeroed)
 		size_t Hbytes = ByteHash(Ip.Bytes);
 		size_t Hfamily = std::hash<uint8_t>{}(Ip.Family);
-		// Mix (simple multiplicative + xor)
 		return (Hbytes ^ (Hfamily + 0x9e3779b97f4a7c15ULL + (Hbytes << 6) + (Hbytes >> 2)));
 	}
 };
@@ -309,7 +307,6 @@ struct WEndpointHash
 
 namespace std
 {
-	// Added: std::hash specialization for WIPAddress
 	template <>
 	struct hash<WIPAddress>
 	{

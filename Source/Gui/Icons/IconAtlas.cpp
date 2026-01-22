@@ -1,14 +1,13 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "IconAtlas.hpp"
 
 #define INCBIN_PREFIX G
-#include <incbin.h>
-#include <stb_image.h>
-#include <spdlog/spdlog.h>
+#include "incbin.h"
+#include "spdlog/spdlog.h"
 
 INCBIN(IconAtlas, ICON_ATLAS_IMAGE);
 INCBIN(Logo, LOGO_IMAGE);

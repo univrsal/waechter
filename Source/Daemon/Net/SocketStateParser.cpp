@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -7,7 +7,6 @@
 
 #include <fstream>
 #include <sstream>
-#include <iomanip>
 
 // TCP states from Linux kernel
 constexpr uint32_t TCP_ESTABLISHED = 0x01;

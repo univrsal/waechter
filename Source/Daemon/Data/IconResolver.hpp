@@ -1,13 +1,14 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #pragma once
-#include <spdlog/spdlog.h>
 #include <unordered_map>
 #include <string>
 #include <vector>
+
+#include "spdlog/spdlog.h"
 
 class WIconResolver
 {

@@ -5,8 +5,8 @@
 
 #include "DaemonWebSocket.hpp"
 
-#include <spdlog/spdlog.h>
-#include <tracy/Tracy.hpp>
+#include "spdlog/spdlog.h"
+#include "tracy/Tracy.hpp"
 
 #include "ClientWebSocket.hpp"
 #include "DaemonClient.hpp"

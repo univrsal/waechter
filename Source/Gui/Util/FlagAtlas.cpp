@@ -1,15 +1,15 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "FlagAtlas.hpp"
 
 #define INCBIN_PREFIX G
-#include <incbin.h>
-#include <stb_image.h>
-#include <spdlog/spdlog.h>
-#include <CountryFlags.hpp>
+#include "incbin.h"
+#include "stb_image.h"
+#include "spdlog/spdlog.h"
+#include "CountryFlags.hpp"
 
 INCBIN(FlagAtlas, COUNTRY_FLAG_ATLAS_IMAGE);
 

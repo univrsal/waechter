@@ -1,14 +1,14 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #pragma once
 #include <ctime>
-#include <spdlog/fmt/fmt.h>
 #include <cassert>
-#include <spdlog/fmt/chrono.h>
 #include <string_view>
+
+#include "spdlog/fmt/chrono.h"
 
 #include "Types.hpp"
 
@@ -33,7 +33,6 @@ enum EStorageUnit
 class WStringFormat
 {
 public:
-	// Remove leading and trailing whitespace from a string
 	static std::string Trim(std::string const& Str)
 	{
 		size_t const First = Str.find_first_not_of(' ');
@@ -137,7 +136,7 @@ public:
 
 	static std::string Format(WBytes Bytes_, EStorageUnit Unit)
 	{
-		auto Bytes = static_cast<double>(Bytes_); // should be fine
+		auto Bytes = static_cast<double>(Bytes_);
 		switch (Unit)
 		{
 			case SU_Bytes:

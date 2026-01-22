@@ -1,13 +1,13 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "RegisterDialog.hpp"
 
 #define INCBIN_PREFIX G
-#include <imgui.h>
-#include <incbin.h>
+#include "imgui.h"
+#include "incbin.h"
 
 #include "GlfwWindow.hpp"
 #include "Util/Settings.hpp"
@@ -28,7 +28,6 @@ void WRegisterDialog::Draw()
 {
 	if (!bValid)
 	{
-		// draw watermark in bottom right corner
 		ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y + 15),
 			ImGuiCond_Always, ImVec2(1.0f, 1.0f));
 		ImGui::SetNextWindowBgAlpha(0.0f);
@@ -81,10 +80,7 @@ void WRegisterDialog::Draw()
 			if (ImGui::Button("Register"))
 			{
 				Validate();
-				if (!bValid)
-				{
-					bFailedActivation = true;
-				}
+				bFailedActivation = true;
 			}
 		}
 

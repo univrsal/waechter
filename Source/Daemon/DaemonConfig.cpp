@@ -1,15 +1,16 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "DaemonConfig.hpp"
 
 #include <sys/resource.h>
-#include <INIReader.h>
-#include <spdlog/spdlog.h>
 #include <pwd.h>
 #include <fcntl.h>
+
+#include "INIReader.h"
+#include "spdlog/spdlog.h"
 
 #include "ErrnoUtil.hpp"
 #include "Filesystem.hpp"
@@ -69,7 +70,7 @@ void WDaemonConfig::Load(std::string const& Path)
 	if (NetworkInterfaceName == "auto")
 	{
 		// Auto-select the first non-loopback interface
-		auto Ifaces = WNetworkInterface::list();
+		auto Ifaces = WNetworkInterface::List();
 		for (auto const& Iface : Ifaces)
 		{
 			if (Iface != "lo")
@@ -102,7 +103,7 @@ void WDaemonConfig::Load(std::string const& Path)
 
 void WDaemonConfig::SetDefaults()
 {
-	auto Ifaces = WNetworkInterface::list();
+	auto Ifaces = WNetworkInterface::List();
 	if (Ifaces.size() > 1)
 	{
 		NetworkInterfaceName = Ifaces[1];

@@ -1,20 +1,20 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #pragma once
-#include <imgui.h>
-#include <glad/glad.h>
 #include <mutex>
 #include <string>
 #include <unordered_map>
 #include <optional>
 
+#include "imgui.h"
+#include "glad/glad.h"
+
 #include "Buffer.hpp"
 #include "Singleton.hpp"
 #include "Data/AppIconAtlasData.hpp"
-#include "Icons/IconAtlas.hpp"
 
 class WAppIconAtlas : public TSingleton<WAppIconAtlas>
 {
@@ -26,8 +26,6 @@ class WAppIconAtlas : public TSingleton<WAppIconAtlas>
 public:
 	WAppIconAtlas() = default;
 	~WAppIconAtlas() override = default;
-
-	void Init();
 
 	std::mutex& GetMutex() { return Mutex; }
 

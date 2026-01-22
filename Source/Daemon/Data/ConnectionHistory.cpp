@@ -1,17 +1,15 @@
-//
-// Created by usr on 11/01/2026.
-//
+/*
+ * Copyright (c) 2026, Alex <uni@vrsal.cc>
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
 
 #include "ConnectionHistory.hpp"
 
-#include <cassert>
-#include <spdlog/spdlog.h>
+#include "spdlog/spdlog.h"
 
 #include "Counters.hpp"
 #include "NetworkEvents.hpp"
 #include "SystemMap.hpp"
-
-#include <ranges>
 
 bool WConnectionHistoryEntry::Update()
 {
@@ -247,6 +245,7 @@ WConnectionHistoryUpdate WConnectionHistory::Serialize()
 		if (!Entry.App)
 		{
 			// connection exited before we could send it
+			// todo: handle this better?
 			continue;
 		}
 		WNewConnectionHistoryEntry NewEntry{};

@@ -5,7 +5,8 @@
 
 #pragma once
 #include <memory>
-#include <sigslot/signal.hpp>
+
+#include "sigslot/signal.hpp"
 
 class WDaemonClient;
 class IServerSocket

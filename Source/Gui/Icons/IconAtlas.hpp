@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -8,8 +8,8 @@
 #include <unordered_map>
 #include <string>
 #include <utility>
-#include <glad/glad.h>
-#include <imgui.h>
+
+#include "imgui.h"
 
 #include "Singleton.hpp"
 #include "Util/ImageUtil.hpp"

@@ -4,9 +4,10 @@
  */
 
 #pragma once
-#include <cereal/cereal.hpp>
-#include <cereal/types/vector.hpp>
-#include <cereal/types/string.hpp>
+#include "cereal/cereal.hpp"
+// ReSharper disable once CppUnusedIncludeDirective
+#include "cereal/types/vector.hpp"
+#include "cereal/types/string.hpp"
 
 #include "Singleton.hpp"
 #include "Filesystem.hpp"

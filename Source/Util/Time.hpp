@@ -1,17 +1,18 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #pragma once
 #include <chrono>
-#include <spdlog/fmt/fmt.h>
 #include <functional>
+#include <atomic>
+
+#include "spdlog/fmt/fmt.h"
 
 #include "Singleton.hpp"
 #include "Types.hpp"
 
-#include <atomic>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
@@ -33,7 +34,6 @@ namespace WTime
 
 	static std::string FormatTime(long Time)
 	{
-		// format as HH:MM:SS
 		long Hours = Time / 3600;
 		long Minutes = (Time % 3600) / 60;
 		long Seconds = Time % 60;

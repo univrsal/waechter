@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -10,7 +10,8 @@
 #include <mutex>
 #include <atomic>
 #include <memory>
-#include <spdlog/spdlog.h>
+
+#include "spdlog/spdlog.h"
 
 #include "Singleton.hpp"
 #include "Types.hpp"
@@ -68,8 +69,8 @@ public:
 	void SetupEgressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit) const;
 	void SetupIngressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit) const;
 
-	void SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uint16_t Dport);
-	void RemoveIngressPortRouting(uint16_t Dport);
+	static void SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uint16_t Dport);
+	static void RemoveIngressPortRouting(uint16_t Dport);
 
 	void RemoveUploadLimit(WTrafficItemId const& ItemId);
 	void RemoveDownloadLimit(WTrafficItemId const& ItemId);

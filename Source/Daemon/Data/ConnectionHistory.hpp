@@ -6,6 +6,7 @@
 #pragma once
 #include <memory>
 #include <deque>
+#include <unordered_set>
 #include <mutex>
 
 #include "Singleton.hpp"
@@ -14,8 +15,6 @@
 #include "Types.hpp"
 #include "Data/ConnectionHistoryUpdate.hpp"
 
-#include <cassert>
-#include <unordered_set>
 
 class WAppCounter;
 class WSocketItem;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -9,7 +9,8 @@
 #include <memory>
 #include <mutex>
 #include <string>
-#include <spdlog/sinks/base_sink.h>
+
+#include "spdlog/sinks/base_sink.h"
 
 struct WLogEntry
 {

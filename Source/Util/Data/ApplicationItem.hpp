@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -7,6 +7,7 @@
 #include <string>
 #include <unordered_map>
 #include <memory>
+#include <ranges>
 
 #include "TrafficItem.hpp"
 #include "ProcessItem.hpp"
@@ -38,7 +39,7 @@ public:
 			return true;
 		}
 
-		for (auto const& [PID, Process] : Processes)
+		for (auto const& Process : Processes | std::views::values)
 		{
 			if (!Process->NoChildren())
 			{

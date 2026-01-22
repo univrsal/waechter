@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -7,8 +7,8 @@
 #include <atomic>
 
 #include "IconResolver.hpp"
-#include "Data/AppIconAtlasData.hpp"
 #include "Singleton.hpp"
+#include "Data/AppIconAtlasData.hpp"
 
 class WAppIconAtlasBuilder : public TSingleton<WAppIconAtlasBuilder>
 {

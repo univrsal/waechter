@@ -18,6 +18,13 @@ public:
 };
 ```
 
+Include order is:
+
+1. System headers as #include <...>
+2. Thirdparty libraries from system /include paths as #include <...>
+3. Thirdparty libraries in the Thirdparty/ folder as #include "..."
+4. Project headers as #include "..."
+
 Project overview:
 
 The project is split into five parts

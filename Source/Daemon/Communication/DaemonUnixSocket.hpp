@@ -5,6 +5,7 @@
 
 #pragma once
 #include <memory>
+
 #include "Socket.hpp"
 #include "Communication/IServerSocket.hpp"
 

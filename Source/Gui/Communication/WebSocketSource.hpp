@@ -10,9 +10,9 @@
 #include <string>
 #include <thread>
 #include <vector>
-
 #include <libwebsockets.h>
-#include <sigslot/signal.hpp>
+
+#include "sigslot/signal.hpp"
 
 #include "Communication/IDaemonSocket.hpp"
 

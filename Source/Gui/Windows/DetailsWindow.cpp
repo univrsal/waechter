@@ -1,12 +1,13 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "DetailsWindow.hpp"
 
-#include <imgui.h>
 #include <sys/sysinfo.h>
+
+#include "imgui.h"
 
 #include "GlfwWindow.hpp"
 #include "Time.hpp"
@@ -15,6 +16,7 @@
 #include "Format.hpp"
 #include "TrafficTree.hpp"
 #include "Data/SystemItem.hpp"
+#include "Icons/IconAtlas.hpp"
 #include "Util/IP2Asn.hpp"
 #include "Util/ProtocolDB.hpp"
 
@@ -83,7 +85,7 @@ long GetUptimeSeconds()
 	return SysInfo.uptime;
 }
 
-void WDetailsWindow::DrawSystemDetails()
+void WDetailsWindow::DrawSystemDetails() const
 {
 	auto const System = Tree->GetSeletedTrafficItem<WSystemItem>();
 
@@ -103,7 +105,7 @@ void WDetailsWindow::DrawSystemDetails()
 	ImGui::Text("Total Uploaded: %s", WStorageFormat::AutoFormat(System->TotalUploadBytes).c_str());
 }
 
-void WDetailsWindow::DrawApplicationDetails()
+void WDetailsWindow::DrawApplicationDetails() const
 {
 	auto const App = Tree->GetSeletedTrafficItem<WApplicationItem>();
 	if (App == nullptr)
@@ -131,7 +133,7 @@ void WDetailsWindow::DrawApplicationDetails()
 	ImGui::Text("Total Uploaded: %s", WStorageFormat::AutoFormat(App->TotalUploadBytes).c_str());
 }
 
-void WDetailsWindow::DrawProcessDetails()
+void WDetailsWindow::DrawProcessDetails() const
 {
 	auto const Proc = Tree->GetSeletedTrafficItem<WProcessItem>();
 	if (Proc == nullptr)
@@ -148,7 +150,7 @@ void WDetailsWindow::DrawProcessDetails()
 	ImGui::Text("Total Uploaded: %s", WStorageFormat::AutoFormat(Proc->TotalUploadBytes).c_str());
 }
 
-void WDetailsWindow::DrawSocketDetails()
+void WDetailsWindow::DrawSocketDetails() const
 {
 	auto const Sock = Tree->GetSeletedTrafficItem<WSocketItem>();
 	if (Sock == nullptr)
@@ -210,7 +212,7 @@ void WDetailsWindow::DrawSocketDetails()
 	}
 }
 
-void WDetailsWindow::DrawTupleDetails()
+void WDetailsWindow::DrawTupleDetails() const
 {
 	auto const Tuple = Tree->GetSeletedTrafficItem<WTupleItem>();
 	auto const Endpoint = Tree->GetSelectedTupleEndpoint();
@@ -234,7 +236,7 @@ WDetailsWindow::WDetailsWindow()
 	});
 }
 
-void WDetailsWindow::Draw()
+void WDetailsWindow::Draw() const
 {
 	if (ImGui::Begin("Details", nullptr, ImGuiWindowFlags_NoCollapse))
 	{

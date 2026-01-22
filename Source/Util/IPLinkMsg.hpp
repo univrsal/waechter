@@ -1,14 +1,14 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #pragma once
-#include "Types.hpp"
-
 #include <cstdint>
 #include <string>
 #include <memory>
+
+#include "Types.hpp"
 
 enum class EIPLinkMsgType : char
 {

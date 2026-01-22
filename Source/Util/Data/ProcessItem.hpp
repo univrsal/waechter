@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -12,7 +12,6 @@
 
 struct WProcessItem : ITrafficItem
 {
-public:
 	WProcessId ProcessId{};
 
 	std::unordered_map<WSocketCookie, std::shared_ptr<WSocketItem>> Sockets;

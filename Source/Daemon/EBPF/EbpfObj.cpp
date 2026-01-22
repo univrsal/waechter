@@ -1,14 +1,15 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "EbpfObj.hpp"
 
-#include <spdlog/spdlog.h>
 #include <fcntl.h>
 #include <bpf/bpf.h>
 #include <net/if.h>
+
+#include "spdlog/spdlog.h"
 
 #include "DaemonConfig.hpp"
 #include "ErrnoUtil.hpp"
@@ -29,7 +30,6 @@ WEbpfObj::WEbpfObj()
 		}
 		CGroupFd.reset(new int(CGroupFdRaw));
 	}
-	// Get index of configured network interface
 	IfIndex = WNetworkInterface::GetIfIndex(WDaemonConfig::GetInstance().NetworkInterfaceName);
 }
 

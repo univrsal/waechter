@@ -1,16 +1,18 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "Settings.hpp"
 
+#include <algorithm>
+#include <fstream>
+
+#include "spdlog/spdlog.h"
+#include "cereal/archives/json.hpp"
+
 #include "DbusUtil.hpp"
 
-#include <algorithm>
-#include <cereal/archives/json.hpp>
-#include <fstream>
-#include <spdlog/spdlog.h>
 
 static std::string GetSettingsFilename()
 {
@@ -91,7 +93,7 @@ void WSettings::AddToSocketPathHistory(std::string const& Path)
 	}
 
 	// Remove if already exists
-	auto It = std::find(SocketPathHistory.begin(), SocketPathHistory.end(), Path);
+	auto const It = std::ranges::find(SocketPathHistory, Path);
 	if (It != SocketPathHistory.end())
 	{
 		SocketPathHistory.erase(It);

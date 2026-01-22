@@ -11,7 +11,6 @@
 #include <string>
 
 #include "IPAddress.hpp"
-#include "Singleton.hpp"
 
 struct WIP2AsnLookupResult
 {
@@ -67,12 +66,12 @@ class WIP2AsnDB
 
 	[[nodiscard]] std::optional<WIP2AsnLookupResult> ReadEntryAtOffset(uint64_t offset) const;
 
-	bool BuildIndex() const;
+	[[nodiscard]] bool BuildIndex() const;
 	bool MapIndex();
 	void UnmapIndex();
 
-	std::optional<WIP2AsnLookupResult> LookupIPv4(uint32_t IP) const;
-	std::optional<WIP2AsnLookupResult> LookupIPv6(std::array<uint8_t, 16> const& IPBytes) const;
+	[[nodiscard]] std::optional<WIP2AsnLookupResult> LookupIPv4(uint32_t IP) const;
+	[[nodiscard]] std::optional<WIP2AsnLookupResult> LookupIPv6(std::array<uint8_t, 16> const& IPBytes) const;
 
 public:
 	explicit WIP2AsnDB(std::filesystem::path Path);
@@ -80,7 +79,7 @@ public:
 
 	bool Init();
 
-	std::optional<WIP2AsnLookupResult> Lookup(std::string const& IPStr) const;
+	[[nodiscard]] std::optional<WIP2AsnLookupResult> Lookup(std::string const& IPStr) const;
 
 	[[nodiscard]] std::size_t GetSize() const;
 

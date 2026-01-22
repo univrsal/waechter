@@ -5,8 +5,8 @@
 
 #include "RuleManager.hpp"
 
-#include <spdlog/spdlog.h>
-#include <cereal/archives/binary.hpp>
+#include "spdlog/spdlog.h"
+#include "cereal/archives/binary.hpp"
 
 #include "Daemon.hpp"
 #include "EBPF/EbpfData.hpp"

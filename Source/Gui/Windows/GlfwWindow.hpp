@@ -1,14 +1,15 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #pragma once
-// ReSharper disable once CppUnusedIncludeDirective
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
 #include <memory>
 #include <string>
+
+// ReSharper disable once CppUnusedIncludeDirective
+#include "glad/glad.h"
+#include "GLFW/glfw3.h"
 
 #include "Singleton.hpp"
 #include "MainWindow.hpp"
@@ -34,5 +35,5 @@ public:
 
 	void Destroy();
 
-	void SetTitle(std::string const& Title);
+	void SetTitle(std::string const& Title) const;
 };

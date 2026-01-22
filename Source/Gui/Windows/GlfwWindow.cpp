@@ -1,18 +1,20 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "GlfwWindow.hpp"
 
+#include <curl/curl.h>
+
 #define INCBIN_PREFIX G
 #define STB_IMAGE_IMPLEMENTATION
-#include <spdlog/spdlog.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
-#include <stb_image.h>
-#include <incbin.h>
-#include <implot.h>
+#include "spdlog/spdlog.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+#include "stb_image.h"
+#include "incbin.h"
+#include "implot.h"
 
 #include "Filesystem.hpp"
 #include "Time.hpp"
@@ -21,7 +23,6 @@
 #include "Icons/IconAtlas.hpp"
 #include "Util/Settings.hpp"
 
-#include <curl/curl.h>
 
 INCBIN(Icon, ICON_PATH);
 INCBIN(Font, FONT_PATH);
@@ -106,8 +107,7 @@ bool WGlfwWindow::Init()
 	auto FontSize = std::round(16.0f * MainScale);
 	auto NonConstFontData = const_cast<unsigned char*>(GFontData);
 
-	auto* FontData = Io.Fonts->AddFontFromMemoryTTF(
-		static_cast<void*>(NonConstFontData), static_cast<int>(GFontSize), FontSize, &Cfg);
+	auto* FontData = Io.Fonts->AddFontFromMemoryTTF(NonConstFontData, static_cast<int>(GFontSize), FontSize, &Cfg);
 	Io.FontDefault = FontData;
 	// Setup Dear ImGui style
 	if (WSettings::GetInstance().bUseDarkTheme)
@@ -126,7 +126,6 @@ bool WGlfwWindow::Init()
 	ImGui_ImplOpenGL3_Init(GlslVersion);
 
 	WTimerManager::GetInstance().Start(glfwGetTime());
-	WAppIconAtlas::GetInstance().Init();
 	WIconAtlas::GetInstance().Load();
 	WClient::GetInstance().Start();
 	return true;
@@ -134,7 +133,7 @@ bool WGlfwWindow::Init()
 
 void WGlfwWindow::RunLoop()
 {
-	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+	ImVec4 ClearColor = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 	while (!glfwWindowShouldClose(Window))
 	{
@@ -160,7 +159,7 @@ void WGlfwWindow::RunLoop()
 		glfwGetFramebufferSize(Window, &display_w, &display_h);
 		glViewport(0, 0, display_w, display_h);
 		glClearColor(
-			clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
+			ClearColor.x * ClearColor.w, ClearColor.y * ClearColor.w, ClearColor.z * ClearColor.w, ClearColor.w);
 		glClear(GL_COLOR_BUFFER_BIT);
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -196,7 +195,7 @@ void WGlfwWindow::Destroy()
 	curl_global_cleanup();
 }
 
-void WGlfwWindow::SetTitle(std::string const& Title)
+void WGlfwWindow::SetTitle(std::string const& Title) const
 {
 	glfwSetWindowTitle(Window, Title.c_str());
 }

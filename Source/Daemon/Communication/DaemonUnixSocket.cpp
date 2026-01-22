@@ -5,12 +5,12 @@
 
 #include "DaemonUnixSocket.hpp"
 
-#include "ClientUnixSocket.hpp"
-
-#include <tracy/Tracy.hpp>
-#include <spdlog/spdlog.h>
 #include <filesystem>
 
+#include "tracy/Tracy.hpp"
+#include "spdlog/spdlog.h"
+
+#include "ClientUnixSocket.hpp"
 #include "Filesystem.hpp"
 #include "DaemonClient.hpp"
 #include "DaemonConfig.hpp"

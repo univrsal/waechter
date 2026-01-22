@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -16,7 +16,7 @@ void WProtocolDB::Init()
 {
 	// Iterate the services database and populate TCP/UDP maps
 	setservent(0); // do not keep the DB open
-	struct servent* ServEnt = nullptr;
+	servent const* ServEnt = nullptr;
 	while ((ServEnt = getservent()) != nullptr)
 	{
 		if (ServEnt->s_name == nullptr || ServEnt->s_proto == nullptr)

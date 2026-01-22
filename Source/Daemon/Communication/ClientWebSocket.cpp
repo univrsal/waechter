@@ -6,7 +6,8 @@
 #include "ClientWebSocket.hpp"
 
 #include <cstring>
-#include <spdlog/spdlog.h>
+
+#include "spdlog/spdlog.h"
 
 WClientWebSocket::WClientWebSocket(lws* Wsi_, lws_context* Context_) : Wsi(Wsi_), Context(Context_) {}
 

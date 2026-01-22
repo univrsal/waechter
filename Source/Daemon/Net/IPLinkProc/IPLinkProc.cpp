@@ -1,22 +1,23 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include <string>
-#include <cstring>
-#include <spdlog/spdlog.h>
-#include <cereal/archives/binary.hpp>
-#include <cereal/types/memory.hpp>
-#include <cereal/types/string.hpp>
 #include <thread>
-#include <spdlog/fmt/fmt.h>
 #include <atomic>
 #include <filesystem>
 #include <condition_variable>
 #include <mutex>
 #include <deque>
 #include <vector>
+
+#include "spdlog/spdlog.h"
+#include "spdlog/fmt/fmt.h"
+#include "cereal/archives/binary.hpp"
+#include "cereal/types/memory.hpp"
+// ReSharper disable once CppUnusedIncludeDirective
+#include "cereal/types/string.hpp"
 
 #include "Socket.hpp"
 #include "ErrnoUtil.hpp"
@@ -109,7 +110,6 @@ struct WMsgQueue
 
 static int SafeSystem(std::string const& Command)
 {
-	// Check if the command contains any dangerous characters
 	for (char c : Command)
 	{
 		if (!std::isalnum(c) && c != ' ' && c != '_' && c != '-' && c != ':' && c != '=')
@@ -123,7 +123,6 @@ static int SafeSystem(std::string const& Command)
 
 static std::string SanitizeInterfaceName(std::string const& IfName)
 {
-	// only allow alphanumeric characters, underscores and dashes to prevent command injection
 	std::string Result = IfName;
 	Result.erase(
 		std::remove_if(Result.begin(), Result.end(), [](char c) { return !std::isalnum(c) && c != '_' && c != '-'; }),
@@ -178,8 +177,6 @@ static bool Init(std::string const& IfbDev, std::string const& IngressInterface,
 	// Redirect ingress traffic to ifb0
 	SYSFMT("tc qdisc replace dev {} handle ffff: ingress", IngressInterface);
 	SYSFMT(
-		// "tc filter replace dev {} parent ffff: protocol all prio 100 u32 match u32 0 0 action mirred egress redirect
-	    // dev {}",
 		"tc filter replace dev {} parent ffff: protocol all prio 100 matchall action mirred egress redirect dev {}",
 		IngressInterface, IfbDev);
 
@@ -235,7 +232,6 @@ static void ProcessMessage(WMsgQueue& Queue, WIPLinkMsg const& Msg, WSignalHandl
 void OnDataReceived(WBuffer& RecvBuffer, WSignalHandler& Handler, WMsgQueue& Queue)
 {
 	// Important: do not execute any slow system calls here. Just deserialize and enqueue.
-	// Keep allocations modest.
 	std::stringstream SS(std::string(RecvBuffer.GetData(), RecvBuffer.GetReadableSize()));
 	WIPLinkMsg        Msg;
 	try
@@ -320,7 +316,9 @@ int main(int Argc, char** Argv)
 
 	// Create a thread pool to process messages in parallel
 	// Using hardware concurrency, but capping at reasonable limit
-	size_t ThreadCount = std::min(std::thread::hardware_concurrency(), 8u);
+	// todo: i think we can remove this now, it was only a test
+	// when we had to create a filter for each port
+	size_t ThreadCount = std::min(std::thread::hardware_concurrency(), 4u);
 	if (ThreadCount == 0)
 	{
 		ThreadCount = 4; // fallback default

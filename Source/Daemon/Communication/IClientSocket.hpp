@@ -4,7 +4,8 @@
  */
 
 #pragma once
-#include <sigslot/signal.hpp>
+#include "sigslot/signal.hpp"
+
 #include "Buffer.hpp"
 
 class IClientSocket

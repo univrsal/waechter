@@ -1,10 +1,11 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #include "RuleWidget.hpp"
-#include <imgui.h>
+
+#include "imgui.h"
 
 #include "Data/TrafficItem.hpp"
 #include "Icons/IconAtlas.hpp"
@@ -76,7 +77,8 @@ namespace
 		auto PopupLabel = fmt::format("{}_limit_popup_{}", bIsUpload ? "upload" : "download", Item->ItemId);
 
 		// Prevent moving and hide title bar; keep auto-resize for compact popup
-		ImGuiWindowFlags Flags = ImGuiWindowFlags_NoMove;
+		ImGuiWindowFlags Flags;
+		Flags = ImGuiWindowFlags_NoMove;
 
 		ImVec2 AnchorMin = ImGui::GetItemRectMin();
 		ImVec2 AnchorMax = ImGui::GetItemRectMax();
@@ -88,7 +90,6 @@ namespace
 		}
 		ImGui::SameLine();
 		auto InputFlags = ImGuiInputTextFlags_CharsDecimal;
-		// reduce width of input field
 		ImGui::SetNextItemWidth(70.0f);
 		ImVec4 bg = ImGui::GetStyleColorVec4(ImGuiCol_Button);
 
@@ -101,7 +102,6 @@ namespace
 		ImGui::SameLine();
 		if (ImGui::Button("Ok##limit_ok"))
 		{
-			// send update
 			auto& Rule = WClientRuleManager::GetInstance().GetOrCreateRules(Item->ItemId);
 			Rule.RuleType = ERuleType::Explicit;
 			WBytesPerSecond& LimitVal = bIsUpload ? Rule.UploadLimit : Rule.DownloadLimit;

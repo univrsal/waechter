@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -8,17 +8,17 @@
 
 #include <atomic>
 #include <utility>
-#include <spdlog/spdlog.h>
-#include <tracy/Tracy.hpp>
 
+#include "spdlog/spdlog.h"
+#include "tracy/Tracy.hpp"
 // ReSharper disable CppUnusedIncludeDirective
-#include <cereal/types/array.hpp>
-#include <cereal/types/vector.hpp>
-#include <cereal/types/unordered_set.hpp>
-#include <cereal/types/unordered_map.hpp>
-#include <cereal/types/memory.hpp>
-#include <cereal/types/string.hpp>
-#include <cereal/archives/binary.hpp>
+#include "cereal/types/array.hpp"
+#include "cereal/types/vector.hpp"
+#include "cereal/types/unordered_set.hpp"
+#include "cereal/types/unordered_map.hpp"
+#include "cereal/types/memory.hpp"
+#include "cereal/types/string.hpp"
+#include "cereal/archives/binary.hpp"
 // ReSharper restore CppUnusedIncludeDirective
 
 #include "Socket.hpp"
