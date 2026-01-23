@@ -197,3 +197,44 @@ Cleanup:
 	}
 	return Result;
 }
+
+// UDP recvmsg hooks - needed for sockets that only receive (like iperf3 server)
+// Use fexit which allows bpf_get_socket_cookie unlike kprobe
+SEC("fexit/udp_recvmsg")
+int BPF_PROG(fexit_udp_recvmsg, struct sock* Sk, struct msghdr* msg, size_t len, int flags, int* addr_len)
+{
+	if (!Sk)
+	{
+		return 0;
+	}
+
+	__u64 Pid = bpf_get_current_pid_tgid();
+	__u64 Cookie = bpf_get_socket_cookie(Sk);
+
+	bpf_map_update_elem(&UdpSocketCookieByPid, &Pid, &Cookie, BPF_ANY);
+
+	// Directly call EmitIfBound since we have the socket
+	EmitIfBound(Sk, Cookie);
+	bpf_map_delete_elem(&UdpSocketCookieByPid, &Pid);
+	return 0;
+}
+
+SEC("fexit/udpv6_recvmsg")
+int BPF_PROG(fexit_udp6_recvmsg, struct sock* Sk, struct msghdr* msg, size_t len, int flags, int* addr_len)
+{
+	if (!Sk)
+	{
+		return 0;
+	}
+
+	__u64 Pid = bpf_get_current_pid_tgid();
+	__u64 Cookie = bpf_get_socket_cookie(Sk);
+
+	bpf_map_update_elem(&UdpSocketCookieByPid, &Pid, &Cookie, BPF_ANY);
+
+	// Directly call EmitIfBound since we have the socket
+	EmitIfBound(Sk, Cookie);
+
+	bpf_map_delete_elem(&UdpSocketCookieByPid, &Pid);
+	return 0;
+}
