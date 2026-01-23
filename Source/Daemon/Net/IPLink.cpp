@@ -189,6 +189,30 @@ void WIPLink::RemoveIngressPortRouting(uint16_t Dport)
 	}
 }
 
+void WIPLink::SetPidDownloadMark(uint32_t Pid, uint32_t Mark)
+{
+	auto const& Data = WDaemon::GetInstance().GetEbpfObj().GetData();
+
+	if (!Data->PidDownloadMarks->Update(Pid, Mark))
+	{
+		spdlog::error("Failed to set PID download mark for PID {}", Pid);
+	}
+	else
+	{
+		spdlog::debug("Set PID download mark for PID {} to {}", Pid, Mark);
+	}
+}
+
+void WIPLink::RemovePidDownloadMark(uint32_t Pid)
+{
+	auto const& Data = WDaemon::GetInstance().GetEbpfObj().GetData();
+
+	if (!Data->PidDownloadMarks->Delete(Pid))
+	{
+		spdlog::debug("Failed to remove PID download mark for PID {} (may not exist)", Pid);
+	}
+}
+
 void WIPLink::RemoveUploadLimit(WTrafficItemId const& ItemId)
 {
 	std::lock_guard Lock(Mutex);

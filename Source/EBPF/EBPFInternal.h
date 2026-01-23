@@ -85,6 +85,26 @@ struct
 	__type(value, __u16);
 } ingress_port_marks SEC(".maps");
 
+// PID-based download marks for immediate application of rules to new sockets
+// This serves as a fallback when port-based lookup fails (e.g., for newly opened ports)
+struct
+{
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, 65536);
+	__type(key, __u32);   // PID
+	__type(value, __u32); // Download mark
+} pid_download_marks SEC(".maps");
+
+// Maps local port → PID, populated at TCP established time
+// Used for looking up PID from ingress traffic on IFB device
+struct
+{
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, 65536);
+	__type(key, __u16);   // Local port
+	__type(value, __u32); // PID
+} port_to_pid SEC(".maps");
+
 static __always_inline struct WSocketEvent* MakeSocketEvent2(__u64 Cookie, __u8 EventType, bool bWithPID)
 {
 	if (Cookie == 0)

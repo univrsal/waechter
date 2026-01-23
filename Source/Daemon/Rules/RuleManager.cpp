@@ -13,6 +13,8 @@
 #include "Data/RuleUpdate.hpp"
 #include "Data/SystemMap.hpp"
 #include "Data/NetworkEvents.hpp"
+#include "Data/ApplicationItem.hpp"
+#include "Data/ProcessItem.hpp"
 #include "Net/IPLink.hpp"
 
 inline ESwitchState GetEffectiveSwitchState(ESwitchState ParentState, ESwitchState ItemState, ERuleType ItemRuleType)
@@ -80,13 +82,14 @@ inline bool operator==(WTrafficItemRulesBase const& A, WTrafficItemRules const& 
 void WRuleManager::OnSocketConnected(WSocketCounter const* Socket)
 {
 	std::lock_guard Lock(Mutex);
-	auto            ProcessItem = Socket->ParentProcess->TrafficItem->ItemId;
+	auto            ProcessItemId = Socket->ParentProcess->TrafficItem->ItemId;
 	auto            AppItem = Socket->ParentProcess->ParentApp->TrafficItem->ItemId;
+	auto            ProcessPid = Socket->ParentProcess->TrafficItem->ProcessId;
 
 	auto App = Socket->ParentProcess->ParentApp;
 
-	auto              AppRules = ApplicationRules.contains(AppItem) ? ApplicationRules[AppItem] : WTrafficItemRules{};
-	auto              ProcRules = ProcessRules.contains(ProcessItem) ? ProcessRules[ProcessItem] : WTrafficItemRules{};
+	auto AppRules = ApplicationRules.contains(AppItem) ? ApplicationRules[AppItem] : WTrafficItemRules{};
+	auto ProcRules = ProcessRules.contains(ProcessItemId) ? ProcessRules[ProcessItemId] : WTrafficItemRules{};
 	WTrafficItemRules EffectiveProcRules = GetEffectiveRules(AppRules, ProcRules);
 
 	if (!EffectiveProcRules.IsDefault())
@@ -98,6 +101,13 @@ void WRuleManager::OnSocketConnected(WSocketCounter const* Socket)
 		//       so that both limits are enforced properly.
 		UpdateRuleCache(App->TrafficItem);
 		SyncRules();
+
+		// Ensure PID mark is set for this process if there's a download limit
+		// This enables immediate rate limiting for new sockets from this process
+		if (EffectiveProcRules.DownloadMark != 0)
+		{
+			WIPLink::SetPidDownloadMark(static_cast<uint32_t>(ProcessPid), EffectiveProcRules.DownloadMark);
+		}
 	}
 }
 
@@ -125,6 +135,9 @@ void WRuleManager::OnProcessRemoved(std::shared_ptr<WProcessCounter> const& Proc
 	}
 #endif
 	ProcessRules.erase(ProcessItem->TrafficItem->ItemId);
+
+	// Clean up PID download mark
+	WIPLink::RemovePidDownloadMark(static_cast<uint32_t>(ProcessItem->TrafficItem->ProcessId));
 }
 
 void WRuleManager::UpdateRuleCache(std::shared_ptr<ITrafficItem> const& AppItem)
@@ -322,11 +335,42 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 	switch (Item->GetType())
 	{
 		case TI_Application:
+		{
 			ApplicationRules[Update.TrafficItemId] = Update.Rules;
+			// Set PID download marks for all processes under this application
+			auto AppItemCast = std::dynamic_pointer_cast<WApplicationItem>(Item);
+			if (AppItemCast && Update.Rules.DownloadMark != 0)
+			{
+				for (auto const& Pid : AppItemCast->Processes | std::views::keys)
+				{
+					WIPLink::SetPidDownloadMark(static_cast<uint32_t>(Pid), Update.Rules.DownloadMark);
+				}
+			}
+			else if (AppItemCast && Update.Rules.DownloadLimit == 0)
+			{
+				// Remove PID marks when limit is removed
+				for (auto const& Pid : AppItemCast->Processes | std::views::keys)
+				{
+					WIPLink::RemovePidDownloadMark(static_cast<uint32_t>(Pid));
+				}
+			}
 			break;
+		}
 		case TI_Process:
+		{
 			ProcessRules[Update.TrafficItemId] = Update.Rules;
+			// Set PID download mark for this specific process
+			auto ProcessItem = std::dynamic_pointer_cast<WProcessItem>(Item);
+			if (ProcessItem && Update.Rules.DownloadMark != 0)
+			{
+				WIPLink::SetPidDownloadMark(static_cast<uint32_t>(ProcessItem->ProcessId), Update.Rules.DownloadMark);
+			}
+			else if (ProcessItem && Update.Rules.DownloadLimit == 0)
+			{
+				WIPLink::RemovePidDownloadMark(static_cast<uint32_t>(ProcessItem->ProcessId));
+			}
 			break;
+		}
 		case TI_Socket:
 			SocketRules[Update.TrafficItemId] = Update.Rules;
 			break;

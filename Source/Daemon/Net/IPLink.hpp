@@ -80,6 +80,10 @@ public:
 	std::shared_ptr<WBandwidthLimit> GetDownloadLimit(
 		WTrafficItemId const& ItemId, WBytesPerSecond const& Limit, bool* bExists = nullptr);
 
+	// PID-based download marks for immediate rule application to new sockets
+	static void SetPidDownloadMark(uint32_t Pid, uint32_t Mark);
+	static void RemovePidDownloadMark(uint32_t Pid);
+
 	void PrintStats() const
 	{
 		spdlog::info("{} active upload limits, {} active download limits", ActiveUploadLimits.size(),

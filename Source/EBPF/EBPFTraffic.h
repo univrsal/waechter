@@ -220,9 +220,25 @@ int ifb_cls_egress(struct __sk_buff* skb)
 
 	__u16* Mark = bpf_map_lookup_elem(&ingress_port_marks, &DstPort);
 
-	if (Mark)
+	if (Mark && *Mark != 0)
 	{
+		bpf_printk("Setting mark for port %d to %d (port-based)\n", DstPort, *Mark);
 		skb->mark = *Mark;
+	}
+	else
+	{
+		// Fallback: look up PID from port, then get mark from PID
+		// This handles new sockets that haven't been registered in ingress_port_marks yet
+		__u32* Pid = bpf_map_lookup_elem(&port_to_pid, &DstPort);
+		if (Pid)
+		{
+			__u32* PidMark = bpf_map_lookup_elem(&pid_download_marks, Pid);
+			if (PidMark && *PidMark != 0)
+			{
+				bpf_printk("Setting mark for port %d to %d (PID %d fallback)\n", DstPort, *PidMark, *Pid);
+				skb->mark = *PidMark;
+			}
+		}
 	}
 
 	return TC_ACT_OK;

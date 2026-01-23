@@ -47,6 +47,13 @@ int BPF_PROG(on_tcp_set_state, struct sock* Sk, int Newstate)
 		{
 			bpf_ringbuf_submit(Event, 0);
 		}
+
+		// Clean up port_to_pid mapping when socket closes
+		u16 Lport = BPF_CORE_READ(Sk, __sk_common.skc_num);
+		if (Lport != 0)
+		{
+			bpf_map_delete_elem(&port_to_pid, &Lport);
+		}
 	}
 	else if (Newstate == TCP_ESTABLISHED)
 	{
@@ -56,6 +63,14 @@ int BPF_PROG(on_tcp_set_state, struct sock* Sk, int Newstate)
 
 		// Local port: host-endian
 		u16 Lport = BPF_CORE_READ(Sk, __sk_common.skc_num);
+
+		// Look up PID from shared_socket_data_map and populate port_to_pid
+		if (Lport != 0)
+		{
+			__u64 PidTgid = bpf_get_current_pid_tgid();
+			__u32 Pid = (__u32)(PidTgid >> 32);
+			bpf_map_update_elem(&port_to_pid, &Lport, &Pid, BPF_ANY);
+		}
 
 		if (Event)
 		{

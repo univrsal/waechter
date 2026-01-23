@@ -43,6 +43,8 @@ public:
 		return bpf_map_update_elem(MapFd, &Key, &Value, Flags) == 0;
 	}
 
+	bool Delete(K const& Key) const { return bpf_map_delete_elem(MapFd, &Key) == 0; }
+
 	// Fetch all elements from the bpf map into the local cache
 	void Update()
 	{

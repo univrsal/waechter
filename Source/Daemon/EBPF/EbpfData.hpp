@@ -18,6 +18,7 @@ public:
 	std::unique_ptr<TEbpfRingBuffer<WSocketEvent>>                  SocketEvents;
 	std::unique_ptr<TEbpfMap<WSocketCookie, WTrafficItemRulesBase>> SocketRules;
 	std::unique_ptr<TEbpfMap<uint16_t, uint16_t>>                   SocketMarks;
+	std::unique_ptr<TEbpfMap<uint32_t, uint32_t>>                   PidDownloadMarks;
 
 	[[nodiscard]] bool IsValid() const { return SocketEvents && SocketEvents->IsValid(); }
 
