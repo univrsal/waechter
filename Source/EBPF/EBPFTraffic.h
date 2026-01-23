@@ -146,58 +146,88 @@ int ifb_cls_egress(struct __sk_buff* skb)
 	void* Data = (void*)(long)skb->data;
 	void* DataEnd = (void*)(long)skb->data_end;
 
-	struct iphdr* IP = NULL;
-	__u16         DstPort = 0;
-	__u8          IPProto;
-	__u32         IPHeaderLen;
+	__u16 DstPort = 0;
+	__u8  IPProto = 0;
+	void* Transportheader = NULL;
 
 	// First, check if data starts with a valid IP header directly
 	// This handles raw IP packets from tunnels/ifb devices
 	__u8* FirstByte = Data;
 	if ((void*)(FirstByte + 1) > DataEnd)
 		return TC_ACT_OK;
-	u8 Version = (*FirstByte) >> 4;
+	__u8 Version = (*FirstByte) >> 4;
 
 	if (Version == 4)
 	{
 		// Starts with IPv4 header directly (raw IP packet)
-		IP = Data;
+		struct iphdr* IP = Data;
+		if ((void*)(IP + 1) > DataEnd)
+			return TC_ACT_OK;
+
+		// Double-check it's IPv4
+		if (IP->version != 4)
+			return TC_ACT_OK;
+
+		IPProto = IP->protocol;
+		__u32 IPHeaderLen = IP->ihl * 4;
+
+		// Bounds check for variable IP header length
+		if (IPHeaderLen < 20 || IPHeaderLen > 60)
+			return TC_ACT_OK;
+
+		Transportheader = (void*)IP + IPHeaderLen;
 	}
 	else if (Version == 6)
 	{
-		// IPv6 - skip for now
-		return TC_ACT_OK;
+		// IPv6 header
+		struct ipv6hdr* IP6 = Data;
+		if ((void*)(IP6 + 1) > DataEnd)
+			return TC_ACT_OK;
+
+		IPProto = IP6->nexthdr;
+		Transportheader = (void*)(IP6 + 1);
+
+		// Note: This doesn't handle extension headers, but works for simple cases
 	}
 	else
 	{
-		// Likely has Ethernet header, check for IPv4
+		// Likely has Ethernet header, check for IPv4/IPv6
 		struct ethhdr* Eth = Data;
 		if ((void*)(Eth + 1) > DataEnd)
 			return TC_ACT_OK;
-		if (Eth->h_proto != bpf_htons(ETH_P_IP))
+
+		if (Eth->h_proto == bpf_htons(ETH_P_IP))
+		{
+			struct iphdr* IP = (void*)(Eth + 1);
+			if ((void*)(IP + 1) > DataEnd)
+				return TC_ACT_OK;
+			if (IP->version != 4)
+				return TC_ACT_OK;
+
+			IPProto = IP->protocol;
+			__u32 IPHeaderLen = IP->ihl * 4;
+			if (IPHeaderLen < 20 || IPHeaderLen > 60)
+				return TC_ACT_OK;
+
+			Transportheader = (void*)IP + IPHeaderLen;
+		}
+		else if (Eth->h_proto == bpf_htons(ETH_P_IPV6))
+		{
+			struct ipv6hdr* IP6 = (void*)(Eth + 1);
+			if ((void*)(IP6 + 1) > DataEnd)
+				return TC_ACT_OK;
+
+			IPProto = IP6->nexthdr;
+			Transportheader = (void*)(IP6 + 1);
+		}
+		else
+		{
 			return TC_ACT_OK;
-		IP = (void*)(Eth + 1);
+		}
 	}
 
-	// Validate IP header bounds
-	if ((void*)(IP + 1) > DataEnd)
+	if (!Transportheader)
 		return TC_ACT_OK;
-
-	// Double-check it's IPv4
-	if (IP->version != 4)
-		return TC_ACT_OK;
-
-	IPProto = IP->protocol;
-	IPHeaderLen = IP->ihl * 4;
-
-	// Bounds check for variable IP header length
-	if (IPHeaderLen < 20 || IPHeaderLen > 60)
-	{
-		return TC_ACT_OK;
-	}
-
-	// Ensure we can access transport header
-	void* Transportheader = (void*)IP + IPHeaderLen;
 
 	if (IPProto == IPPROTO_TCP)
 	{
