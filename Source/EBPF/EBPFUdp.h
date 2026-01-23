@@ -54,6 +54,13 @@ static __always_inline int EmitIfBound(struct sock* Sk, __u64 Cookie)
 		return 0; // still not bound
 	}
 
+	__u64 PidTgid = bpf_get_current_pid_tgid();
+	__u32 Pid = (__u32)(PidTgid >> 32);
+	if (SPort != 0)
+	{
+		bpf_map_update_elem(&port_to_pid, &SPort, &Pid, BPF_ANY);
+	}
+
 	__u8 EventType = 0;
 	switch (Family)
 	{

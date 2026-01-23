@@ -17,6 +17,15 @@ int BPF_PROG(on_inet_sock_destruct, struct sock* Sk)
 	{
 		bpf_ringbuf_submit(Event, 0);
 	}
+
+	// Clean up port_to_pid mapping for this socket
+	// This handles UDP sockets and any TCP edge cases
+	__u16 Lport = BPF_CORE_READ(Sk, __sk_common.skc_num);
+	if (Lport != 0)
+	{
+		bpf_map_delete_elem(&port_to_pid, &Lport);
+	}
+
 	return 0;
 }
 
