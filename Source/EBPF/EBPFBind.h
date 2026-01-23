@@ -44,19 +44,31 @@ int BPF_PROG(socket_bind, struct socket* Sock, struct sockaddr* Addr, int Addrle
 
 	if (SocketEvent)
 	{
+		__u16 Port = 0;
 		if (Addr->sa_family == AF_INET)
 		{
-			SocketEvent->Data.SocketBindEventData.UserPort = bpf_ntohs(Sa.sin_port);
+			Port = bpf_ntohs(Sa.sin_port);
+			SocketEvent->Data.SocketBindEventData.UserPort = Port;
 			SocketEvent->Data.SocketBindEventData.Addr4 = Sa.sin_addr.s_addr;
 		}
 		else if (Addr->sa_family == AF_INET6)
 		{
 			SocketEvent->EventType = NE_SocketBind_6;
-			SocketEvent->Data.SocketBindEventData.UserPort = bpf_ntohs(Sa6.sin6_port);
+			Port = bpf_ntohs(Sa6.sin6_port);
+			SocketEvent->Data.SocketBindEventData.UserPort = Port;
 			SocketEvent->Data.SocketBindEventData.Addr6[0] = Sa6.sin6_addr.in6_u.u6_addr32[0];
 			SocketEvent->Data.SocketBindEventData.Addr6[1] = Sa6.sin6_addr.in6_u.u6_addr32[1];
 			SocketEvent->Data.SocketBindEventData.Addr6[2] = Sa6.sin6_addr.in6_u.u6_addr32[2];
 			SocketEvent->Data.SocketBindEventData.Addr6[3] = Sa6.sin6_addr.in6_u.u6_addr32[3];
+		}
+		SocketEvent->Data.SocketBindEventData.bImplicitBind = 0;
+
+		// Populate port_to_pid map for PID-based rate limiting fallback
+		if (Port != 0)
+		{
+			__u64 PidTgid = bpf_get_current_pid_tgid();
+			__u32 Pid = (__u32)(PidTgid >> 32);
+			bpf_map_update_elem(&port_to_pid, &Port, &Pid, BPF_ANY);
 		}
 
 		bpf_ringbuf_submit(SocketEvent, 0);
