@@ -7,6 +7,7 @@
 
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "Util/I18n.hpp"
 #include "spdlog/spdlog.h"
 
 void WImGuiLogSink::sink_it_(spdlog::details::log_msg const& Message)
@@ -15,6 +16,7 @@ void WImGuiLogSink::sink_it_(spdlog::details::log_msg const& Message)
 	formatter_->format(Message, Formatted);
 	if (Owner)
 	{
+		// ReSharper disable once CppDFAUnreachableCode
 		Owner->Append(Message.level, std::string(Formatted.data(), Formatted.size()));
 	}
 }
@@ -74,11 +76,11 @@ void WLogWindow::DoScrollToBottom()
 
 void WLogWindow::Draw()
 {
-	if (ImGui::Begin("Log", nullptr, ImGuiWindowFlags_NoCollapse))
+	if (ImGui::Begin(TR("window.log"), nullptr, ImGuiWindowFlags_NoCollapse))
 	{
-		ImGui::Checkbox("Auto-scroll", &AutoScroll);
+		ImGui::Checkbox(TR("log.auto_scroll"), &AutoScroll);
 		ImGui::SameLine();
-		if (ImGui::Button("Clear"))
+		if (ImGui::Button(TR("log.clear")))
 		{
 			Clear();
 		}

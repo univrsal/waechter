@@ -21,6 +21,7 @@
 #include "AppIconAtlas.hpp"
 #include "Client.hpp"
 #include "Icons/IconAtlas.hpp"
+#include "Util/I18n.hpp"
 #include "Util/Settings.hpp"
 
 
@@ -127,6 +128,7 @@ bool WGlfwWindow::Init()
 
 	WTimerManager::GetInstance().Start(glfwGetTime());
 	WIconAtlas::GetInstance().Load();
+	WI18n::GetInstance().Init();
 	WClient::GetInstance().Start();
 	return true;
 }

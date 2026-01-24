@@ -24,6 +24,8 @@ public:
 	std::string RegisteredUsername{};
 	std::string RegistrationSerialKey{};
 
+	std::string SelectedLanguage{ "en_US" };
+
 	std::string              SocketPath{ "/var/run/waechterd.sock" };
 	std::vector<std::string> SocketPathHistory{};
 	std::string              WebSocketAuthToken{};
@@ -45,7 +47,8 @@ public:
 			CEREAL_NVP(SocketPath), CEREAL_NVP(SocketPathHistory), CEREAL_NVP(WebSocketAuthToken),
 			CEREAL_NVP(bShowOfflineProcesses), CEREAL_NVP(NetworkGraphLineWidth),
 			CEREAL_NVP(NetworkGraphHistorySetting), CEREAL_NVP(TrafficTreeUnitSetting), CEREAL_NVP(bUseDarkTheme),
-			CEREAL_NVP(bAllowSelfSignedCertificates), CEREAL_NVP(bSkipCertificateHostnameCheck));
+			CEREAL_NVP(bAllowSelfSignedCertificates), CEREAL_NVP(bSkipCertificateHostnameCheck),
+			CEREAL_NVP(SelectedLanguage));
 	}
 
 	void Load();

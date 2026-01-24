@@ -13,6 +13,7 @@ target_compile_definitions(waechter PRIVATE
         "ICON_ATLAS_IMAGE=\"${CMAKE_SOURCE_DIR}/Meta/atlas.png\""
         "LOGO_IMAGE=\"${CMAKE_SOURCE_DIR}/Meta/logo.png\""
         "WATERMARK_IMAGE=\"${CMAKE_SOURCE_DIR}/Meta/watermark.png\""
+        "LANGUAGES_DIR=\"${CMAKE_SOURCE_DIR}/Meta/I18n/\""
 )
 
 add_subdirectory(Windows)

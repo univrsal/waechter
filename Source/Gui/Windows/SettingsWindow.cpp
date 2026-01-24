@@ -9,6 +9,7 @@
 #include "imgui_stdlib.h"
 
 #include "Client.hpp"
+#include "Util/I18n.hpp"
 #include "Util/Settings.hpp"
 
 void WSettingsWindow::Draw()
@@ -21,12 +22,12 @@ void WSettingsWindow::Draw()
 	auto     DisplaySize = Io.DisplaySize;
 	ImGui::SetNextWindowPos(ImVec2(DisplaySize.x * 0.5f, DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 	ImGui::SetNextWindowSize({ 500, 310 });
-	if (ImGui::Begin("Settings", &bVisible,
+	if (ImGui::Begin(TR("window.settings"), &bVisible,
 			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
 	{
-		ImGui::SeparatorText("Socket");
+		ImGui::SeparatorText(TR("socket.settings"));
 
-		if (ImGui::BeginCombo("History", WSettings::GetInstance().SocketPath.c_str()))
+		if (ImGui::BeginCombo(TR("socket.history"), WSettings::GetInstance().SocketPath.c_str()))
 		{
 			// Show current path if it's not in history
 			bool bFoundInHistory = false;
@@ -60,14 +61,14 @@ void WSettingsWindow::Draw()
 
 			ImGui::EndCombo();
 		}
-		ImGui::InputText("Socket path", &WSettings::GetInstance().SocketPath);
+		ImGui::InputText(TR("socket.path"), &WSettings::GetInstance().SocketPath);
 
 		ImGui::InputText(
-			"WebSocket auth token", &WSettings::GetInstance().WebSocketAuthToken, ImGuiInputTextFlags_Password);
+			TR("ws.auth_token"), &WSettings::GetInstance().WebSocketAuthToken, ImGuiInputTextFlags_Password);
 
-		ImGui::Checkbox("Allow self-signed certificates", &WSettings::GetInstance().bAllowSelfSignedCertificates);
-		ImGui::Checkbox("Skip certificate hostname check", &WSettings::GetInstance().bSkipCertificateHostnameCheck);
-		if (ImGui::Button("Connect"))
+		ImGui::Checkbox(TR("ws.allow_self_sign"), &WSettings::GetInstance().bAllowSelfSignedCertificates);
+		ImGui::Checkbox(TR("ws.skip_cert_check"), &WSettings::GetInstance().bSkipCertificateHostnameCheck);
+		if (ImGui::Button(TR("button.connect")))
 		{
 			if (!WSettings::GetInstance().SocketPath.empty())
 			{
@@ -78,8 +79,8 @@ void WSettingsWindow::Draw()
 
 		ImGui::Spacing();
 
-		ImGui::SeparatorText("UI");
-		if (ImGui::Checkbox("Use dark theme", &WSettings::GetInstance().bUseDarkTheme))
+		ImGui::SeparatorText(TR("ui"));
+		if (ImGui::Checkbox(TR("ui.use_dark_theme"), &WSettings::GetInstance().bUseDarkTheme))
 		{
 			if (WSettings::GetInstance().bUseDarkTheme)
 			{
@@ -89,6 +90,26 @@ void WSettingsWindow::Draw()
 			{
 				ImGui::StyleColorsLight();
 			}
+		}
+		// drop down for language selection
+		static std::vector<std::pair<std::string, std::string>> const Languages = { { "en_US", "English (US)" },
+			{ "de_DE", "Deutsch (DE)" } };
+		if (ImGui::BeginCombo(TR("language"), WSettings::GetInstance().SelectedLanguage.c_str()))
+		{
+			for (auto const& [Code, Name] : Languages)
+			{
+				bool const bSelected = Code == WSettings::GetInstance().SelectedLanguage;
+				if (ImGui::Selectable(Name.c_str(), bSelected))
+				{
+					WSettings::GetInstance().SelectedLanguage = Code;
+					WI18n::GetInstance().LoadLanguage(Code);
+				}
+				if (bSelected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
 		}
 	}
 	ImGui::End();
