@@ -55,7 +55,8 @@ void WDaemon::RunLoop()
 	WSignalHandler& SignalHandler = WSignalHandler::GetInstance();
 
 	// Poll ring buffers and periodically print aggregate stats
-	auto LastPrint = std::chrono::steady_clock::now();
+	std::chrono::time_point<std::chrono::steady_clock> LastPrint;
+	LastPrint = std::chrono::steady_clock::now();
 	auto LastTrafficUpdate = std::chrono::steady_clock::now();
 
 	while (!SignalHandler.bStop)
@@ -65,12 +66,6 @@ void WDaemon::RunLoop()
 			EbpfObj.UpdateData();
 		}
 		auto now = std::chrono::steady_clock::now();
-		if (now - LastPrint >= std::chrono::milliseconds(30000))
-		{
-			EbpfObj.PrintStats();
-			LastPrint = now;
-		}
-
 		if (now - LastTrafficUpdate >= std::chrono::milliseconds(1000))
 		{
 			{
