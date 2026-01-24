@@ -109,6 +109,8 @@ public:
 			case TU_Auto:
 			default:
 				assert(false);
+				// ReSharper disable once CppDFAUnreachableCode
+				return Value;
 		}
 	}
 
@@ -127,6 +129,8 @@ public:
 			case TU_Auto:
 			default:
 				assert(false);
+				// ReSharper disable once CppDFAUnreachableCode
+				return Value;
 		}
 	}
 };
