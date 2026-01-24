@@ -31,7 +31,13 @@ int FormatTimeAgo(double Value, char* Buf, int Size, void*)
 
 	double const Minutes = Seconds / 60.0;
 	if (Minutes < 60.0)
-		return std::snprintf(Buf, static_cast<size_t>(Size), "%.0f min", Minutes);
+	{
+		// Show decimal for minutes to avoid duplicate labels
+		if (Minutes < 10.0)
+			return std::snprintf(Buf, static_cast<size_t>(Size), "%.1f min", Minutes);
+		else
+			return std::snprintf(Buf, static_cast<size_t>(Size), "%.0f min", Minutes);
+	}
 
 	double const Hours = Minutes / 60.0;
 	return std::snprintf(Buf, static_cast<size_t>(Size), "%.1f h", Hours);
