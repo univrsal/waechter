@@ -133,22 +133,36 @@ void WNetworkGraphWindow::Draw()
 
 			// Transform data: convert time values to "time ago" (Time - x)
 			// We need to plot with inverted X values
+			// Also filter out points outside the visible range to prevent wrapping artifacts
 
 			// Create temporary buffers with inverted time
 			static ImVector<ImVec2> UploadInverted;
 			static ImVector<ImVec2> DownloadInverted;
-			UploadInverted.resize(UploadBuffer.Data.size());
-			DownloadInverted.resize(DownloadBuffer.Data.size());
-			for (int i = 0; i < UploadBuffer.Data.size(); ++i)
+			UploadInverted.clear();
+			DownloadInverted.clear();
+
+			double const T0 = Time - History - 2.0; // Minimum visible time (with 1s buffer)
+
+			for (auto const& P : UploadBuffer.Data)
 			{
-				UploadInverted[i].x = static_cast<float>(Time) - UploadBuffer.Data[i].x; // Convert to "seconds ago"
-				UploadInverted[i].y = UploadBuffer.Data[i].y;
+				float const OriginalTime = P.x;
+				// Only include points within the visible time range
+				if (OriginalTime >= static_cast<float>(T0))
+				{
+					float const TimeAgo = static_cast<float>(Time) - OriginalTime;
+					UploadInverted.push_back(ImVec2(TimeAgo, P.y));
+				}
 			}
 
-			for (int i = 0; i < DownloadBuffer.Data.size(); ++i)
+			for (auto const& P : DownloadBuffer.Data)
 			{
-				DownloadInverted[i].x = static_cast<float>(Time) - DownloadBuffer.Data[i].x; // Convert to "seconds ago"
-				DownloadInverted[i].y = DownloadBuffer.Data[i].y;
+				float const OriginalTime = P.x;
+				// Only include points within the visible time range
+				if (OriginalTime >= static_cast<float>(T0))
+				{
+					float const TimeAgo = static_cast<float>(Time) - OriginalTime;
+					DownloadInverted.push_back(ImVec2(TimeAgo, P.y));
+				}
 			}
 
 			// Plot Upload on Y2 (right axis)
