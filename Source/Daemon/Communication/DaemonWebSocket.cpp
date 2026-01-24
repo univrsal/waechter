@@ -143,6 +143,7 @@ int WebSocketCallback(lws* Wsi, lws_callback_reasons Reason, void*, void* In, si
 void WDaemonWebSocket::ListenThreadFunction() const
 {
 	tracy::SetThreadName("WebSocketServer");
+	pthread_setname_np(pthread_self(), "ws-server");
 
 	while (Running && Context)
 	{

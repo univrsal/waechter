@@ -50,6 +50,7 @@ bool WDaemonUnixSocket::StartListenThread()
 void WDaemonUnixSocket::ListenThreadFunction() const
 {
 	tracy::SetThreadName("DaemonSocket");
+	pthread_setname_np(pthread_self(), "us-server");
 	WBuffer Buffer;
 	while (Running)
 	{
