@@ -2,7 +2,6 @@
  * Copyright (c) 2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
-// #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
 #include <X11/Xlib.h>
@@ -16,301 +15,299 @@
 #include "xtray.h"
 
 /* System tray protocol opcodes */
-#define SYSTEM_TRAY_REQUEST_DOCK   0
-#define SYSTEM_TRAY_BEGIN_MESSAGE  1
+#define SYSTEM_TRAY_REQUEST_DOCK 0
+#define SYSTEM_TRAY_BEGIN_MESSAGE 1
 #define SYSTEM_TRAY_CANCEL_MESSAGE 2
 
 /* Global state */
-static Display *display;
-static int screen;
-static Window icon_win;
-static GC gc;
-static XImage *ximage = NULL;
-static int icon_width = 0, icon_height = 0;
-static int running = 1;
+static Display* GDisplay;
+static int      GScreen;
+static Window   GIconWin;
+static GC       GGc;
+static XImage*  GXImage       = NULL;
+static int      GIconWidth    = 0, GIconHeight = 0;
+static int      bIsRunning    = 1;
+static int	    bIsInitialized = 0;
 
 /* Original image data */
-static unsigned char *orig_image = NULL;
-static int orig_width, orig_height;
+static unsigned char* GOrigImage = NULL;
+static int            GOrigWidth, GOrigHeight;
 
 /*
  * Find the system tray window for the given screen
  */
-static Window get_tray_window(void)
+static Window GetTrayWindow(void)
 {
-    char atom_name[64];
-    snprintf(atom_name, sizeof(atom_name), "_NET_SYSTEM_TRAY_S%d", screen);
+	char atomName[64];
+	snprintf(atomName, sizeof(atomName), "_NET_SYSTEM_TRAY_S%d", GScreen);
 
-    Atom selection_atom = XInternAtom(display, atom_name, False);
-    return XGetSelectionOwner(display, selection_atom);
+	Atom selectionAtom = XInternAtom(GDisplay, atomName, False);
+	return XGetSelectionOwner(GDisplay, selectionAtom);
 }
 
 /*
  * Send a dock request to embed our window in the system tray
  */
-static void send_dock_request(Window tray)
+static void SendDockRequest(Window Tray)
 {
-    XEvent ev;
-    memset(&ev, 0, sizeof(ev));
+	XEvent ev;
+	memset(&ev, 0, sizeof(ev));
 
-    Atom opcode_atom = XInternAtom(display, "_NET_SYSTEM_TRAY_OPCODE", False);
+	Atom opcodeAtom = XInternAtom(GDisplay, "_NET_SYSTEM_TRAY_OPCODE", False);
 
-    ev.xclient.type = ClientMessage;
-    ev.xclient.window = tray;
-    ev.xclient.message_type = opcode_atom;
-    ev.xclient.format = 32;
-    ev.xclient.data.l[0] = CurrentTime;
-    ev.xclient.data.l[1] = SYSTEM_TRAY_REQUEST_DOCK;
-    ev.xclient.data.l[2] = icon_win;
-    ev.xclient.data.l[3] = 0;
-    ev.xclient.data.l[4] = 0;
+	ev.xclient.type         = ClientMessage;
+	ev.xclient.window       = Tray;
+	ev.xclient.message_type = opcodeAtom;
+	ev.xclient.format       = 32;
+	ev.xclient.data.l[0]    = CurrentTime;
+	ev.xclient.data.l[1]    = SYSTEM_TRAY_REQUEST_DOCK;
+	ev.xclient.data.l[2]    = GIconWin;
+	ev.xclient.data.l[3]    = 0;
+	ev.xclient.data.l[4]    = 0;
 
-    XSendEvent(display, tray, False, NoEventMask, &ev);
-    XFlush(display);
+	XSendEvent(GDisplay, Tray, False, NoEventMask, &ev);
+	XFlush(GDisplay);
 }
 
 /*
  * Create/recreate the XImage with the icon scaled to the given size
  */
-static void create_scaled_ximage(int width, int height)
+static void CreateScaledXImage(int Width, int Height)
 {
-    if (ximage) {
-        XDestroyImage(ximage);  /* This frees the data buffer too */
-        ximage = NULL;
-    }
+	if (GXImage)
+	{
+		XDestroyImage(GXImage); /* This frees the data buffer too */
+		GXImage = NULL;
+	}
 
-    Visual *visual = DefaultVisual(display, screen);
-    int depth = DefaultDepth(display, screen);
+	Visual* visual = DefaultVisual(GDisplay, GScreen);
+	int     depth  = DefaultDepth(GDisplay, GScreen);
 
-    /* Allocate pixel buffer */
-    uint32_t *pixels = malloc(width * height * sizeof(uint32_t));
-    if (!pixels) {
-        fprintf(stderr, "Failed to allocate pixel buffer\n");
-        return;
-    }
+	/* Allocate pixel buffer */
+	uint32_t* pixels = malloc(Width * Height * sizeof(uint32_t));
+	if (!pixels)
+	{
+		fprintf(stderr, "Failed to allocate pixel buffer\n");
+		return;
+	}
 
-    /* Scale and convert image: RGBA -> native X11 format (typically BGRA) */
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-            /* Simple nearest-neighbor scaling */
-            int src_x = x * orig_width / width;
-            int src_y = y * orig_height / height;
-            int src_idx = (src_y * orig_width + src_x) * 4;
+	/* Scale and convert image: RGBA -> native X11 format (typically BGRA) */
+	for (int y = 0; y < Height; y++)
+	{
+		for (int x = 0; x < Width; x++)
+		{
+			/* Simple nearest-neighbor scaling */
+			int srcX   = x * GOrigWidth / Width;
+			int srcY   = y * GOrigHeight / Height;
+			int srcIdx = (srcY * GOrigWidth + srcX) * 4;
 
-            unsigned char r = orig_image[src_idx + 0];
-            unsigned char g = orig_image[src_idx + 1];
-            unsigned char b = orig_image[src_idx + 2];
-            unsigned char a = orig_image[src_idx + 3];
+			unsigned char r = GOrigImage[srcIdx + 0];
+			unsigned char g = GOrigImage[srcIdx + 1];
+			unsigned char b = GOrigImage[srcIdx + 2];
+			unsigned char a = GOrigImage[srcIdx + 3];
 
-            /* Pre-multiply alpha for better blending */
-            r = (r * a) / 255;
-            g = (g * a) / 255;
-            b = (b * a) / 255;
+			/* Pre-multiply alpha for better blending */
+			r = (r * a) / 255;
+			g = (g * a) / 255;
+			b = (b * a) / 255;
 
-            /* Pack as ARGB (X11 32-bit format on little-endian) */
-            pixels[y * width + x] = ((uint32_t)a << 24) |
-                                    ((uint32_t)r << 16) |
-                                    ((uint32_t)g << 8)  |
-                                    ((uint32_t)b);
-        }
-    }
+			/* Pack as ARGB (X11 32-bit format on little-endian) */
+			pixels[y * Width + x] = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | ((uint32_t)b);
+		}
+	}
 
-    ximage = XCreateImage(display, visual, depth, ZPixmap, 0,
-                          (char *)pixels, width, height, 32, width * 4);
+	GXImage = XCreateImage(GDisplay, visual, depth, ZPixmap, 0, (char*)pixels, Width, Height, 32, Width * 4);
 
-    if (!ximage) {
-        fprintf(stderr, "Failed to create XImage\n");
-        free(pixels);
-        return;
-    }
+	if (!GXImage)
+	{
+		fprintf(stderr, "Failed to create XImage\n");
+		free(pixels);
+		return;
+	}
 
-    icon_width = width;
-    icon_height = height;
+	GIconWidth  = Width;
+	GIconHeight = Height;
 }
 
 /*
  * Draw the icon to the window
  */
-static void draw_icon(void)
+static void DrawIcon(void)
 {
-    if (ximage && icon_win) {
-        XPutImage(display, icon_win, gc, ximage,
-                  0, 0, 0, 0, icon_width, icon_height);
-        XFlush(display);
-    }
+	if (GXImage && GIconWin)
+	{
+		XPutImage(GDisplay, GIconWin, GGc, GXImage, 0, 0, 0, 0, GIconWidth, GIconHeight);
+		XFlush(GDisplay);
+	}
 }
 
 /*
  * Handle left mouse button click
  */
-static void on_left_click(int x, int y)
+static void OnLeftClick(int X, int Y)
 {
-    printf("Left click detected at position (%d, %d)!\n", x, y);
-
-    /*
-     * Add your click handling logic here, for example:
-     * - Show a popup menu
-     * - Toggle application visibility
-     * - Display a notification
-     */
+	printf("Left click detected at position (%d, %d)!\n", X, Y);
 }
 
-int xtray_init(const unsigned char* image_data, unsigned int image_data_size)
+int XTrayInit(unsigned char const* ImageData, unsigned int ImageDataSize)
 {
-    /* Load image using stb_image (force RGBA) */
-    int channels;
-    orig_image = stbi_load_from_memory(image_data, image_data_size, &orig_width, &orig_height, &channels, 4);
-    if (!orig_image) {
-        fprintf(stderr, "Failed to load image: %s\n",
-                 stbi_failure_reason());
-        return 1;
-    }
+	if (bIsInitialized)
+	{
+		return 1;
+	}
+	/* Load image using stb_image (force RGBA) */
+	int channels;
+	GOrigImage = stbi_load_from_memory(ImageData, ImageDataSize, &GOrigWidth, &GOrigHeight, &channels, 4);
+	if (!GOrigImage)
+	{
+		return 0;
+	}
 
-    /* Open X display */
-    display = XOpenDisplay(NULL);
-    if (!display) {
-        fprintf(stderr, "Cannot open X display\n");
-        stbi_image_free(orig_image);
-        return 1;
-    }
+	/* Open X display */
+	GDisplay = XOpenDisplay(NULL);
+	if (!GDisplay)
+	{
+		stbi_image_free(GOrigImage);
+		return 0;
+	}
 
-    screen = DefaultScreen(display);
-    Window root = RootWindow(display, screen);
+	GScreen    = DefaultScreen(GDisplay);
+	Window root = RootWindow(GDisplay, GScreen);
 
-    /* Find the system tray */
-    Window tray = get_tray_window();
-    if (tray == None) {
-        fprintf(stderr, "No system tray found. Is a panel/tray running?\n");
-        XCloseDisplay(display);
-        stbi_image_free(orig_image);
-        return 1;
-    }
+	/* Find the system tray */
+	Window tray = GetTrayWindow();
+	if (tray == None)
+	{
+		XCloseDisplay(GDisplay);
+		stbi_image_free(GOrigImage);
+		return 0;
+	}
 
-    printf("Found system tray window: 0x%lx\n", tray);
+	/* Create the icon window */
+	int initialSize = 24; /* Standard tray icon size */
 
-    /* Create the icon window */
-    int initial_size = 24;  /* Standard tray icon size */
+	XSetWindowAttributes attrs;
+	attrs.background_pixel = BlackPixel(GDisplay, GScreen);
+	attrs.event_mask       = ExposureMask | ButtonPressMask | ButtonReleaseMask | StructureNotifyMask;
 
-    XSetWindowAttributes attrs;
-    attrs.background_pixel = BlackPixel(display, screen);
-    attrs.event_mask = ExposureMask | ButtonPressMask |
-                       ButtonReleaseMask | StructureNotifyMask;
+	GIconWin = XCreateWindow(GDisplay, root, 0, 0, initialSize, initialSize, 0, CopyFromParent, /* depth */
+		InputOutput,                                                                             /* class */
+		CopyFromParent,                                                                          /* visual */
+		CWBackPixel | CWEventMask, &attrs);
 
-    icon_win = XCreateWindow(display, root,
-                             0, 0, initial_size, initial_size,
-                             0,
-                             CopyFromParent,       /* depth */
-                             InputOutput,          /* class */
-                             CopyFromParent,       /* visual */
-                             CWBackPixel | CWEventMask,
-                             &attrs);
+	/* Request docking BEFORE mapping the window to avoid it appearing separately */
+	SendDockRequest(tray);
 
-    /* Request docking BEFORE mapping the window to avoid it appearing separately */
-    send_dock_request(tray);
+	/* Set window class hints (some trays use this) */
+	XClassHint classHint;
+	classHint.res_name  = "tray_icon";
+	classHint.res_class = "TrayIcon";
+	XSetClassHint(GDisplay, GIconWin, &classHint);
 
-    /* Set window class hints (some trays use this) */
-    XClassHint class_hint;
-    class_hint.res_name = "tray_icon";
-    class_hint.res_class = "TrayIcon";
-    XSetClassHint(display, icon_win, &class_hint);
+	/* Prevent window from appearing in taskbar */
+	Atom stateAtom        = XInternAtom(GDisplay, "_NET_WM_STATE", False);
+	Atom skipTaskbar      = XInternAtom(GDisplay, "_NET_WM_STATE_SKIP_TASKBAR", False);
+	Atom skipPager        = XInternAtom(GDisplay, "_NET_WM_STATE_SKIP_PAGER", False);
+	Atom atoms[2]         = { skipTaskbar, skipPager };
+	XChangeProperty(GDisplay, GIconWin, stateAtom, XA_ATOM, 32, PropModeReplace, (unsigned char*)atoms, 2);
 
-    /* Prevent window from appearing in taskbar */
-    Atom state_atom = XInternAtom(display, "_NET_WM_STATE", False);
-    Atom skip_taskbar = XInternAtom(display, "_NET_WM_STATE_SKIP_TASKBAR", False);
-    Atom skip_pager = XInternAtom(display, "_NET_WM_STATE_SKIP_PAGER", False);
-    Atom atoms[2] = { skip_taskbar, skip_pager };
-    XChangeProperty(display, icon_win, state_atom, XA_ATOM, 32,
-                    PropModeReplace, (unsigned char *)atoms, 2);
+	/* Set window type to notification to help window managers ignore it */
+	Atom typeAtom          = XInternAtom(GDisplay, "_NET_WM_WINDOW_TYPE", False);
+	Atom notificationType = XInternAtom(GDisplay, "_NET_WM_WINDOW_TYPE_NOTIFICATION", False);
+	XChangeProperty(GDisplay, GIconWin, typeAtom, XA_ATOM, 32, PropModeReplace, (unsigned char*)&notificationType, 1);
 
-    /* Set window type to notification to help window managers ignore it */
-    Atom type_atom = XInternAtom(display, "_NET_WM_WINDOW_TYPE", False);
-    Atom notification_type = XInternAtom(display, "_NET_WM_WINDOW_TYPE_NOTIFICATION", False);
-    XChangeProperty(display, icon_win, type_atom, XA_ATOM, 32,
-                    PropModeReplace, (unsigned char *)&notification_type, 1);
+	/* Create graphics context */
+	GGc = XCreateGC(GDisplay, GIconWin, 0, NULL);
 
-    /* Create graphics context */
-    gc = XCreateGC(display, icon_win, 0, NULL);
+	/* Create initial scaled image */
+	CreateScaledXImage(initialSize, initialSize);
 
-    /* Create initial scaled image */
-    create_scaled_ximage(initial_size, initial_size);
+	/* Map the window */
+	XMapWindow(GDisplay, GIconWin);
+	XFlush(GDisplay);
+	bIsInitialized = 1;
 
-    /* Map the window */
-    XMapWindow(display, icon_win);
-    XFlush(display);
-
-    printf("Tray icon created. Left-click to interact, Ctrl+C to quit.\n");
-
-    return 0;
+	return 1;
 }
 
-void xtray_poll()
+void XTrayEventLoop()
 {
 	/* Main event loop */
 	XEvent event;
 
-	while (running) {
-		XNextEvent(display, &event);
+	while (bIsRunning)
+	{
+		XNextEvent(GDisplay, &event);
 
-		switch (event.type) {
+		switch (event.type)
+		{
 			case Expose:
 				/* Redraw on expose (wait for last in sequence) */
-				if (event.xexpose.count == 0) {
-					draw_icon();
+				if (event.xexpose.count == 0)
+				{
+					DrawIcon();
 				}
 				break;
 
 			case ConfigureNotify:
 				/* Window was resized (tray may resize us) */
-				if (event.xconfigure.width != icon_width ||
-					event.xconfigure.height != icon_height) {
-					printf("Icon resized to %dx%d\n",
-						   event.xconfigure.width, event.xconfigure.height);
-					create_scaled_ximage(event.xconfigure.width,
-										event.xconfigure.height);
-					draw_icon();
-					}
+				if (event.xconfigure.width != GIconWidth || event.xconfigure.height != GIconHeight)
+				{
+					printf("Icon resized to %dx%d\n", event.xconfigure.width, event.xconfigure.height);
+					CreateScaledXImage(event.xconfigure.width, event.xconfigure.height);
+					DrawIcon();
+				}
 				break;
 
 			case ButtonPress:
-				if (event.xbutton.button == Button1) {
-					on_left_click(event.xbutton.x, event.xbutton.y);
-				} else if (event.xbutton.button == Button3) {
+				if (event.xbutton.button == Button1)
+				{
+					OnLeftClick(event.xbutton.x, event.xbutton.y);
+				}
+				else if (event.xbutton.button == Button3)
+				{
 					printf("Right click - could show context menu\n");
 				}
 				break;
 
 			case DestroyNotify:
 				printf("Window destroyed, exiting...\n");
-				running = 0;
+				bIsRunning = 0;
 				break;
 
 			case ReparentNotify:
 				printf("Window reparented (docked in tray)\n");
 				break;
+			default:;
 		}
 	}
 }
 
-void xtray_cleanup()
+void XTrayCleanup()
 {
 	/* Signal the event loop to stop */
-	running = 0;
+	bIsRunning = 0;
 
 	/* Cleanup */
-	if (ximage) {
-		XDestroyImage(ximage);  /* Frees pixel data too */
+	if (GXImage)
+	{
+		XDestroyImage(GXImage); /* Frees pixel data too */
 	}
-	if (display && gc) {
-		XFreeGC(display, gc);
+	if (GDisplay && GGc)
+	{
+		XFreeGC(GDisplay, GGc);
 	}
-	if (display && icon_win) {
-		XDestroyWindow(display, icon_win);
+	if (GDisplay && GIconWin)
+	{
+		XDestroyWindow(GDisplay, GIconWin);
 	}
-	if (display) {
-		XCloseDisplay(display);
+	if (GDisplay)
+	{
+		XCloseDisplay(GDisplay);
 	}
 
-	if (orig_image) {
-		stbi_image_free(orig_image);
+	if (GOrigImage)
+	{
+		stbi_image_free(GOrigImage);
 	}
 }

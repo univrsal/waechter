@@ -9,11 +9,11 @@
 extern "C" {
 #endif
 
-int xtray_init(unsigned char const* image_data, unsigned int image_data_size);
+int XTrayInit(unsigned char const* TrayIconData, unsigned int TrayIconSize);
 
-void xtray_poll();
+void XTrayEventLoop();
 
-void xtray_cleanup();
+void XTrayCleanup();
 
 #if defined(__cplusplus)
 }

@@ -5,6 +5,7 @@
 
 #include "TrayIcon.hpp"
 
+#include "spdlog/spdlog.h"
 #include "xtray.h"
 
 extern unsigned char const GIconData[];
@@ -12,18 +13,26 @@ extern unsigned int const  GIconSize;
 
 void ProcessEvents()
 {
-	xtray_poll();
+	XTrayEventLoop();
 }
 
 void WTrayIcon::Init()
 {
-	xtray_init(GIconData, GIconSize);
-	PollThread = std::thread(ProcessEvents);
+	if (XTrayInit(GIconData, GIconSize) == 0)
+	{
+		spdlog::error("Failed to initialize tray icon");
+	}
+	else
+	{
+		PollThread = std::thread(ProcessEvents);
+	}
 }
 
 WTrayIcon::~WTrayIcon()
 {
-	xtray_cleanup();
+	XTrayCleanup();
 	if (PollThread.joinable())
+	{
 		PollThread.join();
+	}
 }
