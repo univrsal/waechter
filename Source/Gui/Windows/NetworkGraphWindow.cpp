@@ -15,6 +15,27 @@
 
 #include "Util/Settings.hpp"
 
+double CalculateNiceTickInterval(double Range, int TargetTicks = 5)
+{
+	if (Range <= 0.0)
+		return 1.0;
+	double const RoughInterval = Range / static_cast<double>(TargetTicks);
+	double const Magnitude = std::pow(10.0, std::floor(std::log10(RoughInterval)));
+	double const Normalized = RoughInterval / Magnitude;
+
+	double NiceNormalized;
+	if (Normalized <= 1.0)
+		NiceNormalized = 1.0;
+	else if (Normalized <= 2.0)
+		NiceNormalized = 2.0;
+	else if (Normalized <= 5.0)
+		NiceNormalized = 5.0;
+	else
+		NiceNormalized = 10.0;
+
+	return NiceNormalized * Magnitude;
+}
+
 int FormatBandwidth(double Value, char* Buf, int Size, void* UserData)
 {
 	auto const*  U = static_cast<WNetworkGraphWindow::WUnitFmt const*>(UserData);
@@ -128,14 +149,31 @@ void WNetworkGraphWindow::Draw()
 			// X-axis: offset by 1 second to avoid gap (show 1s ago to History+1s ago)
 			// This ensures we only show the range of data we actually have
 			ImPlot::SetupAxisLimits(ImAxis_X1, 1.0, History + 1.0, ImGuiCond_Always);
-			// Y1 (left) for Download, Y2 (right) for Upload
-			ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, CurrentMaxDownloadRate * 1.1, ImGuiCond_Always);
-			ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, 0.0, std::numeric_limits<double>::infinity());
 
-			ImPlot::SetupAxis(ImAxis_Y2, UploadFmt.Label, ImPlotAxisFlags_Opposite);
+			// Calculate aligned Y-axis limits to prevent grid interference
+			// Use the same number of ticks for both axes
+			constexpr int TargetTicks = 5;
+			double const  DownloadMax = CurrentMaxDownloadRate * 1.1;
+			double const  UploadMax = CurrentMaxUploadRate * 1.1;
+
+			// Calculate tick intervals in the original units (bytes)
+			double const DownloadInterval = CalculateNiceTickInterval(DownloadMax, TargetTicks);
+			double const UploadInterval = CalculateNiceTickInterval(UploadMax, TargetTicks);
+
+			// Round up the max values to be multiples of the intervals
+			double const DownloadLimit = std::ceil(DownloadMax / DownloadInterval) * DownloadInterval;
+			double const UploadLimit = std::ceil(UploadMax / UploadInterval) * UploadInterval;
+
+			// Y1 (left) for Download, Y2 (right) for Upload
+			ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, DownloadLimit, ImGuiCond_Always);
+			ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, 0.0, std::numeric_limits<double>::infinity());
+			ImPlot::SetupAxisTicks(ImAxis_Y1, 0.0, DownloadLimit, TargetTicks + 1);
+
+			ImPlot::SetupAxis(ImAxis_Y2, UploadFmt.Label, ImPlotAxisFlags_Opposite | ImPlotAxisFlags_NoGridLines);
 			ImPlot::SetupAxisFormat(ImAxis_Y2, FormatBandwidth, &UploadFmt);
-			ImPlot::SetupAxisLimits(ImAxis_Y2, 0.0, CurrentMaxUploadRate * 1.1, ImGuiCond_Always);
+			ImPlot::SetupAxisLimits(ImAxis_Y2, 0.0, UploadLimit, ImGuiCond_Always);
 			ImPlot::SetupAxisLimitsConstraints(ImAxis_Y2, 0.0, std::numeric_limits<double>::infinity());
+			ImPlot::SetupAxisTicks(ImAxis_Y2, 0.0, UploadLimit, TargetTicks + 1);
 
 			// Transform data: convert time values to "time ago" (Time - x)
 			// We need to plot with inverted X values
