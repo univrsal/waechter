@@ -68,7 +68,7 @@ void WResolver::ResolveAddress(WIPAddress const& Address)
 
 	std::lock_guard Lock(ResolvedAddressesMutex);
 	CurrentCacheRamUsage += sizeof(WIPAddress) + strlen(Host) + 1 + sizeof(std::string);
-	spdlog::info("Current resolver cache RAM usage: {}", WStorageFormat::AutoFormat(CurrentCacheRamUsage));
+	spdlog::debug("Current resolver cache RAM usage: {}", WStorageFormat::AutoFormat(CurrentCacheRamUsage));
 
 	if (CurrentCacheRamUsage > MaxCacheRamUsage)
 	{
