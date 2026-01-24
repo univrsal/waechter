@@ -466,10 +466,10 @@ void WTrafficTree::Draw(ImGuiID MainID)
 		return;
 	}
 
-	ImGui::TableSetupColumn(TR("tt.name"), ImGuiTableColumnFlags_WidthStretch);
+	ImGui::TableSetupColumn(TR("name"), ImGuiTableColumnFlags_WidthStretch);
 	ImGui::TableSetupColumn("▼", ImGuiTableColumnFlags_WidthFixed, 100.0f);
 	ImGui::TableSetupColumn("▲", ImGuiTableColumnFlags_WidthFixed, 100.0f);
-	ImGui::TableSetupColumn(TR("tt.rules"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
+	ImGui::TableSetupColumn(TR("rules"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
 
 	bool bOpened{};
 
@@ -543,7 +543,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 			ImGui::TableNextRow();
 			ImGui::PushID(PID);
 			Args = {};
-			Args.Name = fmt::format("Process {}", PID);
+			Args.Name = fmt::format("{} {}", TR("__process"), PID);
 			Args.Item = Process;
 			Args.bMarkedForRemoval = MarkedForRemovalItems.contains(Process->ItemId);
 			Args.ParentApp = Child;

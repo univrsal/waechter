@@ -7,9 +7,10 @@
 
 #define INCBIN_PREFIX G
 #include "incbin.h"
+#include "spdlog/spdlog.h"
+
 #include "Json.hpp"
 #include "Settings.hpp"
-#include "spdlog/spdlog.h"
 
 #define INCLUDE_LANG(id) INCBIN(id, LANGUAGES_DIR #id ".json")
 #define LOAD_LANG(id)                                                                    \
@@ -54,6 +55,10 @@ WTranslation WI18n::LoadTranslationFile(std::string const& Code)
 				// non imgui text
 				Translation[Key] = Value.string_value();
 			}
+			else if (Key.find("window.") != std::string::npos)
+			{
+				Translation[Key] = Value.string_value() + "###" + Key;
+			}
 			else
 			{
 				Translation[Key] = Value.string_value() + "##" + Key;
@@ -65,11 +70,7 @@ WTranslation WI18n::LoadTranslationFile(std::string const& Code)
 
 char const* WI18n::Tr(char const* Key)
 {
-	if (Key == nullptr)
-	{
-		return "(null)";
-	}
-
+	assert(Key != nullptr && strlen(Key) > 0);
 	auto& Instance = GetInstance();
 	auto  It = Instance.ActiveTranslation.find(Key);
 	if (It != Instance.ActiveTranslation.end())

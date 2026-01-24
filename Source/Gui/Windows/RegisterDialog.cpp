@@ -10,6 +10,7 @@
 #include "incbin.h"
 
 #include "GlfwWindow.hpp"
+#include "Util/I18n.hpp"
 #include "Util/Settings.hpp"
 #include "Util/Keylogic/validate.h"
 
@@ -54,17 +55,18 @@ void WRegisterDialog::Draw()
 	ImGui::SetNextWindowPos(ImVec2(DisplaySize.x * 0.5f, DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 	ImGui::SetNextWindowSize({ 300, 155 });
 
-	if (ImGui::Begin("Register Wächter", &bVisible,
+	if (ImGui::Begin(TR("window.register"), &bVisible,
 			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
 	{
 		int TextBoxFlags = ImGuiInputTextFlags_CharsNoBlank;
-		ImGui::InputText("Username", Username, sizeof(Username), bValid ? ImGuiInputTextFlags_ReadOnly : 0);
-		ImGui::InputText("Serial Key", SerialKey, sizeof(SerialKey),
+		ImGui::InputText(
+			TR("register.username"), Username, sizeof(Username), bValid ? ImGuiInputTextFlags_ReadOnly : 0);
+		ImGui::InputText(TR("register.serial_key"), SerialKey, sizeof(SerialKey),
 			bValid ? (ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_Password) : TextBoxFlags);
 
 		if (bValid)
 		{
-			if (ImGui::Button("Unregister"))
+			if (ImGui::Button(TR("button.unregister")))
 			{
 				WSettings::GetInstance().RegisteredUsername.clear();
 				WSettings::GetInstance().RegistrationSerialKey.clear();
@@ -76,8 +78,8 @@ void WRegisterDialog::Draw()
 		}
 		else
 		{
-			ImGui::TextLinkOpenURL("About registration", "https://waechter.st/register");
-			if (ImGui::Button("Register"))
+			ImGui::TextLinkOpenURL(TR("about.registration"), "https://waechter.st/register");
+			if (ImGui::Button(TR("button.register")))
 			{
 				Validate();
 				bFailedActivation = true;
@@ -86,11 +88,11 @@ void WRegisterDialog::Draw()
 
 		if (bValid)
 		{
-			ImGui::TextColored(ImVec4(0.1f, 0.7f, 0.1f, 1.0f), "Wächter is activated.");
+			ImGui::TextColored(ImVec4(0.1f, 0.7f, 0.1f, 1.0f), "%s", TR("__activated"));
 		}
 		else if (bFailedActivation)
 		{
-			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Invalid username or serial key.");
+			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "%s", TR("__invalid_key"));
 		}
 	}
 	ImGui::End();

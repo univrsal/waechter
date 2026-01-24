@@ -16,10 +16,6 @@ target_compile_definitions(waechter PRIVATE
         "LANGUAGES_DIR=\"${CMAKE_SOURCE_DIR}/Meta/I18n/\""
 )
 
-# make sure the project rebuilds if any i18n json files change
-file(GLOB I18N_JSON_FILES "${CMAKE_SOURCE_DIR}/Meta/I18n/*.json")
-target_sources(waechter PRIVATE ${I18N_JSON_FILES})
-
 add_subdirectory(Windows)
 add_subdirectory(Util)
 add_subdirectory(Icons)

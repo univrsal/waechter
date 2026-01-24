@@ -10,6 +10,7 @@
 #include "incbin.h"
 
 #include "GlfwWindow.hpp"
+#include "Util/I18n.hpp"
 #include "Util/Settings.hpp"
 
 
@@ -78,8 +79,8 @@ void WAboutDialog::Draw()
 	ImGui::SetNextWindowPos(ImVec2(display_size.x * 0.5f, display_size.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 	ImGui::SetNextWindowSize({ 700, display_size.y - 100 });
 
-	if (ImGui::Begin(
-			"About", &bVisible, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
+	if (ImGui::Begin(TR("window.about"), &bVisible,
+			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
 	{
 		auto Style = ImGui::GetStyle();
 		ImGui::PushFont(nullptr, Style.FontSizeBase * 1.4f);

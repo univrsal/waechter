@@ -16,8 +16,23 @@ target_sources(waechter
         IP2Asn.hpp
         DbusUtil.cpp
         DbusUtil.hpp
-        I18n.cpp
         I18n.hpp
 )
 
 add_subdirectory(Keylogic)
+
+
+set(I18N_JSON_FILES
+        "${CMAKE_SOURCE_DIR}/Meta/I18n/en_US.json"
+        "${CMAKE_SOURCE_DIR}/Meta/I18n/de_DE.json"
+)
+message(STATUS "I18N JSON FILES: ${I18N_JSON_FILES}")
+
+set_source_files_properties(I18n.cpp PROPERTIES
+        OBJECT_DEPENDS "${I18N_JSON_FILES}"
+)
+
+target_sources(waechter
+        PRIVATE
+        I18n.cpp
+)

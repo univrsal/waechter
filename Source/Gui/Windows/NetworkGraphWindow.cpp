@@ -11,6 +11,7 @@
 
 #include "imgui.h"
 #include "implot.h"
+#include "Util/I18n.hpp"
 #include "tracy/Tracy.hpp"
 
 #include "Util/Settings.hpp"
@@ -122,20 +123,20 @@ void WNetworkGraphWindow::Draw()
 {
 	ZoneScopedN("WNetworkGraphWindow::Draw");
 	Time += static_cast<double>(ImGui::GetIO().DeltaTime);
-	if (ImGui::Begin("Network activity", nullptr, ImGuiWindowFlags_None))
+	if (ImGui::Begin(TR("window.network_activity"), nullptr, ImGuiWindowFlags_None))
 	{
 		// History duration dropdown
 		static char const*  HistoryOptions[] = { "1 min", "5 min", "15 min" };
 
 		ImGui::SetNextItemWidth(100);
-		if (ImGui::Combo("Duration", &WSettings::GetInstance().NetworkGraphHistorySetting, HistoryOptions,
+		if (ImGui::Combo(TR("duration"), &WSettings::GetInstance().NetworkGraphHistorySetting, HistoryOptions,
 				IM_ARRAYSIZE(HistoryOptions)))
 		{
 			History = HistoryDuration[WSettings::GetInstance().NetworkGraphHistorySetting];
 		}
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(100);
-		ImGui::SliderFloat("Line width", &WSettings::GetInstance().NetworkGraphLineWidth, 0.5f, 5.0f, "%.1f");
+		ImGui::SliderFloat(TR("line_width"), &WSettings::GetInstance().NetworkGraphLineWidth, 0.5f, 5.0f, "%.1f");
 
 		if (ImPlot::BeginPlot("##Scrolling", ImVec2(-1, -1)))
 		{
@@ -212,14 +213,14 @@ void WNetworkGraphWindow::Draw()
 			// Plot Upload on Y2 (right axis)
 			ImPlot::SetAxes(ImAxis_X1, ImAxis_Y2);
 			ImPlot::SetNextLineStyle(ImVec4(0.9f, 0.3f, 0.05f, 1.0f), WSettings::GetInstance().NetworkGraphLineWidth);
-			ImPlot::PlotStairs(
-				"Upload", &UploadInverted[0].x, &UploadInverted[0].y, UploadInverted.size(), 0, 0, 2 * sizeof(float));
+			ImPlot::PlotStairs(TR("upload"), &UploadInverted[0].x, &UploadInverted[0].y, UploadInverted.size(), 0, 0,
+				2 * sizeof(float));
 
 			// Plot Download on Y1 (left axis)
 			ImPlot::SetAxes(ImAxis_X1, ImAxis_Y1);
 			ImPlot::SetNextLineStyle(ImVec4(0.2f, 0.4f, 0.8f, 1.0f), WSettings::GetInstance().NetworkGraphLineWidth);
-			ImPlot::PlotStairs("Download", &DownloadInverted[0].x, &DownloadInverted[0].y, DownloadInverted.size(), 0,
-				0, 2 * sizeof(float));
+			ImPlot::PlotStairs(TR("download"), &DownloadInverted[0].x, &DownloadInverted[0].y, DownloadInverted.size(),
+				0, 0, 2 * sizeof(float));
 			ImPlot::EndPlot();
 		}
 	}

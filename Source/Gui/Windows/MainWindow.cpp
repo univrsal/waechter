@@ -87,10 +87,10 @@ void WMainWindow::Init(ImGuiID Main)
 		ImGuiID DockIdDown = ImGui::DockBuilderSplitNode(DockIdMain, ImGuiDir_Down, 0.25f, nullptr, &DockIdMain);
 		ImGuiID DockIdRight = ImGui::DockBuilderSplitNode(DockIdMain, ImGuiDir_Right, 0.20f, nullptr, &DockIdMain);
 		ImGui::DockBuilderDockWindow(TR("window.traffic_tree"), DockIdMain);
-		ImGui::DockBuilderDockWindow("Connection History", DockIdMain);
-		ImGui::DockBuilderDockWindow("Log", DockIdDown);
-		ImGui::DockBuilderDockWindow("Network activity", DockIdDown);
-		ImGui::DockBuilderDockWindow("Details", DockIdRight);
+		ImGui::DockBuilderDockWindow(TR("window.connection_history"), DockIdMain);
+		ImGui::DockBuilderDockWindow(TR("window.log"), DockIdDown);
+		ImGui::DockBuilderDockWindow(TR("window.network_activity"), DockIdDown);
+		ImGui::DockBuilderDockWindow(TR("window.details"), DockIdRight);
 		ImGui::DockBuilderFinish(Main);
 	}
 	FlagAtlas.Load();
@@ -119,11 +119,12 @@ void WMainWindow::Draw()
 	{
 		if (ImGui::BeginMenu(TR("menu.view")))
 		{
-			if (ImGui::MenuItem("Show Uninitialized Sockets", "", &WSettings::GetInstance().bShowUninitalizedSockets))
+			if (ImGui::MenuItem(
+					TR("menu.show_uninitialized_sockets"), "", &WSettings::GetInstance().bShowUninitalizedSockets))
 			{
 				WSettings::GetInstance().Save();
 			}
-			if (ImGui::MenuItem("Show Offline Processes", "", &WSettings::GetInstance().bShowOfflineProcesses))
+			if (ImGui::MenuItem(TR("menu.show_offline_processes"), "", &WSettings::GetInstance().bShowOfflineProcesses))
 			{
 				WSettings::GetInstance().Save();
 			}
@@ -133,24 +134,24 @@ void WMainWindow::Draw()
 		if (ImGui::BeginMenu(TR("menu.tools")))
 		{
 			bool bEnabled = !WIP2Asn::GetInstance().IsUpdateInProgress();
-			if (ImGui::MenuItem("Update IP2Asn DB", nullptr, false, bEnabled))
+			if (ImGui::MenuItem(TR("menu.update_ip2asn"), nullptr, false, bEnabled))
 			{
 				WIP2Asn::GetInstance().UpdateDatabase();
 			}
-			if (ImGui::MenuItem("Settings", nullptr, false))
+			if (ImGui::MenuItem(TR("window.settings"), nullptr, false))
 			{
 				SettingsWindow.Show();
 			}
 			ImGui::EndMenu();
 		}
 
-		if (ImGui::BeginMenu("Help"))
+		if (ImGui::BeginMenu(TR("menu.help")))
 		{
-			if (ImGui::MenuItem("Register..."))
+			if (ImGui::MenuItem(TR("window.register")))
 			{
 				RegisterDialog.Show();
 			}
-			if (ImGui::MenuItem("About"))
+			if (ImGui::MenuItem(TR("window.about")))
 			{
 				AboutDialog.Show();
 			}
