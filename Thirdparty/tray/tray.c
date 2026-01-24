@@ -296,16 +296,6 @@ void xtray_cleanup()
 	/* Signal the event loop to stop */
 	running = 0;
 
-	/* Send a dummy event to unblock XNextEvent if it's waiting */
-	if (display && icon_win) {
-		XEvent dummy;
-		memset(&dummy, 0, sizeof(dummy));
-		dummy.type = ClientMessage;
-		dummy.xclient.window = icon_win;
-		XSendEvent(display, icon_win, False, 0, &dummy);
-		XFlush(display);
-	}
-
 	/* Cleanup */
 	if (ximage) {
 		XDestroyImage(ximage);  /* Frees pixel data too */
