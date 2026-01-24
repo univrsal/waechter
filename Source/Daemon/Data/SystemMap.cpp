@@ -6,6 +6,7 @@
 #include "SystemMap.hpp"
 
 #include <ranges>
+#include <regex>
 
 #include "spdlog/spdlog.h"
 #include "tracy/Tracy.hpp"
@@ -16,8 +17,6 @@
 #include "NetworkEvents.hpp"
 #include "Net/PacketParser.hpp"
 #include "Net/Resolver.hpp"
-
-#include <regex>
 
 void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSocketCounter> const& SockCounter)
 {
@@ -207,6 +206,17 @@ std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketEvent const& Event,
 	}
 
 	Comm = WStringFormat::Trim(Comm);
+
+	if ((Comm.empty() || Comm == "main" || Comm == "Main") && !ExePath.empty())
+	{
+		// derive basename
+		auto Pos = ExePath.find_last_of('/');
+		Comm = WStringFormat::Trim((Pos == std::string::npos) ? ExePath : ExePath.substr(Pos + 1));
+		if (Comm.empty())
+		{
+			Comm = ExePath.empty() ? "unknown" : ExePath;
+		}
+	}
 
 	auto App = FindOrMapApplication(ExePath, CmdlIne, Comm);
 	auto Process = FindOrMapProcess(PID, App);
