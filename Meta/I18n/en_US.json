@@ -78,6 +78,7 @@
   "language": "Language",
   "ui": "User interface",
   "ui.use_dark_theme": "Use dark theme",
+  "ui.reduce_fps_inactive": "Reduce FPS when inactive",
   "==== Non imgui texts ====": "",
   "__search.apps": "Search applications",
   "__connected": "Connected to daemon",

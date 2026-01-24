@@ -91,6 +91,19 @@ void WSettingsWindow::Draw()
 				ImGui::StyleColorsLight();
 			}
 		}
+
+		if (ImGui::Checkbox(TR("ui.reduce_fps_inactive"), &WSettings::GetInstance().bReduceFrameRateWhenInactive))
+		{
+			if (WSettings::GetInstance().bUseDarkTheme)
+			{
+				ImGui::StyleColorsDark();
+			}
+			else
+			{
+				ImGui::StyleColorsLight();
+			}
+		}
+
 		// drop down for language selection
 		static std::vector<std::pair<std::string, std::string>> const Languages = { { "en_US", "English (US)" },
 			{ "de_DE", "Deutsch (DE)" } };
