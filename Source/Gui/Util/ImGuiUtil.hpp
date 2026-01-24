@@ -8,7 +8,7 @@
 
 #include "Format.hpp"
 
-inline void DrawUnitCombo(ETrafficUnit& Unit, char const* Label = "Unit", bool bWithAuto = true)
+inline bool DrawUnitCombo(ETrafficUnit& Unit, char const* Label = "Unit", bool bWithAuto = true)
 {
 	auto UnitText = [Unit] {
 		switch (Unit)
@@ -28,28 +28,36 @@ inline void DrawUnitCombo(ETrafficUnit& Unit, char const* Label = "Unit", bool b
 		}
 	};
 
+	bool bChanged = false;
+
 	if (ImGui::BeginCombo(Label, UnitText(), ImGuiComboFlags_WidthFitPreview))
 	{
 		if (ImGui::Selectable("B/s", Unit == TU_Bps))
 		{
 			Unit = TU_Bps;
+			bChanged = true;
 		}
 		if (ImGui::Selectable("KiB/s", Unit == TU_KiBps))
 		{
 			Unit = TU_KiBps;
+			bChanged = true;
 		}
 		if (ImGui::Selectable("MiB/s", Unit == TU_MiBps))
 		{
 			Unit = TU_MiBps;
+			bChanged = true;
 		}
 		if (ImGui::Selectable("GiB/s", Unit == TU_GiBps))
 		{
 			Unit = TU_GiBps;
+			bChanged = true;
 		}
 		if (bWithAuto && ImGui::Selectable("Auto", Unit == TU_Auto))
 		{
 			Unit = TU_Auto;
+			bChanged = true;
 		}
 		ImGui::EndCombo();
 	}
+	return bChanged;
 }

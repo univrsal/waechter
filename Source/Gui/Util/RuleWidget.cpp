@@ -94,12 +94,17 @@ namespace
 		ImVec4 bg = ImGui::GetStyleColorVec4(ImGuiCol_Button);
 
 		ImGui::PushStyleColor(ImGuiCol_FrameBg, bg);
-		ImGui::InputDouble("##limit_input", &CurrentLimit, 0.0, 0.0, "%.0f", InputFlags);
+		ImGui::InputDouble("##limit_input", &CurrentLimit, 0.0, 0.0, "%.00f", InputFlags);
 		ImGui::PopStyleColor();
+		ImGui::SameLine();
+		auto const OldUnit = SelectedUnit;
+		if (DrawUnitCombo(SelectedUnit, "##unit_combo", false))
+		{
+			auto const LimitBps = WTrafficFormat::ConvertToBps(CurrentLimit, OldUnit);
+			CurrentLimit = WTrafficFormat::ConvertFromBps(LimitBps, SelectedUnit);
+		}
+		ImGui::SameLine();
 		CurrentLimit = std::clamp(CurrentLimit, 0.0, 5.0 WGiB);
-		ImGui::SameLine();
-		DrawUnitCombo(SelectedUnit, "##unit_combo", false);
-		ImGui::SameLine();
 		if (ImGui::Button("Ok##limit_ok"))
 		{
 			auto& Rule = WClientRuleManager::GetInstance().GetOrCreateRules(Item->ItemId);
