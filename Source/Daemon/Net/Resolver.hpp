@@ -10,18 +10,23 @@
 #include <thread>
 #include <atomic>
 #include <queue>
+#include <condition_variable>
 
 #include "IPAddress.hpp"
 #include "Singleton.hpp"
+#include "Types.hpp"
 
 class WResolver : public TSingleton<WResolver>
 {
+	static constexpr WBytes                     MaxCacheRamUsage = 5 WMiB;
 	std::unordered_map<WIPAddress, std::string> ResolvedAddresses{};
 
-	std::thread            ResolverThread;
-	std::atomic<bool>      bRunning{ false };
-	std::mutex             QueueMutex;
-	std::queue<WIPAddress> PendingAddresses;
+	std::thread             ResolverThread;
+	std::atomic<bool>       bRunning{ false };
+	std::mutex              QueueMutex;
+	std::condition_variable QueueCondition;
+	WBytes                  CurrentCacheRamUsage{ 0 };
+	std::queue<WIPAddress>  PendingAddresses;
 
 	void ResolveAddress(WIPAddress const& ip);
 

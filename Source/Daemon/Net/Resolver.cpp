@@ -5,6 +5,8 @@
 
 #include "Resolver.hpp"
 
+#include "Format.hpp"
+
 #include <netdb.h>
 
 #include "tracy/Tracy.hpp"
@@ -65,6 +67,28 @@ void WResolver::ResolveAddress(WIPAddress const& Address)
 	}
 
 	std::lock_guard Lock(ResolvedAddressesMutex);
+	CurrentCacheRamUsage += sizeof(WIPAddress) + strlen(Host) + 1 + sizeof(std::string);
+	spdlog::info("Current resolver cache RAM usage: {}", WStorageFormat::AutoFormat(CurrentCacheRamUsage));
+
+	if (CurrentCacheRamUsage > MaxCacheRamUsage)
+	{
+		spdlog::info("Resolver cache exceeded max RAM of usage of {}, dropping some entries...",
+			WStorageFormat::AutoFormat(MaxCacheRamUsage));
+		int DroppedEntries = 0;
+		while (CurrentCacheRamUsage > MaxCacheRamUsage / 2 && !ResolvedAddresses.empty())
+		{
+			auto const It = ResolvedAddresses.begin();
+			CurrentCacheRamUsage -= sizeof(WIPAddress) + It->second.size() + 1 + sizeof(std::string);
+			ResolvedAddresses.erase(It);
+			++DroppedEntries;
+		}
+		if (DroppedEntries > 0)
+		{
+			spdlog::info("Dropped {} entries from resolver cache. New RAM usage {}", DroppedEntries,
+				WStorageFormat::AutoFormat(CurrentCacheRamUsage));
+		}
+	}
+
 	if (Host == Address.ToString())
 	{
 		ResolvedAddresses[Address] = {};
@@ -81,6 +105,13 @@ void WResolver::ResolverThreadFunc()
 	while (bRunning)
 	{
 		std::unique_lock Lock(QueueMutex);
+		QueueCondition.wait(Lock, [this] { return !PendingAddresses.empty() || !bRunning; });
+
+		if (!bRunning)
+		{
+			break;
+		}
+
 		if (!PendingAddresses.empty())
 		{
 			WIPAddress Address = PendingAddresses.front();
@@ -88,11 +119,7 @@ void WResolver::ResolverThreadFunc()
 			Lock.unlock();
 
 			ResolveAddress(Address);
-			continue;
 		}
-		Lock.unlock();
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 }
 
@@ -105,6 +132,7 @@ void WResolver::Start()
 void WResolver::Stop()
 {
 	bRunning = false;
+	QueueCondition.notify_one();
 	if (ResolverThread.joinable())
 	{
 		ResolverThread.join();
@@ -128,8 +156,11 @@ std::string const& WResolver::Resolve(WIPAddress const& Address)
 		ResolvedAddresses[Address] = Empty;
 	}
 
-	std::lock_guard QueueLock(QueueMutex);
-	PendingAddresses.push(Address);
+	{
+		std::lock_guard QueueLock(QueueMutex);
+		PendingAddresses.push(Address);
+		QueueCondition.notify_one();
+	}
 
 	return Empty;
 }
