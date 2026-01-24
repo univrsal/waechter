@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 #include "stb_image.h"
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "stb_image_resize2.h"
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -83,28 +85,43 @@ static void CreateScaledXImage(int Width, int Height)
 	Visual* visual = DefaultVisual(GDisplay, GScreen);
 	int     depth  = DefaultDepth(GDisplay, GScreen);
 
-	/* Allocate pixel buffer */
+	/* Allocate buffer for resized image */
+	unsigned char* resizedImage = malloc(Width * Height * 4);
+	if (!resizedImage)
+	{
+		fprintf(stderr, "Failed to allocate resize buffer\n");
+		return;
+	}
+
+	/* Resize image using stb_image_resize2 with better quality */
+	if (!stbir_resize_uint8_linear(
+			GOrigImage, GOrigWidth, GOrigHeight, 0, resizedImage, Width, Height, 0, STBIR_RGBA))
+	{
+		fprintf(stderr, "Failed to resize image\n");
+		free(resizedImage);
+		return;
+	}
+
+	/* Allocate pixel buffer for X11 */
 	uint32_t* pixels = malloc(Width * Height * sizeof(uint32_t));
 	if (!pixels)
 	{
 		fprintf(stderr, "Failed to allocate pixel buffer\n");
+		free(resizedImage);
 		return;
 	}
 
-	/* Scale and convert image: RGBA -> native X11 format (typically BGRA) */
+	/* Convert RGBA -> native X11 format (typically BGRA) with pre-multiplied alpha */
 	for (int y = 0; y < Height; y++)
 	{
 		for (int x = 0; x < Width; x++)
 		{
-			/* Simple nearest-neighbor scaling */
-			int srcX   = x * GOrigWidth / Width;
-			int srcY   = y * GOrigHeight / Height;
-			int srcIdx = (srcY * GOrigWidth + srcX) * 4;
+			int idx = (y * Width + x) * 4;
 
-			unsigned char r = GOrigImage[srcIdx + 0];
-			unsigned char g = GOrigImage[srcIdx + 1];
-			unsigned char b = GOrigImage[srcIdx + 2];
-			unsigned char a = GOrigImage[srcIdx + 3];
+			unsigned char r = resizedImage[idx + 0];
+			unsigned char g = resizedImage[idx + 1];
+			unsigned char b = resizedImage[idx + 2];
+			unsigned char a = resizedImage[idx + 3];
 
 			/* Pre-multiply alpha for better blending */
 			r = (r * a) / 255;
@@ -115,6 +132,8 @@ static void CreateScaledXImage(int Width, int Height)
 			pixels[y * Width + x] = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | ((uint32_t)b);
 		}
 	}
+
+	free(resizedImage);
 
 	GXImage = XCreateImage(GDisplay, visual, depth, ZPixmap, 0, (char*)pixels, Width, Height, 32, Width * 4);
 
@@ -184,13 +203,13 @@ int XTrayInit(unsigned char const* ImageData, unsigned int ImageDataSize)
 	}
 
 	/* Create the icon window */
-	int initialSize = 24; /* Standard tray icon size */
+	int InitialSize = 24; /* Standard tray icon size */
 
 	XSetWindowAttributes attrs;
 	attrs.background_pixel = BlackPixel(GDisplay, GScreen);
 	attrs.event_mask       = ExposureMask | ButtonPressMask | ButtonReleaseMask | StructureNotifyMask;
 
-	GIconWin = XCreateWindow(GDisplay, root, 0, 0, initialSize, initialSize, 0, CopyFromParent, /* depth */
+	GIconWin = XCreateWindow(GDisplay, root, 0, 0, InitialSize, InitialSize, 0, CopyFromParent, /* depth */
 		InputOutput,                                                                             /* class */
 		CopyFromParent,                                                                          /* visual */
 		CWBackPixel | CWEventMask, &attrs);
@@ -199,10 +218,10 @@ int XTrayInit(unsigned char const* ImageData, unsigned int ImageDataSize)
 	SendDockRequest(tray);
 
 	/* Set window class hints (some trays use this) */
-	XClassHint classHint;
-	classHint.res_name  = "tray_icon";
-	classHint.res_class = "TrayIcon";
-	XSetClassHint(GDisplay, GIconWin, &classHint);
+	XClassHint ClassHint;
+	ClassHint.res_name  = "tray_icon";
+	ClassHint.res_class = "TrayIcon";
+	XSetClassHint(GDisplay, GIconWin, &ClassHint);
 
 	/* Prevent window from appearing in taskbar */
 	Atom stateAtom        = XInternAtom(GDisplay, "_NET_WM_STATE", False);
@@ -212,15 +231,15 @@ int XTrayInit(unsigned char const* ImageData, unsigned int ImageDataSize)
 	XChangeProperty(GDisplay, GIconWin, stateAtom, XA_ATOM, 32, PropModeReplace, (unsigned char*)atoms, 2);
 
 	/* Set window type to notification to help window managers ignore it */
-	Atom typeAtom          = XInternAtom(GDisplay, "_NET_WM_WINDOW_TYPE", False);
-	Atom notificationType = XInternAtom(GDisplay, "_NET_WM_WINDOW_TYPE_NOTIFICATION", False);
-	XChangeProperty(GDisplay, GIconWin, typeAtom, XA_ATOM, 32, PropModeReplace, (unsigned char*)&notificationType, 1);
+	Atom TypeAtom          = XInternAtom(GDisplay, "_NET_WM_WINDOW_TYPE", False);
+	Atom NotificationType = XInternAtom(GDisplay, "_NET_WM_WINDOW_TYPE_NOTIFICATION", False);
+	XChangeProperty(GDisplay, GIconWin, TypeAtom, XA_ATOM, 32, PropModeReplace, (unsigned char*)&NotificationType, 1);
 
 	/* Create graphics context */
 	GGc = XCreateGC(GDisplay, GIconWin, 0, NULL);
 
 	/* Create initial scaled image */
-	CreateScaledXImage(initialSize, initialSize);
+	CreateScaledXImage(InitialSize, InitialSize);
 
 	/* Map the window */
 	XMapWindow(GDisplay, GIconWin);
