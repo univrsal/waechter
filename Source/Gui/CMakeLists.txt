@@ -13,7 +13,12 @@ target_compile_definitions(waechter PRIVATE
         "ICON_ATLAS_IMAGE=\"${CMAKE_SOURCE_DIR}/Meta/atlas.png\""
         "LOGO_IMAGE=\"${CMAKE_SOURCE_DIR}/Meta/logo.png\""
         "WATERMARK_IMAGE=\"${CMAKE_SOURCE_DIR}/Meta/watermark.png\""
+        "LANGUAGES_DIR=\"${CMAKE_SOURCE_DIR}/Meta/I18n/\""
 )
+
+# make sure the project rebuilds if any i18n json files change
+file(GLOB I18N_JSON_FILES "${CMAKE_SOURCE_DIR}/Meta/I18n/*.json")
+target_sources(waechter PRIVATE ${I18N_JSON_FILES})
 
 add_subdirectory(Windows)
 add_subdirectory(Util)

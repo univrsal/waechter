@@ -16,6 +16,8 @@ target_sources(waechter
         IP2Asn.hpp
         DbusUtil.cpp
         DbusUtil.hpp
+        I18n.cpp
+        I18n.hpp
 )
 
 add_subdirectory(Keylogic)

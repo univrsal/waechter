@@ -1,0 +1,14 @@
+{
+  "button.ok": "Ok",
+  "tt.name": "Name",
+  "tt.rules": "Regeln",
+  "window.traffic_tree": "Traffic Tree",
+  "menu.tools": "Tools",
+  "menu.view": "Ansicht",
+  "menu.help": "Hilfe",
+  "language": "Sprache",
+  "==== Non imgui texts ====": "",
+  "__search.apps": "Suche Anwendungen",
+  "__connected": "Mit Dämon verbunden",
+  "__not_connected": "Nicht mit Dämon verbunden"
+}

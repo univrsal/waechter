@@ -9,6 +9,7 @@
 #include "imgui_stdlib.h"
 
 #include "Client.hpp"
+#include "Util/I18n.hpp"
 #include "Util/Settings.hpp"
 
 void WSettingsWindow::Draw()
@@ -89,6 +90,26 @@ void WSettingsWindow::Draw()
 			{
 				ImGui::StyleColorsLight();
 			}
+		}
+		// drop down for language selection
+		static std::vector<std::pair<std::string, std::string>> const Languages = { { "en_US", "English (US)" },
+			{ "de_DE", "Deutsch (DE)" } };
+		if (ImGui::BeginCombo(TR("language"), WSettings::GetInstance().SelectedLanguage.c_str()))
+		{
+			for (auto const& [Code, Name] : Languages)
+			{
+				bool const bSelected = Code == WSettings::GetInstance().SelectedLanguage;
+				if (ImGui::Selectable(Name.c_str(), bSelected))
+				{
+					WSettings::GetInstance().SelectedLanguage = Code;
+					WI18n::GetInstance().LoadLanguage(Code);
+				}
+				if (bSelected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
 		}
 	}
 	ImGui::End();

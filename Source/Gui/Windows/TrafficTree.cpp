@@ -29,6 +29,7 @@
 #include "Messages.hpp"
 #include "Data/TrafficTreeUpdate.hpp"
 #include "Icons/IconAtlas.hpp"
+#include "Util/I18n.hpp"
 #include "Util/Settings.hpp"
 
 // This isn't exactly efficient, we should probably have something
@@ -450,7 +451,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 	DrawUnitCombo(WSettings::GetInstance().TrafficTreeUnitSetting);
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(200.0f);
-	ImGui::InputTextWithHint("##search", "Search applications...", SearchBuffer, sizeof(SearchBuffer));
+	ImGui::InputTextWithHint("##search", TR("__search.apps"), SearchBuffer, sizeof(SearchBuffer));
 
 	ImGui::Separator();
 	ImGui::BeginChild("TreeRegion", ImVec2(0, 0), false);
@@ -465,10 +466,10 @@ void WTrafficTree::Draw(ImGuiID MainID)
 		return;
 	}
 
-	ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch);
-	ImGui::TableSetupColumn("Dl.", ImGuiTableColumnFlags_WidthFixed, 100.0f);
-	ImGui::TableSetupColumn("Ul.", ImGuiTableColumnFlags_WidthFixed, 100.0f);
-	ImGui::TableSetupColumn("Rules", ImGuiTableColumnFlags_WidthFixed, 100.0f);
+	ImGui::TableSetupColumn(TR("tt.name"), ImGuiTableColumnFlags_WidthStretch);
+	ImGui::TableSetupColumn("▼", ImGuiTableColumnFlags_WidthFixed, 100.0f);
+	ImGui::TableSetupColumn("▲", ImGuiTableColumnFlags_WidthFixed, 100.0f);
+	ImGui::TableSetupColumn(TR("tt.rules"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
 
 	bool bOpened{};
 

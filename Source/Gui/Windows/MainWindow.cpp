@@ -11,6 +11,7 @@
 #include "imgui.h"
 
 #include "Client.hpp"
+#include "Util/I18n.hpp"
 #include "Windows/GlfwWindow.hpp"
 #include "Util/IP2Asn.hpp"
 #include "Util/LibCurl.hpp"
@@ -50,15 +51,15 @@ void WMainWindow::DrawConnectionIndicator()
 		std::string Tooltip;
 		if (WClient::GetInstance().IsConnected())
 		{
-			Tooltip = fmt::format("Connected to daemon\n"
-								  "Download rate: {}\n"
-								  "Upload rate: {}",
-				WTrafficFormat::AutoFormat(WClient::GetInstance().DaemonToClientTrafficRate.load()),
+			Tooltip = fmt::format("{}\n"
+								  "▼ {}\n"
+								  "▲ {}",
+				TR("__connected"), WTrafficFormat::AutoFormat(WClient::GetInstance().DaemonToClientTrafficRate.load()),
 				WTrafficFormat::AutoFormat(WClient::GetInstance().ClientToDaemonTrafficRate.load()));
 		}
 		else
 		{
-			Tooltip = "Not connected to daemon";
+			Tooltip = TR("__not_connected");
 		}
 		ImGui::SetTooltip("%s", Tooltip.c_str());
 	}
@@ -85,7 +86,7 @@ void WMainWindow::Init(ImGuiID Main)
 		ImGuiID DockIdMain = Main;
 		ImGuiID DockIdDown = ImGui::DockBuilderSplitNode(DockIdMain, ImGuiDir_Down, 0.25f, nullptr, &DockIdMain);
 		ImGuiID DockIdRight = ImGui::DockBuilderSplitNode(DockIdMain, ImGuiDir_Right, 0.20f, nullptr, &DockIdMain);
-		ImGui::DockBuilderDockWindow("Traffic Tree", DockIdMain);
+		ImGui::DockBuilderDockWindow(TR("window.traffic_tree"), DockIdMain);
 		ImGui::DockBuilderDockWindow("Connection History", DockIdMain);
 		ImGui::DockBuilderDockWindow("Log", DockIdDown);
 		ImGui::DockBuilderDockWindow("Network activity", DockIdDown);
@@ -116,7 +117,7 @@ void WMainWindow::Draw()
 
 	if (ImGui::BeginMainMenuBar())
 	{
-		if (ImGui::BeginMenu("View"))
+		if (ImGui::BeginMenu(TR("menu.view")))
 		{
 			if (ImGui::MenuItem("Show Uninitialized Sockets", "", &WSettings::GetInstance().bShowUninitalizedSockets))
 			{
@@ -129,7 +130,7 @@ void WMainWindow::Draw()
 			ImGui::EndMenu();
 		}
 
-		if (ImGui::BeginMenu("Tools"))
+		if (ImGui::BeginMenu(TR("menu.tools")))
 		{
 			bool bEnabled = !WIP2Asn::GetInstance().IsUpdateInProgress();
 			if (ImGui::MenuItem("Update IP2Asn DB", nullptr, false, bEnabled))

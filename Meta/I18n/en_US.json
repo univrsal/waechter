@@ -1,0 +1,14 @@
+{
+  "button.ok": "Ok",
+  "tt.name": "Name",
+  "tt.rules": "Rules",
+  "window.traffic_tree": "Traffic Tree",
+  "menu.tools": "Tools",
+  "menu.view": "View",
+  "menu.help": "Help",
+  "language": "Language",
+  "==== Non imgui texts ====": "",
+  "__search.apps": "Search applications",
+  "__connected": "Connected to daemon",
+  "__not_connected": "Not connected to daemon"
+}
