@@ -93,6 +93,25 @@ public:
 				return fmt::format("{:.2f} B/s", Speed);
 		}
 	}
+
+	static double ConvertFromBps(double Value, ETrafficUnit ToUnit)
+	{
+		switch (ToUnit)
+		{
+			case TU_Bps:
+				return Value;
+			case TU_KiBps:
+				return Value / 1024.0;
+			case TU_MiBps:
+				return Value / (1024.0 * 1024.0);
+			case TU_GiBps:
+				return Value / (1024.0 * 1024.0 * 1024.0);
+			case TU_Auto:
+			default:
+				assert(false);
+		}
+	}
+
 	static WBytesPerSecond ConvertToBps(double Value, ETrafficUnit ToUnit)
 	{
 		switch (ToUnit)
@@ -108,7 +127,6 @@ public:
 			case TU_Auto:
 			default:
 				assert(false);
-				return Value;
 		}
 	}
 };

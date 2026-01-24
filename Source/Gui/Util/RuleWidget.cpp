@@ -16,6 +16,7 @@
 static constexpr ImVec2 GRuleIconSize{ 16, 16 };
 static constexpr float  GIconSpacing = 4.0f;
 static WBytesPerSecond  CurrentLimit = 0;
+static ETrafficUnit     SelectedUnit = TU_KiBps;
 
 namespace
 {
@@ -72,7 +73,6 @@ namespace
 
 	void DrawLimitOptionPopup(WRenderItemArgs const& Args, bool bIsUpload)
 	{
-		static ETrafficUnit SelectedUnit = TU_KiBps;
 		auto                Item = Args.Item;
 		auto PopupLabel = fmt::format("{}_limit_popup_{}", bIsUpload ? "upload" : "download", Item->ItemId);
 
@@ -187,7 +187,7 @@ void WRuleWidget::Draw(WRenderItemArgs const& Args, bool)
 	auto Rule = WClientRuleManager::GetInstance().GetOrCreateRules(Item->ItemId);
 	if (DrawLimitIconButton(Item->ItemId, Rule.DownloadLimit, "downloadlimit"))
 	{
-		CurrentLimit = Rule.DownloadLimit;
+		CurrentLimit = WTrafficFormat::ConvertFromBps(Rule.DownloadLimit, SelectedUnit);
 		ImGui::OpenPopup(fmt::format("download_limit_popup_{}", Item->ItemId).c_str());
 	}
 	if (ImGui::IsItemHovered())
@@ -199,7 +199,7 @@ void WRuleWidget::Draw(WRenderItemArgs const& Args, bool)
 
 	if (DrawLimitIconButton(Item->ItemId, Rule.UploadLimit, "uploadlimit"))
 	{
-		CurrentLimit = Rule.UploadLimit;
+		CurrentLimit = WTrafficFormat::ConvertFromBps(Rule.UploadLimit, SelectedUnit);
 		ImGui::OpenPopup(fmt::format("upload_limit_popup_{}", Item->ItemId).c_str());
 	}
 	if (ImGui::IsItemHovered())
