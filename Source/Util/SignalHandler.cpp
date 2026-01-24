@@ -5,10 +5,13 @@
 
 #include "SignalHandler.hpp"
 
+#include "spdlog/spdlog.h"
+
 #include <csignal>
 
 static void OnSigint(int)
 {
+	spdlog::info("Received exit signal");
 	auto& Handler = WSignalHandler::GetInstance();
 	Handler.bStop = true;
 	Handler.SignalCondition.notify_all();
