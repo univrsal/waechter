@@ -11,8 +11,14 @@
 class WDaemon : public TSingleton<WDaemon>
 {
 	WWaechterEbpf EbpfObj;
+	std::thread   EbpfPollThread{};
+	std::thread   PeriodicUpdatesThread{};
 
 	std::shared_ptr<WDaemonSocket> DaemonSocket{};
+
+	void EbpfPollThreadFunction();
+
+	void PeriodicUpdatesThreadFunction() const;
 
 public:
 	WDaemon();

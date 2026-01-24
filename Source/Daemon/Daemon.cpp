@@ -5,6 +5,8 @@
 
 #include "Daemon.hpp"
 
+#include <pthread.h>
+
 #include "spdlog/spdlog.h"
 #include "tracy/Tracy.hpp"
 
@@ -15,6 +17,52 @@
 #include "Data/ConnectionHistory.hpp"
 #include "Data/SystemMap.hpp"
 #include "Rules/RuleManager.hpp"
+
+void WDaemon::EbpfPollThreadFunction()
+{
+	tracy::SetThreadName("ebpf-poll");
+	pthread_setname_np(pthread_self(), "ebpf-poll");
+	auto const& SignalHandler = WSignalHandler::GetInstance();
+
+	while (!SignalHandler.bStop)
+	{
+		EbpfObj.UpdateData();
+	}
+}
+
+void WDaemon::PeriodicUpdatesThreadFunction() const
+{
+	tracy::SetThreadName("periodic-updates");
+	pthread_setname_np(pthread_self(), "per-updates");
+
+	auto const& SignalHandler = WSignalHandler::GetInstance();
+	while (!SignalHandler.bStop)
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		{
+			ZoneScopedN("RefreshAllTrafficCounters");
+			WSystemMap::GetInstance().RefreshAllTrafficCounters();
+		}
+		{
+			ZoneScopedN("BroadcastTrafficUpdate");
+			DaemonSocket->BroadcastTrafficUpdate();
+		}
+		{
+			ZoneScopedN("WConnectionHistory::Update");
+			auto Updates = WConnectionHistory::GetInstance().Update();
+			if (!Updates.Changes.empty())
+			{
+				DaemonSocket->BroadcastConnectionHistoryUpdate(Updates);
+			}
+		}
+
+		if (DaemonSocket->HasClients() && WAppIconAtlasBuilder::GetInstance().IsDirty())
+		{
+			ZoneScopedN("BroadcastAtlasUpdate");
+			DaemonSocket->BroadcastAtlasUpdate();
+		}
+	}
+}
 
 WDaemon::WDaemon()
 {
@@ -52,47 +100,13 @@ void WDaemon::RegisterSignalHandlers()
 void WDaemon::RunLoop()
 {
 	tracy::SetThreadName("main");
-	WSignalHandler& SignalHandler = WSignalHandler::GetInstance();
+	pthread_setname_np(pthread_self(), "main");
 
-	// Poll ring buffers and periodically print aggregate stats
-	std::chrono::time_point<std::chrono::steady_clock> LastPrint;
-	LastPrint = std::chrono::steady_clock::now();
-	auto LastTrafficUpdate = std::chrono::steady_clock::now();
+	EbpfPollThread = std::thread(&WDaemon::EbpfPollThreadFunction, this);
+	PeriodicUpdatesThread = std::thread(&WDaemon::PeriodicUpdatesThreadFunction, this);
 
-	while (!SignalHandler.bStop)
-	{
-		{
-			ZoneScopedN("EbpfObj.UpdateData");
-			EbpfObj.UpdateData();
-		}
-		auto now = std::chrono::steady_clock::now();
-		if (now - LastTrafficUpdate >= std::chrono::milliseconds(1000))
-		{
-			{
-				ZoneScopedN("RefreshAllTrafficCounters");
-				WSystemMap::GetInstance().RefreshAllTrafficCounters();
-			}
-			{
-				ZoneScopedN("BroadcastTrafficUpdate");
-				DaemonSocket->BroadcastTrafficUpdate();
-			}
-			{
-				ZoneScopedN("WConnectionHistory::Update");
-				auto Updates = WConnectionHistory::GetInstance().Update();
-				if (!Updates.Changes.empty())
-				{
-					DaemonSocket->BroadcastConnectionHistoryUpdate(Updates);
-				}
-			}
-
-			if (DaemonSocket->HasClients() && WAppIconAtlasBuilder::GetInstance().IsDirty())
-			{
-				ZoneScopedN("BroadcastAtlasUpdate");
-				DaemonSocket->BroadcastAtlasUpdate();
-			}
-			LastTrafficUpdate = now;
-		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(1));
-	}
+	WSignalHandler::GetInstance().Wait();
+	EbpfPollThread.join();
+	PeriodicUpdatesThread.join();
 	DaemonSocket->Stop();
 }

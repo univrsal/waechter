@@ -26,7 +26,7 @@ public:
 	{
 		if (SocketEvents && SocketEvents->IsValid())
 		{
-			SocketEvents->Poll(1);
+			SocketEvents->Poll(500);
 		}
 	}
 
