@@ -13,6 +13,7 @@
 
 #include "Singleton.hpp"
 #include "MainWindow.hpp"
+#include "Util/TrayIcon.hpp"
 
 class WGlfwWindow : public TSingleton<WGlfwWindow>
 {
@@ -20,7 +21,7 @@ class WGlfwWindow : public TSingleton<WGlfwWindow>
 	float       MainScale{ 1.0f };
 
 	std::unique_ptr<WMainWindow> MainWindow{};
-
+	WTrayIcon                    TrayIcon{};
 	// Keep the ini filename alive for ImGui (ImGui stores a pointer to it)
 	std::string ImGuiIniPath{};
 

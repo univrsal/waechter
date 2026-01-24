@@ -130,6 +130,7 @@ bool WGlfwWindow::Init()
 	WIconAtlas::GetInstance().Load();
 	WI18n::GetInstance().Init();
 	WClient::GetInstance().Start();
+	TrayIcon.Init();
 	return true;
 }
 

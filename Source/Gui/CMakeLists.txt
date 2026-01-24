@@ -45,6 +45,7 @@ target_link_libraries(waechter PRIVATE
         thirdparty::sigslot
         thirdparty::cereal
         thirdparty::tracy
+        thirdparty::xtray
         CURL::libcurl
         waechter::util
         dl
