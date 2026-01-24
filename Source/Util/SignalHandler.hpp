@@ -5,6 +5,8 @@
 
 #pragma once
 #include <atomic>
+#include <condition_variable>
+#include <mutex>
 
 #include "Singleton.hpp"
 
@@ -13,5 +15,9 @@ class WSignalHandler : public TSingleton<WSignalHandler>
 public:
 	WSignalHandler();
 
-	std::atomic<bool> bStop{ false };
+	void Wait();
+
+	std::atomic<bool>       bStop{ false };
+	std::condition_variable SignalCondition;
+	std::mutex              SignalMutex;
 };

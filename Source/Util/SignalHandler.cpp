@@ -9,11 +9,19 @@
 
 static void OnSigint(int)
 {
-	WSignalHandler::GetInstance().bStop = true;
+	auto& Handler = WSignalHandler::GetInstance();
+	Handler.bStop = true;
+	Handler.SignalCondition.notify_all();
 }
 
 WSignalHandler::WSignalHandler()
 {
 	signal(SIGINT, OnSigint);
 	signal(SIGTERM, OnSigint);
+}
+
+void WSignalHandler::Wait()
+{
+	std::unique_lock<std::mutex> Lock(SignalMutex);
+	SignalCondition.wait(Lock, [this] { return bStop.load(); });
 }
