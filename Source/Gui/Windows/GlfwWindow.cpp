@@ -143,8 +143,11 @@ void WGlfwWindow::RunLoop()
 		if (glfwGetWindowAttrib(Window, GLFW_ICONIFIED) != 0)
 		{
 			ImGui_ImplGlfw_Sleep(50);
-
-			ui_ImplGlfw_Sleep(10);
+			continue;
+		}
+		if (WSettings::GetInstance().bReduceFrameRateWhenInactive && glfwGetWindowAttrib(Window, GLFW_FOCUSED) != 1)
+		{
+			ImGui_ImplGlfw_Sleep(10);
 		}
 
 		ImGui_ImplOpenGL3_NewFrame();
