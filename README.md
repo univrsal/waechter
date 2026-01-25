@@ -27,7 +27,7 @@ channel [#waechter](https://rizon.net/chat) on irc.rizon.net or the [discord ser
 
 ### Roadmap
 
-Wächter is still in early development. Currently implemented features are:
+Wächter is still in development, currently implemented features are:
 
 - Monitor per-connection network traffic (upload and download)
 - View connection information (local/remote endpoints, hostname)
