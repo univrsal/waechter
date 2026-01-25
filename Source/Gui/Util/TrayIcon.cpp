@@ -5,6 +5,7 @@
 
 #include "TrayIcon.hpp"
 
+#include "Settings.hpp"
 #include "spdlog/spdlog.h"
 #include "xtray.h"
 
@@ -18,13 +19,24 @@ void ProcessEvents()
 
 void WTrayIcon::Init()
 {
-	if (XTrayInit(GIconData, GIconSize) == 0)
+	if (XTrayInit(GIconData, GIconSize, 32) == 0)
 	{
 		spdlog::error("Failed to initialize tray icon");
 	}
 	else
 	{
 		PollThread = std::thread(ProcessEvents);
+		static constexpr unsigned char BackgroundBright[] = { 239, 240, 241 };
+		static constexpr unsigned char BackgroundDark[] = { 32, 35, 38 };
+
+		if (WSettings::GetInstance().bUseDarkTheme)
+		{
+			XTraySetBackgroundColor(BackgroundDark[0], BackgroundDark[1], BackgroundDark[2]);
+		}
+		else
+		{
+			XTraySetBackgroundColor(BackgroundBright[0], BackgroundBright[1], BackgroundBright[2]);
+		}
 	}
 }
 

@@ -26,10 +26,18 @@ static Display* GDisplay;
 static int      GScreen;
 static Window   GIconWin;
 static GC       GGc;
-static XImage*  GXImage       = NULL;
-static int      GIconWidth    = 0, GIconHeight = 0;
-static int      bIsRunning    = 1;
-static int	    bIsInitialized = 0;
+static XImage*  GXImage        = NULL;
+static int      GIconWidth     = 0, GIconHeight = 0;
+static int      bIsRunning     = 1;
+static int      bIsInitialized = 0;
+static Visual*  GVisual        = NULL;
+static int      GDepth         = 0;
+
+/* Background color for compositing (default: transparent) */
+static unsigned char GBackgroundR = 0;
+static unsigned char GBackgroundG = 0;
+static unsigned char GBackgroundB = 0;
+static int           bUseBackground = 0;
 
 /* Original image data */
 static unsigned char* GOrigImage = NULL;
@@ -82,10 +90,7 @@ static void CreateScaledXImage(int Width, int Height)
 		GXImage = NULL;
 	}
 
-	Visual* visual = DefaultVisual(GDisplay, GScreen);
-	int     depth  = DefaultDepth(GDisplay, GScreen);
-
-	/* Allocate buffer for resized image */
+	/* Allocate temporary buffer for resized image */
 	unsigned char* resizedImage = malloc(Width * Height * 4);
 	if (!resizedImage)
 	{
@@ -93,13 +98,55 @@ static void CreateScaledXImage(int Width, int Height)
 		return;
 	}
 
-	/* Resize image using stb_image_resize2 with better quality */
-	if (!stbir_resize_uint8_linear(
-			GOrigImage, GOrigWidth, GOrigHeight, 0, resizedImage, Width, Height, 0, STBIR_RGBA))
+	/* Choose resize mode based on whether we're using background */
+	if (bUseBackground)
 	{
-		fprintf(stderr, "Failed to resize image\n");
-		free(resizedImage);
-		return;
+		/* Composite background onto original image first, then resize as opaque */
+		unsigned char* composited = malloc(GOrigWidth * GOrigHeight * 4);
+		if (!composited)
+		{
+			fprintf(stderr, "Failed to allocate composite buffer\n");
+			free(resizedImage);
+			return;
+		}
+
+		/* Composite original image over background */
+		for (int i = 0; i < GOrigWidth * GOrigHeight; i++)
+		{
+			int           idx = i * 4;
+			unsigned char r   = GOrigImage[idx + 0];
+			unsigned char g   = GOrigImage[idx + 1];
+			unsigned char b   = GOrigImage[idx + 2];
+			unsigned char a   = GOrigImage[idx + 3];
+
+			/* Standard alpha compositing */
+			composited[idx + 0] = (r * a + GBackgroundR * (255 - a) + 127) / 255;
+			composited[idx + 1] = (g * a + GBackgroundG * (255 - a) + 127) / 255;
+			composited[idx + 2] = (b * a + GBackgroundB * (255 - a) + 127) / 255;
+			composited[idx + 3] = 255; /* Fully opaque */
+		}
+
+		/* Resize the composited image */
+		if (!stbir_resize_uint8_linear(composited, GOrigWidth, GOrigHeight, 0, resizedImage, Width, Height, 0, STBIR_RGBA))
+		{
+			fprintf(stderr, "Failed to resize image\n");
+			free(composited);
+			free(resizedImage);
+			return;
+		}
+
+		free(composited);
+	}
+	else
+	{
+		/* Resize with premultiplied alpha for transparency */
+		if (!stbir_resize(GOrigImage, GOrigWidth, GOrigHeight, 0, resizedImage, Width, Height, 0, STBIR_RGBA_PM,
+				STBIR_TYPE_UINT8, STBIR_EDGE_CLAMP, STBIR_FILTER_DEFAULT))
+		{
+			fprintf(stderr, "Failed to resize image\n");
+			free(resizedImage);
+			return;
+		}
 	}
 
 	/* Allocate pixel buffer for X11 */
@@ -111,7 +158,7 @@ static void CreateScaledXImage(int Width, int Height)
 		return;
 	}
 
-	/* Convert RGBA -> native X11 format (typically BGRA) with pre-multiplied alpha */
+	/* Convert RGBA -> X11 ARGB format */
 	for (int y = 0; y < Height; y++)
 	{
 		for (int x = 0; x < Width; x++)
@@ -123,19 +170,14 @@ static void CreateScaledXImage(int Width, int Height)
 			unsigned char b = resizedImage[idx + 2];
 			unsigned char a = resizedImage[idx + 3];
 
-			/* Pre-multiply alpha for better blending */
-			r = (r * a) / 255;
-			g = (g * a) / 255;
-			b = (b * a) / 255;
-
-			/* Pack as ARGB (X11 32-bit format on little-endian) */
+			/* Pack to ARGB */
 			pixels[y * Width + x] = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | ((uint32_t)b);
 		}
 	}
 
 	free(resizedImage);
 
-	GXImage = XCreateImage(GDisplay, visual, depth, ZPixmap, 0, (char*)pixels, Width, Height, 32, Width * 4);
+	GXImage = XCreateImage(GDisplay, GVisual, GDepth, ZPixmap, 0, (char*)pixels, Width, Height, 32, Width * 4);
 
 	if (!GXImage)
 	{
@@ -168,7 +210,7 @@ static void OnLeftClick(int X, int Y)
 	printf("Left click detected at position (%d, %d)!\n", X, Y);
 }
 
-int XTrayInit(unsigned char const* ImageData, unsigned int ImageDataSize)
+int XTrayInit(unsigned char const* ImageData, unsigned int ImageDataSize, unsigned char TrayIconSize)
 {
 	if (bIsInitialized)
 	{
@@ -197,22 +239,42 @@ int XTrayInit(unsigned char const* ImageData, unsigned int ImageDataSize)
 	Window tray = GetTrayWindow();
 	if (tray == None)
 	{
+		fprintf(stderr, "No system tray found. Is a panel/tray running?\n");
 		XCloseDisplay(GDisplay);
 		stbi_image_free(GOrigImage);
 		return 0;
 	}
 
+	printf("Found system tray window: 0x%lx\n", tray);
+
 	/* Create the icon window */
-	int InitialSize = 24; /* Standard tray icon size */
+	int InitialSize = TrayIconSize; /* Standard tray icon size */
+
+	/* Try to find an ARGB visual for proper transparency support */
+	XVisualInfo vinfo;
+	if (XMatchVisualInfo(GDisplay, GScreen, 32, TrueColor, &vinfo))
+	{
+		GVisual = vinfo.visual;
+		GDepth  = vinfo.depth;
+		printf("Using 32-bit ARGB visual for transparency\n");
+	}
+	else
+	{
+		GVisual = DefaultVisual(GDisplay, GScreen);
+		GDepth  = DefaultDepth(GDisplay, GScreen);
+		printf("Using default visual (transparency may not work)\n");
+	}
 
 	XSetWindowAttributes attrs;
-	attrs.background_pixel = BlackPixel(GDisplay, GScreen);
-	attrs.event_mask       = ExposureMask | ButtonPressMask | ButtonReleaseMask | StructureNotifyMask;
+	attrs.background_pixmap = None;
+	attrs.border_pixel      = 0;
+	attrs.colormap          = XCreateColormap(GDisplay, root, GVisual, AllocNone);
+	attrs.event_mask        = ExposureMask | ButtonPressMask | ButtonReleaseMask | StructureNotifyMask;
 
-	GIconWin = XCreateWindow(GDisplay, root, 0, 0, InitialSize, InitialSize, 0, CopyFromParent, /* depth */
-		InputOutput,                                                                             /* class */
-		CopyFromParent,                                                                          /* visual */
-		CWBackPixel | CWEventMask, &attrs);
+	GIconWin = XCreateWindow(GDisplay, root, 0, 0, InitialSize, InitialSize, 0, GDepth, /* depth */
+		InputOutput,                                                                      /* class */
+		GVisual,                                                                          /* visual */
+		CWBackPixmap | CWBorderPixel | CWColormap | CWEventMask, &attrs);
 
 	/* Request docking BEFORE mapping the window to avoid it appearing separately */
 	SendDockRequest(tray);
@@ -328,5 +390,20 @@ void XTrayCleanup()
 	if (GOrigImage)
 	{
 		stbi_image_free(GOrigImage);
+	}
+}
+
+void XTraySetBackgroundColor(unsigned char R, unsigned char G, unsigned char B)
+{
+	GBackgroundR   = R;
+	GBackgroundG   = G;
+	GBackgroundB   = B;
+	bUseBackground = 1;
+
+	/* Regenerate the icon with the new background */
+	if (GIconWidth > 0 && GIconHeight > 0)
+	{
+		CreateScaledXImage(GIconWidth, GIconHeight);
+		DrawIcon();
 	}
 }

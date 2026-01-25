@@ -9,11 +9,13 @@
 extern "C" {
 #endif
 
-int XTrayInit(unsigned char const* TrayIconData, unsigned int TrayIconSize);
+int XTrayInit(unsigned char const* TrayIconData, unsigned int TrayIconDataSize, unsigned char TrayIconSize);
 
 void XTrayEventLoop();
 
 void XTrayCleanup();
+
+void XTraySetBackgroundColor(unsigned char R, unsigned char G, unsigned char B);
 
 #if defined(__cplusplus)
 }
