@@ -27,6 +27,25 @@ void WTrayIcon::Init()
 	Config.Callback = [](int X, int Y, enum XTrayButton Button, void*) {
 		spdlog::info("Tray icon clicked at ({}, {}) with button {}", X, Y, static_cast<int>(Button));
 	};
+	Config.LogCallback = [](XTrayLogLevel Level, char const* Message, void*) {
+		switch (Level)
+		{
+			default:
+			case XTrayLogLevelDebug:
+				spdlog::debug("{}", Message);
+				break;
+			case XTrayLogLevelInfo:
+				spdlog::info("{}", Message);
+				break;
+			case XTrayLogLevelWarning:
+				spdlog::warn("{}", Message);
+				break;
+			case XTrayLogLevelError:
+				spdlog::error("{}", Message);
+				break;
+		}
+	};
+
 	if (XTrayInit(Config) == 0)
 	{
 		spdlog::error("Failed to initialize tray icon");
@@ -34,25 +53,52 @@ void WTrayIcon::Init()
 	else
 	{
 		PollThread = std::thread(ProcessEvents);
-		static constexpr unsigned char BackgroundBright[] = { 239, 240, 241 };
-		static constexpr unsigned char BackgroundDark[] = { 32, 35, 38 };
-
-		if (WSettings::GetInstance().bUseDarkTheme)
+		if (WSettings::GetInstance().bUseCustomTrayIconColor)
 		{
-			XTraySetBackgroundColor(BackgroundDark[0], BackgroundDark[1], BackgroundDark[2]);
+			SetColor(WSettings::GetInstance().TrayIconBackgroundColor.Color);
 		}
 		else
 		{
-			XTraySetBackgroundColor(BackgroundBright[0], BackgroundBright[1], BackgroundBright[2]);
+			if (WSettings::GetInstance().bUseDarkTheme)
+			{
+				UseDarkColor();
+			}
+			else
+			{
+				UseLightColor();
+			}
 		}
 	}
 }
 
-WTrayIcon::~WTrayIcon()
+void WTrayIcon::DeInit()
 {
 	XTrayCleanup();
 	if (PollThread.joinable())
 	{
 		PollThread.join();
 	}
+}
+
+void WTrayIcon::UseDarkColor()
+{
+	static constexpr unsigned char BackgroundDark[] = { 32, 35, 38 };
+	XTraySetBackgroundColor(BackgroundDark[0], BackgroundDark[1], BackgroundDark[2]);
+}
+
+void WTrayIcon::UseLightColor()
+{
+	static constexpr unsigned char BackgroundBright[] = { 239, 240, 241 };
+	XTraySetBackgroundColor(BackgroundBright[0], BackgroundBright[1], BackgroundBright[2]);
+}
+
+void WTrayIcon::SetColor(ImVec4 const& Color)
+{
+	XTraySetBackgroundColor(
+		static_cast<uint8_t>(Color.x * 255), static_cast<uint8_t>(Color.y * 255), static_cast<uint8_t>(Color.z * 255));
+}
+
+WTrayIcon::~WTrayIcon()
+{
+	DeInit();
 }

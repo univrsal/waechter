@@ -14,6 +14,21 @@
 #include "Format.hpp"
 #include "Windows/NetworkGraphWindow.hpp"
 
+struct WColor
+{
+	ImVec4 Color{};
+	template <class Archive>
+	void serialize(Archive& ar)
+	{
+		ar(CEREAL_NVP(Color.x), CEREAL_NVP(Color.y), CEREAL_NVP(Color.z), CEREAL_NVP(Color.w));
+	}
+
+	float R() const { return Color.x; }
+	float G() const { return Color.y; }
+	float B() const { return Color.z; }
+	float A() const { return Color.w; }
+};
+
 class WSettings : public TSingleton<WSettings>
 {
 public:
@@ -33,6 +48,11 @@ public:
 	bool                     bSkipCertificateHostnameCheck{ false };
 
 	bool         bUseDarkTheme{ false };
+	bool         bUseTrayIcon{ false };
+	bool         bMinimizeToTray{ false };
+	bool         bCloseToTray{ false };
+	bool         bUseCustomTrayIconColor{ false };
+	WColor       TrayIconBackgroundColor{ { 1.0f, 1.0f, 1.0f, 1.0f } };
 	bool         bReduceFrameRateWhenInactive{ true };
 	float        NetworkGraphLineWidth{ 1.0f };
 	int          NetworkGraphHistorySetting{ NGH_5Min };
@@ -49,7 +69,9 @@ public:
 			CEREAL_NVP(bShowOfflineProcesses), CEREAL_NVP(NetworkGraphLineWidth),
 			CEREAL_NVP(NetworkGraphHistorySetting), CEREAL_NVP(TrafficTreeUnitSetting), CEREAL_NVP(bUseDarkTheme),
 			CEREAL_NVP(bAllowSelfSignedCertificates), CEREAL_NVP(bSkipCertificateHostnameCheck),
-			CEREAL_NVP(SelectedLanguage), CEREAL_NVP(bReduceFrameRateWhenInactive));
+			CEREAL_NVP(SelectedLanguage), CEREAL_NVP(bReduceFrameRateWhenInactive), CEREAL_NVP(bUseTrayIcon),
+			CEREAL_NVP(bUseCustomTrayIconColor), CEREAL_NVP(bMinimizeToTray), CEREAL_NVP(bCloseToTray),
+			CEREAL_NVP(TrayIconBackgroundColor));
 	}
 
 	void Load();

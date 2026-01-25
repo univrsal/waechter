@@ -4,6 +4,7 @@
  */
 
 #pragma once
+#include <imgui.h>
 #include <thread>
 
 class WTrayIcon
@@ -12,5 +13,9 @@ class WTrayIcon
 
 public:
 	void Init();
+	void        DeInit();
+	static void UseDarkColor();
+	static void UseLightColor();
+	static void SetColor(ImVec4 const& color);
 	~WTrayIcon();
 };

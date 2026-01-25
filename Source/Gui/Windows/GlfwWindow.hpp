@@ -29,6 +29,7 @@ public:
 	bool Init();
 
 	void RunLoop();
+	WTrayIcon& GetTrayIcon() { return TrayIcon; }
 
 	~WGlfwWindow() override = default;
 

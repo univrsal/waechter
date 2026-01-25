@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdarg.h>
 
 #include "xtray.h"
 
@@ -36,6 +37,9 @@ static int      GDepth         = 0;
 static XTrayCallback GOnClickCallback = NULL;
 static void*		 GOnClickUserData = NULL;
 
+static XTrayLogCallback GLogCallback = NULL;
+static void*		    GLogCallbackData = NULL;
+
 /* Background color for compositing (default: transparent) */
 static unsigned char GBackgroundR = 0;
 static unsigned char GBackgroundG = 0;
@@ -45,6 +49,24 @@ static int           bUseBackground = 0;
 /* Original image data */
 static unsigned char* GOrigImage = NULL;
 static int            GOrigWidth, GOrigHeight;
+
+static void Log(enum XTrayLogLevel Level, const char* Format, ...)
+{
+	if (GLogCallback)
+	{
+		va_list args;
+		va_start(args, Format);
+		char buffer[1024];
+		vsnprintf(buffer, sizeof(buffer), Format, args);
+		va_end(args);
+		GLogCallback(Level, buffer, GLogCallbackData);
+	}
+}
+
+#define LogDebug(...) Log(XTrayLogLevelDebug, __VA_ARGS__)
+#define LogInfo(...) Log(XTrayLogLevelInfo, __VA_ARGS__)
+#define LogWarn(...) Log(XTrayLogLevelWarn, __VA_ARGS__)
+#define LogErr(...) Log(XTrayLogLevelError, __VA_ARGS__)
 
 /*
  * Find the system tray window for the given screen
@@ -97,7 +119,7 @@ static void CreateScaledXImage(int Width, int Height)
 	unsigned char* resizedImage = malloc(Width * Height * 4);
 	if (!resizedImage)
 	{
-		fprintf(stderr, "Failed to allocate resize buffer\n");
+		LogErr("Failed to allocate resize buffer");
 		return;
 	}
 
@@ -108,7 +130,7 @@ static void CreateScaledXImage(int Width, int Height)
 		unsigned char* composited = malloc(GOrigWidth * GOrigHeight * 4);
 		if (!composited)
 		{
-			fprintf(stderr, "Failed to allocate composite buffer\n");
+			LogErr("Failed to allocate composite buffer");
 			free(resizedImage);
 			return;
 		}
@@ -132,7 +154,7 @@ static void CreateScaledXImage(int Width, int Height)
 		/* Resize the composited image */
 		if (!stbir_resize_uint8_linear(composited, GOrigWidth, GOrigHeight, 0, resizedImage, Width, Height, 0, STBIR_RGBA))
 		{
-			fprintf(stderr, "Failed to resize image\n");
+			LogErr("Failed to resize image");
 			free(composited);
 			free(resizedImage);
 			return;
@@ -146,7 +168,7 @@ static void CreateScaledXImage(int Width, int Height)
 		if (!stbir_resize(GOrigImage, GOrigWidth, GOrigHeight, 0, resizedImage, Width, Height, 0, STBIR_RGBA_PM,
 				STBIR_TYPE_UINT8, STBIR_EDGE_CLAMP, STBIR_FILTER_DEFAULT))
 		{
-			fprintf(stderr, "Failed to resize image\n");
+			LogErr("Failed to resize image");
 			free(resizedImage);
 			return;
 		}
@@ -156,7 +178,7 @@ static void CreateScaledXImage(int Width, int Height)
 	uint32_t* pixels = malloc(Width * Height * sizeof(uint32_t));
 	if (!pixels)
 	{
-		fprintf(stderr, "Failed to allocate pixel buffer\n");
+		LogErr("Failed to allocate pixel buffer");
 		free(resizedImage);
 		return;
 	}
@@ -184,7 +206,7 @@ static void CreateScaledXImage(int Width, int Height)
 
 	if (!GXImage)
 	{
-		fprintf(stderr, "Failed to create XImage\n");
+		LogErr("Failed to create XImage");
 		free(pixels);
 		return;
 	}
@@ -234,13 +256,13 @@ int XTrayInit(struct XTrayInitConfig Cfg)
 	Window tray = GetTrayWindow();
 	if (tray == None)
 	{
-		fprintf(stderr, "No system tray found. Is a panel/tray running?\n");
+		LogErr("No system tray found. Is a panel/tray running?");
 		XCloseDisplay(GDisplay);
 		stbi_image_free(GOrigImage);
 		return 0;
 	}
 
-	printf("Found system tray window: 0x%lx\n", tray);
+	LogDebug("Found system tray window: 0x%lx", tray);
 
 	/* Create the icon window */
 	int InitialSize = Cfg.IconSize;
@@ -251,13 +273,13 @@ int XTrayInit(struct XTrayInitConfig Cfg)
 	{
 		GVisual = vinfo.visual;
 		GDepth  = vinfo.depth;
-		printf("Using 32-bit ARGB visual for transparency\n");
+		LogDebug("Using ARGB visual: 0x%lx", (unsigned long)GVisual);
 	}
 	else
 	{
 		GVisual = DefaultVisual(GDisplay, GScreen);
 		GDepth  = DefaultDepth(GDisplay, GScreen);
-		printf("Using default visual (transparency may not work)\n");
+		LogDebug("Using default visual: 0x%lx", (unsigned long)GVisual);
 	}
 
 	XSetWindowAttributes attrs;
@@ -311,6 +333,9 @@ int XTrayInit(struct XTrayInitConfig Cfg)
 
 	GOnClickCallback = Cfg.Callback;
 	GOnClickUserData = Cfg.CallbackData;
+
+	GLogCallback = Cfg.LogCallback;
+	GLogCallbackData = Cfg.LogCallbackData;
 	return 1;
 }
 
@@ -369,12 +394,12 @@ void XTrayEventLoop()
 				break;
 
 			case DestroyNotify:
-				printf("Window destroyed, exiting...\n");
+				LogDebug("Window destroyed, exiting...");
 				bIsRunning = 0;
 				break;
 
 			case ReparentNotify:
-				printf("Window reparented (docked in tray)\n");
+				LogDebug("Window reparented (docked in tray)");
 				break;
 			default:;
 		}
@@ -383,35 +408,58 @@ void XTrayEventLoop()
 
 void XTrayCleanup()
 {
+	if (!bIsInitialized)
+	{
+		return;
+	}
 	/* Signal the event loop to stop */
 	bIsRunning = 0;
+	bIsInitialized = 0;
 
 	/* Cleanup */
 	if (GXImage)
 	{
 		XDestroyImage(GXImage); /* Frees pixel data too */
+		GXImage = NULL;
 	}
 	if (GDisplay && GGc)
 	{
 		XFreeGC(GDisplay, GGc);
+		GGc = 0;
 	}
 	if (GDisplay && GIconWin)
 	{
 		XDestroyWindow(GDisplay, GIconWin);
+		GIconWin = 0;
 	}
 	if (GDisplay)
 	{
 		XCloseDisplay(GDisplay);
+		GDisplay = NULL;
 	}
 
 	if (GOrigImage)
 	{
 		stbi_image_free(GOrigImage);
+		GOrigImage = NULL;
 	}
+
+	/* Reset all state */
+	GIconWidth     = 0;
+	GIconHeight    = 0;
+	GVisual        = NULL;
+	GDepth         = 0;
+	bIsRunning     = 1;
+	bUseBackground = 0;
 }
 
 void XTraySetBackgroundColor(unsigned char R, unsigned char G, unsigned char B)
 {
+	if (!bIsInitialized)
+	{
+		return;
+	}
+
 	GBackgroundR   = R;
 	GBackgroundG   = G;
 	GBackgroundB   = B;
@@ -423,4 +471,20 @@ void XTraySetBackgroundColor(unsigned char R, unsigned char G, unsigned char B)
 		CreateScaledXImage(GIconWidth, GIconHeight);
 		DrawIcon();
 	}
+}
+
+void XTraySetVisible(int bVisible)
+{
+	if (!GDisplay || !GIconWin)
+		return;
+
+	if (bVisible)
+	{
+		XMapWindow(GDisplay, GIconWin);
+	}
+	else
+	{
+		XUnmapWindow(GDisplay, GIconWin);
+	}
+	XFlush(GDisplay);
 }
