@@ -26,7 +26,11 @@ class WGlfwWindow : public TSingleton<WGlfwWindow>
 	std::string ImGuiIniPath{};
 
 public:
-	bool Init();
+	bool              bWindowHidden = false;
+	std::atomic<bool> bShowRequested{};
+	bool              Init();
+
+	void RequestShow() { bShowRequested = true; }
 
 	void RunLoop();
 	WTrayIcon& GetTrayIcon() { return TrayIcon; }

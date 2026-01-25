@@ -241,10 +241,17 @@ int XTrayInit(struct XTrayInitConfig Cfg)
 		return 0;
 	}
 
+	/* Initialize X11 threading support */
+	if (!XInitThreads())
+	{
+		LogErr("XInitThreads failed - X11 threading may not work correctly");
+	}
+
 	/* Open X display */
 	GDisplay = XOpenDisplay(NULL);
 	if (!GDisplay)
 	{
+		LogErr("Cannot open X display");
 		stbi_image_free(GOrigImage);
 		return 0;
 	}
@@ -414,6 +421,20 @@ void XTrayCleanup()
 	}
 	/* Signal the event loop to stop */
 	bIsRunning = 0;
+
+	/* Send a dummy ClientMessage event to wake up XNextEvent */
+	if (GDisplay && GIconWin)
+	{
+		XEvent wakeup;
+		memset(&wakeup, 0, sizeof(wakeup));
+		wakeup.xclient.type         = ClientMessage;
+		wakeup.xclient.window       = GIconWin;
+		wakeup.xclient.message_type = XInternAtom(GDisplay, "XTRAY_SHUTDOWN", False);
+		wakeup.xclient.format       = 32;
+		XSendEvent(GDisplay, GIconWin, False, 0, &wakeup);
+		XFlush(GDisplay);
+	}
+
 	bIsInitialized = 0;
 
 	/* Cleanup */

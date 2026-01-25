@@ -25,6 +25,6 @@ WSignalHandler::WSignalHandler()
 
 void WSignalHandler::Wait()
 {
-	std::unique_lock<std::mutex> Lock(SignalMutex);
+	std::unique_lock Lock(SignalMutex);
 	SignalCondition.wait(Lock, [this] { return bStop.load(); });
 }

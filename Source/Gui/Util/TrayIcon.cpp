@@ -8,6 +8,7 @@
 #include "Settings.hpp"
 #include "spdlog/spdlog.h"
 #include "xtray.h"
+#include "Windows/GlfwWindow.hpp"
 
 extern unsigned char const GIconData[];
 extern unsigned int const  GIconSize;
@@ -24,9 +25,7 @@ void WTrayIcon::Init()
 	Config.IconData = GIconData;
 	Config.IconDataSize = GIconSize;
 	Config.IconName = "Wächter";
-	Config.Callback = [](int X, int Y, enum XTrayButton Button, void*) {
-		spdlog::info("Tray icon clicked at ({}, {}) with button {}", X, Y, static_cast<int>(Button));
-	};
+	Config.Callback = [](int, int, XTrayButton, void*) { WGlfwWindow::GetInstance().RequestShow(); };
 	Config.LogCallback = [](XTrayLogLevel Level, char const* Message, void*) {
 		switch (Level)
 		{

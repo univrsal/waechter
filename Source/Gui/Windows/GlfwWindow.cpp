@@ -39,6 +39,9 @@ bool WGlfwWindow::Init()
 	glfwSetErrorCallback(GlfwErrorCallback);
 	MainWindow = std::make_unique<WMainWindow>();
 
+	// Force X11 backend for compatibility with X11 tray icon
+	glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+
 	if (!glfwInit())
 	{
 		spdlog::critical("GLFW initialization failed!");
@@ -47,7 +50,7 @@ bool WGlfwWindow::Init()
 	char const* GlslVersion = "#version 130";
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-	MainScale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor()); // Valid on GLFW 3.3+ only
+	MainScale = 1.1f; // ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor()); // Valid on GLFW 3.3+ only
 
 	Window = glfwCreateWindow(900, 700, "Wächter", nullptr, nullptr);
 	if (!Window)
@@ -56,6 +59,7 @@ bool WGlfwWindow::Init()
 		glfwTerminate();
 		return false;
 	}
+
 	glfwMakeContextCurrent(Window);
 
 	if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
@@ -137,18 +141,38 @@ bool WGlfwWindow::Init()
 	return true;
 }
 
+static void CloseCallback(GLFWwindow* Window)
+{
+	if (WSettings::GetInstance().bUseTrayIcon && WSettings::GetInstance().bCloseToTray)
+	{
+		glfwSetWindowShouldClose(Window, GLFW_FALSE);
+		WGlfwWindow::GetInstance().bWindowHidden = true;
+		glfwHideWindow(Window);
+	}
+}
+
 void WGlfwWindow::RunLoop()
 {
 	ImVec4 ClearColor = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-
+	glfwSetWindowCloseCallback(Window, CloseCallback);
 	while (!glfwWindowShouldClose(Window))
 	{
 		glfwPollEvents();
+		if (bShowRequested)
+		{
+			glfwShowWindow(Window);
+			glfwFocusWindow(Window);
+			glfwRestoreWindow(Window);
+			bShowRequested = false;
+			bWindowHidden = false;
+		}
+
 		if (glfwGetWindowAttrib(Window, GLFW_ICONIFIED) != 0)
 		{
 			ImGui_ImplGlfw_Sleep(50);
 			continue;
 		}
+
 		if (WSettings::GetInstance().bReduceFrameRateWhenInactive && glfwGetWindowAttrib(Window, GLFW_FOCUSED) != 1)
 		{
 			ImGui_ImplGlfw_Sleep(10);
@@ -165,15 +189,19 @@ void WGlfwWindow::RunLoop()
 
 		// Rendering
 		ImGui::Render();
-		int display_w, display_h;
-		glfwGetFramebufferSize(Window, &display_w, &display_h);
-		glViewport(0, 0, display_w, display_h);
-		glClearColor(
-			ClearColor.x * ClearColor.w, ClearColor.y * ClearColor.w, ClearColor.z * ClearColor.w, ClearColor.w);
-		glClear(GL_COLOR_BUFFER_BIT);
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-		glfwSwapBuffers(Window);
+		// Skip rendering if window is hidden to avoid unnecessary work
+		if (!bWindowHidden && glfwGetWindowAttrib(Window, GLFW_VISIBLE) && !glfwGetWindowAttrib(Window, GLFW_ICONIFIED))
+		{
+			int display_w, display_h;
+			glfwGetFramebufferSize(Window, &display_w, &display_h);
+			glViewport(0, 0, display_w, display_h);
+			glClearColor(
+				ClearColor.x * ClearColor.w, ClearColor.y * ClearColor.w, ClearColor.z * ClearColor.w, ClearColor.w);
+			glClear(GL_COLOR_BUFFER_BIT);
+			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+			glfwSwapBuffers(Window);
+		}
 		WTimerManager::GetInstance().UpdateTimers(glfwGetTime());
 	}
 	WClient::GetInstance().Stop();
