@@ -19,7 +19,15 @@ void ProcessEvents()
 
 void WTrayIcon::Init()
 {
-	if (XTrayInit(GIconData, GIconSize, 32) == 0)
+	XTrayInitConfig Config{};
+	Config.IconSize = 32;
+	Config.IconData = GIconData;
+	Config.IconDataSize = GIconSize;
+	Config.IconName = "Wächter";
+	Config.Callback = [](int X, int Y, enum XTrayButton Button, void*) {
+		spdlog::info("Tray icon clicked at ({}, {}) with button {}", X, Y, static_cast<int>(Button));
+	};
+	if (XTrayInit(Config) == 0)
 	{
 		spdlog::error("Failed to initialize tray icon");
 	}

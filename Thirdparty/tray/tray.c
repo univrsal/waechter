@@ -33,6 +33,9 @@ static int      bIsInitialized = 0;
 static Visual*  GVisual        = NULL;
 static int      GDepth         = 0;
 
+static XTrayCallback GOnClickCallback = NULL;
+static void*		 GOnClickUserData = NULL;
+
 /* Background color for compositing (default: transparent) */
 static unsigned char GBackgroundR = 0;
 static unsigned char GBackgroundG = 0;
@@ -202,15 +205,7 @@ static void DrawIcon(void)
 	}
 }
 
-/*
- * Handle left mouse button click
- */
-static void OnLeftClick(int X, int Y)
-{
-	printf("Left click detected at position (%d, %d)!\n", X, Y);
-}
-
-int XTrayInit(unsigned char const* ImageData, unsigned int ImageDataSize, unsigned char TrayIconSize)
+int XTrayInit(struct XTrayInitConfig Cfg)
 {
 	if (bIsInitialized)
 	{
@@ -218,7 +213,7 @@ int XTrayInit(unsigned char const* ImageData, unsigned int ImageDataSize, unsign
 	}
 	/* Load image using stb_image (force RGBA) */
 	int channels;
-	GOrigImage = stbi_load_from_memory(ImageData, ImageDataSize, &GOrigWidth, &GOrigHeight, &channels, 4);
+	GOrigImage = stbi_load_from_memory(Cfg.IconData, Cfg.IconDataSize, &GOrigWidth, &GOrigHeight, &channels, 4);
 	if (!GOrigImage)
 	{
 		return 0;
@@ -248,7 +243,7 @@ int XTrayInit(unsigned char const* ImageData, unsigned int ImageDataSize, unsign
 	printf("Found system tray window: 0x%lx\n", tray);
 
 	/* Create the icon window */
-	int InitialSize = TrayIconSize; /* Standard tray icon size */
+	int InitialSize = Cfg.IconSize;
 
 	/* Try to find an ARGB visual for proper transparency support */
 	XVisualInfo vinfo;
@@ -281,9 +276,15 @@ int XTrayInit(unsigned char const* ImageData, unsigned int ImageDataSize, unsign
 
 	/* Set window class hints (some trays use this) */
 	XClassHint ClassHint;
-	ClassHint.res_name  = "tray_icon";
-	ClassHint.res_class = "TrayIcon";
+	ClassHint.res_name  = (char*)Cfg.IconName;
+	ClassHint.res_class = (char*)Cfg.IconName;
 	XSetClassHint(GDisplay, GIconWin, &ClassHint);
+
+	/* Set window name for system tray identification */
+	XStoreName(GDisplay, GIconWin, Cfg.IconName);
+	Atom wmName = XInternAtom(GDisplay, "_NET_WM_NAME", False);
+	Atom utf8   = XInternAtom(GDisplay, "UTF8_STRING", False);
+	XChangeProperty(GDisplay, GIconWin, wmName, utf8, 8, PropModeReplace, (unsigned char*)Cfg.IconName, 8);
 
 	/* Prevent window from appearing in taskbar */
 	Atom stateAtom        = XInternAtom(GDisplay, "_NET_WM_STATE", False);
@@ -308,6 +309,8 @@ int XTrayInit(unsigned char const* ImageData, unsigned int ImageDataSize, unsign
 	XFlush(GDisplay);
 	bIsInitialized = 1;
 
+	GOnClickCallback = Cfg.Callback;
+	GOnClickUserData = Cfg.CallbackData;
 	return 1;
 }
 
@@ -334,20 +337,34 @@ void XTrayEventLoop()
 				/* Window was resized (tray may resize us) */
 				if (event.xconfigure.width != GIconWidth || event.xconfigure.height != GIconHeight)
 				{
-					printf("Icon resized to %dx%d\n", event.xconfigure.width, event.xconfigure.height);
 					CreateScaledXImage(event.xconfigure.width, event.xconfigure.height);
 					DrawIcon();
 				}
 				break;
 
 			case ButtonPress:
-				if (event.xbutton.button == Button1)
+				if (GOnClickCallback)
 				{
-					OnLeftClick(event.xbutton.x, event.xbutton.y);
-				}
-				else if (event.xbutton.button == Button3)
-				{
-					printf("Right click - could show context menu\n");
+					if (event.xbutton.button == Button1)
+					{
+						GOnClickCallback(event.xbutton.x, event.xbutton.y, XTrayButtonLeft, GOnClickUserData);
+					}
+					else if (event.xbutton.button == Button2)
+					{
+						GOnClickCallback(event.xbutton.x, event.xbutton.y, XTrayButtonMiddle, GOnClickUserData);
+					}
+					else if (event.xbutton.button == Button3)
+					{
+						GOnClickCallback(event.xbutton.x, event.xbutton.y, XTrayButtonRight, GOnClickUserData);
+					}
+					else if (event.xbutton.button == Button4)
+					{
+						GOnClickCallback(event.xbutton.x, event.xbutton.y, XTrayButton4, GOnClickUserData);
+					}
+					else if (event.xbutton.button == Button5)
+					{
+						GOnClickCallback(event.xbutton.x, event.xbutton.y, XTrayButton5, GOnClickUserData);
+					}
 				}
 				break;
 
