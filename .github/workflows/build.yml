@@ -65,7 +65,7 @@ jobs:
         run: |
           # ARM64 runners may not have bpftool in linux-tools-common
           # Install bpftool from source or use generic version
-          sudo apt-get install -y linux-tools-generic || true
+          sudo apt-get install -y linux-tools-generic linux-tools-azure linux-cloud-tools-azure|| true
           # If still not available, build from source
           if ! command -v bpftool &> /dev/null; then
             echo "Building bpftool from source..."
