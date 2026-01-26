@@ -28,21 +28,25 @@ execute_process(
         OUTPUT_VARIABLE GIT_COMMIT_HASH
         OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-target_compile_definitions(waechterd PRIVATE
-        GIT_BRANCH="${GIT_BRANCH}   "
-        GIT_COMMIT_HASH="${GIT_COMMIT_HASH}"
-        WAECHTER_VERSION="${CMAKE_PROJECT_VERSION}"
-        BUILD_TIME="${TODAY}"
-)
+if (WAECHTER_BUILD_DAEMON)
+    target_compile_definitions(waechterd PRIVATE
+            GIT_BRANCH="${GIT_BRANCH}   "
+            GIT_COMMIT_HASH="${GIT_COMMIT_HASH}"
+            WAECHTER_VERSION="${CMAKE_PROJECT_VERSION}"
+            BUILD_TIME="${TODAY}"
+    )
+endif ()
 
-target_compile_definitions(waechter PUBLIC
-        GIT_BRANCH="${GIT_BRANCH}   "
-        GIT_COMMIT_HASH="${GIT_COMMIT_HASH}"
-        WAECHTER_VERSION="${CMAKE_PROJECT_VERSION}"
-        BUILD_TIME="${TODAY}"
-        ICON_PATH="${CMAKE_SOURCE_DIR}/Meta/Icon.png"
-        FONT_PATH="${CMAKE_SOURCE_DIR}/Thirdparty/jetbrains-mono/JetBrainsMono-Regular.ttf"
-)
+if (WAECHTER_BUILD_CLIENT)
+    target_compile_definitions(waechter PUBLIC
+            GIT_BRANCH="${GIT_BRANCH}   "
+            GIT_COMMIT_HASH="${GIT_COMMIT_HASH}"
+            WAECHTER_VERSION="${CMAKE_PROJECT_VERSION}"
+            BUILD_TIME="${TODAY}"
+            ICON_PATH="${CMAKE_SOURCE_DIR}/Meta/Icon.png"
+            FONT_PATH="${CMAKE_SOURCE_DIR}/Thirdparty/jetbrains-mono/JetBrainsMono-Regular.ttf"
+    )
+endif ()
 
 # Install additional files
 install(FILES Meta/Package/waechter.desktop
