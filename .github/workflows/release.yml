@@ -181,7 +181,7 @@ jobs:
 
       - name: Install dependencies via vcpkg
         run: |
-          .\vcpkg\vcpkg install curl:x64-windows zlib:x64-windows libwebsockets:x64-windows
+          .\vcpkg\vcpkg install curl[schannel]:x64-windows zlib:x64-windows libwebsockets:x64-windows
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
