@@ -1,0 +1,268 @@
+name: Build (macOS Client)
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - 'Source/Gui/**'
+      - 'Source/Util/**'
+      - 'Thirdparty/**'
+      - 'CMakeLists.txt'
+      - '**/CMakeLists.txt'
+      - '**/*.cmake'
+      - 'Meta/**'
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'Source/Gui/**'
+      - 'Source/Util/**'
+      - 'Thirdparty/**'
+      - 'CMakeLists.txt'
+      - '**/CMakeLists.txt'
+      - '**/*.cmake'
+      - 'Meta/**'
+  workflow_dispatch:
+  release:
+    types: [created]
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        arch: [x86_64, arm64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies via Homebrew
+        run: |
+          brew update
+          brew install cmake ninja pkg-config curl zlib libwebsockets ccache
+
+      - name: Setup ccache
+        run: |
+          echo "CCACHE_DIR=${{ github.workspace }}/.ccache" >> $GITHUB_ENV
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ${{ runner.os }}-${{ matrix.arch }}-ccache-${{ hashFiles('**/CMakeLists.txt', '**/*.cpp', '**/*.c', '**/*.h') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.arch }}-ccache-
+
+      - name: Cache CMake build directory
+        uses: actions/cache@v4
+        with:
+          path: build
+          key: ${{ runner.os }}-${{ matrix.arch }}-cmake-build-${{ hashFiles('CMakeLists.txt', '**/CMakeLists.txt', '**/*.cmake', 'Source/**', 'Thirdparty/**') }}
+
+      - name: Show ccache stats (before)
+        run: |
+          ccache --version || true
+          ccache -s || true
+
+      - name: Configure (CMake + Ninja)
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
+            -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DWAECHTER_BUILD_DAEMON=OFF \
+            -DWAECHTER_BUILD_CLIENT=ON
+
+      - name: Build
+        run: |
+          cmake --build build --config Release
+
+      - name: Show ccache stats (after)
+        run: |
+          ccache -s || true
+
+      - name: Install
+        run: |
+          cmake --install build --prefix install
+
+      - name: Get short commit
+        run: |
+          echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+
+      - name: Create .app bundle structure
+        run: |
+          mkdir -p "Waechter.app/Contents/MacOS"
+          mkdir -p "Waechter.app/Contents/Resources"
+
+          # Copy executable
+          cp install/bin/waechter "Waechter.app/Contents/MacOS/"
+
+          # Copy icon (convert PNG to ICNS if needed)
+          if command -v sips &> /dev/null; then
+            mkdir -p icon.iconset
+            sips -z 16 16     Meta/Icon.png --out icon.iconset/icon_16x16.png
+            sips -z 32 32     Meta/Icon.png --out icon.iconset/icon_16x16@2x.png
+            sips -z 32 32     Meta/Icon.png --out icon.iconset/icon_32x32.png
+            sips -z 64 64     Meta/Icon.png --out icon.iconset/icon_32x32@2x.png
+            sips -z 128 128   Meta/Icon.png --out icon.iconset/icon_128x128.png
+            sips -z 256 256   Meta/Icon.png --out icon.iconset/icon_128x128@2x.png
+            sips -z 256 256   Meta/Icon.png --out icon.iconset/icon_256x256.png
+            sips -z 512 512   Meta/Icon.png --out icon.iconset/icon_256x256@2x.png
+            sips -z 512 512   Meta/Icon.png --out icon.iconset/icon_512x512.png
+            cp Meta/Icon.png icon.iconset/icon_512x512@2x.png
+            iconutil -c icns icon.iconset -o "Waechter.app/Contents/Resources/waechter.icns"
+          else
+            cp Meta/Icon.png "Waechter.app/Contents/Resources/"
+          fi
+
+          # Create Info.plist
+          cat > "Waechter.app/Contents/Info.plist" << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleDevelopmentRegion</key>
+              <string>en</string>
+              <key>CFBundleExecutable</key>
+              <string>waechter</string>
+              <key>CFBundleIconFile</key>
+              <string>waechter.icns</string>
+              <key>CFBundleIdentifier</key>
+              <string>st.waechter.client</string>
+              <key>CFBundleInfoDictionaryVersion</key>
+              <string>6.0</string>
+              <key>CFBundleName</key>
+              <string>Waechter</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+              <key>CFBundleShortVersionString</key>
+              <string>0.1.3</string>
+              <key>CFBundleVersion</key>
+              <string>1</string>
+              <key>LSMinimumSystemVersion</key>
+              <string>11.0</string>
+              <key>NSHighResolutionCapable</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Code sign (if secrets available)
+        if: github.event_name == 'release' || github.event_name == 'push'
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+        run: |
+          if [ -n "$MACOS_CERTIFICATE" ] && [ -n "$MACOS_CERTIFICATE_PWD" ]; then
+            echo "Setting up code signing..."
+            echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
+            security create-keychain -p actions build.keychain
+            security default-keychain -s build.keychain
+            security unlock-keychain -p actions build.keychain
+            security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k actions build.keychain
+
+            # Sign the app
+            codesign --force --deep --sign "$MACOS_SIGNING_IDENTITY" --options runtime "Waechter.app"
+
+            # Verify
+            codesign --verify --verbose "Waechter.app"
+
+            # Cleanup
+            rm certificate.p12
+            security delete-keychain build.keychain
+            echo "Code signing completed"
+          else
+            echo "Code signing skipped - certificate secrets not configured"
+          fi
+
+      - name: Create PKG installer
+        run: |
+          # Create package structure
+          mkdir -p pkgroot/Applications
+          cp -R Waechter.app pkgroot/Applications/
+
+          # Create component package
+          pkgbuild --root pkgroot \
+                   --identifier st.waechter.client \
+                   --version 0.1.3 \
+                   --install-location / \
+                   component.pkg
+
+          # Create distribution XML
+          cat > distribution.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <installer-gui-script minSpecVersion="1">
+              <title>Waechter Network Monitor</title>
+              <organization>st.waechter</organization>
+              <domains enable_localSystem="true"/>
+              <options customize="never" require-scripts="false"/>
+              <pkg-ref id="st.waechter.client"/>
+              <choices-outline>
+                  <line choice="default">
+                      <line choice="st.waechter.client"/>
+                  </line>
+              </choices-outline>
+              <choice id="default"/>
+              <choice id="st.waechter.client" visible="false">
+                  <pkg-ref id="st.waechter.client"/>
+              </choice>
+              <pkg-ref id="st.waechter.client" version="0.1.3" onConclusion="none">component.pkg</pkg-ref>
+          </installer-gui-script>
+          EOF
+
+          # Create product archive (final PKG)
+          productbuild --distribution distribution.xml \
+                       --package-path . \
+                       "waechter-${{ matrix.arch }}-${{ env.SHORT_SHA }}.pkg"
+
+      - name: Sign PKG (if secrets available)
+        if: github.event_name == 'release' || github.event_name == 'push'
+        env:
+          MACOS_INSTALLER_CERTIFICATE: ${{ secrets.MACOS_INSTALLER_CERTIFICATE }}
+          MACOS_INSTALLER_CERTIFICATE_PWD: ${{ secrets.MACOS_INSTALLER_CERTIFICATE_PWD }}
+          MACOS_INSTALLER_SIGNING_IDENTITY: ${{ secrets.MACOS_INSTALLER_SIGNING_IDENTITY }}
+        run: |
+          if [ -n "$MACOS_INSTALLER_CERTIFICATE" ] && [ -n "$MACOS_INSTALLER_CERTIFICATE_PWD" ]; then
+            echo "Setting up installer signing..."
+            echo "$MACOS_INSTALLER_CERTIFICATE" | base64 --decode > installer.p12
+            security create-keychain -p actions build.keychain
+            security default-keychain -s build.keychain
+            security unlock-keychain -p actions build.keychain
+            security import installer.p12 -k build.keychain -P "$MACOS_INSTALLER_CERTIFICATE_PWD" -T /usr/bin/productsign
+            security set-key-partition-list -S apple-tool:,apple:,productsign: -s -k actions build.keychain
+
+            # Sign the PKG
+            productsign --sign "$MACOS_INSTALLER_SIGNING_IDENTITY" \
+                        "waechter-${{ matrix.arch }}-${{ env.SHORT_SHA }}.pkg" \
+                        "waechter-${{ matrix.arch }}-${{ env.SHORT_SHA }}-signed.pkg"
+
+            mv "waechter-${{ matrix.arch }}-${{ env.SHORT_SHA }}-signed.pkg" \
+               "waechter-${{ matrix.arch }}-${{ env.SHORT_SHA }}.pkg"
+
+            # Cleanup
+            rm installer.p12
+            security delete-keychain build.keychain
+            echo "PKG signing completed"
+          else
+            echo "PKG signing skipped - certificate secrets not configured"
+          fi
+
+      - name: Upload Artifacts (PKG)
+        uses: actions/upload-artifact@v4
+        with:
+          name: waechter-macos-${{ matrix.arch }}-${{ env.SHORT_SHA }}
+          path: waechter-${{ matrix.arch }}-${{ env.SHORT_SHA }}.pkg
+          if-no-files-found: error
+
+      - name: Upload to Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: waechter-${{ matrix.arch }}-${{ env.SHORT_SHA }}.pkg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
