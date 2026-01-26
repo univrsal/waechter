@@ -1,7 +1,7 @@
 add_subdirectory(Util)
-add_subdirectory(EBPF)
 
 if (WAECHTER_BUILD_DAEMON)
+    add_subdirectory(EBPF)
     add_subdirectory(Daemon)
     add_dependencies(
             waechterd
