@@ -21,15 +21,18 @@ target_link_libraries(util PRIVATE
         thirdparty::deps_includes
 )
 
-target_compile_options(util PRIVATE
-        -Wall -Wextra
-        -Wshadow -Wformat=2 -Wconversion -Wsign-conversion
-        -Wnull-dereference -Wdouble-promotion -Wcast-align
-        -Wduplicated-cond -Wredundant-decls -Wpointer-arith
-        -Werror -Wold-style-cast -Wcast-align -Wunused -Woverloaded-virtual
-        -Wnon-virtual-dtor -pedantic -Wmisleading-indentation -Wduplicated-branches -Wlogical-op -Wformat=2
-        -Wuseless-cast -Wimplicit-fallthrough
-)
+if (UNIX AND NOT APPLE)
+    # Only warnings for linux right now
+    target_compile_options(util PRIVATE
+            -Wall -Wextra
+            -Wshadow -Wformat=2 -Wconversion -Wsign-conversion
+            -Wnull-dereference -Wdouble-promotion -Wcast-align
+            -Wduplicated-cond -Wredundant-decls -Wpointer-arith
+            -Werror -Wold-style-cast -Wcast-align -Wunused -Woverloaded-virtual
+            -Wnon-virtual-dtor -pedantic -Wmisleading-indentation -Wduplicated-branches -Wlogical-op -Wformat=2
+            -Wuseless-cast -Wimplicit-fallthrough
+    )
+endif ()
 
 add_subdirectory(Data)
 add_subdirectory(IP2Asn)
