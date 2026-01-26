@@ -60,6 +60,22 @@ jobs:
           ccache --version || true
           ccache -s || true
 
+      - name: Install bpftool for ARM64
+        if: matrix.arch == 'arm64'
+        run: |
+          # ARM64 runners may not have bpftool in linux-tools-common
+          # Install bpftool from source or use generic version
+          sudo apt-get install -y linux-tools-generic || true
+          # If still not available, build from source
+          if ! command -v bpftool &> /dev/null; then
+            echo "Building bpftool from source..."
+            git clone --depth 1 --branch v6.1 https://github.com/libbpf/bpftool.git
+            cd bpftool/src
+            make -j$(nproc)
+            sudo make install
+            cd ../..
+          fi
+
       - name: Configure (CMake + Ninja)
         run: |
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/artifacts" \
