@@ -21,7 +21,14 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm64
     env:
       # keep ccache inside the repository workspace so the actions/cache step can store it reliably
       CCACHE_DIR: ${{ github.workspace }}/.ccache
@@ -37,16 +44,16 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ./.ccache
-          key: ${{ runner.os }}-ccache-${{ hashFiles('**/CMakeLists.txt', '**/*.cpp', '**/*.c', '**/*.h') }}
+          key: ${{ runner.os }}-${{ matrix.arch }}-ccache-${{ hashFiles('**/CMakeLists.txt', '**/*.cpp', '**/*.c', '**/*.h') }}
           restore-keys: |
-            ${{ runner.os }}-ccache-
+            ${{ runner.os }}-${{ matrix.arch }}-ccache-
 
       - name: Cache CMake build directory (optional)
         uses: actions/cache@v4
         with:
           # caching the entire build dir can speed up incremental builds but may be fragile across toolchain changes
           path: build
-          key: ${{ runner.os }}-cmake-build-${{ hashFiles('CMakeLists.txt', '**/CMakeLists.txt', '**/*.cmake', 'Source/**', 'Thirdparty/**') }}
+          key: ${{ runner.os }}-${{ matrix.arch }}-cmake-build-${{ hashFiles('CMakeLists.txt', '**/CMakeLists.txt', '**/*.cmake', 'Source/**', 'Thirdparty/**') }}
 
       - name: Show ccache stats (before)
         run: |
@@ -83,14 +90,14 @@ jobs:
       - name: Upload Artifacts (Installed Files)
         uses: actions/upload-artifact@v4
         with:
-          name: waechter-ubuntu-${{ env.SHORT_SHA }}
+          name: waechter-ubuntu-${{ matrix.arch }}-${{ env.SHORT_SHA }}
           path: artifacts
           if-no-files-found: ignore
 
       - name: Upload Artifacts (DEB Package)
         uses: actions/upload-artifact@v4
         with:
-          name: waechter-deb-${{ env.SHORT_SHA }}
+          name: waechter-deb-${{ matrix.arch }}-${{ env.SHORT_SHA }}
           path: build/*.deb
           if-no-files-found: error
 
