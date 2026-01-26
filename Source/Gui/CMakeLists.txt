@@ -8,6 +8,16 @@ add_executable(waechter
         ClientRuleManager.hpp
 )
 
+# Add Windows resource file for icon and metadata
+if(WIN32)
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/waechter.rc.in
+        ${CMAKE_CURRENT_BINARY_DIR}/waechter.rc
+        @ONLY
+    )
+    target_sources(waechter PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/waechter.rc)
+endif()
+
 target_compile_definitions(waechter PRIVATE
         "COUNTRY_FLAG_ATLAS_IMAGE=\"${CMAKE_SOURCE_DIR}/Thirdparty/flags/atlas.png\""
         "ICON_ATLAS_IMAGE=\"${CMAKE_SOURCE_DIR}/Meta/atlas.png\""

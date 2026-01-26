@@ -7,7 +7,7 @@ on:
       - '*.*.*'
 
 jobs:
-  build-and-release:
+  build-linux:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -130,6 +130,7 @@ jobs:
           echo "EOF" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
+        id: create_release
         uses: softprops/action-gh-release@v1
         with:
           draft: true
@@ -143,6 +144,137 @@ jobs:
             waechter-${{ steps.tag.outputs.TAG_NAME }}-linux-x86_64.tar.gz.asc
             checksums.txt
             checksums.txt.asc
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-windows:
+    runs-on: windows-latest
+    needs: build-linux
+    permissions:
+      contents: write
+    env:
+      VCPKG_DEFAULT_TRIPLET: x64-windows
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: 'c8696863d371ab7f46e213d8f5ca923c4aef2a00'
+
+      - name: Install dependencies via vcpkg
+        run: |
+          vcpkg install curl zlib libwebsockets
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Get tag name
+        id: tag
+        shell: bash
+        run: |
+          echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure (CMake)
+        run: |
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_TOOLCHAIN_FILE="${env:VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" `
+            -DWAECHTER_BUILD_DAEMON=OFF `
+            -DWAECHTER_BUILD_CLIENT=ON
+
+      - name: Build
+        run: |
+          cmake --build build --config Release
+
+      - name: Sign executable
+        shell: pwsh
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          if ($env:CERTIFICATE_BASE64 -and $env:CERTIFICATE_PASSWORD) {
+            $certBytes = [System.Convert]::FromBase64String($env:CERTIFICATE_BASE64)
+            $certPath = Join-Path $env:TEMP "cert.pfx"
+            [IO.File]::WriteAllBytes($certPath, $certBytes)
+
+            $exePath = "build/Source/Gui/Release/waechter.exe"
+            if (Test-Path $exePath) {
+              & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" sign `
+                /f $certPath `
+                /p $env:CERTIFICATE_PASSWORD `
+                /tr http://timestamp.digicert.com `
+                /td SHA256 `
+                /fd SHA256 `
+                $exePath
+              Write-Host "Executable signed successfully"
+            } else {
+              Write-Host "Executable not found at $exePath"
+              exit 1
+            }
+
+            Remove-Item $certPath
+          } else {
+            Write-Host "Signing skipped - certificate secrets not configured"
+          }
+
+      - name: Create distribution package
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp build/Source/Gui/Release/waechter.exe dist/
+          cp Meta/Icon.png dist/
+          echo "Waechter Network Monitor Client for Windows" > dist/README.txt
+          echo "Version: ${{ steps.tag.outputs.TAG_NAME }}" >> dist/README.txt
+
+      - name: Create ZIP archive
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/* -DestinationPath waechter-${{ steps.tag.outputs.TAG_NAME }}-windows-client.zip
+
+      - name: Generate SHA256 checksum
+        shell: bash
+        run: |
+          sha256sum waechter-${{ steps.tag.outputs.TAG_NAME }}-windows-client.zip > windows-checksums.txt
+          cat windows-checksums.txt
+
+      - name: Import GPG key
+        shell: bash
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        if: ${{ env.GPG_PRIVATE_KEY != '' }}
+        run: |
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          gpg --list-secret-keys
+
+      - name: Sign Windows artifacts with GPG
+        shell: bash
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        if: ${{ env.GPG_PRIVATE_KEY != '' }}
+        run: |
+          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" \
+            --pinentry-mode loopback --detach-sign --armor \
+            waechter-${{ steps.tag.outputs.TAG_NAME }}-windows-client.zip
+
+          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" \
+            --pinentry-mode loopback --detach-sign --armor windows-checksums.txt
+
+      - name: Upload Windows artifacts to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          files: |
+            waechter-${{ steps.tag.outputs.TAG_NAME }}-windows-client.zip
+            waechter-${{ steps.tag.outputs.TAG_NAME }}-windows-client.zip.asc
+            windows-checksums.txt
+            windows-checksums.txt.asc
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
