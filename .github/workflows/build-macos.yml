@@ -49,15 +49,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .ccache
-          key: ${{ runner.os }}-${{ matrix.arch }}-ccache-${{ hashFiles('**/CMakeLists.txt', '**/*.cpp', '**/*.c', '**/*.h') }}
+          key: ${{ runner.os }}-${{ matrix.target }}-ccache-${{ hashFiles('**/CMakeLists.txt', '**/*.cpp', '**/*.c', '**/*.h') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.arch }}-ccache-
+            ${{ runner.os }}-${{ matrix.target }}-ccache-
 
       - name: Cache CMake build directory
         uses: actions/cache@v4
         with:
           path: build
-          key: ${{ runner.os }}-${{ matrix.arch }}-cmake-build-${{ hashFiles('CMakeLists.txt', '**/CMakeLists.txt', '**/*.cmake', 'Source/**', 'Thirdparty/**') }}
+          key: ${{ runner.os }}-${{ matrix.target }}-cmake-build-${{ hashFiles('CMakeLists.txt', '**/CMakeLists.txt', '**/*.cmake', 'Source/**', 'Thirdparty/**') }}
 
       - name: Show ccache stats (before)
         run: |
@@ -68,7 +68,7 @@ jobs:
         run: |
           cmake -S . -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
+            -DCMAKE_OSX_ARCHITECTURES=${{ matrix.target }} \
             -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
             -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install" \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
@@ -218,7 +218,7 @@ jobs:
           # Create product archive (final PKG)
           productbuild --distribution distribution.xml \
                        --package-path . \
-                       "waechter-${{ matrix.arch }}-${{ env.SHORT_SHA }}.pkg"
+                       "waechter-${{ matrix.target }}-${{ env.SHORT_SHA }}.pkg"
 
       - name: Sign PKG (if secrets available)
         if: github.event_name == 'release' || github.event_name == 'push'
@@ -238,11 +238,11 @@ jobs:
 
             # Sign the PKG
             productsign --sign "$MACOS_INSTALLER_SIGNING_IDENTITY" \
-                        "waechter-${{ matrix.arch }}-${{ env.SHORT_SHA }}.pkg" \
-                        "waechter-${{ matrix.arch }}-${{ env.SHORT_SHA }}-signed.pkg"
+                        "waechter-${{ matrix.target }}-${{ env.SHORT_SHA }}.pkg" \
+                        "waechter-${{ matrix.target }}-${{ env.SHORT_SHA }}-signed.pkg"
 
-            mv "waechter-${{ matrix.arch }}-${{ env.SHORT_SHA }}-signed.pkg" \
-               "waechter-${{ matrix.arch }}-${{ env.SHORT_SHA }}.pkg"
+            mv "waechter-${{ matrix.target }}-${{ env.SHORT_SHA }}-signed.pkg" \
+               "waechter-${{ matrix.target }}-${{ env.SHORT_SHA }}.pkg"
 
             # Cleanup
             rm installer.p12
@@ -255,14 +255,14 @@ jobs:
       - name: Upload Artifacts (PKG)
         uses: actions/upload-artifact@v4
         with:
-          name: waechter-macos-${{ matrix.arch }}-${{ env.SHORT_SHA }}
-          path: waechter-${{ matrix.arch }}-${{ env.SHORT_SHA }}.pkg
+          name: waechter-macos-${{ matrix.target }}-${{ env.SHORT_SHA }}
+          path: waechter-${{ matrix.target }}-${{ env.SHORT_SHA }}.pkg
           if-no-files-found: error
 
       - name: Upload to Release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v1
         with:
-          files: waechter-${{ matrix.arch }}-${{ env.SHORT_SHA }}.pkg
+          files: waechter-${{ matrix.target }}-${{ env.SHORT_SHA }}.pkg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
