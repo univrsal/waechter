@@ -11,16 +11,16 @@ on:
       - '**/CMakeLists.txt'
       - '**/*.cmake'
       - 'Meta/**'
-  pull_request:
-    branches: [ master ]
-    paths:
-      - 'Source/Gui/**'
-      - 'Source/Util/**'
-      - 'Thirdparty/**'
-      - 'CMakeLists.txt'
-      - '**/CMakeLists.txt'
-      - '**/*.cmake'
-      - 'Meta/**'
+#  pull_request:
+#    branches: [ master ]
+#    paths:
+#      - 'Source/Gui/**'
+#      - 'Source/Util/**'
+#      - 'Thirdparty/**'
+#      - 'CMakeLists.txt'
+#      - '**/CMakeLists.txt'
+#      - '**/*.cmake'
+#      - 'Meta/**'
   workflow_dispatch:
   release:
     types: [created]

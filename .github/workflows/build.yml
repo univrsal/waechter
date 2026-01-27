@@ -27,8 +27,8 @@ jobs:
         include:
           - arch: x86_64
             runner: ubuntu-latest
-          - arch: arm64
-            runner: ubuntu-24.04-arm
+#          - arch: arm64
+#            runner: ubuntu-24.04-arm
     env:
       # keep ccache inside the repository workspace so the actions/cache step can store it reliably
       CCACHE_DIR: ${{ github.workspace }}/.ccache
