@@ -1,0 +1,148 @@
+name: Build (Windows Client)
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - 'Source/Gui/**'
+      - 'Source/Util/**'
+      - 'Thirdparty/**'
+      - 'CMakeLists.txt'
+      - '**/CMakeLists.txt'
+      - '**/*.cmake'
+      - 'Meta/**'
+#  pull_request:
+#    branches: [ master ]
+#    paths:
+#      - 'Source/Gui/**'
+#      - 'Source/Util/**'
+#      - 'Thirdparty/**'
+#      - 'CMakeLists.txt'
+#      - '**/CMakeLists.txt'
+#      - '**/*.cmake'
+#      - 'Meta/**'
+  workflow_dispatch:
+  release:
+    types: [created]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    env:
+      VCPKG_DEFAULT_TRIPLET: x64-windows
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git
+          cd vcpkg
+          .\bootstrap-vcpkg.bat
+          echo "VCPKG_ROOT=$PWD" >> $env:GITHUB_ENV
+
+      - name: Cache vcpkg
+        uses: actions/cache@v4
+        with:
+          path: |
+            vcpkg/installed
+            vcpkg/packages
+          key: ${{ runner.os }}-vcpkg-${{ hashFiles('**/vcpkg.json') }}-v2
+          restore-keys: |
+            ${{ runner.os }}-vcpkg-
+
+      - name: Install dependencies via vcpkg
+        run: |
+          .\vcpkg\vcpkg install curl:x64-windows zlib:x64-windows libwebsockets:x64-windows
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Cache CMake build directory
+        uses: actions/cache@v4
+        with:
+          path: build
+          key: ${{ runner.os }}-cmake-build-${{ hashFiles('CMakeLists.txt', '**/CMakeLists.txt', '**/*.cmake', 'Source/**', 'Thirdparty/**') }}
+
+      - name: Configure (CMake)
+        run: |
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_TOOLCHAIN_FILE="vcpkg/scripts/buildsystems/vcpkg.cmake" `
+            -DWAECHTER_BUILD_DAEMON=OFF `
+            -DWAECHTER_BUILD_CLIENT=ON
+
+      - name: Build
+        run: |
+          cmake --build build --config Release
+
+      - name: Get short commit
+        shell: bash
+        run: |
+          echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+
+      - name: Sign executable
+        if: github.event_name == 'release' || github.event_name == 'push'
+        shell: pwsh
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          if ($env:CERTIFICATE_BASE64 -and $env:CERTIFICATE_PASSWORD) {
+            # Decode certificate from base64
+            $certBytes = [System.Convert]::FromBase64String($env:CERTIFICATE_BASE64)
+            $certPath = Join-Path $env:TEMP "cert.pfx"
+            [IO.File]::WriteAllBytes($certPath, $certBytes)
+
+            # Sign the executable
+            $exePath = "build/Source/Gui/Release/waechter.exe"
+            if (Test-Path $exePath) {
+              & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" sign `
+                /f $certPath `
+                /p $env:CERTIFICATE_PASSWORD `
+                /tr http://timestamp.digicert.com `
+                /td SHA256 `
+                /fd SHA256 `
+                $exePath
+
+              Write-Host "Executable signed successfully"
+            } else {
+              Write-Host "Executable not found at $exePath"
+              exit 1
+            }
+
+            # Clean up certificate
+            Remove-Item $certPath
+          } else {
+            Write-Host "Signing skipped - certificate secrets not configured"
+          }
+
+      - name: Create distribution package
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp build/Source/Gui/Release/waechter.exe dist/
+          cp Meta/Icon.png dist/
+          echo "Waechter Network Monitor Client for Windows" > dist/README.txt
+          echo "Version: ${GITHUB_REF##*/}" >> dist/README.txt
+
+      - name: Create ZIP archive
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/* -DestinationPath waechter-windows-client-${{ env.SHORT_SHA }}.zip
+
+      - name: Upload Artifacts (Executable)
+        uses: actions/upload-artifact@v4
+        with:
+          name: waechter-windows-client-${{ env.SHORT_SHA }}
+          path: waechter-windows-client-${{ env.SHORT_SHA }}.zip
+          if-no-files-found: error
+
+      - name: Upload to Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: waechter-windows-client-${{ env.SHORT_SHA }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

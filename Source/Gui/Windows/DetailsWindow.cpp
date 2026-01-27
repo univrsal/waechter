@@ -5,8 +5,6 @@
 
 #include "DetailsWindow.hpp"
 
-#include <sys/sysinfo.h>
-
 #include "imgui.h"
 
 #include "GlfwWindow.hpp"
@@ -74,16 +72,6 @@ static char const* ProtocolToString(EProtocol::Type Protocol)
 		default:
 			return TR("__proto.unknown");
 	}
-}
-
-long GetUptimeSeconds()
-{
-	struct sysinfo SysInfo{};
-	if (sysinfo(&SysInfo) != 0)
-	{
-		return -1;
-	}
-	return SysInfo.uptime;
 }
 
 void WDetailsWindow::DrawSystemDetails() const
@@ -232,11 +220,14 @@ void WDetailsWindow::DrawTupleDetails() const
 
 WDetailsWindow::WDetailsWindow()
 {
+// TODO: this should come from the daemon
+/*
 	Tree = WClient::GetInstance().GetTrafficTree();
 	WTimerManager::GetInstance().AddTimer(1.0, [this] {
 		long UptimeSeconds = GetUptimeSeconds();
 		FormattedUptime = WTime::FormatTime(UptimeSeconds);
 	});
+*/
 }
 
 void WDetailsWindow::Draw() const

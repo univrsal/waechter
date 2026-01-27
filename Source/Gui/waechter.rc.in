@@ -1,0 +1,38 @@
+#include <windows.h>
+
+// Icon
+IDI_ICON1 ICON "../../Meta/Icon.ico"
+
+// Version information
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION    @PROJECT_VERSION_MAJOR@,@PROJECT_VERSION_MINOR@,@PROJECT_VERSION_PATCH@,0
+PRODUCTVERSION @PROJECT_VERSION_MAJOR@,@PROJECT_VERSION_MINOR@,@PROJECT_VERSION_PATCH@,0
+FILEFLAGSMASK  VS_FFN_FILEFLAGSMASK
+#ifdef _DEBUG
+FILEFLAGS      VS_FF_DEBUG
+#else
+FILEFLAGS      0x0L
+#endif
+FILEOS         VOS_NT_WINDOWS32
+FILETYPE       VFT_APP
+FILESUBTYPE    VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"  // US English, Unicode
+        BEGIN
+            VALUE "CompanyName",      "Waechter Project"
+            VALUE "FileDescription",  "Waechter Network Monitor Client"
+            VALUE "FileVersion",      "@CMAKE_PROJECT_VERSION@.0"
+            VALUE "InternalName",     "waechter"
+            VALUE "LegalCopyright",   "Copyright (C) 2025 Waechter Project"
+            VALUE "OriginalFilename", "waechter.exe"
+            VALUE "ProductName",      "Waechter"
+            VALUE "ProductVersion",   "@CMAKE_PROJECT_VERSION@.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200  // US English, Unicode
+    END
+END

@@ -8,6 +8,16 @@ add_executable(waechter
         ClientRuleManager.hpp
 )
 
+# Add Windows resource file for icon and metadata
+if(WIN32)
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/waechter.rc.in
+        ${CMAKE_CURRENT_BINARY_DIR}/waechter.rc
+        @ONLY
+    )
+    target_sources(waechter PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/waechter.rc)
+endif()
+
 target_compile_definitions(waechter PRIVATE
         "COUNTRY_FLAG_ATLAS_IMAGE=\"${CMAKE_SOURCE_DIR}/Thirdparty/flags/atlas.png\""
         "ICON_ATLAS_IMAGE=\"${CMAKE_SOURCE_DIR}/Meta/atlas.png\""
@@ -52,15 +62,26 @@ target_link_libraries(waechter PRIVATE
 
 target_include_directories(waechter PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_compile_options(waechter PRIVATE
-        -Wall -Wextra
-        -Wshadow -Wformat=2 -Wconversion -Wsign-conversion
-        -Wnull-dereference -Wdouble-promotion -Wcast-align
-        -Wduplicated-cond -Wredundant-decls -Wpointer-arith
-        -Werror -Wold-style-cast -Wcast-align -Wunused -Woverloaded-virtual
-        -Wnon-virtual-dtor -pedantic -Wmisleading-indentation -Wduplicated-branches -Wlogical-op -Wformat=2
-        -Wuseless-cast -Wimplicit-fallthrough
-)
+if (UNIX AND NOT APPLE)
+    target_compile_options(waechter PRIVATE
+            -Wall -Wextra
+            -Wshadow -Wformat=2 -Wconversion -Wsign-conversion
+            -Wnull-dereference -Wdouble-promotion -Wcast-align
+            -Wduplicated-cond -Wredundant-decls -Wpointer-arith
+            -Werror -Wold-style-cast -Wcast-align -Wunused -Woverloaded-virtual
+            -Wnon-virtual-dtor -pedantic -Wmisleading-indentation -Wduplicated-branches -Wlogical-op -Wformat=2
+            -Wuseless-cast -Wimplicit-fallthrough
+    )
+    #  TODO: We should probably enable most warnings on Windows and macOS as well but
+    # - I don't know which flags we should use right now
+    # - I don't feel like fixing a bunch of warnings on those platforms at the moment
+endif ()
+
+if (APPLE)
+    target_compile_definitions(waechter PRIVATE 
+	INCBIN_SILENCE_BITCODE_WARNING
+    )
+endif()
 
 include("${CMAKE_SOURCE_DIR}/Meta/Licenses.cmake")
 add_thirdparty_licenses(waechter)

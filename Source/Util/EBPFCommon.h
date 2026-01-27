@@ -4,8 +4,15 @@
  */
 
 #pragma once
+#if defined(__linux__)
 #ifndef EBPF_COMMON
 	#include <linux/types.h>
+#endif
+#else
+typedef uint8_t  __u8;
+typedef uint16_t __u16;
+typedef uint32_t __u32;
+typedef uint64_t __u64;
 #endif
 
 #define PACKET_HEADER_SIZE 128
