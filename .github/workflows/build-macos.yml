@@ -27,10 +27,14 @@ on:
 
 jobs:
   build-macos:
-    runs-on: macos-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        arch: [x86_64, arm64]
+        include:
+          - arch: x86_64
+            os: macos-latest-large
+          - arch: arm64
+            os: macos-latest
 
     steps:
       - name: Checkout
