@@ -39,30 +39,8 @@ jobs:
       - name: Install dependencies via Homebrew
         run: |
           brew update
-          brew install cmake ninja zlib libwebsockets ccache
+          brew install cmake zlib libwebsockets
 
-      - name: Setup ccache
-        run: |
-          echo "CCACHE_DIR=${{ github.workspace }}/.ccache" >> $GITHUB_ENV
-
-      - name: Cache ccache
-        uses: actions/cache@v4
-        with:
-          path: .ccache
-          key: ${{ runner.os }}-${{ matrix.target }}-ccache-${{ hashFiles('**/CMakeLists.txt', '**/*.cpp', '**/*.c', '**/*.h') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.target }}-ccache-
-
-      - name: Cache CMake build directory
-        uses: actions/cache@v4
-        with:
-          path: build
-          key: ${{ runner.os }}-${{ matrix.target }}-cmake-build-${{ hashFiles('CMakeLists.txt', '**/CMakeLists.txt', '**/*.cmake', 'Source/**', 'Thirdparty/**') }}
-
-      - name: Show ccache stats (before)
-        run: |
-          ccache --version || true
-          ccache -s || true
 
       - name: Configure (CMake + Ninja)
         run: |
@@ -71,18 +49,12 @@ jobs:
             -DCMAKE_OSX_ARCHITECTURES=${{ matrix.target }} \
             -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
             -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install" \
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DWAECHTER_BUILD_DAEMON=OFF \
             -DWAECHTER_BUILD_CLIENT=ON
 
       - name: Build
         run: |
           cmake --build build --config Release
-
-      - name: Show ccache stats (after)
-        run: |
-          ccache -s || true
 
       - name: Install
         run: |
