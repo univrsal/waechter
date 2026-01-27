@@ -41,8 +41,6 @@ jobs:
       - name: Set Up Environment
         id: setup
         run: |
-          : Set Up Environment
-          if (( ${+RUNNER_DEBUG} )) setopt XTRACE
 
           print '::group::Enable Xcode 26.1'
           sudo xcode-select --switch /Applications/Xcode_26.1.app/Contents/Developer
