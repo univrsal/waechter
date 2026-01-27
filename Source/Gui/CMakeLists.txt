@@ -77,6 +77,12 @@ if (UNIX AND NOT APPLE)
     # - I don't feel like fixing a bunch of warnings on those platforms at the moment
 endif ()
 
+if (APPLE)
+    target_compile_definitions(waechter PRIVATE 
+	INCBIN_SILENCE_BITCODE_WARNING
+    )
+endif()
+
 include("${CMAKE_SOURCE_DIR}/Meta/Licenses.cmake")
 add_thirdparty_licenses(waechter)
 

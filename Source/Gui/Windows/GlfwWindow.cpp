@@ -46,7 +46,7 @@ bool WGlfwWindow::Init()
 	}
 	char const* GlslVersion = "#version 130";
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
 	MainScale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor()); // Valid on GLFW 3.3+ only
 
 	Window = glfwCreateWindow(900, 700, "Wächter", nullptr, nullptr);
