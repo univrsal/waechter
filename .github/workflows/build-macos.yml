@@ -31,7 +31,9 @@ jobs:
     strategy:
       matrix:
         target: [arm64, x86_64]
-
+    defaults:
+      run:
+        shell: zsh --no-rcs --errexit --pipefail {0}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -42,11 +44,8 @@ jobs:
         id: setup
         run: |
 
-          print '::group::Enable Xcode 26.1'
           sudo xcode-select --switch /Applications/Xcode_26.1.app/Contents/Developer
-          print '::endgroup::'
 
-          print '::group::Clean Homebrew Environment'
           local -a unwanted_formulas=()
           local -a remove_formulas=()
           for formula (${unwanted_formulas}) {
@@ -54,7 +53,6 @@ jobs:
           }
 
           if (( #remove_formulas )) brew uninstall --ignore-dependencies ${remove_formulas}
-          print '::endgroup::'
 
           local -A arch_names=(x86_64 intel arm64 apple)
           print "cpuName=${arch_names[${{ matrix.target }}]}" >> $GITHUB_OUTPUT
