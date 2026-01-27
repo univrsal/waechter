@@ -62,20 +62,38 @@ jobs:
           if ! [[ -d ${xcode_cas_path} ]] mkdir -p ${xcode_cas_path}
 
           print "xcodeCasPath=${xcode_cas_path}" >> $GITHUB_OUTPUT
+
       - name: Install dependencies via Homebrew
         run: |
           brew update
-          brew install cmake zlib libwebsockets
-
+          if [[ "${{ matrix.target }}" == "x86_64" ]]; then
+            # Install x86_64 Homebrew and dependencies for cross-compilation
+            arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || true
+            arch -x86_64 /usr/local/bin/brew install cmake zlib libwebsockets
+          else
+            brew install cmake zlib libwebsockets
+          fi
 
       - name: Configure (CMake + Ninja)
         run: |
-          cmake -S . -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_OSX_ARCHITECTURES=${{ matrix.target }} \
-            -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install" \
-            -DWAECHTER_BUILD_DAEMON=OFF \
-            -DWAECHTER_BUILD_CLIENT=ON
+          if [[ "${{ matrix.target }}" == "x86_64" ]]; then
+            # Use x86_64 Homebrew prefix for finding libraries
+            export CMAKE_PREFIX_PATH="/usr/local"
+            cmake -S . -B build -G Ninja \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_OSX_ARCHITECTURES=${{ matrix.target }} \
+              -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install" \
+              -DWAECHTER_BUILD_DAEMON=OFF \
+              -DWAECHTER_BUILD_CLIENT=ON \
+              -DCMAKE_PREFIX_PATH="/usr/local"
+          else
+            cmake -S . -B build -G Ninja \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_OSX_ARCHITECTURES=${{ matrix.target }} \
+              -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install" \
+              -DWAECHTER_BUILD_DAEMON=OFF \
+              -DWAECHTER_BUILD_CLIENT=ON
+          fi
 
       - name: Build
         run: |
