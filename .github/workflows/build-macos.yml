@@ -39,7 +39,7 @@ jobs:
       - name: Install dependencies via Homebrew
         run: |
           brew update
-          brew install cmake ninja pkg-config curl zlib libwebsockets ccache
+          brew install cmake ninja zlib libwebsockets ccache
 
       - name: Setup ccache
         run: |
