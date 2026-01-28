@@ -7,15 +7,17 @@
 #include <chrono>
 #include <functional>
 #include <atomic>
+#include <mutex>
 
 #include "spdlog/fmt/fmt.h"
 
 #include "Singleton.hpp"
 #include "Types.hpp"
 
-
+#ifndef _WIN32
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
+#endif
 
 namespace WTime
 {
@@ -66,10 +68,12 @@ class WTimerManager : public TSingleton<WTimerManager>
 	std::vector<WTimer> Timers{};
 	double              LastUpdateTime{};
 	std::atomic<int>    TimerIdCounter{ 0 };
+	std::mutex          TimerMutex;
 
 public:
 	int AddTimer(double IntervalSeconds, std::function<void()> Callback)
 	{
+		std::scoped_lock Lock(TimerMutex);
 		auto   NewId = TimerIdCounter++;
 		WTimer Timer(IntervalSeconds, std::move(Callback), NewId);
 		Timers.push_back(Timer);
@@ -78,6 +82,12 @@ public:
 
 	void RemoveTimer(int TimerId)
 	{
+		if (Timers.empty())
+		{
+			return;
+		}
+
+		std::scoped_lock Lock(TimerMutex);
 		std::erase_if(Timers, [TimerId](WTimer const& Timer) { return Timer.Id == TimerId; });
 	}
 

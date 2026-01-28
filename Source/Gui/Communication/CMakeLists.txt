@@ -1,10 +1,14 @@
 target_sources(waechter
         PRIVATE
         IDaemonSocket.hpp
-        UnixSocketSource.cpp
-        UnixSocketSource.hpp
 )
 
+if (UNIX OR APPLE)
+	target_sources(waechter
+        	UnixSocketSource.cpp
+        	UnixSocketSource.hpp
+	)
+endif()
 if (WAECHTER_WITH_WEBSOCKETCLIENT)
     target_sources(waechter
             PRIVATE

@@ -5,10 +5,9 @@
 
 #include "I18n.hpp"
 
-#define INCBIN_PREFIX G
-#include "incbin.h"
 #include "spdlog/spdlog.h"
 
+#include "Assets.hpp"
 #include "Json.hpp"
 #include "Settings.hpp"
 
@@ -19,8 +18,6 @@
 		JsonData = std::string(reinterpret_cast<char const*>(G##id##Data), G##id##Size); \
 	}
 
-INCLUDE_LANG(en_US);
-INCLUDE_LANG(de_DE);
 
 WTranslation WI18n::LoadTranslationFile(std::string const& Code)
 {

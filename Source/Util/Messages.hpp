@@ -21,8 +21,10 @@ enum EMessageType : int8_t
 	MT_Count
 };
 
+#ifndef _WIN32
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
+#endif
 
 static EMessageType ReadMessageTypeFromBuffer(WBuffer& Buf)
 {

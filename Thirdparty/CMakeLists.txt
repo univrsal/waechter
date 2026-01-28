@@ -1,5 +1,4 @@
 add_subdirectory(spdlog)
-add_subdirectory(inih)
 add_subdirectory(cereal)
 add_subdirectory(sigslot)
 add_subdirectory(tracy)

@@ -1,16 +1,29 @@
 add_library(util STATIC
-        NetworkInterface.cpp
         SignalHandler.cpp
         Filesystem.hpp
         ErrnoUtil.hpp
         Types.hpp
-        Socket.hpp
-        ClientSocket.cpp
         Json.hpp
         Format.hpp
         Time.cpp
 )
+
 add_library(waechter::util ALIAS util)
+
+if (WAECHTER_BUILD_DAEMON)
+	target_sources(util PRIVATE
+		NetworkInterface.cpp
+	)
+endif()
+
+if(WIN32)
+	target_compile_definitions(util PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+else()
+	target_sources(util PRIVATE
+		ClientSocket.cpp
+		Socket.hpp
+    )
+endif()
 
 target_include_directories(util PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 

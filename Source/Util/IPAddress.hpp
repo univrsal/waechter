@@ -10,9 +10,13 @@
 #include <cstring>
 #include <optional>
 #include <functional>
+#ifdef _WIN32
+	#include <Ws2tcpip.h>
+	#pragma comment(lib, "Ws2_32.lib")
+#else
 #include <arpa/inet.h>
 #include <netinet/in.h>
-
+#endif
 namespace EIPFamily
 {
 	enum Type : uint8_t
@@ -150,7 +154,7 @@ struct WIPAddress
 		Family = EIPFamily::IPv4;
 	}
 
-	void FromIPv6Array(uint const* IPv6Addr_NetworkByteOrder)
+	void FromIPv6Array(unsigned int const* IPv6Addr_NetworkByteOrder)
 	{
 		for (unsigned long i = 0; i < 4; i++)
 		{

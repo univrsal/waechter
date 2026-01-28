@@ -11,11 +11,15 @@
 #include <fcntl.h>
 #include <fstream>
 #include <optional>
-#include <sys/mman.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <vector>
 
+#ifdef _WIN32
+#include <Windows.h>
+#else
+	#include <unistd.h>
+	#include <sys/mman.h>
+#endif
 #include "spdlog/spdlog.h"
 
 namespace
@@ -223,6 +227,50 @@ bool WIP2AsnDB::MapIndex()
 {
 	UnmapIndex();
 
+#ifdef _WIN32
+	IndexFileHandle = CreateFileW(
+		IndexPath.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+
+	if (IndexFileHandle == INVALID_HANDLE_VALUE)
+	{
+		spdlog::error("Failed to open IP2ASN index at {}", IndexPath.string());
+		return false;
+	}
+
+	LARGE_INTEGER size{};
+	if (!GetFileSizeEx(IndexFileHandle, &size))
+	{
+		spdlog::error("Failed to stat IP2ASN index at {}", IndexPath.string());
+		CloseHandle(IndexFileHandle);
+		IndexFileHandle = INVALID_HANDLE_VALUE;
+		return false;
+	}
+
+	IndexMappingSize = static_cast<size_t>(size.QuadPart);
+
+	IndexMappingHandle = CreateFileMappingW(IndexFileHandle, nullptr, PAGE_READONLY, 0, 0, nullptr);
+
+	if (!IndexMappingHandle)
+	{
+		spdlog::error("Failed to CreateFileMapping for IP2ASN index at {}", IndexPath.string());
+		CloseHandle(IndexFileHandle);
+		IndexFileHandle = INVALID_HANDLE_VALUE;
+		return false;
+	}
+
+	IndexMapping = MapViewOfFile(IndexMappingHandle, FILE_MAP_READ, 0, 0, 0);
+
+	if (!IndexMapping)
+	{
+		spdlog::error("Failed to MapViewOfFile for IP2ASN index at {}", IndexPath.string());
+		CloseHandle(IndexMappingHandle);
+		CloseHandle(IndexFileHandle);
+		IndexMappingHandle = nullptr;
+		IndexFileHandle = INVALID_HANDLE_VALUE;
+		return false;
+	}
+
+#else
 	IndexFd = ::open(IndexPath.c_str(), O_RDONLY);
 	if (IndexFd < 0)
 	{
@@ -250,6 +298,7 @@ bool WIP2AsnDB::MapIndex()
 		IndexMappingSize = 0;
 		return false;
 	}
+#endif
 
 	auto* Header = static_cast<WIP2AsnIndexHeader const*>(IndexMapping);
 	if (Header->Magic != kIndexMagic || Header->Version != kIndexVersion)
@@ -276,6 +325,26 @@ bool WIP2AsnDB::MapIndex()
 
 void WIP2AsnDB::UnmapIndex()
 {
+#ifdef _WIN32
+	if (IndexMapping)
+	{
+		UnmapViewOfFile(IndexMapping);
+		IndexMapping = nullptr;
+		IndexMappingSize = 0;
+	}
+
+	if (IndexMappingHandle)
+	{
+		CloseHandle(IndexMappingHandle);
+		IndexMappingHandle = nullptr;
+	}
+
+	if (IndexFileHandle != INVALID_HANDLE_VALUE)
+	{
+		CloseHandle(IndexFileHandle);
+		IndexFileHandle = INVALID_HANDLE_VALUE;
+	}
+#else
 	if (IndexMapping)
 	{
 		munmap(IndexMapping, IndexMappingSize);
@@ -287,6 +356,7 @@ void WIP2AsnDB::UnmapIndex()
 		::close(IndexFd);
 		IndexFd = -1;
 	}
+#endif
 	IndexView = {};
 }
 

@@ -11,7 +11,9 @@
 
 #include "AppIconAtlas.hpp"
 #include "Messages.hpp"
+#ifndef _WIN32
 #include "Communication/UnixSocketSource.hpp"
+#endif
 #include "Communication/WebSocketSource.hpp"
 #include "Data/Protocol.hpp"
 #include "Util/Settings.hpp"
@@ -103,10 +105,14 @@ void WClient::Start()
 	}
 	else
 #endif
-		if (WSettings::GetInstance().SocketPath.starts_with('/'))
+	if (WSettings::GetInstance().SocketPath.starts_with('/'))
 	{
+#if _WIN32
+		spdlog::error("Unix socket is not supported on Windows");
+#else
 		DaemonSocket = std::make_shared<WUnixSocketSource>();
 		DaemonSocket->GetDataSignal().connect([this](WBuffer& Buf) { OnDataReceived(Buf); });
+#endif
 	}
 	else
 	{

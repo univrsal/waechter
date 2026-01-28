@@ -12,7 +12,10 @@
 #define WMiB *1024 WKiB
 #define WGiB *1024 WMiB
 
-using WProcessId = pid_t;
+#if _WIN32
+using ssize_t = int64_t;
+#endif
+using WProcessId = int32_t;
 using WSocketCookie = uint64_t;
 using WMsec = int64_t;
 using WSec = int64_t;

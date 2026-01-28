@@ -221,9 +221,9 @@ void WDetailsWindow::DrawTupleDetails() const
 WDetailsWindow::WDetailsWindow()
 {
 // TODO: this should come from the daemon
-/*
+
 	Tree = WClient::GetInstance().GetTrafficTree();
-	WTimerManager::GetInstance().AddTimer(1.0, [this] {
+/*	WTimerManager::GetInstance().AddTimer(1.0, [this] {
 		long UptimeSeconds = GetUptimeSeconds();
 		FormattedUptime = WTime::FormatTime(UptimeSeconds);
 	});

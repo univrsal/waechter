@@ -4,8 +4,6 @@
  */
 
 #pragma once
-#include "Messages.hpp"
-
 #include <memory>
 #include <atomic>
 
@@ -16,13 +14,18 @@
 #include "cereal/archives/binary.hpp"
 // ReSharper restore CppUnusedIncludeDirective
 
+#include "Types.hpp"
+#include "Messages.hpp"
 #include "ErrnoUtil.hpp"
-#include "Socket.hpp"
 #include "Windows/TrafficTree.hpp"
 #include "TrafficCounter.hpp"
 #include "Singleton.hpp"
 #include "Communication/IDaemonSocket.hpp"
 #include "Data/TrafficItem.hpp"
+
+#ifndef _WIN32
+	#include "Socket.hpp"
+#endif
 
 struct WClientItem : ITrafficItem
 {

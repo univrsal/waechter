@@ -14,6 +14,7 @@ WTimer::WTimer(double IntervalSeconds, std::function<void()> Callback_, int Id_)
 
 void WTimerManager::UpdateTimers(double CurrentTime)
 {
+	std::scoped_lock Lock(TimerMutex);
 	auto const Delta = CurrentTime - LastUpdateTime;
 	LastUpdateTime = CurrentTime;
 	for (auto& Timer : Timers)

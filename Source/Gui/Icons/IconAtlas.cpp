@@ -5,12 +5,9 @@
 
 #include "IconAtlas.hpp"
 
-#define INCBIN_PREFIX G
-#include "incbin.h"
 #include "spdlog/spdlog.h"
 
-INCBIN(IconAtlas, ICON_ATLAS_IMAGE);
-INCBIN(Logo, LOGO_IMAGE);
+#include "Assets.hpp"
 
 std::unordered_map<std::string, std::pair<ImVec2, ImVec2>> const ICON_ATLAS_UV = {
 	{ "computer", std::make_pair(ImVec2(0.003906f, 0.003906f), ImVec2(0.128906f, 0.128906f)) },
@@ -33,7 +30,7 @@ std::unordered_map<std::string, std::pair<ImVec2, ImVec2>> const ICON_ATLAS_UV =
 void WIconAtlas::Load()
 {
 	IconAtlas = WImageUtils::LoadImageFromMemoryRGBA8(GIconAtlasData, GIconAtlasSize);
-	Logo = WImageUtils::LoadImageFromMemoryRGBA8(GLogoData, GLogoSize);
+	Logo = WImageUtils::LoadImageFromMemoryRGBA8(GIconData, GIconSize);
 }
 
 void WIconAtlas::Unload()
