@@ -5,28 +5,12 @@
 
 #include "AboutDialog.hpp"
 
-#define INCBIN_PREFIX G
 #include "imgui.h"
-#include "incbin.h"
 
 #include "GlfwWindow.hpp"
 #include "Util/I18n.hpp"
 #include "Util/Settings.hpp"
-
-
-INCBIN(GladLicense, THIRD_PARTY_GLAD_LICENSE_PATH);
-INCBIN(GlfwLicense, THIRD_PARTY_GLFW_LICENSE_PATH);
-INCBIN(ImguiLicense, THIRD_PARTY_IMGUI_LICENSE_PATH);
-INCBIN(IncbinLicense, THIRD_PARTY_INCBIN_LICENSE_PATH);
-INCBIN(InihLicense, THIRD_PARTY_INIH_LICENSE_PATH);
-INCBIN(Json11License, THIRD_PARTY_JSON11_LICENSE_PATH);
-INCBIN(SpdlogLicense, THIRD_PARTY_SPDLOG_LICENSE_PATH);
-INCBIN(StbLicense, THIRD_PARTY_STB_LICENSE_PATH);
-INCBIN(JetbrainsMonoLicense, THIRD_PARTY_JETBRAINS_MONO_LICENSE_PATH);
-INCBIN(CerealLicense, THIRD_PARTY_CEREAL_LICENSE_PATH);
-INCBIN(ImPlotLicense, THIRD_PARTY_IMPLOT_LICENSE_PATH);
-INCBIN(FlagsLicense, THIRD_PARTY_FLAGS_LICENSE_PATH);
-INCBIN(SigSlotLicense, THIRD_PARTY_SIGSLOT_LICENSE_PATH);
+#include "Assets.hpp"
 
 WAboutDialog::WAboutDialog()
 {

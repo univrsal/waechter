@@ -8,7 +8,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 #ifdef __linux__
 	#include <sys/random.h>
 #endif

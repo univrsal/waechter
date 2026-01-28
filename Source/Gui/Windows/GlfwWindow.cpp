@@ -7,15 +7,14 @@
 
 #include <curl/curl.h>
 
-#define INCBIN_PREFIX G
 #define STB_IMAGE_IMPLEMENTATION
 #include "spdlog/spdlog.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "stb_image.h"
-#include "incbin.h"
 #include "implot.h"
 
+#include "Assets.hpp"
 #include "Filesystem.hpp"
 #include "Time.hpp"
 #include "AppIconAtlas.hpp"
@@ -23,10 +22,6 @@
 #include "Icons/IconAtlas.hpp"
 #include "Util/I18n.hpp"
 #include "Util/Settings.hpp"
-
-
-INCBIN(Icon, ICON_PATH);
-INCBIN(Font, FONT_PATH);
 
 static void GlfwErrorCallback(int Error, char const* Description)
 {

@@ -5,15 +5,21 @@
 
 #include "ProtocolDB.hpp"
 
-#include "spdlog/spdlog.h"
-
-#include <netdb.h>
-#include <netinet/in.h>
 #include <cstring>
 #include <string>
 
+#ifndef _WIN32
+	#include <netdb.h>
+	#include <netinet/in.h>
+#endif
+
+#include "spdlog/spdlog.h"
+
+
+
 void WProtocolDB::Init()
 {
+#ifndef _WIN32
 	// Iterate the services database and populate TCP/UDP maps
 	setservent(0); // do not keep the DB open
 	servent const* ServEnt = nullptr;
@@ -41,4 +47,7 @@ void WProtocolDB::Init()
 	endservent();
 	spdlog::info(
 		"Protocol db initialized with {} TCP and {} UDP services", TCPPortServiceMap.size(), UDPPortServiceMap.size());
+#else
+	spdlog::info("No protocol DB on windows for now");
+#endif
 }

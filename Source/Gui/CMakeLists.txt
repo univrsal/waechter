@@ -16,6 +16,8 @@ if(WIN32)
         @ONLY
     )
     target_sources(waechter PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/waechter.rc)
+
+target_compile_definitions(waechter PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
 endif()
 
 target_compile_definitions(waechter PRIVATE
@@ -35,19 +37,23 @@ find_package(CURL REQUIRED)
 
 if (WAECHTER_WITH_WEBSOCKETCLIENT)
     target_compile_definitions(waechter PRIVATE WAECHTER_WITH_WEBSOCKETCLIENT)
-    find_package(LibWebSockets REQUIRED)
+    find_package(libwebsockets CONFIG REQUIRED)
+if (UNIX OR APPLE)
     target_include_directories(waechter PRIVATE ${LIBWEBSOCKETS_INCLUDE_DIRS})
-    target_link_libraries(waechter PRIVATE ${LIBWEBSOCKETS_LIBRARIES})
+    target_link_libraries(waechter PRIVATE ${LIBWEBSOCKETS_LIBRARIES} dl)
+else()
+    target_link_libraries(waechter PRIVATE websockets_shared)
+endif()
 endif ()
+
+target_sources(waechter PRIVATE Assets.cpp Assets.hpp)
 
 target_link_libraries(waechter PRIVATE
         thirdparty::spdlog
-        thirdparty::inih
         thirdparty::glfw
         thirdparty::glad
         thirdparty::imgui
         thirdparty::implot
-        thirdparty::incbin
         thirdparty::stb
         thirdparty::deps_includes
         thirdparty::json11
@@ -57,7 +63,6 @@ target_link_libraries(waechter PRIVATE
         thirdparty::tracy
         CURL::libcurl
         waechter::util
-        dl
 )
 
 target_include_directories(waechter PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

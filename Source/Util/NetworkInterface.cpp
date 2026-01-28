@@ -5,11 +5,12 @@
 
 #include "NetworkInterface.hpp"
 
-#include <ifaddrs.h>
 #include <unordered_set>
 #include <vector>
 #include <string>
+
 #include <net/if.h>
+#include <ifaddrs.h>
 
 #include "spdlog/spdlog.h"
 

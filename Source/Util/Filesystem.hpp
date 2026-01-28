@@ -7,14 +7,16 @@
 #include <filesystem>
 #include <fstream>
 #include <algorithm>
-#include <pwd.h>
 #include <csignal>
 #include <sys/stat.h>
-#include <grp.h>
-#include <unistd.h>
-#include <sys/types.h>
 #include <vector>
 
+#ifndef _WIN32
+	#include <pwd.h>
+	#include <grp.h>
+	#include <unistd.h>
+	#include <sys/types.h>
+#endif
 #include "spdlog/spdlog.h"
 
 #include "ErrnoUtil.hpp"
@@ -53,6 +55,7 @@ public:
 
 		return WStringFormat::Trim(Content);
 	}
+#ifndef _WIN32
 
 	// Read /proc file containing NUL-separated strings into a vector of strings.
 	static std::vector<std::string> ReadProcNulSeparated(std::string const& Path)
@@ -228,4 +231,5 @@ public:
 
 		return true;
 	}
+#endif
 };

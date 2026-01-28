@@ -64,6 +64,11 @@ class WIP2AsnDB
 	size_t           IndexMappingSize{ 0 };
 	WIP2AsnIndexView IndexView{};
 
+#ifdef _WIN32
+	HANDLE IndexFileHandle = INVALID_HANDLE_VALUE;
+	HANDLE IndexMappingHandle = nullptr;
+#endif
+
 	[[nodiscard]] std::optional<WIP2AsnLookupResult> ReadEntryAtOffset(uint64_t offset) const;
 
 	[[nodiscard]] bool BuildIndex() const;

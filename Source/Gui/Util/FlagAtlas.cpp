@@ -5,13 +5,12 @@
 
 #include "FlagAtlas.hpp"
 
-#define INCBIN_PREFIX G
-#include "incbin.h"
+
 #include "stb_image.h"
 #include "spdlog/spdlog.h"
-#include "CountryFlags.hpp"
 
-INCBIN(FlagAtlas, COUNTRY_FLAG_ATLAS_IMAGE);
+#include "CountryFlags.hpp"
+#include "Assets.hpp"
 
 void WFlagAtlas::DrawFlag(std::string const& CountryCode, ImVec2 Size)
 {

@@ -1,7 +1,8 @@
 build/
 .vscode/
 .cache/
-
+.vs/
+CMakeSettings.json
 # eBPF build artifacts
 /ebpf/*.o
 *.user

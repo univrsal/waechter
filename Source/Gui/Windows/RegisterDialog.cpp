@@ -5,16 +5,13 @@
 
 #include "RegisterDialog.hpp"
 
-#define INCBIN_PREFIX G
 #include "imgui.h"
-#include "incbin.h"
 
+#include "Assets.hpp"
 #include "GlfwWindow.hpp"
 #include "Util/I18n.hpp"
 #include "Util/Settings.hpp"
 #include "Util/Keylogic/validate.h"
-
-INCBIN(WatermarkImage, WATERMARK_IMAGE);
 
 void WRegisterDialog::Init()
 {

@@ -8,8 +8,27 @@
 #include <cstdio>
 #include <string>
 
+#if _WIN32
+	#include <windows.h>
+#endif
+
 bool WDbusUtil::IsUsingDarkTheme()
 {
+#if _WIN32
+	DWORD value = 0;
+	DWORD size = sizeof(value);
+	HKEY  key;
+
+	if (RegOpenKeyExA(
+			HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", 0, KEY_READ, &key)
+		== ERROR_SUCCESS)
+	{
+		RegQueryValueExA(key, "AppsUseLightTheme", nullptr, nullptr, (LPBYTE)&value, &size);
+
+		RegCloseKey(key);
+		return value == 0;
+	}
+#elif defined(__linux__)
 	FILE* Pipe = popen("busctl --user call "
 					   "org.freedesktop.portal.Desktop "
 					   "/org/freedesktop/portal/desktop "
@@ -37,6 +56,11 @@ bool WDbusUtil::IsUsingDarkTheme()
 	{
 		return true;
 	}
+
+#else
+	// todo
+	return false;
+#endif
 
 	return false;
 }
