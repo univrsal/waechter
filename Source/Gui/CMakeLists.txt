@@ -50,7 +50,6 @@ target_sources(waechter PRIVATE Assets.cpp Assets.hpp)
 
 target_link_libraries(waechter PRIVATE
         thirdparty::spdlog
-        thirdparty::inih
         thirdparty::glfw
         thirdparty::glad
         thirdparty::imgui

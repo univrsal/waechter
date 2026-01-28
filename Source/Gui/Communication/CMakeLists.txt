@@ -5,6 +5,7 @@ target_sources(waechter
 
 if (UNIX OR APPLE)
 	target_sources(waechter
+			PRIVATE
         	UnixSocketSource.cpp
         	UnixSocketSource.hpp
 	)
