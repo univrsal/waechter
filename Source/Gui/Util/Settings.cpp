@@ -11,8 +11,7 @@
 #include "spdlog/spdlog.h"
 #include "cereal/archives/json.hpp"
 
-#include "DbusUtil.hpp"
-
+#include "SysUtil.hpp"
 
 static std::string GetSettingsFilename()
 {
@@ -37,7 +36,8 @@ WSettings::WSettings()
 	else
 	{
 		bFirstRun = true;
-		bUseDarkTheme = WDbusUtil::IsUsingDarkTheme();
+
+		bUseDarkTheme = WSysUtil::IsUsingDarkTheme();
 		spdlog::info("Creating default settings");
 		Save();
 	}

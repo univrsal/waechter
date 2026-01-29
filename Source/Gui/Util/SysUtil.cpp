@@ -3,16 +3,20 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include "DbusUtil.hpp"
+#include "SysUtil.hpp"
 
-#include <cstdio>
 #include <string>
 
 #if _WIN32
 	#include <windows.h>
 #endif
 
-bool WDbusUtil::IsUsingDarkTheme()
+#if __EMSCRIPTEN__
+	#include <emscripten/val.h>
+	#include <emscripten.h>
+#endif
+
+bool WSysUtil::IsUsingDarkTheme()
 {
 #if _WIN32
 	DWORD value = 0;
@@ -56,10 +60,13 @@ bool WDbusUtil::IsUsingDarkTheme()
 	{
 		return true;
 	}
+#elif defined(__EMSCRIPTEN__)
 
+	auto matchMedia = emscripten::val::global("window")["matchMedia"];
+	auto query = emscripten::val("prefers-color-scheme: dark");
+	return matchMedia(query)["matches"].as<bool>();
 #else
-	// todo
-	return false;
+	// todo macos
 #endif
 
 	return false;

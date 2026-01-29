@@ -2,22 +2,28 @@ target_sources(waechter
         PRIVATE
         FlagAtlas.cpp
         FlagAtlas.hpp
-        LibCurl.cpp
-        LibCurl.hpp
         Settings.cpp
         Settings.hpp
         RuleWidget.cpp
         RuleWidget.hpp
-        ProtocolDB.cpp
-        ProtocolDB.hpp
         ImageUtil.cpp
         ImageUtil.hpp
-        IP2Asn.cpp
-        IP2Asn.hpp
-        DbusUtil.cpp
-        DbusUtil.hpp
         I18n.hpp
+        SysUtil.cpp
+        SysUtil.hpp
 )
+
+if (NOT EMSCRIPTEN)
+    target_sources(waechter
+            PRIVATE
+            LibCurl.cpp
+            LibCurl.hpp
+            IP2Asn.cpp
+            IP2Asn.hpp
+            ProtocolDB.cpp
+            ProtocolDB.hpp
+    )
+endif ()
 
 add_subdirectory(Keylogic)
 

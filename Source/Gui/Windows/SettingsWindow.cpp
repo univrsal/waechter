@@ -65,9 +65,10 @@ void WSettingsWindow::Draw()
 
 		ImGui::InputText(
 			TR("ws.auth_token"), &WSettings::GetInstance().WebSocketAuthToken, ImGuiInputTextFlags_Password);
-
+#ifndef __EMSCRIPTEN__
 		ImGui::Checkbox(TR("ws.allow_self_sign"), &WSettings::GetInstance().bAllowSelfSignedCertificates);
 		ImGui::Checkbox(TR("ws.skip_cert_check"), &WSettings::GetInstance().bSkipCertificateHostnameCheck);
+#endif
 		if (ImGui::Button(TR("button.connect")))
 		{
 			if (!WSettings::GetInstance().SocketPath.empty())

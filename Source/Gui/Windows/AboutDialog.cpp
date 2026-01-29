@@ -47,7 +47,7 @@ WAboutDialog::WAboutDialog()
 	ThirdPartyLibraries.emplace_back(
 		"sigslot", "https://github.com/palacaze/sigslot", MakeString(GSigSlotLicenseData, GSigSlotLicenseSize));
 
-	VersionString = fmt::format(
+	VersionString = std::format(
 		"Version {}, commit {}@{}\nCompiled at {}", WAECHTER_VERSION, GIT_COMMIT_HASH, GIT_BRANCH, BUILD_TIME);
 }
 

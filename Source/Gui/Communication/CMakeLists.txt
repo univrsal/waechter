@@ -3,7 +3,7 @@ target_sources(waechter
         IDaemonSocket.hpp
 )
 
-if (UNIX OR APPLE)
+if (UNIX OR APPLE AND NOT EMSCRIPTEN)
 	target_sources(waechter
 			PRIVATE
         	UnixSocketSource.cpp

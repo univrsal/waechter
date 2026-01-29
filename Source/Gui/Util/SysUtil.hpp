@@ -5,7 +5,7 @@
 
 #pragma once
 
-class WDbusUtil
+class WSysUtil
 {
 public:
 	static bool IsUsingDarkTheme();

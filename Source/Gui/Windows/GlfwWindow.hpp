@@ -8,7 +8,9 @@
 #include <string>
 
 // ReSharper disable once CppUnusedIncludeDirective
-#include "glad/glad.h"
+#ifndef __EMSCRIPTEN__
+	#include "glad/glad.h"
+#endif
 #include "GLFW/glfw3.h"
 
 #include "Singleton.hpp"
@@ -25,6 +27,7 @@ class WGlfwWindow : public TSingleton<WGlfwWindow>
 	std::string ImGuiIniPath{};
 
 public:
+	void Tick() const;
 	bool Init();
 
 	void RunLoop();

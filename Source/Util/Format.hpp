@@ -48,10 +48,15 @@ public:
 class WTimeFormat
 {
 public:
-	static std::string FormatUnixTime(WSec UnixTime, std::string_view Format = "{:%Y-%m-%d %H:%M:%S}")
+	static std::string FormatUnixTime(std::time_t UnixTime, char const* Format = "%Y-%m-%d %H:%M:%S")
 	{
-		std::time_t const TimeT = UnixTime;
-		return fmt::format(fmt::runtime(std::string{ Format }), fmt::localtime(TimeT));
+		char    Buf[32];
+		std::tm Tm = *std::localtime(&UnixTime);
+		if (std::strftime(Buf, sizeof(Buf), Format, &Tm))
+		{
+			return Buf;
+		}
+		return {};
 	}
 };
 
@@ -62,17 +67,17 @@ public:
 	{
 		if (Speed < 1024)
 		{
-			return fmt::format("{:.2f} B/s", Speed);
+			return std::format("{:.2f} B/s", Speed);
 		}
 		if (Speed < 1024 * 1024)
 		{
-			return fmt::format("{:.2f} KiB/s", Speed / 1024.0);
+			return std::format("{:.2f} KiB/s", Speed / 1024.0);
 		}
 		if (Speed < 1024 * 1024 * 1024)
 		{
-			return fmt::format("{:.2f} MiB/s", Speed / (1024.0 * 1024.0));
+			return std::format("{:.2f} MiB/s", Speed / (1024.0 * 1024.0));
 		}
-		return fmt::format("{:.2f} GiB/s", Speed / (1024.0 * 1024.0 * 1024.0));
+		return std::format("{:.2f} GiB/s", Speed / (1024.0 * 1024.0 * 1024.0));
 	}
 
 	static std::string Format(WBytesPerSecond Speed, ETrafficUnit Unit)
@@ -80,17 +85,17 @@ public:
 		switch (Unit)
 		{
 			case TU_Bps:
-				return fmt::format("{:.2f} B/s", Speed);
+				return std::format("{:.2f} B/s", Speed);
 			case TU_KiBps:
-				return fmt::format("{:.2f} KiB/s", Speed / 1024.0);
+				return std::format("{:.2f} KiB/s", Speed / 1024.0);
 			case TU_MiBps:
-				return fmt::format("{:.2f} MiB/s", Speed / (1024.0 * 1024.0));
+				return std::format("{:.2f} MiB/s", Speed / (1024.0 * 1024.0));
 			case TU_GiBps:
-				return fmt::format("{:.2f} GiB/s", Speed / (1024.0 * 1024.0 * 1024.0));
+				return std::format("{:.2f} GiB/s", Speed / (1024.0 * 1024.0 * 1024.0));
 			case TU_Auto:
 				return AutoFormat(Speed);
 			default:
-				return fmt::format("{:.2f} B/s", Speed);
+				return std::format("{:.2f} B/s", Speed);
 		}
 	}
 
@@ -143,17 +148,17 @@ public:
 		auto Bytes = static_cast<double>(Bytes_); // should be fine
 		if (Bytes < 1024)
 		{
-			return fmt::format("{:.2f} B", Bytes);
+			return std::format("{:.2f} B", Bytes);
 		}
 		if (Bytes < 1024 * 1024)
 		{
-			return fmt::format("{:.2f} KiB", Bytes / 1024.0);
+			return std::format("{:.2f} KiB", Bytes / 1024.0);
 		}
 		if (Bytes < 1024 * 1024 * 1024)
 		{
-			return fmt::format("{:.2f} MiB", Bytes / (1024.0 * 1024.0));
+			return std::format("{:.2f} MiB", Bytes / (1024.0 * 1024.0));
 		}
-		return fmt::format("{:.2f} GiB", Bytes / (1024.0 * 1024.0 * 1024.0));
+		return std::format("{:.2f} GiB", Bytes / (1024.0 * 1024.0 * 1024.0));
 	}
 
 	static std::string Format(WBytes Bytes_, EStorageUnit Unit)
@@ -162,17 +167,17 @@ public:
 		switch (Unit)
 		{
 			case SU_Bytes:
-				return fmt::format("{:.2f} B", Bytes);
+				return std::format("{:.2f} B", Bytes);
 			case SU_KiB:
-				return fmt::format("{:.2f} KiB", Bytes / 1024.0);
+				return std::format("{:.2f} KiB", Bytes / 1024.0);
 			case SU_MiB:
-				return fmt::format("{:.2f} MiB", Bytes / (1024.0 * 1024.0));
+				return std::format("{:.2f} MiB", Bytes / (1024.0 * 1024.0));
 			case SU_GiB:
-				return fmt::format("{:.2f} GiB", Bytes / (1024.0 * 1024.0 * 1024.0));
+				return std::format("{:.2f} GiB", Bytes / (1024.0 * 1024.0 * 1024.0));
 			case SU_Auto:
 				return AutoFormat(Bytes_);
 			default:
-				return fmt::format("{:.2f} B", Bytes);
+				return std::format("{:.2f} B", Bytes);
 		}
 	}
 };

@@ -11,10 +11,12 @@
 
 #include "AppIconAtlas.hpp"
 #include "Messages.hpp"
-#ifndef _WIN32
-#include "Communication/UnixSocketSource.hpp"
+#if !_WIN32 && !__EMSCRIPTEN__
+	#include "Communication/UnixSocketSource.hpp"
 #endif
-#include "Communication/WebSocketSource.hpp"
+#if WAECHTER_WITH_WEBSOCKETCLIENT
+	#include "Communication/WebSocketSource.hpp"
+#endif
 #include "Data/Protocol.hpp"
 #include "Util/Settings.hpp"
 #include "Windows/GlfwWindow.hpp"
@@ -107,8 +109,8 @@ void WClient::Start()
 #endif
 	if (WSettings::GetInstance().SocketPath.starts_with('/'))
 	{
-#if _WIN32
-		spdlog::error("Unix socket is not supported on Windows");
+#if _WIN32 || __EMSCRIPTEN__
+		spdlog::error("Unix socket is not supported on Windows/emscripten");
 #else
 		DaemonSocket = std::make_shared<WUnixSocketSource>();
 		DaemonSocket->GetDataSignal().connect([this](WBuffer& Buf) { OnDataReceived(Buf); });

@@ -14,10 +14,19 @@ target_include_directories(imgui PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/backends
 )
 
-target_link_libraries(imgui PRIVATE
-        thirdparty::glad
-        thirdparty::glfw
-)
+if (EMSCRIPTEN)
+    target_compile_definitions(imgui PUBLIC
+            IMGUI_IMPL_OPENGL_ES2
+            )
+else()
+    target_link_libraries(imgui PRIVATE
+            thirdparty::glad
+            thirdparty::glfw
+    )
+    target_compile_definitions(imgui PUBLIC
+            IMGUI_IMPL_OPENGL_LOADER_GLAD
+            )
+endif()
 
 add_library(
         thirdparty::imgui ALIAS imgui

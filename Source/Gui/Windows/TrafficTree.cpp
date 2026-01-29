@@ -405,35 +405,35 @@ static std::string GetSocketName(WSocketItem* Socket)
 {
 	if (Socket->SocketType == ESocketType::Listen && !Socket->SocketTuple.LocalEndpoint.Address.IsZero())
 	{
-		return fmt::format("● {}", Socket->SocketTuple.LocalEndpoint.ToString());
+		return std::format("● {}", Socket->SocketTuple.LocalEndpoint.ToString());
 	}
 	if (Socket->SocketType & ESocketType::Listen && Socket->SocketType & ESocketType::Connect
 		&& !Socket->SocketTuple.LocalEndpoint.Address.IsZero() && !Socket->SocketTuple.RemoteEndpoint.Address.IsZero())
 	{
-		return fmt::format(
+		return std::format(
 			"● {} → {}", Socket->SocketTuple.LocalEndpoint.ToString(), Socket->SocketTuple.RemoteEndpoint.ToString());
 	}
 	if (Socket->SocketType == ESocketType::Connect)
 	{
 		if (!Socket->SocketTuple.RemoteEndpoint.Address.IsZero())
 		{
-			return fmt::format("→ {}", Socket->SocketTuple.RemoteEndpoint.ToString());
+			return std::format("→ {}", Socket->SocketTuple.RemoteEndpoint.ToString());
 		}
 		if (!Socket->SocketTuple.LocalEndpoint.Address.IsZero())
 		{
-			return fmt::format("{}", Socket->SocketTuple.LocalEndpoint.ToString());
+			return std::format("{}", Socket->SocketTuple.LocalEndpoint.ToString());
 		}
 	}
 	if (Socket->SocketType == ESocketType::Accept)
 	{
-		return fmt::format("← {}", Socket->SocketTuple.RemoteEndpoint.ToString());
+		return std::format("← {}", Socket->SocketTuple.RemoteEndpoint.ToString());
 	}
 
 	if (!Socket->SocketTuple.LocalEndpoint.Address.IsZero() && Socket->SocketTuple.Protocol == EProtocol::UDP)
 	{
-		return fmt::format("○ {}", Socket->SocketTuple.LocalEndpoint.ToString());
+		return std::format("○ {}", Socket->SocketTuple.LocalEndpoint.ToString());
 	}
-	return fmt::format("Socket {}", Socket->ItemId);
+	return std::format("Socket {}", Socket->ItemId);
 }
 
 void WTrafficTree::Draw(ImGuiID MainID)
@@ -543,7 +543,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 			ImGui::TableNextRow();
 			ImGui::PushID(PID);
 			Args = {};
-			Args.Name = fmt::format("{} {}", TR("__process"), PID);
+			Args.Name = std::format("{} {}", TR("__process"), PID);
 			Args.Item = Process;
 			Args.bMarkedForRemoval = MarkedForRemovalItems.contains(Process->ItemId);
 			Args.ParentApp = Child;
@@ -593,7 +593,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 					std::string tupleId = std::string("tuple:") + TupleKey.ToString();
 					ImGui::PushID(tupleId.c_str());
 					Args = {};
-					Args.Name = fmt::format("↔ {}", TupleKey.ToString());
+					Args.Name = std::format("↔ {}", TupleKey.ToString());
 					Args.Item = Tuple;
 					Args.NodeFlags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 					Args.bMarkedForRemoval = bPendingRemoval;
