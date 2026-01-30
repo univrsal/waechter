@@ -11,6 +11,9 @@ target_sources(waechter
         I18n.hpp
         SysUtil.cpp
         SysUtil.hpp
+        ProtocolDB.cpp
+        ProtocolDB.hpp
+        BuiltinProtocolDB.cpp
 )
 
 if (NOT EMSCRIPTEN)
@@ -20,8 +23,6 @@ if (NOT EMSCRIPTEN)
             LibCurl.hpp
             IP2Asn.cpp
             IP2Asn.hpp
-            ProtocolDB.cpp
-            ProtocolDB.hpp
     )
 endif ()
 

@@ -10,6 +10,9 @@
 #include "Singleton.hpp"
 #include "IPAddress.hpp"
 
+extern std::unordered_map<uint16_t, std::string> const GTCPServices;
+extern std::unordered_map<uint16_t, std::string> const GUDPServices;
+
 class WProtocolDB final : public TSingleton<WProtocolDB>
 {
 	std::unordered_map<uint16_t, std::string> TCPPortServiceMap;
@@ -18,20 +21,30 @@ class WProtocolDB final : public TSingleton<WProtocolDB>
 public:
 	void Init();
 
-	std::string const& GetServiceName(EProtocol::Type Protocol, uint16_t Port) const
+	[[nodiscard]] std::string const& GetServiceName(EProtocol::Type Protocol, uint16_t Port) const
 	{
 		static std::string const UnknownService = "unknown";
+		std::unordered_map<uint16_t, std::string> const* TCPMap{};
+		std::unordered_map<uint16_t, std::string> const* UDPMap{};
+
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__)
+		TCPMap = &TCPPortServiceMap;
+		UDPMap = &UDPPortServiceMap;
+#else
+		TCPMap = &GTCPServices;
+		UDPMap = &GUDPServices;
+#endif
 
 		if (Protocol == EProtocol::TCP)
 		{
-			if (auto It = TCPPortServiceMap.find(Port); It != TCPPortServiceMap.end())
+			if (auto const It = TCPMap->find(Port); It != TCPMap->end())
 			{
 				return It->second;
 			}
 		}
 		else if (Protocol == EProtocol::UDP)
 		{
-			if (auto It = UDPPortServiceMap.find(Port); It != UDPPortServiceMap.end())
+			if (auto const It = UDPMap->find(Port); It != UDPMap->end())
 			{
 				return It->second;
 			}

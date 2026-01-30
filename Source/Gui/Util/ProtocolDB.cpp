@@ -15,11 +15,9 @@
 
 #include "spdlog/spdlog.h"
 
-
-
 void WProtocolDB::Init()
 {
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 	// Iterate the services database and populate TCP/UDP maps
 	setservent(0); // do not keep the DB open
 	servent const* ServEnt = nullptr;
@@ -48,6 +46,7 @@ void WProtocolDB::Init()
 	spdlog::info(
 		"Protocol db initialized with {} TCP and {} UDP services", TCPPortServiceMap.size(), UDPPortServiceMap.size());
 #else
-	spdlog::info("No protocol DB on windows for now");
+	spdlog::info(
+		"Using builtin protocol db ({} tcp protocols, {} udp protocols)", GTCPServices.size(), GUDPServices.size());
 #endif
 }
