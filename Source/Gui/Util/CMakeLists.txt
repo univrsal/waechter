@@ -13,7 +13,6 @@ target_sources(waechter
         SysUtil.hpp
         ProtocolDB.cpp
         ProtocolDB.hpp
-        BuiltinProtocolDB.cpp
 )
 
 if (NOT EMSCRIPTEN)

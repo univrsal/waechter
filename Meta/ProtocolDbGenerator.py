@@ -4,7 +4,7 @@ import re
 from collections import OrderedDict
 
 SERVICES_FILE = "/etc/services"
-OUTPUT_CPP = "BuilltinProtocolDB.cpp"
+OUTPUT = "BuilltinProtocolDB.json"
 
 tcp = OrderedDict()
 udp = OrderedDict()
@@ -29,25 +29,10 @@ with open(SERVICES_FILE, "r") as f:
             tcp[port] = name
         elif proto == "udp" and port not in udp:
             udp[port] = name
+import json
+with open(OUTPUT, "w") as out:
+    json.dump({"tcp": tcp, "udp": udp}, out, indent=4)
+    
 
-with open(OUTPUT_CPP, "w") as out:
-    out.write("""#include <unordered_map>
-#include <string>
-#include <cstdint>
-
-const std::unordered_map<uint16_t, std::string> GTCPServices = {
-""")
-    for port, name in tcp.items():
-        out.write(f'    {{{port}, "{name}"}},\n')
-
-    out.write("""};
-
-const std::unordered_map<uint16_t, std::string> GUDPServices = {
-""")
-    for port, name in udp.items():
-        out.write(f'    {{{port}, "{name}"}},\n')
-
-    out.write("};\n")
-
-print(f"Wrote {OUTPUT_CPP}")
+print(f"Wrote {OUTPUT}")
 

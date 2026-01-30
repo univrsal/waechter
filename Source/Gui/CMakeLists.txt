@@ -6,6 +6,8 @@ add_executable(waechter
         AppIconAtlas.hpp
         ClientRuleManager.cpp
         ClientRuleManager.hpp
+        Assets.cpp
+        Assets.hpp
 )
 
 # Add Windows resource file for icon and metadata
@@ -45,8 +47,6 @@ if (WAECHTER_WITH_WEBSOCKETCLIENT)
     endif ()
 endif ()
 
-target_sources(waechter PRIVATE Assets.cpp Assets.hpp)
-
 target_link_libraries(waechter PRIVATE
         thirdparty::spdlog
         thirdparty::imgui
@@ -69,15 +69,13 @@ if (EMSCRIPTEN)
             -sNO_DISABLE_EXCEPTION_CATCHING
             -sWEBSOCKET_URL=wss://
             -sWEBSOCKET_SUBPROTOCOL=binary
-            --bind
-    )
+            -sASSERTIONS=2 -g
+            --shell-file ${CMAKE_SOURCE_DIR}/Meta/Package/shell.html
+            --bind)
 
     set_target_properties(waechter PROPERTIES
             SUFFIX ".html"
     )
-
-    #    target_compile_options(waechter PRIVATE -pthread)
-    #    target_link_options(waechter PRIVATE -pthread -sPTHREAD_POOL_SIZE=4)
 else ()
     find_package(ZLIB REQUIRED)
     find_package(CURL REQUIRED)

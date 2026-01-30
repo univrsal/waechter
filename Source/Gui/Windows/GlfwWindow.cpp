@@ -6,7 +6,9 @@
 #include "GlfwWindow.hpp"
 
 #ifdef __EMSCRIPTEN__
+	#include <GLFW/glfw3.h>
 	#include <emscripten.h>
+	#include <emscripten/html5.h>
 #endif
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -40,6 +42,11 @@ void WGlfwWindow::Tick() const
 		ImGui_ImplGlfw_Sleep(50);
 		return;
 	}
+#ifdef __EMSCRIPTEN__
+	double CanvasWidth, CanvasHeight;
+	emscripten_get_element_css_size("#canvas", &CanvasWidth, &CanvasHeight);
+	glfwSetWindowSize(Window, static_cast<int>(CanvasWidth), static_cast<int>(CanvasHeight));
+#endif
 	if (WSettings::GetInstance().bReduceFrameRateWhenInactive && glfwGetWindowAttrib(Window, GLFW_FOCUSED) != 1)
 	{
 		ImGui_ImplGlfw_Sleep(10);
@@ -89,6 +96,9 @@ bool WGlfwWindow::Init()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
 	MainScale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor()); // Valid on GLFW 3.3+ only
+#ifdef __EMSCRIPTEN__
+	emscripten_set_canvas_element_size("#canvas", 900, 700);
+#endif
 
 	Window = glfwCreateWindow(900, 700, "Wächter", nullptr, nullptr);
 	if (!Window)

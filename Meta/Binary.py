@@ -21,7 +21,7 @@ extern unsigned int const G{array_name}Size;
 """
 
 def output_to_cpp(arrays: list[str], defs: list[str], output_path: str):
-    cpp_code ="\n".join(arrays)
+    cpp_code = f"""#include "{output_path}.hpp"\n\n""" + "\n".join(arrays)
     with open(output_path + ".cpp", "w") as f:
         f.write(cpp_code)
 
@@ -40,7 +40,6 @@ if __name__ == "__main__":
         ("../Thirdparty/glfw/LICENSE.txt", "GlfwLicense"),
         ("../Thirdparty/imgui/LICENSE.txt", "ImguiLicense"),
         ("../Thirdparty/implot/LICENSE.txt", "ImPlotLicense"),
-        ("../Thirdparty/incbin/LICENSE.txt", "IncbinLicense"),
         ("../Thirdparty/inih/LICENSE.txt", "InihLicense"),
         ("../Thirdparty/json11/LICENSE.txt", "Json11License"),
         ("../Thirdparty/sigslot/LICENSE.txt", "SigSlotLicense"),
@@ -53,7 +52,8 @@ if __name__ == "__main__":
         ("./Icon.png", "Icon"),
         ("./watermark.png", "WatermarkImage"),
         ("./atlas.png", "IconAtlas"),
-        ("../Thirdparty/flags/atlas.png", "FlagAtlas")
+        ("../Thirdparty/flags/atlas.png", "FlagAtlas"),
+        ("./BuilltinProtocolDB.json", "BuiltinProtocolDB")
     ]
     output_cpp = "Assets"
     co = []

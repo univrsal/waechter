@@ -10,8 +10,6 @@
 #include "Singleton.hpp"
 #include "IPAddress.hpp"
 
-extern std::unordered_map<uint16_t, std::string> const GTCPServices;
-extern std::unordered_map<uint16_t, std::string> const GUDPServices;
 
 class WProtocolDB final : public TSingleton<WProtocolDB>
 {
@@ -24,27 +22,17 @@ public:
 	[[nodiscard]] std::string const& GetServiceName(EProtocol::Type Protocol, uint16_t Port) const
 	{
 		static std::string const UnknownService = "unknown";
-		std::unordered_map<uint16_t, std::string> const* TCPMap{};
-		std::unordered_map<uint16_t, std::string> const* UDPMap{};
-
-#if !defined(_WIN32) && !defined(__EMSCRIPTEN__)
-		TCPMap = &TCPPortServiceMap;
-		UDPMap = &UDPPortServiceMap;
-#else
-		TCPMap = &GTCPServices;
-		UDPMap = &GUDPServices;
-#endif
 
 		if (Protocol == EProtocol::TCP)
 		{
-			if (auto const It = TCPMap->find(Port); It != TCPMap->end())
+			if (auto const It = TCPPortServiceMap.find(Port); It != TCPPortServiceMap.end())
 			{
 				return It->second;
 			}
 		}
 		else if (Protocol == EProtocol::UDP)
 		{
-			if (auto const It = UDPMap->find(Port); It != UDPMap->end())
+			if (auto const It = UDPPortServiceMap.find(Port); It != UDPPortServiceMap.end())
 			{
 				return It->second;
 			}
