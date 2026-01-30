@@ -5,7 +5,7 @@
 
 #pragma once
 
-#if __EMSCRIPTEN__
+#if __EMSCRIPTEN__ || __linux__ || __APPLE__
 	#include <cstdint>
 #endif
 #if defined(__linux__)
