@@ -94,10 +94,10 @@ void WMainWindow::Init(ImGuiID Main)
 		ImGui::DockBuilderFinish(Main);
 	}
 	FlagAtlas.Load();
-#ifndef __EMSCRIPTEN__
 	WProtocolDB::GetInstance().Init();
-	WIP2Asn::GetInstance().Init();
 
+#ifndef __EMSCRIPTEN__
+	WIP2Asn::GetInstance().Init();
 	spdlog::info("libcurl version: {}", WLibCurl::GetLoadedVersion());
 #endif
 	RegisterDialog.Init();

@@ -22,12 +22,12 @@ extern unsigned int const G{array_name}Size;
 
 def output_to_cpp(arrays: list[str], defs: list[str], output_path: str):
     cpp_code = f"""#include "{output_path}.hpp"\n\n""" + "\n".join(arrays)
-    with open(output_path + ".cpp", "w") as f:
+    with open("../Source/Gui/" + output_path + ".cpp", "w") as f:
         f.write(cpp_code)
 
     header_code = f"""#pragma once
 """ + "\n".join(defs)
-    with open(output_path + ".hpp", "w") as f:
+    with open("../Source/Gui/" + output_path + ".hpp", "w") as f:
         f.write(header_code)
 
 if __name__ == "__main__":
