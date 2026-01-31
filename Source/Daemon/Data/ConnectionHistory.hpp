@@ -13,6 +13,7 @@
 #include "IPAddress.hpp"
 #include "Time.hpp"
 #include "Types.hpp"
+#include "MemoryStats.hpp"
 #include "Data/ConnectionHistoryUpdate.hpp"
 
 
@@ -64,7 +65,7 @@ struct WConnectionKeyHash
 	}
 };
 
-class WConnectionHistory : public TSingleton<WConnectionHistory>
+class WConnectionHistory : public TSingleton<WConnectionHistory>, public IMemoryTrackable
 {
 	std::mutex Mutex;
 
@@ -97,4 +98,6 @@ public:
 
 	WConnectionHistoryUpdate Update();
 	WConnectionHistoryUpdate Serialize();
+
+	WMemoryStat GetMemoryUsage() override;
 };

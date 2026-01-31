@@ -8,6 +8,7 @@
 #include <mutex>
 #include <memory>
 
+#include "MemoryStats.hpp"
 #include "Buffer.hpp"
 #include "Data/Rule.hpp"
 #include "Singleton.hpp"
@@ -24,7 +25,7 @@ struct WSocketRules
 	bool bDirty{ true };
 };
 
-class WRuleManager : public TSingleton<WRuleManager>
+class WRuleManager : public TSingleton<WRuleManager>, public IMemoryTrackable
 {
 	std::mutex Mutex;
 
@@ -47,4 +48,6 @@ class WRuleManager : public TSingleton<WRuleManager>
 public:
 	void RegisterSignalHandlers();
 	void HandleRuleChange(WBuffer const& Buf);
+
+	WMemoryStat GetMemoryUsage() override;
 };

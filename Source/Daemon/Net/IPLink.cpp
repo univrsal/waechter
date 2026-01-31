@@ -213,6 +213,19 @@ void WIPLink::RemovePidDownloadMark(uint32_t Pid)
 	}
 }
 
+WMemoryStat WIPLink::GetMemoryUsage()
+{
+	std::scoped_lock Lock(Mutex);
+	WMemoryStat      Stats;
+	Stats.Name = "WIPLink";
+	Stats.ChildEntries.emplace_back(WMemoryStatEntry{
+		.Name = "ActiveUploadLimits", .Usage = CALC_MAP_USAGE(ActiveDownloadLimits, WTrafficItemId, WBandwidthLimit) });
+	Stats.ChildEntries.emplace_back(WMemoryStatEntry{ .Name = "ActiveDownloadLimits",
+		.Usage = CALC_MAP_USAGE(ActiveDownloadLimits, WTrafficItemId, WBandwidthLimit) });
+
+	return Stats;
+}
+
 void WIPLink::RemoveUploadLimit(WTrafficItemId const& ItemId)
 {
 	std::lock_guard Lock(Mutex);

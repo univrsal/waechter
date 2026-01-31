@@ -384,3 +384,22 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 		ProcessRules.size(), SocketRules.size(), SocketCookieRules.size());
 	WIPLink::GetInstance().PrintStats();
 }
+
+WMemoryStat WRuleManager::GetMemoryUsage()
+{
+	std::scoped_lock Lock(Mutex);
+
+	WMemoryStat Stats;
+	Stats.Name = "WRuleManager";
+
+	Stats.ChildEntries.emplace_back(WMemoryStatEntry{
+		.Name = "ApplicationRules", .Usage = CALC_MAP_USAGE(ApplicationRules, WTrafficItemId, WTrafficItemRules) });
+	Stats.ChildEntries.emplace_back(WMemoryStatEntry{
+		.Name = "ProcessRules", .Usage = CALC_MAP_USAGE(ProcessRules, WTrafficItemId, WTrafficItemRules) });
+	Stats.ChildEntries.emplace_back(WMemoryStatEntry{
+		.Name = "SocketRules", .Usage = CALC_MAP_USAGE(SocketRules, WTrafficItemId, WTrafficItemRules) });
+	Stats.ChildEntries.emplace_back(WMemoryStatEntry{
+		.Name = "SocketCookieRules", .Usage = CALC_MAP_USAGE(SocketCookieRules, WSocketCookie, WSocketRules) });
+
+	return Stats;
+}

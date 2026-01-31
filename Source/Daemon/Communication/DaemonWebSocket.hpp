@@ -45,4 +45,7 @@ public:
 	void                              RegisterClient(lws* Wsi, std::shared_ptr<WClientWebSocket> Client);
 	void                              UnregisterClient(lws* Wsi);
 	std::shared_ptr<WClientWebSocket> GetClient(lws* Wsi);
+
+	std::mutex&                                                        GetClientsMutex() { return ClientsMutex; }
+	std::unordered_map<lws*, std::shared_ptr<WClientWebSocket>> const& GetClients() { return Clients; }
 };

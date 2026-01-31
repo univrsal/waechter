@@ -8,9 +8,10 @@
 #include <string>
 #include <vector>
 
+#include "MemoryStats.hpp"
 #include "spdlog/spdlog.h"
 
-class WIconResolver
+class WIconResolver : public IMemoryTrackable
 {
 	std::unordered_map<std::string, std::string> IconMap{};
 
@@ -39,4 +40,6 @@ public:
 		IconMap[Binary] = GetIconFromBinaryName(Binary);
 		return IconMap[Binary];
 	}
+
+	WMemoryStat GetMemoryUsage() override;
 };

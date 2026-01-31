@@ -40,6 +40,8 @@ public:
 
 	std::vector<std::shared_ptr<WDaemonClient>>& GetClients() { return Clients; }
 
+	IServerSocket* GetSocketImpl() const { return Socket.get(); }
+
 	bool HasClients()
 	{
 		std::lock_guard Lock(ClientsMutex);

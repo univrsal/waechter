@@ -261,3 +261,27 @@ WConnectionHistoryUpdate WConnectionHistory::Serialize()
 
 	return Update;
 }
+
+WMemoryStat WConnectionHistory::GetMemoryUsage()
+{
+	std::scoped_lock Lock(Mutex);
+	WMemoryStat      Stats{};
+	Stats.Name = "WConnectionHistory";
+
+	WMemoryStatEntry HistoryEntry{};
+	HistoryEntry.Name = "History";
+	for (auto const& E : History)
+	{
+		HistoryEntry.Usage += sizeof(WConnectionHistoryEntry);
+		HistoryEntry.Usage += sizeof(WConnectionSet);
+		HistoryEntry.Usage += sizeof(std::shared_ptr<ITrafficItem>) * E.Set->Connections.size();
+	}
+
+	WMemoryStatEntry ActiveConnectionsEntry{};
+	ActiveConnectionsEntry.Name = "Active connections";
+	ActiveConnectionsEntry.Usage = sizeof(ActiveConnections)
+		+ ActiveConnections.max_size()
+			* (sizeof(std::pair<std::string, WEndpoint>) + sizeof(std::shared_ptr<WConnectionSet>));
+
+	return Stats;
+}

@@ -164,3 +164,12 @@ std::string const& WResolver::Resolve(WIPAddress const& Address)
 
 	return Empty;
 }
+
+WMemoryStat WResolver::GetMemoryUsage()
+{
+	std::scoped_lock Lock(QueueMutex);
+	WMemoryStat      Stats;
+	Stats.Name = "WResolver";
+	Stats.ChildEntries.emplace_back(WMemoryStatEntry{ .Name = "Cache", .Usage = CurrentCacheRamUsage });
+	return Stats;
+}

@@ -12,11 +12,12 @@
 #include <queue>
 #include <condition_variable>
 
+#include "MemoryStats.hpp"
 #include "IPAddress.hpp"
 #include "Singleton.hpp"
 #include "Types.hpp"
 
-class WResolver : public TSingleton<WResolver>
+class WResolver : public TSingleton<WResolver>, public IMemoryTrackable
 {
 	static constexpr WBytes                     MaxCacheRamUsage = 5 WMiB;
 	std::unordered_map<WIPAddress, std::string> ResolvedAddresses{};
@@ -40,4 +41,6 @@ public:
 
 	std::mutex                                  ResolvedAddressesMutex;
 	std::unordered_map<WIPAddress, std::string> GetResolvedAddresses() const { return ResolvedAddresses; }
+
+	WMemoryStat GetMemoryUsage() override;
 };
