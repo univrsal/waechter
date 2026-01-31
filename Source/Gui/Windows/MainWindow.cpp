@@ -51,7 +51,7 @@ void WMainWindow::DrawConnectionIndicator()
 		std::string Tooltip;
 		if (WClient::GetInstance().IsConnected())
 		{
-			Tooltip = fmt::format("{}\n"
+			Tooltip = std::format("{}\n"
 								  "▼ {}\n"
 								  "▲ {}",
 				TR("__connected"), WTrafficFormat::AutoFormat(WClient::GetInstance().DaemonToClientTrafficRate.load()),
@@ -95,9 +95,11 @@ void WMainWindow::Init(ImGuiID Main)
 	}
 	FlagAtlas.Load();
 	WProtocolDB::GetInstance().Init();
-	WIP2Asn::GetInstance().Init();
 
+#ifndef __EMSCRIPTEN__
+	WIP2Asn::GetInstance().Init();
 	spdlog::info("libcurl version: {}", WLibCurl::GetLoadedVersion());
+#endif
 	RegisterDialog.Init();
 	bInit = true;
 }
@@ -134,10 +136,13 @@ void WMainWindow::Draw()
 		if (ImGui::BeginMenu(TR("menu.tools")))
 		{
 			bool bEnabled = !WIP2Asn::GetInstance().IsUpdateInProgress();
+
+#ifndef __EMSCRIPTEN__
 			if (ImGui::MenuItem(TR("menu.update_ip2asn"), nullptr, false, bEnabled))
 			{
 				WIP2Asn::GetInstance().UpdateDatabase();
 			}
+#endif
 			if (ImGui::MenuItem(TR("window.settings"), nullptr, false))
 			{
 				SettingsWindow.Show();
@@ -175,6 +180,8 @@ void WMainWindow::Draw()
 	RegisterDialog.Draw();
 	ConnectionHistoryWindow.Draw();
 	SettingsWindow.Draw();
+#ifndef __EMSCRIPTEN__
 	WIP2Asn::GetInstance().DrawDownloadProgressWindow();
+#endif
 	WClient::GetInstance().GetTrafficTree()->Draw(Main);
 }

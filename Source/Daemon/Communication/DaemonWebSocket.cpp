@@ -70,28 +70,66 @@ int WebSocketCallback(lws* Wsi, lws_callback_reasons Reason, void*, void* In, si
 		{
 			// Check authentication before connection is established
 			auto const& Cfg = WDaemonConfig::GetInstance();
-			char        AuthHeaderBuf[256];
-			int HeaderLen = lws_hdr_copy(Wsi, AuthHeaderBuf, sizeof(AuthHeaderBuf), WSI_TOKEN_HTTP_AUTHORIZATION);
+			bool        Authenticated = false;
 
-			if (HeaderLen <= 0)
+			// Try to get Authorization header first (for native clients)
+			char AuthHeaderBuf[256];
+			int  HeaderLen = lws_hdr_copy(Wsi, AuthHeaderBuf, sizeof(AuthHeaderBuf), WSI_TOKEN_HTTP_AUTHORIZATION);
+
+			if (HeaderLen > 0)
 			{
-				spdlog::warn("WebSocket connection rejected: missing Authorization header");
+				std::string AuthHeader(AuthHeaderBuf, static_cast<size_t>(HeaderLen));
+				std::string ExpectedAuth = "Bearer " + Cfg.WebSocketAuthToken;
+
+				if (AuthHeader == ExpectedAuth)
+				{
+					Authenticated = true;
+					spdlog::debug("WebSocket connection authenticated via header");
+				}
+			}
+
+			// If header auth failed, try query parameter (for browser clients)
+			if (!Authenticated)
+			{
+				char QueryBuf[512];
+				int  QueryLen = lws_hdr_copy(Wsi, QueryBuf, sizeof(QueryBuf), WSI_TOKEN_HTTP_URI_ARGS);
+
+				if (QueryLen > 0)
+				{
+					std::string QueryString(QueryBuf, static_cast<size_t>(QueryLen));
+					spdlog::debug("WebSocket query string: {}", QueryString);
+
+					// Parse query parameters (format: token=value&other=value)
+					size_t TokenPos = QueryString.find("token=");
+					if (TokenPos != std::string::npos)
+					{
+						size_t      TokenStart = TokenPos + 6; // Skip "token="
+						size_t      TokenEnd = QueryString.find('&', TokenStart);
+						std::string Token = (TokenEnd != std::string::npos)
+							? QueryString.substr(TokenStart, TokenEnd - TokenStart)
+							: QueryString.substr(TokenStart);
+
+						if (Token == Cfg.WebSocketAuthToken)
+						{
+							Authenticated = true;
+							spdlog::debug("WebSocket connection authenticated via query parameter");
+						}
+						else
+						{
+							spdlog::warn("WebSocket connection rejected: invalid token in query parameter");
+						}
+					}
+				}
+			}
+
+			if (!Authenticated)
+			{
+				spdlog::warn("WebSocket connection rejected: no valid authentication found");
 				return -1; // Reject connection
 			}
 
-			std::string AuthHeader(AuthHeaderBuf, static_cast<size_t>(HeaderLen));
-			std::string ExpectedAuth = "Bearer " + Cfg.WebSocketAuthToken;
-
-			if (AuthHeader != ExpectedAuth)
-			{
-				spdlog::warn("WebSocket connection rejected: invalid auth token");
-				return -1; // Reject connection
-			}
-
-			spdlog::debug("WebSocket connection authenticated successfully");
 			break;
 		}
-
 		case LWS_CALLBACK_ESTABLISHED:
 		{
 			spdlog::info("WebSocket client connected");

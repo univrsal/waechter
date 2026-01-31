@@ -9,8 +9,6 @@
 #include <atomic>
 #include <mutex>
 
-#include "spdlog/fmt/fmt.h"
-
 #include "Singleton.hpp"
 #include "Types.hpp"
 
@@ -39,7 +37,7 @@ namespace WTime
 		long Hours = Time / 3600;
 		long Minutes = (Time % 3600) / 60;
 		long Seconds = Time % 60;
-		return fmt::format("{:02}:{:02}:{:02}", Hours, Minutes, Seconds);
+		return std::format("{:02}:{:02}:{:02}", Hours, Minutes, Seconds);
 	}
 } // namespace WTime
 

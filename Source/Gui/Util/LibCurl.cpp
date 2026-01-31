@@ -69,6 +69,15 @@ namespace
 	}
 } // namespace
 
+void WLibCurl::Init()
+{
+	curl_global_init(CURL_GLOBAL_DEFAULT);
+}
+
+void WLibCurl::Deinit()
+{
+	curl_global_cleanup();
+}
 
 std::string WLibCurl::GetLoadedVersion()
 {

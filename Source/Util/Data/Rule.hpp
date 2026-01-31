@@ -4,7 +4,6 @@
  */
 
 #pragma once
-#include "spdlog/fmt/fmt.h"
 
 #include "EBPFCommon.h"
 #include "Types.hpp"
@@ -30,17 +29,18 @@ struct WTrafficItemRules : WTrafficItemRulesBase
 
 	[[nodiscard]] WTrafficItemRulesBase AsBase() const
 	{
-		return WTrafficItemRulesBase{
-			.UploadSwitch = UploadSwitch,
-			.DownloadSwitch = DownloadSwitch,
-			.UploadMark = UploadMark,
-			.DownloadMark = DownloadMark,
-		};
+		WTrafficItemRulesBase Base;
+		Base.UploadSwitch = UploadSwitch;
+		Base.DownloadSwitch = DownloadSwitch;
+		Base.UploadMark = UploadMark;
+		Base.DownloadMark = DownloadMark;
+
+		return Base;
 	}
 
 	std::string ToString() const
 	{
-		return fmt::format(
+		return std::format(
 			"UploadSwitch={}, DownloadSwitch={}, UploadLimit={}, DownloadLimit={}, UploadMark={}, DownloadMark={}",
 			static_cast<int>(UploadSwitch), static_cast<int>(DownloadSwitch), UploadLimit, DownloadLimit, UploadMark,
 			DownloadMark);

@@ -6,6 +6,8 @@ add_executable(waechter
         AppIconAtlas.hpp
         ClientRuleManager.cpp
         ClientRuleManager.hpp
+        Assets.cpp
+        Assets.hpp
 )
 
 # Add Windows resource file for icon and metadata
@@ -17,7 +19,7 @@ if(WIN32)
     )
     target_sources(waechter PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/waechter.rc)
 
-target_compile_definitions(waechter PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+    target_compile_definitions(waechter PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
 endif()
 
 target_compile_definitions(waechter PRIVATE
@@ -33,25 +35,20 @@ add_subdirectory(Util)
 add_subdirectory(Icons)
 add_subdirectory(Communication)
 
-find_package(CURL REQUIRED)
 
 if (WAECHTER_WITH_WEBSOCKETCLIENT)
     target_compile_definitions(waechter PRIVATE WAECHTER_WITH_WEBSOCKETCLIENT)
     find_package(libwebsockets CONFIG REQUIRED)
-if (UNIX OR APPLE)
-    target_include_directories(waechter PRIVATE ${LIBWEBSOCKETS_INCLUDE_DIRS})
-    target_link_libraries(waechter PRIVATE ${LIBWEBSOCKETS_LIBRARIES} dl)
-else()
-    target_link_libraries(waechter PRIVATE websockets_shared)
-endif()
+    if (UNIX OR APPLE)
+        target_include_directories(waechter PRIVATE ${LIBWEBSOCKETS_INCLUDE_DIRS})
+        target_link_libraries(waechter PRIVATE ${LIBWEBSOCKETS_LIBRARIES} dl)
+    else ()
+        target_link_libraries(waechter PRIVATE websockets_shared)
+    endif ()
 endif ()
-
-target_sources(waechter PRIVATE Assets.cpp Assets.hpp)
 
 target_link_libraries(waechter PRIVATE
         thirdparty::spdlog
-        thirdparty::glfw
-        thirdparty::glad
         thirdparty::imgui
         thirdparty::implot
         thirdparty::stb
@@ -61,13 +58,41 @@ target_link_libraries(waechter PRIVATE
         thirdparty::sigslot
         thirdparty::cereal
         thirdparty::tracy
-        CURL::libcurl
         waechter::util
 )
 
+if (EMSCRIPTEN)
+    target_link_options(waechter PRIVATE
+            -sUSE_GLFW=3
+            -sUSE_WEBGL2=1
+            -sALLOW_MEMORY_GROWTH=1
+            -sNO_DISABLE_EXCEPTION_CATCHING
+            -sWEBSOCKET_URL=wss://
+            -sWEBSOCKET_SUBPROTOCOL=binary
+            -sASSERTIONS=2
+            -sASYNCIFY
+            $<$<CONFIG:Debug>:-g>
+            -sEXPORTED_FUNCTIONS=['_main','_malloc','_free','_emscripten_websocket_on_open','_emscripten_websocket_on_error','_emscripten_websocket_on_close','_emscripten_websocket_on_message_js']
+            -sEXPORTED_RUNTIME_METHODS=['ccall','cwrap']
+            -lidbfs.js
+            --shell-file ${CMAKE_SOURCE_DIR}/Meta/Package/shell.html
+            --bind)
+
+    set_target_properties(waechter PROPERTIES
+            SUFFIX ".html"
+    )
+else ()
+    find_package(ZLIB REQUIRED)
+    find_package(CURL REQUIRED)
+    target_link_libraries(waechter PRIVATE CURL::libcurl ZLIB::ZLIB
+            thirdparty::glfw
+            thirdparty::glad
+    )
+endif ()
+
 target_include_directories(waechter PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-if (UNIX AND NOT APPLE)
+if (UNIX AND NOT APPLE AND NOT EMSCRIPTEN)
     target_compile_options(waechter PRIVATE
             -Wall -Wextra
             -Wshadow -Wformat=2 -Wconversion -Wsign-conversion
@@ -91,8 +116,6 @@ endif()
 include("${CMAKE_SOURCE_DIR}/Meta/Licenses.cmake")
 add_thirdparty_licenses(waechter)
 
-find_package(ZLIB REQUIRED)
-target_link_libraries(waechter PRIVATE ZLIB::ZLIB)
 
 install(TARGETS waechter
         RUNTIME DESTINATION bin)

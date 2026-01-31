@@ -4,6 +4,11 @@
  */
 
 #pragma once
+
+#ifndef EBPF_COMMON
+#include <cstdint>
+#endif
+
 #if defined(__linux__)
 #ifndef EBPF_COMMON
 	#include <linux/types.h>

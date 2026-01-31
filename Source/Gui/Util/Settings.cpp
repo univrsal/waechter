@@ -11,12 +11,11 @@
 #include "spdlog/spdlog.h"
 #include "cereal/archives/json.hpp"
 
-#include "DbusUtil.hpp"
-
+#include "SysUtil.hpp"
 
 static std::string GetSettingsFilename()
 {
-	stdfs::path Base = WSettings::GetConfigFolder();
+	stdfs::path Base = WSysUtil::GetConfigFolder();
 	if (Base.empty())
 	{
 		return "waechter.json";
@@ -26,18 +25,21 @@ static std::string GetSettingsFilename()
 
 WSettings::WSettings()
 {
+	WSysUtil::LoadFilesystemFromIndexedDB();
 	if (WFilesystem::Exists(GetSettingsFilename()))
 	{
 		Load();
 	}
-	else if (!WFilesystem::Writable(WSettings::GetConfigFolder()))
+	else if (!WFilesystem::Writable(WSysUtil::GetConfigFolder()))
 	{
-		spdlog::warn("Config folder '{}' is not writable; settings will not be saved", GetConfigFolder().string());
+		spdlog::warn(
+			"Config folder '{}' is not writable; settings will not be saved", WSysUtil::GetConfigFolder().string());
 	}
 	else
 	{
 		bFirstRun = true;
-		bUseDarkTheme = WDbusUtil::IsUsingDarkTheme();
+
+		bUseDarkTheme = WSysUtil::IsUsingDarkTheme();
 		spdlog::info("Creating default settings");
 		Save();
 	}
@@ -83,6 +85,7 @@ void WSettings::Save()
 	{
 		spdlog::error("Failed to save settings to '{}': {}", Path, e.what());
 	}
+	WSysUtil::SyncFilesystemToIndexedDB();
 }
 
 void WSettings::AddToSocketPathHistory(std::string const& Path)
@@ -99,7 +102,7 @@ void WSettings::AddToSocketPathHistory(std::string const& Path)
 		SocketPathHistory.erase(It);
 	}
 
-	// Add to front by creating a new vector
+	// Add to the front by creating a new vector
 	std::vector<std::string> NewHistory;
 	NewHistory.reserve(11); // Reserve space for new entry + up to 10 existing
 	NewHistory.push_back(Path);

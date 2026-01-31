@@ -13,6 +13,8 @@
 class WLibCurl
 {
 public:
+	static void Init();
+	static void Deinit();
 	WLibCurl() = default;
 	~WLibCurl() = default;
 

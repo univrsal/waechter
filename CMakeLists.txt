@@ -11,6 +11,13 @@ option(WAECHTER_BUILD_CLIENT "Whether to build the client" ON)
 option(WAECHTER_WITH_WEBSOCKETSERVER "Enable websocket server" ON)
 option(WAECHTER_WITH_WEBSOCKETCLIENT "Enable websocket client" ON)
 
+if (EMSCRIPTEN)
+    # disable daemon
+    set(WAECHTER_BUILD_DAEMON OFF)
+    set(WAECHTER_WITH_WEBSOCKETCLIENT OFF)
+    message(STATUS "Emscripten build enabled")
+endif ()
+
 add_subdirectory(Thirdparty)
 add_subdirectory(Source)
 

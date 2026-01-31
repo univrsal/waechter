@@ -11,10 +11,15 @@
 
 #include "AppIconAtlas.hpp"
 #include "Messages.hpp"
-#ifndef _WIN32
-#include "Communication/UnixSocketSource.hpp"
+#if !_WIN32 && !__EMSCRIPTEN__
+	#include "Communication/UnixSocketSource.hpp"
 #endif
-#include "Communication/WebSocketSource.hpp"
+#if WAECHTER_WITH_WEBSOCKETCLIENT
+	#include "Communication/WebSocketSource.hpp"
+#endif
+#if EMSCRIPTEN
+	#include "Communication/EmscriptenSocketSource.hpp"
+#endif
 #include "Data/Protocol.hpp"
 #include "Util/Settings.hpp"
 #include "Windows/GlfwWindow.hpp"
@@ -95,20 +100,25 @@ void WClient::HandleHandshake(WBuffer& Buf)
 void WClient::Start()
 {
 	Stop();
-#if WAECHTER_WITH_WEBSOCKETCLIENT
+#if WAECHTER_WITH_WEBSOCKETCLIENT || EMSCRIPTEN
 	if (WSettings::GetInstance().SocketPath.starts_with("ws://")
 		|| WSettings::GetInstance().SocketPath.starts_with("wss://"))
 	{
+	#if EMSCRIPTEN
+		DaemonSocket = std::make_shared<WEmscriptenSocketSource>(
+			WSettings::GetInstance().SocketPath, WSettings::GetInstance().WebSocketAuthToken);
+	#else
 		DaemonSocket = std::make_shared<WWebSocketSource>(
 			WSettings::GetInstance().SocketPath, WSettings::GetInstance().WebSocketAuthToken);
+	#endif
 		DaemonSocket->GetDataSignal().connect([this](WBuffer& Buf) { OnDataReceived(Buf); });
 	}
 	else
 #endif
 	if (WSettings::GetInstance().SocketPath.starts_with('/'))
 	{
-#if _WIN32
-		spdlog::error("Unix socket is not supported on Windows");
+#if _WIN32 || __EMSCRIPTEN__
+		spdlog::error("Unix socket is not supported on Windows/emscripten");
 #else
 		DaemonSocket = std::make_shared<WUnixSocketSource>();
 		DaemonSocket->GetDataSignal().connect([this](WBuffer& Buf) { OnDataReceived(Buf); });

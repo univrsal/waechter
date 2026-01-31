@@ -10,6 +10,7 @@
 #include "Singleton.hpp"
 #include "IPAddress.hpp"
 
+
 class WProtocolDB final : public TSingleton<WProtocolDB>
 {
 	std::unordered_map<uint16_t, std::string> TCPPortServiceMap;
@@ -18,20 +19,20 @@ class WProtocolDB final : public TSingleton<WProtocolDB>
 public:
 	void Init();
 
-	std::string const& GetServiceName(EProtocol::Type Protocol, uint16_t Port) const
+	[[nodiscard]] std::string const& GetServiceName(EProtocol::Type Protocol, uint16_t Port) const
 	{
 		static std::string const UnknownService = "unknown";
 
 		if (Protocol == EProtocol::TCP)
 		{
-			if (auto It = TCPPortServiceMap.find(Port); It != TCPPortServiceMap.end())
+			if (auto const It = TCPPortServiceMap.find(Port); It != TCPPortServiceMap.end())
 			{
 				return It->second;
 			}
 		}
 		else if (Protocol == EProtocol::UDP)
 		{
-			if (auto It = UDPPortServiceMap.find(Port); It != UDPPortServiceMap.end())
+			if (auto const It = UDPPortServiceMap.find(Port); It != UDPPortServiceMap.end())
 			{
 				return It->second;
 			}

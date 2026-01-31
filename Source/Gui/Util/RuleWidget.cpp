@@ -24,7 +24,7 @@ namespace
 	{
 		auto Item = Args.Item;
 		auto PopupLabel =
-			bIsUpload ? fmt::format("upload_popup_{}", Item->ItemId) : fmt::format("download_popup_{}", Item->ItemId);
+			bIsUpload ? std::format("upload_popup_{}", Item->ItemId) : std::format("download_popup_{}", Item->ItemId);
 
 		// Prevent moving and hide title bar; keep auto-resize for compact popup
 		ImGuiWindowFlags Flags = ImGuiWindowFlags_NoMove;
@@ -43,7 +43,7 @@ namespace
 
 		auto DrawOption = [&](char const* IconName, char const* Tooltip, ESwitchState SetState) {
 			if (WIconAtlas::GetInstance().DrawIconButton(
-					fmt::format("{}_{}", IconName, Item->ItemId).c_str(), IconName, GRuleIconSize))
+					std::format("{}_{}", IconName, Item->ItemId).c_str(), IconName, GRuleIconSize))
 			{
 				Rule.RuleType = ERuleType::Explicit;
 				WTrafficItemId ParentApp = 0;
@@ -74,7 +74,7 @@ namespace
 	void DrawLimitOptionPopup(WRenderItemArgs const& Args, bool bIsUpload)
 	{
 		auto                Item = Args.Item;
-		auto PopupLabel = fmt::format("{}_limit_popup_{}", bIsUpload ? "upload" : "download", Item->ItemId);
+		auto PopupLabel = std::format("{}_limit_popup_{}", bIsUpload ? "upload" : "download", Item->ItemId);
 
 		// Prevent moving and hide title bar; keep auto-resize for compact popup
 		ImGuiWindowFlags Flags;
@@ -129,10 +129,10 @@ static bool DrawLimitIconButton(WTrafficItemId Id, WBytesPerSecond Limit, char c
 	if (Limit > 0)
 	{
 		return WIconAtlas::GetInstance().DrawIconButton(
-			fmt::format("{}_{}", Id, IconName).c_str(), IconName, GRuleIconSize, true);
+			std::format("{}_{}", Id, IconName).c_str(), IconName, GRuleIconSize, true);
 	}
 	return WIconAtlas::GetInstance().DrawIconButton(
-		fmt::format("{}_{}_placeholder", Id, IconName).c_str(), "placeholder", GRuleIconSize, true);
+		std::format("{}_{}_placeholder", Id, IconName).c_str(), "placeholder", GRuleIconSize, true);
 }
 
 static bool DrawBlockIconButton(
@@ -141,15 +141,15 @@ static bool DrawBlockIconButton(
 	if (State == SS_Allow)
 	{
 		return WIconAtlas::GetInstance().DrawIconButton(
-			fmt::format("{}_{}", Id, IconName1).c_str(), IconName1, GRuleIconSize, true);
+			std::format("{}_{}", Id, IconName1).c_str(), IconName1, GRuleIconSize, true);
 	}
 	if (State == SS_Block)
 	{
 		return WIconAtlas::GetInstance().DrawIconButton(
-			fmt::format("{}_{}", Id, IconName2).c_str(), IconName2, GRuleIconSize, true);
+			std::format("{}_{}", Id, IconName2).c_str(), IconName2, GRuleIconSize, true);
 	}
 	return WIconAtlas::GetInstance().DrawIconButton(
-		fmt::format("{}_{}_placeholder", Id, IconName1).c_str(), "placeholder", GRuleIconSize, true);
+		std::format("{}_{}_placeholder", Id, IconName1).c_str(), "placeholder", GRuleIconSize, true);
 }
 
 void WRuleWidget::Draw(WRenderItemArgs const& Args, bool)
@@ -169,7 +169,7 @@ void WRuleWidget::Draw(WRenderItemArgs const& Args, bool)
 
 	if (DrawBlockIconButton(Item->ItemId, Rules->DownloadSwitch, "downloadallow", "downloadblock"))
 	{
-		ImGui::OpenPopup(fmt::format("download_popup_{}", Item->ItemId).c_str());
+		ImGui::OpenPopup(std::format("download_popup_{}", Item->ItemId).c_str());
 	}
 	if (ImGui::IsItemHovered())
 	{
@@ -180,7 +180,7 @@ void WRuleWidget::Draw(WRenderItemArgs const& Args, bool)
 
 	if (DrawBlockIconButton(Item->ItemId, Rules->UploadSwitch, "uploadallow", "uploadblock"))
 	{
-		ImGui::OpenPopup(fmt::format("upload_popup_{}", Item->ItemId).c_str());
+		ImGui::OpenPopup(std::format("upload_popup_{}", Item->ItemId).c_str());
 	}
 	if (ImGui::IsItemHovered())
 	{
@@ -193,7 +193,7 @@ void WRuleWidget::Draw(WRenderItemArgs const& Args, bool)
 	if (DrawLimitIconButton(Item->ItemId, Rule.DownloadLimit, "downloadlimit"))
 	{
 		CurrentLimit = WTrafficFormat::ConvertFromBps(Rule.DownloadLimit, SelectedUnit);
-		ImGui::OpenPopup(fmt::format("download_limit_popup_{}", Item->ItemId).c_str());
+		ImGui::OpenPopup(std::format("download_limit_popup_{}", Item->ItemId).c_str());
 	}
 	if (ImGui::IsItemHovered())
 	{
@@ -205,7 +205,7 @@ void WRuleWidget::Draw(WRenderItemArgs const& Args, bool)
 	if (DrawLimitIconButton(Item->ItemId, Rule.UploadLimit, "uploadlimit"))
 	{
 		CurrentLimit = WTrafficFormat::ConvertFromBps(Rule.UploadLimit, SelectedUnit);
-		ImGui::OpenPopup(fmt::format("upload_limit_popup_{}", Item->ItemId).c_str());
+		ImGui::OpenPopup(std::format("upload_limit_popup_{}", Item->ItemId).c_str());
 	}
 	if (ImGui::IsItemHovered())
 	{

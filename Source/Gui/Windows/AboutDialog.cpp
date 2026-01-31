@@ -27,8 +27,6 @@ WAboutDialog::WAboutDialog()
 	ThirdPartyLibraries.emplace_back(
 		"Dear ImGui", "https://github.com/ocornut/imgui", MakeString(GImguiLicenseData, GImguiLicenseSize));
 	ThirdPartyLibraries.emplace_back(
-		"incbin", "https://github.com/graphitemaster/incbin", MakeString(GIncbinLicenseData, GIncbinLicenseSize));
-	ThirdPartyLibraries.emplace_back(
 		"inih", "https://github.com/benhoyt/inih", MakeString(GInihLicenseData, GInihLicenseSize));
 	ThirdPartyLibraries.emplace_back(
 		"json11", "https://github.com/dropbox/json11", MakeString(GJson11LicenseData, GJson11LicenseSize));
@@ -47,7 +45,7 @@ WAboutDialog::WAboutDialog()
 	ThirdPartyLibraries.emplace_back(
 		"sigslot", "https://github.com/palacaze/sigslot", MakeString(GSigSlotLicenseData, GSigSlotLicenseSize));
 
-	VersionString = fmt::format(
+	VersionString = std::format(
 		"Version {}, commit {}@{}\nCompiled at {}", WAECHTER_VERSION, GIT_COMMIT_HASH, GIT_BRANCH, BUILD_TIME);
 }
 

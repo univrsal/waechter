@@ -16,8 +16,11 @@
 #include "Data/SystemItem.hpp"
 #include "Icons/IconAtlas.hpp"
 #include "Util/I18n.hpp"
-#include "Util/IP2Asn.hpp"
-#include "Util/ProtocolDB.hpp"
+
+#if !defined(__EMSCRIPTEN__)
+	#include "Util/IP2Asn.hpp"
+	#include "Util/ProtocolDB.hpp"
+#endif
 
 static char const* SocketConnectionStateToString(ESocketConnectionState State)
 {
@@ -191,12 +194,14 @@ void WDetailsWindow::DrawSocketDetails() const
 			}
 		}
 		ImGui::Text("%s: %s", TR("__protocol"), ProtocolToString(Sock->SocketTuple.Protocol));
+#if !defined(__EMSCRIPTEN__)
 		auto ProtocolName = WProtocolDB::GetInstance().GetServiceName(
 			Sock->SocketTuple.Protocol, Sock->SocketTuple.RemoteEndpoint.Port);
 		if (ProtocolName != "unknown")
 		{
 			ImGui::Text("%s: %s", TR("__service"), ProtocolName.c_str());
 		}
+#endif
 		ImGui::Separator();
 		ImGui::Text("%s: %s", TR("__total_download"), WStorageFormat::AutoFormat(Sock->TotalDownloadBytes).c_str());
 		ImGui::Text("%s: %s", TR("__total_upload"), WStorageFormat::AutoFormat(Sock->TotalUploadBytes).c_str());
@@ -254,6 +259,7 @@ void WDetailsWindow::Draw() const
 		}
 	}
 
+#if !defined(__EMSCRIPTEN__)
 	if (WIP2Asn::GetInstance().HasDatabase())
 	{
 		auto const Sock = Tree->GetSeletedTrafficItem<WSocketItem>();
@@ -265,7 +271,7 @@ void WDetailsWindow::Draw() const
 				WMainWindow::Get().GetFlagAtlas().DrawFlag(LookupResult->Country, ImVec2(32, 24));
 				ImGui::SameLine();
 				ImGui::Separator();
-				ImGui::InputText(TR("__asn"), const_cast<char*>(fmt::format("AS{}", LookupResult->ASN).c_str()), 64,
+				ImGui::InputText(TR("__asn"), const_cast<char*>(std::format("AS{}", LookupResult->ASN).c_str()), 64,
 					ImGuiInputTextFlags_ReadOnly);
 				ImGui::InputText(TR("__country"), const_cast<char*>(LookupResult->Country.c_str()), 64,
 					ImGuiInputTextFlags_ReadOnly);
@@ -274,5 +280,6 @@ void WDetailsWindow::Draw() const
 			}
 		}
 	}
+#endif
 	ImGui::End();
 }

@@ -26,7 +26,11 @@ public:
 
 	std::string SelectedLanguage{ "en_US" };
 
+#if __linux__
 	std::string              SocketPath{ "/var/run/waechterd.sock" };
+#else
+	std::string SocketPath{ "wss://example.com/ws" };
+#endif
 	std::vector<std::string> SocketPathHistory{};
 	std::string              WebSocketAuthToken{};
 	bool                     bAllowSelfSignedCertificates{ false };
@@ -55,44 +59,4 @@ public:
 	void Load();
 	void Save();
 	void AddToSocketPathHistory(std::string const& Path);
-
-	static stdfs::path GetConfigFolder()
-	{
-		char const* Xdg = std::getenv("XDG_CONFIG_HOME");
-		stdfs::path Base;
-		if (Xdg && Xdg[0] != '\0')
-		{
-			Base = stdfs::path(Xdg);
-		}
-		else
-		{
-			char const* Home = std::getenv("HOME");
-			if (!Home || Home[0] == '\0')
-			{
-				spdlog::warn("Neither XDG_CONFIG_HOME nor HOME are set; cannot determine config folder");
-				return {};
-			}
-			Base = stdfs::path(Home) / ".config";
-		}
-
-		stdfs::path Appdir = Base / "waechter";
-
-		std::error_code ec;
-		if (!stdfs::exists(Appdir))
-		{
-			if (!stdfs::create_directories(Appdir, ec))
-			{
-				spdlog::error("Failed to create config directory {}: {}", Appdir.string(), ec.message());
-				return { "." };
-			}
-		}
-
-		if (!WFilesystem::Writable(Appdir))
-		{
-			spdlog::warn("Config directory {} is not writable", Appdir.string());
-			return { "." };
-		}
-
-		return Appdir;
-	}
 };

@@ -3,7 +3,7 @@ target_sources(waechter
         IDaemonSocket.hpp
 )
 
-if (UNIX OR APPLE)
+if (UNIX OR APPLE AND NOT EMSCRIPTEN)
 	target_sources(waechter
 			PRIVATE
         	UnixSocketSource.cpp
@@ -16,4 +16,12 @@ if (WAECHTER_WITH_WEBSOCKETCLIENT)
             WebSocketSource.cpp
             WebSocketSource.hpp
     )
+endif ()
+
+if (EMSCRIPTEN)
+	target_sources(waechter
+			PRIVATE
+			EmscriptenSocketSource.cpp
+			EmscriptenSocketSource.hpp
+	)
 endif ()

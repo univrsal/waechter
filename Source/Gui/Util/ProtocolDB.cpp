@@ -13,13 +13,16 @@
 	#include <netinet/in.h>
 #endif
 
+#if defined(__EMSCRIPTEN__) || defined(_WIN32)
+	#include "Json.hpp"
+	#include "Assets.hpp"
+#endif
+
 #include "spdlog/spdlog.h"
-
-
 
 void WProtocolDB::Init()
 {
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 	// Iterate the services database and populate TCP/UDP maps
 	setservent(0); // do not keep the DB open
 	servent const* ServEnt = nullptr;
@@ -45,9 +48,48 @@ void WProtocolDB::Init()
 	}
 
 	endservent();
+#else
+	const auto ProtocolJson =
+		std::string(reinterpret_cast<const char*>(GBuiltinProtocolDBData), GBuiltinProtocolDBSize);
+	std::string Err;
+	auto const  Json = WJson::parse(ProtocolJson, Err);
+	if (Err.empty())
+	{
+		for (auto const& [Key, Name] : Json["tcp"].object_items())
+		{
+			uint16_t PortValue{};
+			try
+			{
+				PortValue = static_cast<uint16_t>(std::stoul(Key));
+			}
+			catch (std::exception const&)
+			{
+				spdlog::warn("Invalid port number in protocol db: {}", Key);
+				continue;
+			}
+			TCPPortServiceMap[PortValue] = Name.string_value();
+		}
+		for (auto const& [Key, Name] : Json["udp"].object_items())
+		{
+			uint16_t PortValue{};
+			try
+			{
+				PortValue = static_cast<uint16_t>(std::stoul(Key));
+			}
+			catch (std::exception const&)
+			{
+				spdlog::warn("Invalid port number in protocol db: {}", Key);
+				continue;
+			}
+			UDPPortServiceMap[PortValue] = Name.string_value();
+		}
+	}
+	else
+	{
+		spdlog::error("Failed to parse builtin protocol db: {}", Err);
+	}
+
+#endif
 	spdlog::info(
 		"Protocol db initialized with {} TCP and {} UDP services", TCPPortServiceMap.size(), UDPPortServiceMap.size());
-#else
-	spdlog::info("No protocol DB on windows for now");
-#endif
 }

@@ -5,7 +5,11 @@
 
 #include "GlfwWindow.hpp"
 
-#include <curl/curl.h>
+#ifdef __EMSCRIPTEN__
+	#include <GLFW/glfw3.h>
+	#include <emscripten.h>
+	#include <emscripten/html5.h>
+#endif
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "spdlog/spdlog.h"
@@ -21,16 +25,64 @@
 #include "Client.hpp"
 #include "Icons/IconAtlas.hpp"
 #include "Util/I18n.hpp"
+#include "Util/LibCurl.hpp"
 #include "Util/Settings.hpp"
+#include "Util/SysUtil.hpp"
 
 static void GlfwErrorCallback(int Error, char const* Description)
 {
 	spdlog::error("GLFW Error {}: {}", Error, Description);
 }
 
+void WGlfwWindow::Tick() const
+{
+	static constexpr ImVec4 ClearColor = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+	glfwPollEvents();
+	if (glfwGetWindowAttrib(Window, GLFW_ICONIFIED) != 0)
+	{
+		ImGui_ImplGlfw_Sleep(50);
+		return;
+	}
+#ifdef __EMSCRIPTEN__
+	double CanvasWidth, CanvasHeight;
+	emscripten_get_element_css_size("#canvas", &CanvasWidth, &CanvasHeight);
+	glfwSetWindowSize(Window, static_cast<int>(CanvasWidth), static_cast<int>(CanvasHeight));
+#endif
+	if (WSettings::GetInstance().bReduceFrameRateWhenInactive && glfwGetWindowAttrib(Window, GLFW_FOCUSED) != 1)
+	{
+		ImGui_ImplGlfw_Sleep(10);
+	}
+
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
+
+	// Perform any pending GL uploads (e.g., icon atlas) on the render thread
+	WAppIconAtlas::GetInstance().UploadPendingIfAny();
+
+	MainWindow->Draw();
+
+	// Rendering
+	ImGui::Render();
+	int display_w, display_h;
+	glfwGetFramebufferSize(Window, &display_w, &display_h);
+	glViewport(0, 0, display_w, display_h);
+	glClearColor(ClearColor.x * ClearColor.w, ClearColor.y * ClearColor.w, ClearColor.z * ClearColor.w, ClearColor.w);
+	glClear(GL_COLOR_BUFFER_BIT);
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+	glfwSwapBuffers(Window);
+	WTimerManager::GetInstance().UpdateTimers(glfwGetTime());
+}
+
 bool WGlfwWindow::Init()
 {
-	curl_global_init(CURL_GLOBAL_DEFAULT);
+#if __EMSCRIPTEN__
+	emscripten_set_canvas_element_size("#canvas", 900, 700);
+#else
+	WLibCurl::Init();
+#endif
+
 	glfwSetErrorCallback(GlfwErrorCallback);
 	MainWindow = std::make_unique<WMainWindow>();
 
@@ -39,7 +91,7 @@ bool WGlfwWindow::Init()
 		spdlog::critical("GLFW initialization failed!");
 		return false;
 	}
-	char const* GlslVersion = "#version 130";
+
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
 	MainScale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor()); // Valid on GLFW 3.3+ only
@@ -52,7 +104,7 @@ bool WGlfwWindow::Init()
 		return false;
 	}
 	glfwMakeContextCurrent(Window);
-
+#if !defined(__EMSCRIPTEN__)
 	if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
 	{
 		glfwDestroyWindow(Window);
@@ -60,6 +112,7 @@ bool WGlfwWindow::Init()
 		spdlog::critical("Failed to initialize GLAD!");
 		return false;
 	}
+#endif
 
 	int            Width, Height, Channels;
 	unsigned char* Pixels =
@@ -78,7 +131,7 @@ bool WGlfwWindow::Init()
 	ImGui::CreateContext();
 	ImPlot::CreateContext();
 	ImGuiIO& Io = ImGui::GetIO();
-	auto     Path = WSettings::GetConfigFolder() / "imgui.ini";
+	auto     Path = WSysUtil::GetConfigFolder() / "imgui.ini";
 
 	if (!Path.empty())
 	{
@@ -119,53 +172,39 @@ bool WGlfwWindow::Init()
 	Style.FontScaleDpi = MainScale;
 
 	ImGui_ImplGlfw_InitForOpenGL(Window, true);
-	ImGui_ImplOpenGL3_Init(GlslVersion);
+	ImGui_ImplOpenGL3_Init(GetPreferredShaderVersion());
 
 	WTimerManager::GetInstance().Start(glfwGetTime());
 	WIconAtlas::GetInstance().Load();
 	WI18n::GetInstance().Init();
-	WClient::GetInstance().Start();
+#if EMSCRIPTEN
+	// don't auto-connect to the placeholder server
+	if (WSettings::GetInstance().SocketPath != "wss://example.com/ws")
+#endif
+		WClient::GetInstance().Start();
 	return true;
+}
+
+static void Tick(void* Arg)
+{
+	auto* Self = static_cast<WGlfwWindow*>(Arg);
+	Self->Tick();
 }
 
 void WGlfwWindow::RunLoop()
 {
-	ImVec4 ClearColor = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
+#ifdef __EMSCRIPTEN__
+	emscripten_set_main_loop_arg(::Tick, this, 0, true);
+#else
+	while (!glfwWindowShouldClose(Window))
+	{
+		Tick();
+	}
+#endif
 
 	while (!glfwWindowShouldClose(Window))
 	{
-		glfwPollEvents();
-		if (glfwGetWindowAttrib(Window, GLFW_ICONIFIED) != 0)
-		{
-			ImGui_ImplGlfw_Sleep(50);
-			continue;
-		}
-		if (WSettings::GetInstance().bReduceFrameRateWhenInactive && glfwGetWindowAttrib(Window, GLFW_FOCUSED) != 1)
-		{
-			ImGui_ImplGlfw_Sleep(10);
-		}
-
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
-
-		// Perform any pending GL uploads (e.g., icon atlas) on the render thread
-		WAppIconAtlas::GetInstance().UploadPendingIfAny();
-
-		MainWindow->Draw();
-
-		// Rendering
-		ImGui::Render();
-		int display_w, display_h;
-		glfwGetFramebufferSize(Window, &display_w, &display_h);
-		glViewport(0, 0, display_w, display_h);
-		glClearColor(
-			ClearColor.x * ClearColor.w, ClearColor.y * ClearColor.w, ClearColor.z * ClearColor.w, ClearColor.w);
-		glClear(GL_COLOR_BUFFER_BIT);
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-		glfwSwapBuffers(Window);
-		WTimerManager::GetInstance().UpdateTimers(glfwGetTime());
 	}
 	WClient::GetInstance().Stop();
 	MainWindow = nullptr;
@@ -193,7 +232,10 @@ void WGlfwWindow::Destroy()
 
 	glfwDestroyWindow(Window);
 	glfwTerminate();
-	curl_global_cleanup();
+	WSysUtil::SyncFilesystemToIndexedDB();
+#ifndef __EMSCRIPTEN__
+	WLibCurl::Deinit();
+#endif
 }
 
 void WGlfwWindow::SetTitle(std::string const& Title) const

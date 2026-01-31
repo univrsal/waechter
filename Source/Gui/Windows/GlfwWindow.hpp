@@ -8,7 +8,9 @@
 #include <string>
 
 // ReSharper disable once CppUnusedIncludeDirective
-#include "glad/glad.h"
+#ifndef __EMSCRIPTEN__
+	#include "glad/glad.h"
+#endif
 #include "GLFW/glfw3.h"
 
 #include "Singleton.hpp"
@@ -24,7 +26,17 @@ class WGlfwWindow : public TSingleton<WGlfwWindow>
 	// Keep the ini filename alive for ImGui (ImGui stores a pointer to it)
 	std::string ImGuiIniPath{};
 
+	static char const* GetPreferredShaderVersion()
+	{
+#if EMSCRIPTEN
+		return "#version 300 es";
+#else
+		return "#version 130";
+#endif
+	}
+
 public:
+	void Tick() const;
 	bool Init();
 
 	void RunLoop();

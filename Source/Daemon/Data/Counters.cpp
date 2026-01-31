@@ -107,10 +107,12 @@ void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 		{
 			TrafficItem->SocketTuple.Protocol = EProtocol::UDP;
 		}
-		TrafficItem->SocketTuple.RemoteEndpoint.Port = Event.Data.SocketAcceptEventData.DestinationPort;
+		TrafficItem->SocketTuple.RemoteEndpoint.Port =
+			static_cast<uint16_t>(Event.Data.SocketAcceptEventData.DestinationPort);
 		TrafficItem->SocketTuple.RemoteEndpoint.Address.FromIPv4Uint32(
 			Event.Data.SocketAcceptEventData.DestinationAddr4);
-		TrafficItem->SocketTuple.LocalEndpoint.Port = Event.Data.SocketAcceptEventData.SourcePort;
+		TrafficItem->SocketTuple.LocalEndpoint.Port =
+			static_cast<uint16_t>(Event.Data.SocketAcceptEventData.SourcePort);
 		TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv4Uint32(
 			Event.Data.SocketAcceptEventData.DestinationAddr4);
 		WNetworkEvents::GetInstance().OnSocketConnected(this);
@@ -127,9 +129,11 @@ void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 		{
 			TrafficItem->SocketTuple.Protocol = EProtocol::UDP;
 		}
-		TrafficItem->SocketTuple.RemoteEndpoint.Port = Event.Data.SocketAcceptEventData.SourcePort;
+		TrafficItem->SocketTuple.RemoteEndpoint.Port =
+			static_cast<uint16_t>(Event.Data.SocketAcceptEventData.SourcePort);
 		TrafficItem->SocketTuple.RemoteEndpoint.Address.FromIPv6Array(Event.Data.SocketAcceptEventData.SourceAddr6);
-		TrafficItem->SocketTuple.LocalEndpoint.Port = Event.Data.SocketAcceptEventData.DestinationPort;
+		TrafficItem->SocketTuple.LocalEndpoint.Port =
+			static_cast<uint16_t>(Event.Data.SocketAcceptEventData.DestinationPort);
 		TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv6Array(Event.Data.SocketAcceptEventData.DestinationAddr6);
 		WNetworkEvents::GetInstance().OnSocketConnected(this);
 	}
