@@ -9,6 +9,7 @@
 
 #if _WIN32
 	#include <windows.h>
+	#include <ShlObj_core.h>
 #endif
 
 #if __EMSCRIPTEN__

@@ -52,13 +52,17 @@ public:
 	{
 		char    Buf[32];
 		std::tm Tm = *std::localtime(&UnixTime);
+#if __linux__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#endif
 		if (std::strftime(Buf, sizeof(Buf), Format, &Tm))
 		{
 			return Buf;
 		}
+#if __linux__
 #pragma GCC diagnostic pop
+#endif
 		return {};
 	}
 };

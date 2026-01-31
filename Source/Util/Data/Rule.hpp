@@ -29,12 +29,13 @@ struct WTrafficItemRules : WTrafficItemRulesBase
 
 	[[nodiscard]] WTrafficItemRulesBase AsBase() const
 	{
-		return WTrafficItemRulesBase{
-			.UploadSwitch = UploadSwitch,
-			.DownloadSwitch = DownloadSwitch,
-			.UploadMark = UploadMark,
-			.DownloadMark = DownloadMark,
-		};
+		WTrafficItemRulesBase Base;
+		Base.UploadSwitch = UploadSwitch;
+		Base.DownloadSwitch = DownloadSwitch;
+		Base.UploadMark = UploadMark;
+		Base.DownloadMark = DownloadMark;
+
+		return Base;
 	}
 
 	std::string ToString() const

@@ -13,7 +13,7 @@
 	#include <netinet/in.h>
 #endif
 
-#if __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__) || defined(_WIN32)
 	#include "Json.hpp"
 	#include "Assets.hpp"
 #endif

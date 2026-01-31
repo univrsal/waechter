@@ -5,9 +5,8 @@
 
 #pragma once
 
-#if __EMSCRIPTEN__ || __linux__ || __APPLE__
-	#include <cstdint>
-#endif
+#include <cstdint>
+
 #if defined(__linux__)
 #ifndef EBPF_COMMON
 	#include <linux/types.h>
