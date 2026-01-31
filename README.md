@@ -1,8 +1,8 @@
-![header](Meta/header.png)
+![header](Meta/Assets/Branding/Header.png)
 
-![Demo](Meta/Demo.png)
+![Demo](Meta/Assets/Demo.png)
 
-![Dev time spent](https://vrsal.cc/waechter_badge.svg) [![Build (Ubuntu)](https://github.com/univrsal/waechter/actions/workflows/build.yml/badge.svg)](https://github.com/univrsal/waechter/actions/workflows/build.yml)
+![Dev time spent](https://vrsal.cc/waechter_badge.svg) [![Build (Ubuntu)](https://github.com/univrsal/waechter/actions/workflows/build.yml/badge.svg)](https://github.com/univrsal/waechter/actions/workflows/build.yml) [![Build (Windows Client)](https://github.com/univrsal/waechter/actions/workflows/build-windows.yml/badge.svg)](https://github.com/univrsal/waechter/actions/workflows/build-windows.yml) [![Build (macOS Client)](https://github.com/univrsal/waechter/actions/workflows/build-macos.yml/badge.svg)](https://github.com/univrsal/waechter/actions/workflows/build-macos.yml)
 
 A Linux traffic monitoring and shaping tool.
 

@@ -41,6 +41,9 @@ extern unsigned int const GTracyLicenseSize;
 extern unsigned char const GJetbrainsMonoLicenseData[];
 extern unsigned int const GJetbrainsMonoLicenseSize;
 
+extern unsigned char const GFlagAtlasData[];
+extern unsigned int const GFlagAtlasSize;
+
 extern unsigned char const Gde_DEData[];
 extern unsigned int const Gde_DESize;
 
@@ -55,9 +58,6 @@ extern unsigned int const GWatermarkImageSize;
 
 extern unsigned char const GIconAtlasData[];
 extern unsigned int const GIconAtlasSize;
-
-extern unsigned char const GFlagAtlasData[];
-extern unsigned int const GFlagAtlasSize;
 
 extern unsigned char const GBuiltinProtocolDBData[];
 extern unsigned int const GBuiltinProtocolDBSize;

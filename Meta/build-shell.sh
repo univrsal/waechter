@@ -1,1 +1,0 @@
-podman run -it --rm -v "$PWD/../:/workspace" -w /workspace waechter-build-ubuntu

@@ -59,7 +59,7 @@ endif ()
 install(FILES Meta/Package/waechter.desktop
         DESTINATION share/applications)
 
-install(FILES Meta/Icon.png
+install(FILES Meta/Assets/Branding/Icon.png
         DESTINATION share/icons/hicolor/256x256/apps
         RENAME waechter.png)
 
