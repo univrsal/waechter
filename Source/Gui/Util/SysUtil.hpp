@@ -4,9 +4,14 @@
  */
 
 #pragma once
+#include "Filesystem.hpp"
 
 class WSysUtil
 {
 public:
 	static bool IsUsingDarkTheme();
+	static stdfs::path GetConfigFolder();
+
+	static void SyncFilesystemToIndexedDB();
+	static void LoadFilesystemFromIndexedDB();
 };

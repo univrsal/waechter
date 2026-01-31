@@ -125,6 +125,13 @@ void WSettingsWindow::Draw()
 			}
 			ImGui::EndCombo();
 		}
+
+#if EMSCRIPTEN
+		if (ImGui::Button("Save"))
+		{
+			WSettings::GetInstance().Save();
+		}
+#endif
 	}
 	ImGui::End();
 }

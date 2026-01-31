@@ -135,7 +135,7 @@ bool WGlfwWindow::Init()
 	ImGui::CreateContext();
 	ImPlot::CreateContext();
 	ImGuiIO& Io = ImGui::GetIO();
-	auto     Path = WSettings::GetConfigFolder() / "imgui.ini";
+	auto     Path = WSysUtil::GetConfigFolder() / "imgui.ini";
 
 	if (!Path.empty())
 	{
@@ -181,7 +181,11 @@ bool WGlfwWindow::Init()
 	WTimerManager::GetInstance().Start(glfwGetTime());
 	WIconAtlas::GetInstance().Load();
 	WI18n::GetInstance().Init();
-	WClient::GetInstance().Start();
+#if EMSCRIPTEN
+	// don't auto-connect to the placeholder server
+	if (WSettings::GetInstance().SocketPath != "wss://example.com/ws")
+#endif
+		WClient::GetInstance().Start();
 	return true;
 }
 

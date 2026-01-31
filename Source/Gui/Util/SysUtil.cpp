@@ -71,3 +71,106 @@ bool WSysUtil::IsUsingDarkTheme()
 
 	return false;
 }
+
+stdfs::path WSysUtil::GetConfigFolder()
+{
+#if __linux__
+	char const* Xdg = std::getenv("XDG_CONFIG_HOME");
+	stdfs::path Base;
+	if (Xdg && Xdg[0] != '\0')
+	{
+		Base = stdfs::path(Xdg);
+	}
+	else
+	{
+		char const* Home = std::getenv("HOME");
+		if (!Home || Home[0] == '\0')
+		{
+			spdlog::warn("Neither XDG_CONFIG_HOME nor HOME are set; cannot determine config folder");
+			return {};
+		}
+		Base = stdfs::path(Home) / ".config";
+	}
+#elif EMSCRIPTEN
+	stdfs::path Base = "/waechter_data";
+#elif _WIN32
+	// todo windows
+#else
+	// todo macos
+#endif
+	stdfs::path Appdir = Base / "waechter";
+
+	std::error_code ec;
+	if (!stdfs::exists(Appdir))
+	{
+		if (!stdfs::create_directories(Appdir, ec))
+		{
+			spdlog::error("Failed to create config directory {}: {}", Appdir.string(), ec.message());
+			return { "." };
+		}
+	}
+
+	if (!WFilesystem::Writable(Appdir))
+	{
+		spdlog::warn("Config directory {} is not writable", Appdir.string());
+		return { "." };
+	}
+
+	return Appdir;
+}
+
+void WSysUtil::SyncFilesystemToIndexedDB()
+{
+#if EMSCRIPTEN
+	EM_ASM(FS.syncfs(
+		false, function(err) {
+			if (err)
+			{
+				console.error('Error syncing filesystem to IndexedDB:', err);
+			}
+			else
+			{
+				console.log('Filesystem synced to IndexedDB');
+			}
+		}););
+#endif
+}
+
+// clang-format off
+#if EMSCRIPTEN
+EM_ASYNC_JS(void, load_filesystem_impl, (), {
+	try
+	{
+		FS.mkdir('/waechter_data');
+	}
+	catch (e)
+	{
+		// Directory might already exist, ignore
+	}
+	FS.mount(IDBFS, {}, '/waechter_data');
+
+	await new Promise((resolve, reject) => {
+		FS.syncfs(
+			true, (err) => {
+				if (err)
+				{
+					console.error('Failed to load saved data:', err);
+					reject(err);
+				}
+				else
+				{
+					console.log('Saved data loaded successfully');
+					resolve();
+				}
+			});
+	});
+});
+#endif
+// clang-format on
+
+void WSysUtil::LoadFilesystemFromIndexedDB()
+{
+#if EMSCRIPTEN
+	load_filesystem_impl();
+#endif
+}
