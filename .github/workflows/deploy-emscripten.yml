@@ -8,6 +8,12 @@ on:
       - 'Thirdparty/**'
       - 'CMakeLists.txt'
       - '.github/workflows/deploy-emscripten.yml'
+  pull_request:
+    paths:
+      - 'Source/**'
+      - 'Thirdparty/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/deploy-emscripten.yml'
   workflow_dispatch:
 
 jobs:
@@ -41,6 +47,15 @@ jobs:
           cp build/Source/Client/waechter.js deploy/
           cp build/Source/Client/waechter.wasm deploy/
           cp build/Source/Client/waechter.html deploy/index.html
+
+      - name: Upload build artifacts
+        # Upload artifacts on PRs and workflow_dispatch
+        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: waechter-emscripten-build
+          path: deploy/
+          retention-days: 30
 
       - name: Deploy to server via rsync
         # Only deploy on push to master, not on PRs
