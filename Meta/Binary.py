@@ -1,6 +1,3 @@
-import sys
-import os
-
 def bytes_to_cpp_array(data: bytes) -> str:
 
     return ", ".join(f"0x{b:02X}" for b in data)
@@ -53,7 +50,7 @@ if __name__ == "__main__":
         ("./watermark.png", "WatermarkImage"),
         ("./atlas.png", "IconAtlas"),
         ("../Thirdparty/flags/atlas.png", "FlagAtlas"),
-        ("./BuilltinProtocolDB.json", "BuiltinProtocolDB")
+        ("./BuiltinProtocolDB.json", "BuiltinProtocolDB")
     ]
     output_cpp = "Assets"
     co = []
