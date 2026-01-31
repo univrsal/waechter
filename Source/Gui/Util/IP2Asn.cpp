@@ -14,6 +14,7 @@
 #include "Format.hpp"
 #include "LibCurl.hpp"
 #include "Settings.hpp"
+#include "SysUtil.hpp"
 #include "Windows/GlfwWindow.hpp"
 
 bool WIP2Asn::ExtractDatabase(std::filesystem::path const& GzPath, std::filesystem::path const& OutPath)
@@ -58,7 +59,7 @@ bool WIP2Asn::ExtractDatabase(std::filesystem::path const& GzPath, std::filesyst
 
 void WIP2Asn::Init()
 {
-	auto DatabasePath = WSettings::GetConfigFolder() / "ip2asn_db.tsv";
+	auto DatabasePath = WSysUtil::GetConfigFolder() / "ip2asn_db.tsv";
 	Database = nullptr;
 	if (std::filesystem::exists(DatabasePath))
 	{
@@ -91,17 +92,17 @@ void WIP2Asn::UpdateDatabase()
 	static std::string const URL = "https://waechter.st/ip2asn-combined.tsv.gz";
 	DownloadMutex.lock();
 
-	auto OldDatabasePath = WSettings::GetConfigFolder() / "ip2asn_db.tsv";
+	auto OldDatabasePath = WSysUtil::GetConfigFolder() / "ip2asn_db.tsv";
 	if (std::filesystem::exists(OldDatabasePath))
 	{
 		std::filesystem::remove(OldDatabasePath);
 	}
-	OldDatabasePath = WSettings::GetConfigFolder() / "ip2asn_db.tsv.gz";
+	OldDatabasePath = WSysUtil::GetConfigFolder() / "ip2asn_db.tsv.gz";
 	if (std::filesystem::exists(OldDatabasePath))
 	{
 		std::filesystem::remove(OldDatabasePath);
 	}
-	OldDatabasePath = WSettings::GetConfigFolder() / "ip2asn_db.tsv.idx";
+	OldDatabasePath = WSysUtil::GetConfigFolder() / "ip2asn_db.tsv.idx";
 	if (std::filesystem::exists(OldDatabasePath))
 	{
 		std::filesystem::remove(OldDatabasePath);
@@ -109,7 +110,7 @@ void WIP2Asn::UpdateDatabase()
 
 	bUpdateInProgress = true;
 	DownloadThread = std::thread([this] {
-		auto        DatabasePath = WSettings::GetConfigFolder() / "ip2asn_db.tsv.gz";
+		auto DatabasePath = WSysUtil::GetConfigFolder() / "ip2asn_db.tsv.gz";
 		WLibCurl::DownloadFile(
 			URL, DatabasePath, [&](float Progress) { DownloadProgress = Progress; },
 			[](std::string const& Error) { spdlog::error("Failed to download IP2ASN database: {}", Error); });
