@@ -9,6 +9,7 @@ on:
       - 'CMakeLists.txt'
       - '**/CMakeLists.txt'
       - '**/*.cmake'
+      - '.github/workflows/build.yml'
   pull_request:
     branches: [ master ]
     paths:
@@ -17,6 +18,7 @@ on:
       - 'CMakeLists.txt'
       - '**/CMakeLists.txt'
       - '**/*.cmake'
+      - '.github/workflows/build.yml'
   workflow_dispatch:
 
 jobs:

@@ -10,7 +10,7 @@ on:
       - 'CMakeLists.txt'
       - '**/CMakeLists.txt'
       - '**/*.cmake'
-      - 'Meta/**'
+      - '.github/workflows/build-macos.yml'
   pull_request:
     branches: [ master ]
     paths:
@@ -20,7 +20,7 @@ on:
       - 'CMakeLists.txt'
       - '**/CMakeLists.txt'
       - '**/*.cmake'
-      - 'Meta/**'
+      - '.github/workflows/build-macos.yml'
   workflow_dispatch:
   release:
     types: [created]
