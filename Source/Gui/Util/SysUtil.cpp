@@ -94,9 +94,32 @@ stdfs::path WSysUtil::GetConfigFolder()
 #elif EMSCRIPTEN
 	stdfs::path Base = "/waechter_data";
 #elif _WIN32
-	// todo windows
+	wchar_t*    AppDataPath = nullptr;
+	HRESULT     hr = SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &AppDataPath);
+	stdfs::path Base;
+	if (SUCCEEDED(hr) && AppDataPath)
+	{
+		Base = stdfs::path(AppDataPath);
+		CoTaskMemFree(AppDataPath);
+	}
+	else
+	{
+		char const* AppData = std::getenv("APPDATA");
+		if (!AppData || AppData[0] == '\0')
+		{
+			spdlog::warn("Could not determine APPDATA folder; cannot determine config folder");
+			return {};
+		}
+		Base = stdfs::path(AppData);
+	}
 #else
-	// todo macos
+	char const* Home = std::getenv("HOME");
+	if (!Home || Home[0] == '\0')
+	{
+		spdlog::warn("HOME is not set; cannot determine config folder");
+		return {};
+	}
+	stdfs::path Base = stdfs::path(Home) / "Library" / "Application Support";
 #endif
 	stdfs::path Appdir = Base / "waechter";
 
