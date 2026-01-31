@@ -124,7 +124,7 @@ jobs:
           mkdir -p dist
           cp build/Source/Gui/Release/waechter.exe dist/
           cp build/Source/Gui/Release/waechter.pdb dist/ || echo "No PDB file found"
-          cp Meta/Icon.png dist/
+          cp Meta/Assets/Branding/Icon.png dist/
           
           # Copy vcpkg DLLs
           VCPKG_BIN="vcpkg/installed/x64-windows/bin"

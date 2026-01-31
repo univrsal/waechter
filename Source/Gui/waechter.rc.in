@@ -1,7 +1,7 @@
 #include <windows.h>
 
 // Icon
-IDI_ICON1 ICON "../../Meta/Branding/Icon.ico"
+IDI_ICON1 ICON "../../Meta/Assets/Branding/Icon.ico"
 
 // Version information
 VS_VERSION_INFO VERSIONINFO
