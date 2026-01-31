@@ -42,6 +42,13 @@ If you're using an Arch-based distribution you can install waechter from
 the AUR package [waechter-git](https://aur.archlinux.org/packages/waechter-git/).
 The daemon config file will be installed to `/etc/waechterd/waechterd.ini`, see [Configuration](#configuration) for more
 information on how to adjust it, specifically the part about the network interface name and the daemon group.
+
+If you have the daemon installed on a server and configured it to use the WebSocket server and just need
+a quick way to connect to it, you can use the client directly from your broser:
+
+- For the stable version: [waechter.st/client](/client)
+- For nighly builds: [waechter.st/client-nightly](/client-nightly)
+
 The AUR package automatically adds the `waechter` group to your system, so just add your user to it with:
 
 ```shell
