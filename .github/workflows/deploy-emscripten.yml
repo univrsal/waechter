@@ -4,15 +4,21 @@ on:
   push:
     branches: [ master ]
     paths:
-      - 'Source/**'
+      - 'Source/Gui/**'
+      - 'Source/Util/**'
       - 'Thirdparty/**'
       - 'CMakeLists.txt'
+      - '**/CMakeLists.txt'
+      - '**/*.cmake'
       - '.github/workflows/deploy-emscripten.yml'
   pull_request:
     paths:
-      - 'Source/**'
+      - 'Source/Gui/**'
+      - 'Source/Util/**'
       - 'Thirdparty/**'
       - 'CMakeLists.txt'
+      - '**/CMakeLists.txt'
+      - '**/*.cmake'
       - '.github/workflows/deploy-emscripten.yml'
   workflow_dispatch:
 

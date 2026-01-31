@@ -9,6 +9,7 @@ on:
       - 'CMakeLists.txt'
       - '**/CMakeLists.txt'
       - '**/*.cmake'
+      - '.github/workflows/build.yml'
   pull_request:
     branches: [ master ]
     paths:
@@ -17,6 +18,7 @@ on:
       - 'CMakeLists.txt'
       - '**/CMakeLists.txt'
       - '**/*.cmake'
+      - '.github/workflows/build.yml'
   workflow_dispatch:
 
 jobs:
@@ -27,8 +29,8 @@ jobs:
         include:
           - arch: x86_64
             runner: ubuntu-latest
-#          - arch: arm64
-#            runner: ubuntu-24.04-arm
+          - arch: arm64
+            runner: ubuntu-24.04-arm
     env:
       # keep ccache inside the repository workspace so the actions/cache step can store it reliably
       CCACHE_DIR: ${{ github.workspace }}/.ccache
@@ -64,19 +66,12 @@ jobs:
         if: matrix.arch == 'arm64'
         run: |
           # ARM64 runners may not have bpftool in linux-tools-common
-          # Install bpftool from source or use generic version
-          sudo apt-get install -y linux-tools-generic linux-tools-azure linux-cloud-tools-azure \
-            linux-tools-6.14.0-1014-azure linux-cloud-tools-6.14.0-1014-azure || true
-          # If still not available, build from source
-          if ! command -v bpftool &> /dev/null; then
-            echo "Building bpftool from source..."
-            git clone --depth 1 --branch v6.1 https://github.com/libbpf/bpftool.git
-            cd bpftool/src
-            make -j$(nproc)
-            sudo make install
-            cd ../..
-          fi
-
+          # Install bpftool from github
+          wget https://github.com/libbpf/bpftool/releases/download/v7.6.0/bpftool-v7.6.0-arm64.tar.gz
+          tar -xzf bpftool-v7.6.0-arm64.tar.gz
+          sudo install -m 755 bpftool /usr/local/bin/bpftool
+          bpftool --version     
+      
       - name: Configure (CMake + Ninja)
         run: |
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/artifacts" \
