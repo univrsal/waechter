@@ -46,8 +46,8 @@ information on how to adjust it, specifically the part about the network interfa
 If you have the daemon installed on a server and configured it to use the WebSocket server and just need
 a quick way to connect to it, you can use the client directly from your broser:
 
-- For the stable version: [waechter.st/client](/client)
-- For nighly builds: [waechter.st/client-nightly](/client-nightly)
+- For the stable version: [waechter.st/client](https://waechter.st/client)
+- For nighly builds: [waechter.st/client-nightly](https://waechter.st/client-nightly)
 
 The AUR package automatically adds the `waechter` group to your system, so just add your user to it with:
 
