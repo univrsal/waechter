@@ -17,3 +17,11 @@ if (WAECHTER_WITH_WEBSOCKETCLIENT)
             WebSocketSource.hpp
     )
 endif ()
+
+if (EMSCRIPTEN)
+	target_sources(waechter
+			PRIVATE
+			EmscriptenSocketSource.cpp
+			EmscriptenSocketSource.hpp
+	)
+endif ()
