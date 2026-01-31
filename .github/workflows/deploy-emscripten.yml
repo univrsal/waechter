@@ -1,0 +1,66 @@
+name: Deploy Emscripten build
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - 'Source/**'
+      - 'Thirdparty/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/deploy-emscripten.yml'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 'latest'
+
+      - name: Configure CMake
+        run: |
+          emcmake cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DWAECHTER_BUILD_DAEMON=OFF
+
+      - name: Build
+        run: |
+          cmake --build build --config Release -j$(nproc)
+
+      - name: Prepare deployment artifacts
+        run: |
+          mkdir -p deploy
+          cp build/Source/Client/waechter.js deploy/
+          cp build/Source/Client/waechter.wasm deploy/
+          cp build/Source/Client/waechter.html deploy/index.html
+
+      - name: Deploy to server via rsync
+        # Only deploy on push to master, not on PRs
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_PATH_EMSCRIPTEN_NIGHTLY: ${{ secrets.SERVER_PATH_EMSCRIPTEN_NIGHTLY }}
+        run: |
+          # Create SSH directory and add private key
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          
+          # Add server to known_hosts to avoid interactive prompt
+          ssh-keyscan -p 22033 -H "$SERVER_IP" >> ~/.ssh/known_hosts
+          
+          # Deploy using rsync over SSH
+          scp -P 22033 -i ~/.ssh/deploy_key -r deploy/* "$SERVER_USER@$SERVER_IP:$SERVER_PATH_EMSCRIPTEN_NIGHTLY"
+          
+          # Clean up
+          rm -f ~/.ssh/deploy_key
