@@ -27,6 +27,7 @@
 #include "DaemonUnixSocket.hpp"
 #include "ErrnoUtil.hpp"
 #include "Filesystem.hpp"
+#include "MemoryUsage.hpp"
 #include "Messages.hpp"
 #include "Data/AppIconAtlasBuilder.hpp"
 #include "Data/ConnectionHistory.hpp"
@@ -49,6 +50,7 @@ static void SendInitialDataToClient(std::shared_ptr<WDaemonClient> const& Client
 	}
 
 	Client->SendMessage(MT_ConnectionHistory, WConnectionHistory::GetInstance().Serialize());
+	Client->SendMessage(MT_MemoryStats, WMemoryUsage::GetMemoryStats());
 
 	// Send app icon atlas
 	auto              ActiveApps = SystemMap.GetActiveApplicationPaths();
@@ -93,15 +95,33 @@ WDaemonSocket::WDaemonSocket(std::string const& Path)
 #endif
 }
 
+void WDaemonSocket::BroadcastMemoryUsageUpdate()
+{
+	std::stringstream Os{};
+	{
+		auto Stats = WMemoryUsage::GetMemoryStats();
+		Os << MT_MemoryStats;
+		cereal::BinaryOutputArchive Archive(Os);
+		Archive(Stats);
+	}
+
+	std::lock_guard    Lock(ClientsMutex);
+	std::string const& Str = Os.str();
+
+	for (auto const& Client : Clients)
+	{
+		if (Client->SendFramedData(Str) < 0)
+		{
+			spdlog::error("Failed to send memory usage update to client: {}", WErrnoUtil::StrError());
+			Client->GetSocket()->Close();
+		}
+	}
+}
+
 void WDaemonSocket::BroadcastTrafficUpdate()
 {
 	auto&           SystemMap = WSystemMap::GetInstance();
 	std::lock_guard Lock(ClientsMutex);
-
-	if (!SystemMap.HasNewData() || Clients.empty())
-	{
-		return;
-	}
 
 	std::stringstream Os{};
 	{

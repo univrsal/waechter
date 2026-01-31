@@ -10,6 +10,7 @@
   "menu.show_uninitialized_sockets": "Show uninitialized sockets",
   "menu.show_offline_processes": "Show offline processes",
   "window.about": "About",
+  "window.memory_usage": "Daemon memory usage",
   "==== Details window": "",
   "window.details": "Details",
   "local_endpoint": "Local endpoint",

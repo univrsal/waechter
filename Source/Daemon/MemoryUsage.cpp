@@ -13,7 +13,7 @@
 #include "Net/Resolver.hpp"
 #include "Rules/RuleManager.hpp"
 
-void WMemoryUsage::PrintUsage()
+WMemoryStats WMemoryUsage::GetMemoryStats()
 {
 	auto const RuleManagerStats = WRuleManager::GetInstance().GetMemoryUsage();
 	auto const ResolverStats = WResolver::GetInstance().GetMemoryUsage();
@@ -29,4 +29,15 @@ void WMemoryUsage::PrintUsage()
 	auto const ConnectionHistoryStats = WConnectionHistory::GetInstance().GetMemoryUsage();
 	auto const IconResolverStats = WAppIconAtlasBuilder::GetInstance().GetResolver().GetMemoryUsage();
 	auto const DaemonStats = WDaemon::GetInstance().GetMemoryUsage();
+
+	WMemoryStats Stats{};
+	Stats.Stats.push_back(RuleManagerStats);
+	Stats.Stats.push_back(ResolverStats);
+	Stats.Stats.push_back(IPLinkStats);
+	Stats.Stats.push_back(SystemMapUsage);
+	Stats.Stats.push_back(MapUpdateUsage);
+	Stats.Stats.push_back(ConnectionHistoryStats);
+	Stats.Stats.push_back(IconResolverStats);
+	Stats.Stats.push_back(DaemonStats);
+	return Stats;
 }

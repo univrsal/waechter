@@ -10,6 +10,7 @@
   "menu.show_uninitialized_sockets": "Nicht initialisierte Sockets anzeigen",
   "menu.show_offline_processes": "Offline-Prozesse anzeigen",
   "window.about": "Über",
+  "window.memory_usage": "Dämonarbeitsspeichernutzung",
   "==== Details window": "",
   "window.details": "Details",
   "local_endpoint": "Lokaler Endpunkt",

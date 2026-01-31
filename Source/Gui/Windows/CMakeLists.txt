@@ -20,4 +20,6 @@ target_sources(waechter
         ConnectionHistoryWindow.hpp
         SettingsWindow.cpp
         SettingsWindow.hpp
+        MemoryUsageWindow.cpp
+        MemoryUsageWindow.hpp
 )

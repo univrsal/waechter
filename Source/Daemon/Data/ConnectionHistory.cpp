@@ -274,7 +274,10 @@ WMemoryStat WConnectionHistory::GetMemoryUsage()
 	{
 		HistoryEntry.Usage += sizeof(WConnectionHistoryEntry);
 		HistoryEntry.Usage += sizeof(WConnectionSet);
-		HistoryEntry.Usage += sizeof(std::shared_ptr<ITrafficItem>) * E.Set->Connections.size();
+		if (E.Set)
+		{
+			HistoryEntry.Usage += sizeof(std::shared_ptr<ITrafficItem>) * E.Set->Connections.size();
+		}
 	}
 
 	WMemoryStatEntry ActiveConnectionsEntry{};

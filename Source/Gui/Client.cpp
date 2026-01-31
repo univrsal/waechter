@@ -55,10 +55,13 @@ void WClient::OnDataReceived(WBuffer& Buf)
 			TrafficTree->SetResolvedAddresses(Buf);
 			break;
 		case MT_ConnectionHistory:
-			WGlfwWindow::GetInstance().GetMainWindow()->GetConnectionHistoryWindow().Initialize(Buf);
+			WMainWindow::Get().GetConnectionHistoryWindow().Initialize(Buf);
 			break;
 		case MT_ConnectionHistoryUpdate:
-			WGlfwWindow::GetInstance().GetMainWindow()->GetConnectionHistoryWindow().HandleUpdate(Buf);
+			WMainWindow::Get().GetConnectionHistoryWindow().HandleUpdate(Buf);
+			break;
+		case MT_MemoryStats:
+			WMainWindow::Get().GetMemoryUsageWindow().HandleUpdate(Buf);
 			break;
 		default:
 			spdlog::warn("Received unknown message type from server: {}", static_cast<int>(Type));

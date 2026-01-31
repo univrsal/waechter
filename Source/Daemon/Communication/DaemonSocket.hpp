@@ -56,6 +56,7 @@ public:
 		ClientsMutex.unlock();
 	}
 
+	void BroadcastMemoryUsageUpdate();
 	void BroadcastTrafficUpdate();
 	void BroadcastConnectionHistoryUpdate(WConnectionHistoryUpdate const& Update);
 	void BroadcastAtlasUpdate();

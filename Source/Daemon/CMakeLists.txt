@@ -4,6 +4,8 @@ add_executable(waechterd
         DaemonConfig.hpp
         Daemon.cpp
         Daemon.hpp
+        MemoryUsage.cpp
+        MemoryUsage.hpp
 )
 
 

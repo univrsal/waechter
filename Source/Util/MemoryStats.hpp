@@ -15,11 +15,34 @@ struct WMemoryStatEntry
 {
 	std::string Name;
 	WBytes      Usage;
+	template <class Archive>
+	void serialize(Archive& Ar)
+	{
+		Ar(Name, Usage);
+	}
 };
+
 struct WMemoryStat
 {
 	std::string                   Name;
 	std::vector<WMemoryStatEntry> ChildEntries;
+
+	template <class Archive>
+	void serialize(Archive& Ar)
+	{
+		Ar(Name, ChildEntries);
+	}
+};
+
+struct WMemoryStats
+{
+	std::vector<WMemoryStat> Stats;
+
+	template <class Archive>
+	void serialize(Archive& Ar)
+	{
+		Ar(Stats);
+	}
 };
 
 class IMemoryTrackable

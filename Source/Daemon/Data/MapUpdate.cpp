@@ -169,8 +169,6 @@ WMemoryStat WMapUpdate::GetMemoryUsage()
 		.Usage = sizeof(WTrafficTreeSocketAddition) * Updates.AddedSockets.capacity() });
 	Stats.ChildEntries.emplace_back(WMemoryStatEntry{
 		.Name = "Updates.AddedTuples", .Usage = sizeof(WTrafficTreeTupleAddition) * Updates.AddedTuples.capacity() });
-	Stats.ChildEntries.emplace_back(WMemoryStatEntry{
-		.Name = "Updates.UpdatedItems", .Usage = sizeof(WTrafficTreeTrafficUpdate) * Updates.UpdatedItems.capacity() });
 
 	return Stats;
 }

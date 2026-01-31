@@ -4,9 +4,10 @@
  */
 
 #pragma once
+#include "MemoryStats.hpp"
 
 class WMemoryUsage
 {
 public:
-	static void PrintUsage();
+	static WMemoryStats GetMemoryStats();
 };

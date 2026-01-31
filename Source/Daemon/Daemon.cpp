@@ -42,17 +42,34 @@ void WDaemon::PeriodicUpdatesThreadFunction() const
 	pthread_setname_np(pthread_self(), "per-updates");
 
 	auto const& SignalHandler = WSignalHandler::GetInstance();
+	int         Counter = 0;
 	while (!SignalHandler.bStop)
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		Counter++;
+
 		{
 			ZoneScopedN("RefreshAllTrafficCounters");
 			WSystemMap::GetInstance().RefreshAllTrafficCounters();
 		}
+		if (!DaemonSocket->HasClients())
+		{
+			continue;
+		}
+
+		if (WSystemMap::GetInstance().HasNewData())
 		{
 			ZoneScopedN("BroadcastTrafficUpdate");
 			DaemonSocket->BroadcastTrafficUpdate();
 		}
+
+		if (Counter >= 5)
+		{
+			ZoneScopedN("BroadcastMemoryUsageUpdate");
+			Counter = 0;
+			DaemonSocket->BroadcastMemoryUsageUpdate();
+		}
+
 		{
 			ZoneScopedN("WConnectionHistory::Update");
 			auto Updates = WConnectionHistory::GetInstance().Update();
@@ -62,7 +79,7 @@ void WDaemon::PeriodicUpdatesThreadFunction() const
 			}
 		}
 
-		if (DaemonSocket->HasClients() && WAppIconAtlasBuilder::GetInstance().IsDirty())
+		if (WAppIconAtlasBuilder::GetInstance().IsDirty())
 		{
 			ZoneScopedN("BroadcastAtlasUpdate");
 			DaemonSocket->BroadcastAtlasUpdate();

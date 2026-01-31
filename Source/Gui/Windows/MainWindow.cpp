@@ -147,6 +147,10 @@ void WMainWindow::Draw()
 			{
 				SettingsWindow.Show();
 			}
+			if (ImGui::MenuItem(TR("window.memory_usage"), nullptr, false))
+			{
+				MemoryUsageWindow.Show();
+			}
 			ImGui::EndMenu();
 		}
 
@@ -180,6 +184,7 @@ void WMainWindow::Draw()
 	RegisterDialog.Draw();
 	ConnectionHistoryWindow.Draw();
 	SettingsWindow.Draw();
+	MemoryUsageWindow.Draw();
 #ifndef __EMSCRIPTEN__
 	WIP2Asn::GetInstance().DrawDownloadProgressWindow();
 #endif
