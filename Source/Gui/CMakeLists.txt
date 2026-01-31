@@ -69,7 +69,12 @@ if (EMSCRIPTEN)
             -sNO_DISABLE_EXCEPTION_CATCHING
             -sWEBSOCKET_URL=wss://
             -sWEBSOCKET_SUBPROTOCOL=binary
-            -sASSERTIONS=2 -g
+            -sASSERTIONS=2
+            -sASYNCIFY
+            $<$<CONFIG:Debug>:-g>
+            -sEXPORTED_FUNCTIONS=['_main','_malloc','_free','_emscripten_websocket_on_open','_emscripten_websocket_on_error','_emscripten_websocket_on_close','_emscripten_websocket_on_message_js']
+            -sEXPORTED_RUNTIME_METHODS=['ccall','cwrap']
+            -lidbfs.js
             --shell-file ${CMAKE_SOURCE_DIR}/Meta/Package/shell.html
             --bind)
 

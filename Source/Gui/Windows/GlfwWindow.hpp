@@ -26,6 +26,15 @@ class WGlfwWindow : public TSingleton<WGlfwWindow>
 	// Keep the ini filename alive for ImGui (ImGui stores a pointer to it)
 	std::string ImGuiIniPath{};
 
+	static char const* GetPreferredShaderVersion()
+	{
+#if EMSCRIPTEN
+		return "#version 300 es";
+#else
+		return "#version 130";
+#endif
+	}
+
 public:
 	void Tick() const;
 	bool Init();

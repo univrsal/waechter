@@ -27,6 +27,7 @@
 #include "Util/I18n.hpp"
 #include "Util/LibCurl.hpp"
 #include "Util/Settings.hpp"
+#include "Util/SysUtil.hpp"
 
 static void GlfwErrorCallback(int Error, char const* Description)
 {
@@ -76,9 +77,12 @@ void WGlfwWindow::Tick() const
 
 bool WGlfwWindow::Init()
 {
-#ifndef __EMSCRIPTEN__
+#if __EMSCRIPTEN__
+	emscripten_set_canvas_element_size("#canvas", 900, 700);
+#else
 	WLibCurl::Init();
 #endif
+
 	glfwSetErrorCallback(GlfwErrorCallback);
 	MainWindow = std::make_unique<WMainWindow>();
 
@@ -87,18 +91,10 @@ bool WGlfwWindow::Init()
 		spdlog::critical("GLFW initialization failed!");
 		return false;
 	}
-#ifdef __EMSCRIPTEN__
-	// For WebGL 2.0 (preferred - most browsers support this)
-	static char const* GlslVersion = "#version 300 es";
-#else
-	static const char* GlslVersion = "#version 130";
-#endif
+
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
 	MainScale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor()); // Valid on GLFW 3.3+ only
-#ifdef __EMSCRIPTEN__
-	emscripten_set_canvas_element_size("#canvas", 900, 700);
-#endif
 
 	Window = glfwCreateWindow(900, 700, "Wächter", nullptr, nullptr);
 	if (!Window)
@@ -176,7 +172,7 @@ bool WGlfwWindow::Init()
 	Style.FontScaleDpi = MainScale;
 
 	ImGui_ImplGlfw_InitForOpenGL(Window, true);
-	ImGui_ImplOpenGL3_Init(GlslVersion);
+	ImGui_ImplOpenGL3_Init(GetPreferredShaderVersion());
 
 	WTimerManager::GetInstance().Start(glfwGetTime());
 	WIconAtlas::GetInstance().Load();
@@ -236,6 +232,7 @@ void WGlfwWindow::Destroy()
 
 	glfwDestroyWindow(Window);
 	glfwTerminate();
+	WSysUtil::SyncFilesystemToIndexedDB();
 #ifndef __EMSCRIPTEN__
 	WLibCurl::Deinit();
 #endif
