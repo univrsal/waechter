@@ -44,9 +44,9 @@ jobs:
       - name: Prepare deployment artifacts
         run: |
           mkdir -p deploy
-          cp build/Source/Client/waechter.js deploy/
-          cp build/Source/Client/waechter.wasm deploy/
-          cp build/Source/Client/waechter.html deploy/index.html
+          cp build/Source/Gui/waechter.js deploy/
+          cp build/Source/Gui/waechter.wasm deploy/
+          cp build/Source/Gui/waechter.html deploy/index.html
 
       - name: Upload build artifacts
         # Upload artifacts on PRs and workflow_dispatch
