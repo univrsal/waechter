@@ -51,6 +51,9 @@ jobs:
         env:
           TARGET_ARCH: ${{ matrix.target }}
 
+      - name: Build
+        run: .github/scripts/macos/build.sh
+
       - name: Get short commit
         run: |
           echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
