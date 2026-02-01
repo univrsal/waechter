@@ -20,8 +20,6 @@ bool WConnectionHistoryEntry::Update()
 
 	if (Set->Connections.empty())
 	{
-		Set = nullptr;
-		App = nullptr;
 		// technically we should set this when the socket actually closes, but this is close enough
 		EndTime = WTime::GetUnixNow();
 		return true;
@@ -242,12 +240,7 @@ WConnectionHistoryUpdate WConnectionHistory::Serialize()
 	std::scoped_lock         Lock(Mutex);
 	for (auto const& Entry : History)
 	{
-		if (!Entry.App)
-		{
-			// connection exited before we could send it
-			// todo: handle this better?
-			continue;
-		}
+		assert(Entry.App && Entry.Set);
 		WNewConnectionHistoryEntry NewEntry{};
 		NewEntry.AppId = Entry.App->TrafficItem->ItemId;
 		NewEntry.RemoteEndpoint = Entry.RemoteEndpoint;
@@ -272,12 +265,10 @@ WMemoryStat WConnectionHistory::GetMemoryUsage()
 	HistoryEntry.Name = "History";
 	for (auto const& E : History)
 	{
+		assert(E.App && E.Set);
 		HistoryEntry.Usage += sizeof(WConnectionHistoryEntry);
 		HistoryEntry.Usage += sizeof(WConnectionSet);
-		if (E.Set)
-		{
-			HistoryEntry.Usage += sizeof(std::shared_ptr<ITrafficItem>) * E.Set->Connections.size();
-		}
+		HistoryEntry.Usage += sizeof(std::shared_ptr<ITrafficItem>) * E.Set->Connections.size();
 	}
 
 	WMemoryStatEntry ActiveConnectionsEntry{};

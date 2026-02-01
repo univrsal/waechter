@@ -46,6 +46,11 @@ void WDaemon::PeriodicUpdatesThreadFunction() const
 	while (!SignalHandler.bStop)
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		if (SignalHandler.bStop)
+		{
+			break;
+		}
+
 		Counter++;
 
 		{
