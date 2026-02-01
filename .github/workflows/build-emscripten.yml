@@ -55,7 +55,7 @@ jobs:
       - name: Deploy to server via rsync
         # Only deploy on push to master, not on PRs
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        run: .github/scripts/deploy-emscripten.sh
+        run: .github/scripts/emscripten/deploy.sh
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SERVER_IP: ${{ secrets.SERVER_IP }}
