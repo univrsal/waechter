@@ -1,10 +1,12 @@
-name: Release
+name: Test Release Workflow
 
 on:
-  push:
-    tags:
-      - 'v*'
-      - '*.*.*'
+  workflow_dispatch:
+    inputs:
+      test_tag:
+        description: 'Test tag name (e.g., v0.0.0-test)'
+        required: true
+        default: 'v0.0.0-test'
 
 jobs:
   build-linux:
@@ -27,7 +29,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ./.ccache
-          key: ${{ runner.os }}-ccache-release-${{ hashFiles('**/CMakeLists.txt', '**/*.cpp', '**/*.c', '**/*.h') }}
+          key: ${{ runner.os }}-ccache-test-release-${{ hashFiles('**/CMakeLists.txt', '**/*.cpp', '**/*.c', '**/*.h') }}
           restore-keys: |
             ${{ runner.os }}-ccache-release-
             ${{ runner.os }}-ccache-
@@ -52,21 +54,16 @@ jobs:
       - name: Package
         run: .github/scripts/ubuntu/package.sh
 
-      - name: Get tag name
-        id: tag
-        run: |
-          echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-
       - name: Create tarball of installed files
         run: |
           cd artifacts
-          tar -czf ../waechter-${{ steps.tag.outputs.TAG_NAME }}-linux-x86_64.tar.gz .
+          tar -czf ../waechter-${{ inputs.test_tag }}-linux-x86_64.tar.gz .
           cd ..
 
       - name: Generate SHA256 checksums
         run: |
           sha256sum build/*.deb > checksums.txt
-          sha256sum waechter-${{ steps.tag.outputs.TAG_NAME }}-linux-x86_64.tar.gz >> checksums.txt
+          sha256sum waechter-${{ inputs.test_tag }}-linux-x86_64.tar.gz >> checksums.txt
           cat checksums.txt
 
       - name: Import GPG key
@@ -88,15 +85,15 @@ jobs:
         id: release_notes
         run: |
           cat > release_notes.md << EOF
-          ## Waechter Release ${{ steps.tag.outputs.TAG_NAME }}
+          ## Waechter Test Release ${{ inputs.test_tag }}
 
-          **Note:** This is a draft release. Please test before marking as final.
+          **Note:** This is a TEST release for workflow validation.
 
           ### Downloads
 
-          - **Linux**: \`waechter-${{ steps.tag.outputs.TAG_NAME }}-linux-x86_64.tar.gz\` or \`.deb\` package
-          - **Windows**: \`waechter-${{ steps.tag.outputs.TAG_NAME }}-windows-client.zip\`
-          - **macOS**: \`waechter-${{ steps.tag.outputs.TAG_NAME }}-macos-x86_64.pkg\` or \`waechter-${{ steps.tag.outputs.TAG_NAME }}-macos-arm64.pkg\`
+          - **Linux**: \`waechter-${{ inputs.test_tag }}-linux-x86_64.tar.gz\` or \`.deb\` package
+          - **Windows**: \`waechter-${{ inputs.test_tag }}-windows-client.zip\`
+          - **macOS**: \`waechter-${{ inputs.test_tag }}-macos-x86_64.pkg\` or \`waechter-${{ inputs.test_tag }}-macos-arm64.pkg\`
 
           ### SHA256 Checksums
 
@@ -108,14 +105,15 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           draft: true
-          prerelease: false
-          name: Waechter ${{ steps.tag.outputs.TAG_NAME }}
+          prerelease: true
+          name: Waechter Test ${{ inputs.test_tag }}
+          tag_name: ${{ inputs.test_tag }}
           body_path: release_notes.md
           files: |
             build/*.deb
             build/*.deb.asc
-            waechter-${{ steps.tag.outputs.TAG_NAME }}-linux-x86_64.tar.gz
-            waechter-${{ steps.tag.outputs.TAG_NAME }}-linux-x86_64.tar.gz.asc
+            waechter-${{ inputs.test_tag }}-linux-x86_64.tar.gz
+            waechter-${{ inputs.test_tag }}-linux-x86_64.tar.gz.asc
             checksums.txt
             checksums.txt.asc
           fail_on_unmatched_files: false
@@ -161,17 +159,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: build
-          key: ${{ runner.os }}-cmake-build-${{ hashFiles('CMakeLists.txt', '**/CMakeLists.txt', '**/*.cmake', 'Source/**', 'Thirdparty/**') }}
+          key: ${{ runner.os }}-cmake-build-test-${{ hashFiles('CMakeLists.txt', '**/CMakeLists.txt', '**/*.cmake', 'Source/**', 'Thirdparty/**') }}
 
       - name: Configure (CMake)
         run: .github/scripts/windows/configure.ps1
         shell: pwsh
-
-      - name: Get tag name
-        id: tag
-        shell: bash
-        run: |
-          echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
 
       - name: Build
         run: .github/scripts/windows/build.ps1
@@ -191,12 +183,12 @@ jobs:
       - name: Create ZIP archive
         shell: pwsh
         run: |
-          Compress-Archive -Path dist/* -DestinationPath waechter-${{ steps.tag.outputs.TAG_NAME }}-windows-client.zip
+          Compress-Archive -Path dist/* -DestinationPath waechter-${{ inputs.test_tag }}-windows-client.zip
 
       - name: Generate SHA256 checksum
         shell: bash
         run: |
-          sha256sum waechter-${{ steps.tag.outputs.TAG_NAME }}-windows-client.zip > windows-checksums.txt
+          sha256sum waechter-${{ inputs.test_tag }}-windows-client.zip > windows-checksums.txt
           cat windows-checksums.txt
 
       - name: Import GPG key
@@ -205,7 +197,7 @@ jobs:
         run: .github/scripts/release/import-gpg-key.sh
 
       - name: Sign Windows artifacts with GPG
-        run: .github/scripts/release/sign-windows-release.sh ${{ steps.tag.outputs.TAG_NAME }} ${{ matrix.arch }}
+        run: .github/scripts/release/sign-windows-release.sh ${{ inputs.test_tag }} ${{ matrix.arch }}
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
@@ -214,9 +206,10 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           draft: true
+          tag_name: ${{ inputs.test_tag }}
           files: |
-            waechter-${{ steps.tag.outputs.TAG_NAME }}-windows-client.zip
-            waechter-${{ steps.tag.outputs.TAG_NAME }}-windows-client.zip.asc
+            waechter-${{ inputs.test_tag }}-windows-client.zip
+            waechter-${{ inputs.test_tag }}-windows-client.zip.asc
             windows-checksums.txt
             windows-checksums.txt.asc
           fail_on_unmatched_files: false
@@ -230,7 +223,7 @@ jobs:
       contents: write
     strategy:
       matrix:
-        arch: [x86_64, arm64]
+        arch: [ x86_64, arm64 ]
 
     steps:
       - name: Checkout
@@ -251,14 +244,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .ccache
-          key: ${{ runner.os }}-${{ matrix.arch }}-ccache-${{ hashFiles('**/CMakeLists.txt', '**/*.cpp', '**/*.c', '**/*.h') }}
+          key: ${{ runner.os }}-${{ matrix.arch }}-ccache-test-${{ hashFiles('**/CMakeLists.txt', '**/*.cpp', '**/*.c', '**/*.h') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.arch }}-ccache-
-
-      - name: Get tag name
-        id: tag
-        run: |
-          echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
 
       - name: Configure (CMake + Ninja)
         run: .github/scripts/macos/configure.sh
@@ -274,10 +262,10 @@ jobs:
         run: .github/scripts/macos/create-app-bundle.sh
 
       - name: Create PKG installer
-        run: .github/scripts/macos/create-pkg.sh ${{ matrix.target }} ${{ steps.tag.outputs.TAG_NAME }}
+        run: .github/scripts/macos/create-pkg.sh ${{ matrix.target }} ${{ inputs.test_tag }}
 
       - name: Code sign app
-        run: .github/scripts/macos/sign.sh ${{ matrix.target }} ${{ steps.tag.outputs.TAG_NAME }}
+        run: .github/scripts/macos/sign.sh ${{ matrix.target }} ${{ inputs.test_tag }}
         env:
           MACOS_INSTALLER_CERTIFICATE: ${{ secrets.MACOS_INSTALLER_CERTIFICATE }}
           MACOS_INSTALLER_CERTIFICATE_PWD: ${{ secrets.MACOS_INSTALLER_CERTIFICATE_PWD }}
@@ -289,7 +277,7 @@ jobs:
         run: .github/scripts/release/import-gpg-key.sh
 
       - name: Sign macOS artifacts with GPG
-        run: .github/scripts/release/sign-macos-release.sh ${{ steps.tag.outputs.TAG_NAME }} ${{ matrix.arch }}
+        run: .github/scripts/release/sign-macos-release.sh ${{ inputs.test_tag }} ${{ matrix.arch }}
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
@@ -298,9 +286,10 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           draft: true
+          tag_name: ${{ inputs.test_tag }}
           files: |
-            waechter-${{ steps.tag.outputs.TAG_NAME }}-macos-${{ matrix.arch }}.pkg
-            waechter-${{ steps.tag.outputs.TAG_NAME }}-macos-${{ matrix.arch }}.pkg.asc
+            waechter-${{ inputs.test_tag }}-macos-${{ matrix.arch }}.pkg
+            waechter-${{ inputs.test_tag }}-macos-${{ matrix.arch }}.pkg.asc
             macos-${{ matrix.arch }}-checksums.txt
             macos-${{ matrix.arch }}-checksums.txt.asc
           fail_on_unmatched_files: false
@@ -317,17 +306,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Get tag name
-        id: tag
-        run: |
-          echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-
       - name: Download release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Download all checksum files from the release
-          gh release download "${{ steps.tag.outputs.TAG_NAME }}" \
+          gh release download "${{ inputs.test_tag }}" \
             --pattern '*checksums.txt' \
             --dir checksums || true
 
@@ -336,15 +320,15 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cat > release_notes.md << EOF
-          ## Waechter Release ${{ steps.tag.outputs.TAG_NAME }}
+          ## Waechter Test Release ${{ inputs.test_tag }}
 
-          **Note:** This is a draft release. Please test before marking as final.
+          **Note:** This is a TEST release for workflow validation.
 
           ### Downloads
 
-          - **Linux**: \`waechter-${{ steps.tag.outputs.TAG_NAME }}-linux-x86_64.tar.gz\` or \`.deb\` package
-          - **Windows**: \`waechter-${{ steps.tag.outputs.TAG_NAME }}-windows-client.zip\`
-          - **macOS**: \`waechter-${{ steps.tag.outputs.TAG_NAME }}-macos-x86_64.pkg\` or \`waechter-${{ steps.tag.outputs.TAG_NAME }}-macos-arm64.pkg\`
+          - **Linux**: \`waechter-${{ inputs.test_tag }}-linux-x86_64.tar.gz\` or \`.deb\` package
+          - **Windows**: \`waechter-${{ inputs.test_tag }}-windows-client.zip\`
+          - **macOS**: \`waechter-${{ inputs.test_tag }}-macos-x86_64.pkg\` or \`waechter-${{ inputs.test_tag }}-macos-arm64.pkg\`
 
           ### SHA256 Checksums
 
@@ -402,6 +386,5 @@ jobs:
           EOF
 
           # Update the release notes
-          gh release edit "${{ steps.tag.outputs.TAG_NAME }}" \
+          gh release edit "${{ inputs.test_tag }}" \
             --notes-file release_notes.md
-
