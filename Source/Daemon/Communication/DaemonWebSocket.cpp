@@ -72,52 +72,32 @@ int WebSocketCallback(lws* Wsi, lws_callback_reasons Reason, void*, void* In, si
 			auto const& Cfg = WDaemonConfig::GetInstance();
 			bool        Authenticated = false;
 
-			// Try to get Authorization header first (for native clients)
-			char AuthHeaderBuf[256];
-			int  HeaderLen = lws_hdr_copy(Wsi, AuthHeaderBuf, sizeof(AuthHeaderBuf), WSI_TOKEN_HTTP_AUTHORIZATION);
+			char QueryBuf[512];
+			int  QueryLen = lws_hdr_copy(Wsi, QueryBuf, sizeof(QueryBuf), WSI_TOKEN_HTTP_URI_ARGS);
 
-			if (HeaderLen > 0)
+			if (QueryLen > 0)
 			{
-				std::string AuthHeader(AuthHeaderBuf, static_cast<size_t>(HeaderLen));
-				std::string ExpectedAuth = "Bearer " + Cfg.WebSocketAuthToken;
+				std::string QueryString(QueryBuf, static_cast<size_t>(QueryLen));
+				spdlog::debug("WebSocket query string: {}", QueryString);
 
-				if (AuthHeader == ExpectedAuth)
+				// Parse query parameters (format: token=value&other=value)
+				size_t TokenPos = QueryString.find("token=");
+				if (TokenPos != std::string::npos)
 				{
-					Authenticated = true;
-					spdlog::debug("WebSocket connection authenticated via header");
-				}
-			}
+					size_t      TokenStart = TokenPos + 6; // Skip "token="
+					size_t      TokenEnd = QueryString.find('&', TokenStart);
+					std::string Token = (TokenEnd != std::string::npos)
+						? QueryString.substr(TokenStart, TokenEnd - TokenStart)
+						: QueryString.substr(TokenStart);
 
-			// If header auth failed, try query parameter (for browser clients)
-			if (!Authenticated)
-			{
-				char QueryBuf[512];
-				int  QueryLen = lws_hdr_copy(Wsi, QueryBuf, sizeof(QueryBuf), WSI_TOKEN_HTTP_URI_ARGS);
-
-				if (QueryLen > 0)
-				{
-					std::string QueryString(QueryBuf, static_cast<size_t>(QueryLen));
-					spdlog::debug("WebSocket query string: {}", QueryString);
-
-					// Parse query parameters (format: token=value&other=value)
-					size_t TokenPos = QueryString.find("token=");
-					if (TokenPos != std::string::npos)
+					if (Token == Cfg.WebSocketAuthToken)
 					{
-						size_t      TokenStart = TokenPos + 6; // Skip "token="
-						size_t      TokenEnd = QueryString.find('&', TokenStart);
-						std::string Token = (TokenEnd != std::string::npos)
-							? QueryString.substr(TokenStart, TokenEnd - TokenStart)
-							: QueryString.substr(TokenStart);
-
-						if (Token == Cfg.WebSocketAuthToken)
-						{
-							Authenticated = true;
-							spdlog::debug("WebSocket connection authenticated via query parameter");
-						}
-						else
-						{
-							spdlog::warn("WebSocket connection rejected: invalid token in query parameter");
-						}
+						Authenticated = true;
+						spdlog::debug("WebSocket connection authenticated via query parameter");
+					}
+					else
+					{
+						spdlog::warn("WebSocket connection rejected: invalid token in query parameter");
 					}
 				}
 			}
