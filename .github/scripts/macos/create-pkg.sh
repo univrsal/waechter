@@ -14,12 +14,12 @@ cp -R Waechter.app pkgroot/Applications/
 # Create component package
 pkgbuild --root pkgroot \
          --identifier st.waechter.client \
-         --version 0.1.3 \
+         --version ${VERSION} \
          --install-location / \
          component.pkg
 
 # Create distribution XML
-cat > distribution.xml << 'EOF'
+cat > distribution.xml << EOF
 <?xml version="1.0" encoding="utf-8"?>
 <installer-gui-script minSpecVersion="1">
     <title>Waechter Network Monitor</title>
@@ -36,7 +36,7 @@ cat > distribution.xml << 'EOF'
     <choice id="st.waechter.client" visible="false">
         <pkg-ref id="st.waechter.client"/>
     </choice>
-    <pkg-ref id="st.waechter.client" version="0.1.3" onConclusion="none">component.pkg</pkg-ref>
+    <pkg-ref id="st.waechter.client" version="${VERSION}" onConclusion="none">component.pkg</pkg-ref>
 </installer-gui-script>
 EOF
 
