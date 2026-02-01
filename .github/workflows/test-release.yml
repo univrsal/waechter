@@ -81,6 +81,17 @@ jobs:
         if: ${{ env.GPG_PRIVATE_KEY != '' }}
         run: .github/scripts/release/sign-linux-release.sh
 
+      - name: Create signatures archive
+        run: |
+          mkdir -p signatures
+          cp checksums.txt signatures/ 2>/dev/null || true
+          cp checksums.txt.asc signatures/ 2>/dev/null || true
+          cp build/*.deb.asc signatures/ 2>/dev/null || true
+          cp waechter-${{ inputs.test_tag }}-linux-x86_64.tar.gz.asc signatures/ 2>/dev/null || true
+          cd signatures
+          zip -r ../waechter-${{ inputs.test_tag }}-linux-signatures.zip .
+          cd ..
+
       - name: Generate initial release notes
         id: release_notes
         run: |
@@ -111,11 +122,8 @@ jobs:
           body_path: release_notes.md
           files: |
             build/*.deb
-            build/*.deb.asc
             waechter-${{ inputs.test_tag }}-linux-x86_64.tar.gz
-            waechter-${{ inputs.test_tag }}-linux-x86_64.tar.gz.asc
-            checksums.txt
-            checksums.txt.asc
+            waechter-${{ inputs.test_tag }}-linux-signatures.zip
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -202,6 +210,15 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
+      - name: Create signatures archive
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path signatures
+          Copy-Item -Path "windows-checksums.txt" -Destination "signatures/" -ErrorAction SilentlyContinue
+          Copy-Item -Path "windows-checksums.txt.asc" -Destination "signatures/" -ErrorAction SilentlyContinue
+          Copy-Item -Path "waechter-${{ inputs.test_tag }}-windows-client.zip.asc" -Destination "signatures/" -ErrorAction SilentlyContinue
+          Compress-Archive -Path signatures/* -DestinationPath waechter-${{ inputs.test_tag }}-windows-signatures.zip
+
       - name: Upload Windows artifacts to Release
         uses: softprops/action-gh-release@v1
         with:
@@ -209,9 +226,7 @@ jobs:
           tag_name: ${{ inputs.test_tag }}
           files: |
             waechter-${{ inputs.test_tag }}-windows-client.zip
-            waechter-${{ inputs.test_tag }}-windows-client.zip.asc
-            windows-checksums.txt
-            windows-checksums.txt.asc
+            waechter-${{ inputs.test_tag }}-windows-signatures.zip
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -284,16 +299,24 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
+      - name: Create signatures archive
+        run: |
+          mkdir -p signatures
+          cp macos-${{ matrix.arch }}-checksums.txt signatures/ 2>/dev/null || true
+          cp macos-${{ matrix.arch }}-checksums.txt.asc signatures/ 2>/dev/null || true
+          cp waechter-${{ matrix.arch }}-${{ inputs.test_tag }}.pkg.asc signatures/ 2>/dev/null || true
+          cd signatures
+          zip -r ../waechter-${{ matrix.arch }}-${{ inputs.test_tag }}-macos-signatures.zip .
+          cd ..
+
       - name: Upload macOS artifacts to Release
         uses: softprops/action-gh-release@v1
         with:
           draft: true
           tag_name: ${{ inputs.test_tag }}
           files: |
-            waechter-${{ inputs.test_tag }}-${{ matrix.arch }}.pkg
-            waechter-${{ inputs.test_tag }}-${{ matrix.arch }}.pkg.asc
-            macos-${{ matrix.arch }}-checksums.txt
-            macos-${{ matrix.arch }}-checksums.txt.asc
+            waechter-${{ matrix.arch }}-${{ inputs.test_tag }}.pkg
+            waechter-${{ matrix.arch }}-${{ inputs.test_tag }}-macos-signatures.zip
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
