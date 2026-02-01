@@ -14,8 +14,7 @@ for formula (${unwanted_formulas}) {
 
 if (( #remove_formulas )) brew uninstall --ignore-dependencies ${remove_formulas}
 
-local -A arch_names=(x86_64 intel arm64 apple)
-print "cpuName=${arch_names[$1]}" >> $GITHUB_OUTPUT
+print "cpuName=${TARGET_ARCH}" >> $GITHUB_OUTPUT
 
 local xcode_cas_path="${HOME}/Library/Developer/Xcode/DerivedData/CompilationCache.noindex"
 
@@ -23,7 +22,6 @@ if ! [[ -d ${xcode_cas_path} ]] mkdir -p ${xcode_cas_path}
 
 print "xcodeCasPath=${xcode_cas_path}" >> $GITHUB_OUTPUT
 
-echo "macOS environment setup complete!"
 
 echo "Installing dependencies for ${TARGET_ARCH}..."
 brew update

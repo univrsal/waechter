@@ -2,9 +2,6 @@
 # Configure CMake for macOS build
 set -e
 
-TARGET_ARCH="$1"
-WORKSPACE="${2:-$(pwd)}"
-
 echo "Configuring CMake for ${TARGET_ARCH}..."
 
 if [[ "${TARGET_ARCH}" == "x86_64" ]]; then

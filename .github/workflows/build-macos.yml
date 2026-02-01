@@ -50,6 +50,7 @@ jobs:
         run: .github/scripts/macos/configure.sh
         env:
           TARGET_ARCH: ${{ matrix.target }}
+          WORKSPACE: ${{ github.workspace }}
 
       - name: Build
         run: .github/scripts/macos/build.sh
