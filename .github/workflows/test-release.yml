@@ -262,10 +262,10 @@ jobs:
         run: .github/scripts/macos/create-app-bundle.sh
 
       - name: Create PKG installer
-        run: .github/scripts/macos/create-pkg.sh ${{ matrix.target }} ${{ inputs.test_tag }}
+        run: .github/scripts/macos/create-pkg.sh ${{ matrix.arch }} ${{ inputs.test_tag }}
 
       - name: Code sign app
-        run: .github/scripts/macos/sign.sh ${{ matrix.target }} ${{ inputs.test_tag }}
+        run: .github/scripts/macos/sign.sh ${{ matrix.arch }} ${{ inputs.test_tag }}
         env:
           MACOS_INSTALLER_CERTIFICATE: ${{ secrets.MACOS_INSTALLER_CERTIFICATE }}
           MACOS_INSTALLER_CERTIFICATE_PWD: ${{ secrets.MACOS_INSTALLER_CERTIFICATE_PWD }}
