@@ -290,8 +290,8 @@ jobs:
           draft: true
           tag_name: ${{ inputs.test_tag }}
           files: |
-            waechter-${{ inputs.test_tag }}-macos-${{ matrix.arch }}.pkg
-            waechter-${{ inputs.test_tag }}-macos-${{ matrix.arch }}.pkg.asc
+            waechter-${{ inputs.test_tag }}-${{ matrix.arch }}.pkg
+            waechter-${{ inputs.test_tag }}-${{ matrix.arch }}.pkg.asc
             macos-${{ matrix.arch }}-checksums.txt
             macos-${{ matrix.arch }}-checksums.txt.asc
           fail_on_unmatched_files: false
