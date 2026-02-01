@@ -13,6 +13,7 @@
 #include "Types.hpp"
 #include "Singleton.hpp"
 #include "TrafficCounter.hpp"
+#include "MemoryStats.hpp"
 #include "Data/SystemItem.hpp"
 #include "Data/TrafficTreeUpdate.hpp"
 #include "Data/Counters.hpp"
@@ -29,7 +30,7 @@
  * The Other tree is built using the maps defined in this class each node containing
  * a traffic counter and a shared pointer to the corresponding node in the SystemItem tree.
  */
-class WSystemMap : public TSingleton<WSystemMap>
+class WSystemMap : public TSingleton<WSystemMap>, public IMemoryTrackable
 {
 	friend class WMapUpdate;
 	WSocketStateParser SocketStateParser{};
@@ -109,4 +110,6 @@ public:
 		}
 		return {};
 	}
+
+	WMemoryStat GetMemoryUsage() override;
 };

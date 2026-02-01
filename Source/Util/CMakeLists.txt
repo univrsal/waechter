@@ -6,6 +6,7 @@ add_library(util STATIC
         Json.hpp
         Format.hpp
         Time.cpp
+		MemoryStats.hpp
 )
 
 add_library(waechter::util ALIAS util)

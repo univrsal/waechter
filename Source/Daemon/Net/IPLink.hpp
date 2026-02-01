@@ -13,6 +13,7 @@
 
 #include "spdlog/spdlog.h"
 
+#include "MemoryStats.hpp"
 #include "Singleton.hpp"
 #include "Types.hpp"
 #include "Data/TrafficItem.hpp"
@@ -43,7 +44,7 @@ struct WIngressPortRouting
 
 struct WSocketCounter;
 
-class WIPLink : public TSingleton<WIPLink>
+class WIPLink : public TSingleton<WIPLink>, public IMemoryTrackable
 {
 	friend struct WBandwidthLimit;
 	std::mutex            Mutex;
@@ -89,4 +90,6 @@ public:
 		spdlog::info("{} active upload limits, {} active download limits", ActiveUploadLimits.size(),
 			ActiveDownloadLimits.size());
 	}
+
+	WMemoryStat GetMemoryUsage() override;
 };

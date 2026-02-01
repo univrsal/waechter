@@ -4,6 +4,7 @@
  */
 
 #pragma once
+#include "MemoryUsageWindow.hpp"
 #include "Windows/AboutDialog.hpp"
 #include "Windows/LogWindow.hpp"
 #include "Windows/NetworkGraphWindow.hpp"
@@ -22,6 +23,7 @@ class WMainWindow
 	WFlagAtlas               FlagAtlas{};
 	WRegisterDialog          RegisterDialog{};
 	WSettingsWindow          SettingsWindow{};
+	WMemoryUsageWindow       MemoryUsageWindow{};
 	WConnectionHistoryWindow ConnectionHistoryWindow{};
 
 	bool bInit{ false };
@@ -35,6 +37,7 @@ public:
 	WNetworkGraphWindow& GetNetworkGraphWindow() { return NetworkGraphWindow; }
 
 	WConnectionHistoryWindow& GetConnectionHistoryWindow() { return ConnectionHistoryWindow; }
+	WMemoryUsageWindow&       GetMemoryUsageWindow() { return MemoryUsageWindow; }
 
 	bool IsRegistered() const { return RegisterDialog.IsRegistered(); }
 

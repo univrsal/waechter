@@ -91,3 +91,17 @@ std::string WIconResolver::GetIconFromBinaryName(std::string const& Binary) cons
 	}
 	return FindIconPathByName(Name);
 }
+
+WMemoryStat WIconResolver::GetMemoryUsage()
+{
+	WMemoryStat Stats{};
+	Stats.Name = "WIconResolver";
+	WMemoryStatEntry IconsEntry{};
+	for (auto const& [Key, Value] : IconMap)
+	{
+		IconsEntry.Usage += Key.capacity() + Value.capacity();
+	}
+	IconsEntry.Name = "IconMap";
+	Stats.ChildEntries.emplace_back(IconsEntry);
+	return Stats;
+}

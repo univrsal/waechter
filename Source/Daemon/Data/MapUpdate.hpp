@@ -7,10 +7,11 @@
 #include <vector>
 #include <memory>
 
+#include "MemoryStats.hpp"
 #include "Data/TrafficTreeUpdate.hpp"
 #include "Data/Counters.hpp"
 
-class WMapUpdate
+class WMapUpdate : public IMemoryTrackable
 {
 	std::vector<WTrafficItemId>                                       MarkedForRemovalItems{};
 	std::vector<WTrafficItemId>                                       RemovedItems{};
@@ -73,4 +74,6 @@ public:
 	}
 
 	WTrafficTreeUpdates const& GetUpdates();
+
+	WMemoryStat GetMemoryUsage() override;
 };

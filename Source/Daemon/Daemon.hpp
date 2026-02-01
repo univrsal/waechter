@@ -5,10 +5,11 @@
 
 #pragma once
 #include "Singleton.hpp"
+#include "MemoryStats.hpp"
 #include "EBPF/WaechterEbpf.hpp"
 #include "Communication/DaemonSocket.hpp"
 
-class WDaemon : public TSingleton<WDaemon>
+class WDaemon : public TSingleton<WDaemon>, public IMemoryTrackable
 {
 	WWaechterEbpf EbpfObj;
 	std::thread   EbpfPollThread{};
@@ -31,4 +32,6 @@ public:
 	void RunLoop();
 
 	[[nodiscard]] std::shared_ptr<WDaemonSocket> const& GetDaemonSocket() const { return DaemonSocket; }
+
+	WMemoryStat GetMemoryUsage() override;
 };

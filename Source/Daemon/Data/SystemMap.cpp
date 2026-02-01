@@ -420,6 +420,47 @@ std::vector<std::string> WSystemMap::GetActiveApplicationPaths()
 	return ActiveApps;
 }
 
+WMemoryStat WSystemMap::GetMemoryUsage()
+{
+	std::scoped_lock Lock(DataMutex);
+	WMemoryStat      Stats;
+	Stats.Name = "WSystemMap";
+	WMemoryStatEntry Apps{}, ProcessesEntry{}, SocketsEntry{}, TrafficItemsEntry{};
+
+	Apps.Name = "Applications";
+	Apps.Usage += sizeof(decltype(Applications));
+	for (auto const& App : Applications)
+	{
+		Apps.Usage += App.first.capacity();
+		Apps.Usage += sizeof(WAppCounter);
+		Apps.Usage += sizeof(WApplicationItem);
+	}
+
+	ProcessesEntry.Name = "Processes";
+	ProcessesEntry.Usage += sizeof(decltype(Processes));
+	ProcessesEntry.Usage += (sizeof(WProcessId) + sizeof(WProcessCounter) + sizeof(WProcessItem)) * Processes.size();
+
+	SocketsEntry.Name = "Sockets";
+	SocketsEntry.Usage += sizeof(decltype(Sockets));
+	SocketsEntry.Usage += (sizeof(WSocketCookie) + sizeof(WSocketCounter) + sizeof(WSocketItem)) * Sockets.size();
+
+	for (auto const& Socket : Sockets | std::views::values)
+	{
+		SocketsEntry.Usage +=
+			Socket->UDPPerConnectionCounters.size() * (sizeof(WEndpoint) + sizeof(WTupleCounter) + sizeof(WTupleItem));
+	}
+
+	TrafficItemsEntry.Name = "All traffic items";
+	TrafficItemsEntry.Usage += sizeof(decltype(TrafficItems));
+	TrafficItemsEntry.Usage += (sizeof(WTrafficItemId) + sizeof(ITrafficItem)) * TrafficItems.size();
+
+	Stats.ChildEntries.emplace_back(Apps);
+	Stats.ChildEntries.emplace_back(ProcessesEntry);
+	Stats.ChildEntries.emplace_back(SocketsEntry);
+	Stats.ChildEntries.emplace_back(TrafficItemsEntry);
+	return Stats;
+}
+
 void WSystemMap::Cleanup()
 {
 	bool bRemovedAny{ false };

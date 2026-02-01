@@ -46,7 +46,7 @@ public:
 	bool Delete(K const& Key) const { return bpf_map_delete_elem(MapFd, &Key) == 0; }
 
 	// Fetch all elements from the bpf map into the local cache
-	void Update()
+	void UpdateCache()
 	{
 		Elements.clear();
 		uint32_t Key = 0;

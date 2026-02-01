@@ -140,3 +140,35 @@ WTrafficTreeUpdates const& WMapUpdate::GetUpdates()
 	Clear();
 	return Updates;
 }
+
+WMemoryStat WMapUpdate::GetMemoryUsage()
+{
+	WMemoryStat Stats{};
+	Stats.Name = "WMapUpdate";
+
+	Stats.ChildEntries.emplace_back(WMemoryStatEntry{
+		.Name = "MarkedForRemovalItems", .Usage = sizeof(WTrafficItemId) * MarkedForRemovalItems.capacity() });
+	Stats.ChildEntries.emplace_back(
+		WMemoryStatEntry{ .Name = "RemovedItems", .Usage = sizeof(WTrafficItemId) * RemovedItems.capacity() });
+	Stats.ChildEntries.emplace_back(WMemoryStatEntry{
+		.Name = "SocketStateChanges", .Usage = sizeof(WTrafficTreeSocketStateChange) * SocketStateChanges.capacity() });
+	Stats.ChildEntries.emplace_back(WMemoryStatEntry{
+		.Name = "AddedSockets", .Usage = sizeof(std::shared_ptr<WSocketCounter>) * AddedSockets.capacity() });
+	Stats.ChildEntries.emplace_back(WMemoryStatEntry{ .Name = "AddedTuples",
+		.Usage = sizeof(std::pair<WEndpoint, std::shared_ptr<WTupleCounter>>) * AddedTuples.capacity() });
+
+	Stats.ChildEntries.emplace_back(WMemoryStatEntry{
+		.Name = "Updates.UpdatedItems", .Usage = sizeof(WTrafficTreeTrafficUpdate) * Updates.UpdatedItems.capacity() });
+	Stats.ChildEntries.emplace_back(WMemoryStatEntry{ .Name = "Updates.MarkedForRemovalItems",
+		.Usage = sizeof(WTrafficItemId) * Updates.MarkedForRemovalItems.capacity() });
+	Stats.ChildEntries.emplace_back(WMemoryStatEntry{
+		.Name = "Updates.RemovedItems", .Usage = sizeof(WTrafficItemId) * Updates.RemovedItems.capacity() });
+	Stats.ChildEntries.emplace_back(WMemoryStatEntry{ .Name = "Updates.SocketStateChange",
+		.Usage = sizeof(WTrafficTreeSocketStateChange) * Updates.SocketStateChange.capacity() });
+	Stats.ChildEntries.emplace_back(WMemoryStatEntry{ .Name = "Updates.AddedSockets",
+		.Usage = sizeof(WTrafficTreeSocketAddition) * Updates.AddedSockets.capacity() });
+	Stats.ChildEntries.emplace_back(WMemoryStatEntry{
+		.Name = "Updates.AddedTuples", .Usage = sizeof(WTrafficTreeTupleAddition) * Updates.AddedTuples.capacity() });
+
+	return Stats;
+}
