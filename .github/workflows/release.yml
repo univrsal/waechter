@@ -21,7 +21,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install dependencies
-        run: .github/scripts/install-dependencies.sh
+        run: .github/scripts/ubuntu/install-dependencies.sh
 
       - name: Cache ccache
         uses: actions/cache@v4
@@ -43,21 +43,14 @@ jobs:
             -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       - name: Build
-        run: |
-          cmake --build build --config Release -- -k 0
+        run: .github/scripts/ubuntu/build.sh
 
       - name: Show ccache stats (after)
         run: |
           ccache -s || true
 
-      - name: Package (Install)
-        run: |
-          cmake --install build --prefix artifacts
-
-      - name: Package (DEB)
-        run: |
-          cd build
-          cpack -G DEB
+      - name: Package
+        run: .github/scripts/ubuntu/package.sh
 
       - name: Get tag name
         id: tag
@@ -89,45 +82,26 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         if: ${{ env.GPG_PRIVATE_KEY != '' }}
-        run: |
-          # Sign the DEB package
-          for deb in build/*.deb; do
-            gpg --batch --yes --passphrase "$GPG_PASSPHRASE" \
-              --pinentry-mode loopback --detach-sign --armor "$deb"
-          done
-          
-          # Sign the tarball
-          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" \
-            --pinentry-mode loopback --detach-sign --armor \
-            waechter-${{ steps.tag.outputs.TAG_NAME }}-linux-x86_64.tar.gz
-          
-          # Sign the checksums file
-          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" \
-            --pinentry-mode loopback --detach-sign --armor checksums.txt
+        run: .github/scripts/release/sign-linux-release.sh
 
-      - name: Generate release notes
+      - name: Generate initial release notes
         id: release_notes
         run: |
-          cat > release_notes.md << 'EOF'
+          cat > release_notes.md << EOF
           ## Waechter Release ${{ steps.tag.outputs.TAG_NAME }}
 
           **Note:** This is a draft release. Please test before marking as final.
 
+          ### Downloads
+
+          - **Linux**: \`waechter-${{ steps.tag.outputs.TAG_NAME }}-linux-x86_64.tar.gz\` or \`.deb\` package
+          - **Windows**: \`waechter-${{ steps.tag.outputs.TAG_NAME }}-windows-client.zip\`
+          - **macOS**: \`waechter-${{ steps.tag.outputs.TAG_NAME }}-macos-x86_64.pkg\` or \`waechter-${{ steps.tag.outputs.TAG_NAME }}-macos-arm64.pkg\`
+
           ### SHA256 Checksums
 
-          ```
+          Checksums will be updated once all platform builds complete.
           EOF
-
-          cat checksums.txt >> release_notes.md
-
-          cat >> release_notes.md << 'EOF'
-          ```
-          EOF
-
-          # Make release notes available to the next step
-          echo "RELEASE_NOTES<<EOF" >> "$GITHUB_OUTPUT"
-          cat release_notes.md >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
         id: create_release
@@ -332,3 +306,102 @@ jobs:
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-release-notes:
+    runs-on: ubuntu-latest
+    needs: [ build-linux, build-windows, build-macos ]
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get tag name
+        id: tag
+        run: |
+          echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+
+      - name: Download release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Download all checksum files from the release
+          gh release download "${{ steps.tag.outputs.TAG_NAME }}" \
+            --pattern '*checksums.txt' \
+            --dir checksums || true
+
+      - name: Consolidate checksums and update release notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cat > release_notes.md << EOF
+          ## Waechter Release ${{ steps.tag.outputs.TAG_NAME }}
+
+          **Note:** This is a draft release. Please test before marking as final.
+
+          ### Downloads
+
+          - **Linux**: \`waechter-${{ steps.tag.outputs.TAG_NAME }}-linux-x86_64.tar.gz\` or \`.deb\` package
+          - **Windows**: \`waechter-${{ steps.tag.outputs.TAG_NAME }}-windows-client.zip\`
+          - **macOS**: \`waechter-${{ steps.tag.outputs.TAG_NAME }}-macos-x86_64.pkg\` or \`waechter-${{ steps.tag.outputs.TAG_NAME }}-macos-arm64.pkg\`
+
+          ### SHA256 Checksums
+
+          #### Linux
+          \`\`\`
+          EOF
+
+          if [ -f checksums/checksums.txt ]; then
+            cat checksums/checksums.txt >> release_notes.md
+          else
+            echo "checksums.txt not found" >> release_notes.md
+          fi
+
+          cat >> release_notes.md << EOF
+          \`\`\`
+
+          #### Windows
+          \`\`\`
+          EOF
+
+          if [ -f checksums/windows-checksums.txt ]; then
+            cat checksums/windows-checksums.txt >> release_notes.md
+          else
+            echo "windows-checksums.txt not found" >> release_notes.md
+          fi
+
+          cat >> release_notes.md << EOF
+          \`\`\`
+
+          #### macOS (x86_64)
+          \`\`\`
+          EOF
+
+          if [ -f checksums/macos-x86_64-checksums.txt ]; then
+            cat checksums/macos-x86_64-checksums.txt >> release_notes.md
+          else
+            echo "macos-x86_64-checksums.txt not found" >> release_notes.md
+          fi
+
+          cat >> release_notes.md << EOF
+          \`\`\`
+
+          #### macOS (arm64)
+          \`\`\`
+          EOF
+
+          if [ -f checksums/macos-arm64-checksums.txt ]; then
+            cat checksums/macos-arm64-checksums.txt >> release_notes.md
+          else
+            echo "macos-arm64-checksums.txt not found" >> release_notes.md
+          fi
+
+          cat >> release_notes.md << EOF
+          \`\`\`
+          EOF
+
+          # Update the release notes
+          gh release edit "${{ steps.tag.outputs.TAG_NAME }}" \
+            --notes-file release_notes.md
+
