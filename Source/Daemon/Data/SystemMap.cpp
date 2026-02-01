@@ -428,7 +428,7 @@ WMemoryStat WSystemMap::GetMemoryUsage()
 	WMemoryStatEntry Apps{}, ProcessesEntry{}, SocketsEntry{}, TrafficItemsEntry{};
 
 	Apps.Name = "Applications";
-	Apps.Usage += sizeof(Applications);
+	Apps.Usage += sizeof(decltype(Applications));
 	for (auto const& App : Applications)
 	{
 		Apps.Usage += App.first.capacity();
@@ -437,13 +437,12 @@ WMemoryStat WSystemMap::GetMemoryUsage()
 	}
 
 	ProcessesEntry.Name = "Processes";
-	ProcessesEntry.Usage += sizeof(Processes);
-	ProcessesEntry.Usage +=
-		(sizeof(WProcessId) + sizeof(WProcessCounter) + sizeof(WProcessItem)) * Processes.max_size();
+	ProcessesEntry.Usage += sizeof(decltype(Processes));
+	ProcessesEntry.Usage += (sizeof(WProcessId) + sizeof(WProcessCounter) + sizeof(WProcessItem)) * Processes.size();
 
-	SocketsEntry.Name = "Processes";
-	SocketsEntry.Usage += sizeof(Sockets);
-	SocketsEntry.Usage += (sizeof(WSocketCookie) + sizeof(WSocketCounter) + sizeof(WSocketItem)) * Sockets.max_size();
+	SocketsEntry.Name = "Sockets";
+	SocketsEntry.Usage += sizeof(decltype(Sockets));
+	SocketsEntry.Usage += (sizeof(WSocketCookie) + sizeof(WSocketCounter) + sizeof(WSocketItem)) * Sockets.size();
 
 	for (auto const& Socket : Sockets | std::views::values)
 	{
@@ -452,8 +451,13 @@ WMemoryStat WSystemMap::GetMemoryUsage()
 	}
 
 	TrafficItemsEntry.Name = "All traffic items";
-	TrafficItemsEntry.Usage += sizeof(TrafficItems);
-	SocketsEntry.Usage += (sizeof(WTrafficItemId) + sizeof(ITrafficItem)) * TrafficItems.max_size();
+	TrafficItemsEntry.Usage += sizeof(decltype(TrafficItems));
+	TrafficItemsEntry.Usage += (sizeof(WTrafficItemId) + sizeof(ITrafficItem)) * TrafficItems.size();
+
+	Stats.ChildEntries.emplace_back(Apps);
+	Stats.ChildEntries.emplace_back(ProcessesEntry);
+	Stats.ChildEntries.emplace_back(SocketsEntry);
+	Stats.ChildEntries.emplace_back(TrafficItemsEntry);
 	return Stats;
 }
 

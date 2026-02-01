@@ -146,7 +146,7 @@ WMemoryStat WDaemon::GetMemoryUsage()
 
 	EbpfDataEntry.Usage += sizeof(Data->SocketEvents);
 	Data->SocketEvents->GetDataMutex().lock();
-	EbpfDataEntry.Usage += Data->SocketEvents->GetData().max_size() * sizeof(WSocketEvent);
+	EbpfDataEntry.Usage += Data->SocketEvents->GetData().size() * sizeof(WSocketEvent);
 	Data->SocketEvents->GetDataMutex().unlock();
 
 	WMemoryStatEntry SocketEntry{};
@@ -157,11 +157,13 @@ WMemoryStat WDaemon::GetMemoryUsage()
 	{
 		std::scoped_lock Lock(Socket->GetClientsMutex());
 		SocketEntry.Usage +=
-			Socket->GetClients().max_size() * (sizeof(WClientWebSocket) + sizeof(std::shared_ptr<WClientWebSocket>));
+			Socket->GetClients().size() * (sizeof(WClientWebSocket) + sizeof(std::shared_ptr<WClientWebSocket>));
 		// we don't care about more detailed usage here for now since the increasing memory usage
 		// happens even if no clients are connected
 	}
 #endif
 
+	Stats.ChildEntries.emplace_back(EbpfDataEntry);
+	Stats.ChildEntries.emplace_back(SocketEntry);
 	return Stats;
 }
