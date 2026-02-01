@@ -110,20 +110,20 @@ jobs:
         run: |
           cat > release_notes.md << 'EOF'
           ## Waechter Release ${{ steps.tag.outputs.TAG_NAME }}
-          
+
           **Note:** This is a draft release. Please test before marking as final.
-          
+
           ### SHA256 Checksums
-          
+
           ```
           EOF
-          
+
           cat checksums.txt >> release_notes.md
-          
+
           cat >> release_notes.md << 'EOF'
           ```
           EOF
-          
+
           # Make release notes available to the next step
           echo "RELEASE_NOTES<<EOF" >> "$GITHUB_OUTPUT"
           cat release_notes.md >> "$GITHUB_OUTPUT"
@@ -163,11 +163,8 @@ jobs:
           fetch-depth: 0
 
       - name: Setup vcpkg
-        run: |
-          git clone https://github.com/microsoft/vcpkg.git
-          cd vcpkg
-          .\bootstrap-vcpkg.bat
-          echo "VCPKG_ROOT=$PWD" >> $env:GITHUB_ENV
+        run: .github/scripts/windows/setup-vcpkg.ps1
+        shell: pwsh
 
       - name: Cache vcpkg
         uses: actions/cache@v4
@@ -180,11 +177,21 @@ jobs:
             ${{ runner.os }}-vcpkg-
 
       - name: Install dependencies via vcpkg
-        run: |
-          .\vcpkg\vcpkg install curl[schannel]:x64-windows zlib:x64-windows libwebsockets:x64-windows
+        run: .github/scripts/windows/install-dependencies.ps1
+        shell: pwsh
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
+
+      - name: Cache CMake build directory
+        uses: actions/cache@v4
+        with:
+          path: build
+          key: ${{ runner.os }}-cmake-build-${{ hashFiles('CMakeLists.txt', '**/CMakeLists.txt', '**/*.cmake', 'Source/**', 'Thirdparty/**') }}
+
+      - name: Configure (CMake)
+        run: .github/scripts/windows/configure.ps1
+        shell: pwsh
 
       - name: Get tag name
         id: tag
@@ -192,57 +199,20 @@ jobs:
         run: |
           echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
 
-      - name: Configure (CMake)
-        run: |
-          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 `
-            -DCMAKE_BUILD_TYPE=Release `
-            -DCMAKE_TOOLCHAIN_FILE="vcpkg/scripts/buildsystems/vcpkg.cmake" `
-            -DWAECHTER_BUILD_DAEMON=OFF `
-            -DWAECHTER_BUILD_CLIENT=ON
-
       - name: Build
-        run: |
-          cmake --build build --config Release
+        run: .github/scripts/windows/build.ps1
+        shell: pwsh
 
       - name: Sign executable
         shell: pwsh
         env:
           CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
           CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-        run: |
-          if ($env:CERTIFICATE_BASE64 -and $env:CERTIFICATE_PASSWORD) {
-            $certBytes = [System.Convert]::FromBase64String($env:CERTIFICATE_BASE64)
-            $certPath = Join-Path $env:TEMP "cert.pfx"
-            [IO.File]::WriteAllBytes($certPath, $certBytes)
-
-            $exePath = "build/Source/Gui/Release/waechter.exe"
-            if (Test-Path $exePath) {
-              & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" sign `
-                /f $certPath `
-                /p $env:CERTIFICATE_PASSWORD `
-                /tr http://timestamp.digicert.com `
-                /td SHA256 `
-                /fd SHA256 `
-                $exePath
-              Write-Host "Executable signed successfully"
-            } else {
-              Write-Host "Executable not found at $exePath"
-              exit 1
-            }
-
-            Remove-Item $certPath
-          } else {
-            Write-Host "Signing skipped - certificate secrets not configured"
-          }
+        run: .github/scripts/release/sign-windows-binary.ps1
 
       - name: Create distribution package
         shell: bash
-        run: |
-          mkdir -p dist
-          cp build/Source/Gui/Release/waechter.exe dist/
-          cp Meta/Icon.png dist/
-          echo "Waechter Network Monitor Client for Windows" > dist/README.txt
-          echo "Version: ${{ steps.tag.outputs.TAG_NAME }}" >> dist/README.txt
+        run: .github/scripts/windows/package.sh
 
       - name: Create ZIP archive
         shell: pwsh
@@ -256,27 +226,15 @@ jobs:
           cat windows-checksums.txt
 
       - name: Import GPG key
-        shell: bash
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-        if: ${{ env.GPG_PRIVATE_KEY != '' }}
-        run: |
-          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
-          gpg --list-secret-keys
+        run: .github/scripts/release/import-gpg-key.sh
 
       - name: Sign Windows artifacts with GPG
-        shell: bash
+        run: .github/scripts/release/sign-windows-release.sh ${{ steps.tag.outputs.TAG_NAME }} ${{ matrix.arch }}
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-        if: ${{ env.GPG_PRIVATE_KEY != '' }}
-        run: |
-          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" \
-            --pinentry-mode loopback --detach-sign --armor \
-            waechter-${{ steps.tag.outputs.TAG_NAME }}-windows-client.zip
-
-          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" \
-            --pinentry-mode loopback --detach-sign --armor windows-checksums.txt
 
       - name: Upload Windows artifacts to Release
         uses: softprops/action-gh-release@v1
@@ -329,184 +287,38 @@ jobs:
           echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
 
       - name: Configure (CMake + Ninja)
-        run: |
-          cmake -S . -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
-            -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/install" \
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-            -DWAECHTER_BUILD_DAEMON=OFF \
-            -DWAECHTER_BUILD_CLIENT=ON
+        run: .github/scripts/macos/configure.sh
 
       - name: Build
-        run: |
-          cmake --build build --config Release
+        run: .github/scripts/macos/build.sh
 
-      - name: Install
+      - name: Get short commit
         run: |
-          cmake --install build --prefix install
+          echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
 
       - name: Create .app bundle structure
-        run: |
-          mkdir -p "Waechter.app/Contents/MacOS"
-          mkdir -p "Waechter.app/Contents/Resources"
-
-          cp install/bin/waechter "Waechter.app/Contents/MacOS/"
-
-          if command -v sips &> /dev/null; then
-            mkdir -p icon.iconset
-            sips -z 16 16     Meta/Icon.png --out icon.iconset/icon_16x16.png
-            sips -z 32 32     Meta/Icon.png --out icon.iconset/icon_16x16@2x.png
-            sips -z 32 32     Meta/Icon.png --out icon.iconset/icon_32x32.png
-            sips -z 64 64     Meta/Icon.png --out icon.iconset/icon_32x32@2x.png
-            sips -z 128 128   Meta/Icon.png --out icon.iconset/icon_128x128.png
-            sips -z 256 256   Meta/Icon.png --out icon.iconset/icon_128x128@2x.png
-            sips -z 256 256   Meta/Icon.png --out icon.iconset/icon_256x256.png
-            sips -z 512 512   Meta/Icon.png --out icon.iconset/icon_256x256@2x.png
-            sips -z 512 512   Meta/Icon.png --out icon.iconset/icon_512x512.png
-            cp Meta/Icon.png icon.iconset/icon_512x512@2x.png
-            iconutil -c icns icon.iconset -o "Waechter.app/Contents/Resources/waechter.icns"
-          fi
-
-          cat > "Waechter.app/Contents/Info.plist" << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>CFBundleDevelopmentRegion</key>
-              <string>en</string>
-              <key>CFBundleExecutable</key>
-              <string>waechter</string>
-              <key>CFBundleIconFile</key>
-              <string>waechter.icns</string>
-              <key>CFBundleIdentifier</key>
-              <string>st.waechter.client</string>
-              <key>CFBundleInfoDictionaryVersion</key>
-              <string>6.0</string>
-              <key>CFBundleName</key>
-              <string>Waechter</string>
-              <key>CFBundlePackageType</key>
-              <string>APPL</string>
-              <key>CFBundleShortVersionString</key>
-              <string>0.1.3</string>
-              <key>CFBundleVersion</key>
-              <string>1</string>
-              <key>LSMinimumSystemVersion</key>
-              <string>11.0</string>
-              <key>NSHighResolutionCapable</key>
-              <true/>
-          </dict>
-          </plist>
-          EOF
-
-      - name: Code sign app
-        env:
-          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
-          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
-          MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
-        run: |
-          if [ -n "$MACOS_CERTIFICATE" ] && [ -n "$MACOS_CERTIFICATE_PWD" ]; then
-            echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
-            security create-keychain -p actions build.keychain
-            security default-keychain -s build.keychain
-            security unlock-keychain -p actions build.keychain
-            security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
-            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k actions build.keychain
-            codesign --force --deep --sign "$MACOS_SIGNING_IDENTITY" --options runtime "Waechter.app"
-            codesign --verify --verbose "Waechter.app"
-            rm certificate.p12
-            security delete-keychain build.keychain
-          else
-            echo "Code signing skipped"
-          fi
+        run: .github/scripts/macos/create-app-bundle.sh
 
       - name: Create PKG installer
-        run: |
-          mkdir -p pkgroot/Applications
-          cp -R Waechter.app pkgroot/Applications/
+        run: .github/scripts/macos/create-pkg.sh ${{ matrix.target }} ${{ steps.tag.outputs.TAG_NAME }}
 
-          pkgbuild --root pkgroot \
-                   --identifier st.waechter.client \
-                   --version 0.1.3 \
-                   --install-location / \
-                   component.pkg
-
-          cat > distribution.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <installer-gui-script minSpecVersion="1">
-              <title>Waechter Network Monitor</title>
-              <organization>st.waechter</organization>
-              <domains enable_localSystem="true"/>
-              <options customize="never" require-scripts="false"/>
-              <pkg-ref id="st.waechter.client"/>
-              <choices-outline>
-                  <line choice="default">
-                      <line choice="st.waechter.client"/>
-                  </line>
-              </choices-outline>
-              <choice id="default"/>
-              <choice id="st.waechter.client" visible="false">
-                  <pkg-ref id="st.waechter.client"/>
-              </choice>
-              <pkg-ref id="st.waechter.client" version="0.1.3" onConclusion="none">component.pkg</pkg-ref>
-          </installer-gui-script>
-          EOF
-
-          productbuild --distribution distribution.xml \
-                       --package-path . \
-                       "waechter-${{ steps.tag.outputs.TAG_NAME }}-macos-${{ matrix.arch }}.pkg"
-
-      - name: Sign PKG
+      - name: Code sign app
+        run: .github/scripts/macos/sign.sh ${{ matrix.target }} ${{ steps.tag.outputs.TAG_NAME }}
         env:
           MACOS_INSTALLER_CERTIFICATE: ${{ secrets.MACOS_INSTALLER_CERTIFICATE }}
           MACOS_INSTALLER_CERTIFICATE_PWD: ${{ secrets.MACOS_INSTALLER_CERTIFICATE_PWD }}
           MACOS_INSTALLER_SIGNING_IDENTITY: ${{ secrets.MACOS_INSTALLER_SIGNING_IDENTITY }}
-        run: |
-          if [ -n "$MACOS_INSTALLER_CERTIFICATE" ] && [ -n "$MACOS_INSTALLER_CERTIFICATE_PWD" ]; then
-            echo "$MACOS_INSTALLER_CERTIFICATE" | base64 --decode > installer.p12
-            security create-keychain -p actions build.keychain
-            security default-keychain -s build.keychain
-            security unlock-keychain -p actions build.keychain
-            security import installer.p12 -k build.keychain -P "$MACOS_INSTALLER_CERTIFICATE_PWD" -T /usr/bin/productsign
-            security set-key-partition-list -S apple-tool:,apple:,productsign: -s -k actions build.keychain
-            productsign --sign "$MACOS_INSTALLER_SIGNING_IDENTITY" \
-                        "waechter-${{ steps.tag.outputs.TAG_NAME }}-macos-${{ matrix.arch }}.pkg" \
-                        "waechter-${{ steps.tag.outputs.TAG_NAME }}-macos-${{ matrix.arch }}-signed.pkg"
-            mv "waechter-${{ steps.tag.outputs.TAG_NAME }}-macos-${{ matrix.arch }}-signed.pkg" \
-               "waechter-${{ steps.tag.outputs.TAG_NAME }}-macos-${{ matrix.arch }}.pkg"
-            rm installer.p12
-            security delete-keychain build.keychain
-          else
-            echo "PKG signing skipped"
-          fi
-
-      - name: Generate SHA256 checksum
-        run: |
-          shasum -a 256 waechter-${{ steps.tag.outputs.TAG_NAME }}-macos-${{ matrix.arch }}.pkg > macos-${{ matrix.arch }}-checksums.txt
-          cat macos-${{ matrix.arch }}-checksums.txt
 
       - name: Import GPG key
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-        if: ${{ env.GPG_PRIVATE_KEY != '' }}
-        run: |
-          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
-          gpg --list-secret-keys
+        run: .github/scripts/release/import-gpg-key.sh
 
       - name: Sign macOS artifacts with GPG
+        run: .github/scripts/release/sign-macos-release.sh ${{ steps.tag.outputs.TAG_NAME }} ${{ matrix.arch }}
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-        if: ${{ env.GPG_PRIVATE_KEY != '' }}
-        run: |
-          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" \
-            --pinentry-mode loopback --detach-sign --armor \
-            waechter-${{ steps.tag.outputs.TAG_NAME }}-macos-${{ matrix.arch }}.pkg
-
-          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" \
-            --pinentry-mode loopback --detach-sign --armor macos-${{ matrix.arch }}-checksums.txt
 
       - name: Upload macOS artifacts to Release
         uses: softprops/action-gh-release@v1
