@@ -16,11 +16,11 @@ if [ -n "$MACOS_CERTIFICATE" ] && [ -n "$MACOS_CERTIFICATE_PWD" ]; then
 
   # Sign the PKG
   productsign --sign "$MACOS_INSTALLER_SIGNING_IDENTITY" \
-              "waechter-${TARGET_ARCH}-${SHORT_SHA}.pkg" \
+              "waechter-${SHORT_SHA}-${TARGET_ARCH}-macos.pkg" \
               "waechter-${TARGET_ARCH}-${SHORT_SHA}-signed.pkg"
 
   mv "waechter-${TARGET_ARCH}-${SHORT_SHA}-signed.pkg" \
-     "waechter-${TARGET_ARCH}-${SHORT_SHA}.pkg"
+     "waechter-${SHORT_SHA}-${TARGET_ARCH}-macos.pkg"
 
   # Verify
   codesign --verify --verbose "Waechter.app"

@@ -16,11 +16,7 @@ if [ -n "$GPG_PASSPHRASE" ]; then
   # Sign the tarball
   gpg --batch --yes --passphrase "$GPG_PASSPHRASE" \
     --pinentry-mode loopback --detach-sign --armor \
-    "waechter-${TAG_NAME}-linux-x86_64.tar.gz"
-
-  # Sign the checksums file
-  gpg --batch --yes --passphrase "$GPG_PASSPHRASE" \
-    --pinentry-mode loopback --detach-sign --armor checksums.txt
+    "waechter-${TAG_NAME}-amd64-linux.tar.gz"
 
   echo "GPG signing completed successfully!"
 else

@@ -83,14 +83,6 @@ jobs:
       - name: Upload Artifacts (PKG)
         uses: actions/upload-artifact@v4
         with:
-          name: waechter-macos-${{ matrix.target }}-${{ env.SHORT_SHA }}
-          path: waechter-${{ matrix.target }}-${{ env.SHORT_SHA }}.pkg
+          name: waechter-${{ env.SHORT_SHA }}-${{ matrix.target }}-macos
+          path: waechter-${{ env.SHORT_SHA }}-${{ matrix.target }}-macos.pkg
           if-no-files-found: error
-
-      - name: Upload to Release
-        if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v1
-        with:
-          files: waechter-${{ matrix.target }}-${{ env.SHORT_SHA }}.pkg
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

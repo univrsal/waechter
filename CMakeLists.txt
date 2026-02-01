@@ -81,8 +81,8 @@ set(CPACK_DEBIAN_PACKAGE_SECTION "net")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "systemd, libbpf0 | libbpf1, libxkbcommon0, libgl1, libx11-6, libxrandr2, libxinerama1, libxcursor1, libxi6, libcurl4 | libcurl3-gnutls, zlib1g")
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_SOURCE_DIR}/Meta/Package/postinst;${CMAKE_SOURCE_DIR}/Meta/Package/prerm;${CMAKE_SOURCE_DIR}/Meta/Package/postrm")
-set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CMAKE_SYSTEM_PROCESSOR}")
-set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CMAKE_SYSTEM_PROCESSOR}-linux")
+set(CPACK_DEBIAN_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}.deb")
 
 include(CPack)
 

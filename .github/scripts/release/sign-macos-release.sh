@@ -16,10 +16,7 @@ if [ -n "$GPG_PASSPHRASE" ]; then
 
   gpg --batch --yes --passphrase "$GPG_PASSPHRASE" \
     --pinentry-mode loopback --detach-sign --armor \
-    "waechter-${ARCH}-macos-${TAG_NAME}.pkg"
-
-  gpg --batch --yes --passphrase "$GPG_PASSPHRASE" \
-    --pinentry-mode loopback --detach-sign --armor "macos-${ARCH}-checksums.txt"
+    "waechter-${ARCH}-${TAG_NAME}-macos.pkg"
 
   echo "GPG signing completed successfully!"
 else

@@ -50,13 +50,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ matrix.arch }}-ccache-
 
-      - name: Cache CMake build directory (optional)
-        uses: actions/cache@v4
-        with:
-          # caching the entire build dir can speed up incremental builds but may be fragile across toolchain changes
-          path: build
-          key: ${{ runner.os }}-${{ matrix.arch }}-cmake-build-${{ hashFiles('CMakeLists.txt', '**/CMakeLists.txt', '**/*.cmake', 'Source/**', 'Thirdparty/**') }}
-
       - name: Show ccache stats (before)
         run: |
           ccache --version || true
