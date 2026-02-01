@@ -22,7 +22,7 @@ bool WConnectionHistoryEntry::Update()
 	{
 		Set = nullptr;
 		App = nullptr;
-		// technically we should set this when the socket actually closes but this is close enough
+		// technically we should set this when the socket actually closes, but this is close enough
 		EndTime = WTime::GetUnixNow();
 		return true;
 	}
@@ -31,7 +31,7 @@ bool WConnectionHistoryEntry::Update()
 
 	auto const OldDataIn = DataIn;
 	auto const OldDataOut = DataOut;
-	// Sum up data from all connections in the set
+	// Sum up data from all connections in the set,
 	// including past connections that have disconnected and
 	// are now accounted for in BaseDataIn/Out
 	DataIn = Set->BaseDataIn;
@@ -55,22 +55,22 @@ WConnectionHistoryEntry::WConnectionHistoryEntry(
 	std::shared_ptr<WAppCounter> App_, std::shared_ptr<WConnectionSet> Set_, WEndpoint const& RemoteEndpoint_)
 	: App(std::move(App_)), Set(std::move(Set_)), RemoteEndpoint(RemoteEndpoint_)
 {
-	// Generate a unique ID for this connection history entry
+	// Generate a unique ID for this connection history entry,
 	// no relation to any traffic items
 	ConnectionId = WSystemMap::GetInstance().GetNextItemId();
 }
 
-void WConnectionHistory::OnSocketConnected(WSocketCounter const* Socket)
+void WConnectionHistory::OnSocketConnected(WSocketCounter const* SocketCounter)
 {
-	if (Socket->TrafficItem->SocketTuple.Protocol != EProtocol::TCP)
+	if (SocketCounter->TrafficItem->SocketTuple.Protocol != EProtocol::TCP)
 	{
 		// only track TCP connections here, UDP is handled via tuples
 		return;
 	}
 
-	auto App = Socket->ParentProcess->ParentApp;
+	auto const App = SocketCounter->ParentProcess->ParentApp;
 	auto AppName = App->TrafficItem->ApplicationName;
-	auto Endpoint = Socket->TrafficItem->SocketTuple.RemoteEndpoint;
+	auto       Endpoint = SocketCounter->TrafficItem->SocketTuple.RemoteEndpoint;
 
 	std::scoped_lock Lock(Mutex);
 
@@ -78,7 +78,7 @@ void WConnectionHistory::OnSocketConnected(WSocketCounter const* Socket)
 
 	auto const bHaveConnection = ActiveConnections.contains(Key);
 
-	if (bHaveConnection && ActiveConnections[Key]->Connections.contains(Socket->TrafficItem))
+	if (bHaveConnection && ActiveConnections[Key]->Connections.contains(SocketCounter->TrafficItem))
 	{
 		// already tracked
 		return;
@@ -86,21 +86,21 @@ void WConnectionHistory::OnSocketConnected(WSocketCounter const* Socket)
 
 	if (!bHaveConnection)
 	{
-		// insert new connection set
-		auto NewSet = std::make_shared<WConnectionSet>();
-		NewSet->Connections.insert(Socket->TrafficItem);
+		// insert the new connection set
+		auto const NewSet = std::make_shared<WConnectionSet>();
+		NewSet->Connections.insert(SocketCounter->TrafficItem);
 		ActiveConnections[Key] = NewSet;
 		Push(App, NewSet, Endpoint);
 		return;
 	}
-	// add new tuple to existing connection set
-	ActiveConnections[Key]->Connections.insert(Socket->TrafficItem);
+	// add the new tuple to the existing connection set
+	ActiveConnections[Key]->Connections.insert(SocketCounter->TrafficItem);
 }
 
 void WConnectionHistory::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& SocketCounter)
 {
 	std::scoped_lock Lock(Mutex);
-	auto             App = SocketCounter->ParentProcess->ParentApp;
+	auto const       App = SocketCounter->ParentProcess->ParentApp;
 	auto             AppName = App->TrafficItem->ApplicationName;
 	auto             Endpoint = SocketCounter->TrafficItem->SocketTuple.RemoteEndpoint;
 	auto const       Key = std::make_pair(AppName, Endpoint);
@@ -112,7 +112,7 @@ void WConnectionHistory::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& 
 
 	if (ActiveConnections.contains(Key))
 	{
-		auto ConnectionSet = ActiveConnections[Key];
+		auto const ConnectionSet = ActiveConnections[Key];
 		// not tracked
 		ConnectionSet->BaseDataIn += SocketCounter->TrafficItem->TotalDownloadBytes;
 		ConnectionSet->BaseDataOut += SocketCounter->TrafficItem->TotalUploadBytes;
@@ -127,14 +127,14 @@ void WConnectionHistory::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& 
 
 	for (auto const& [TupleEndpoint, UDPCounter] : SocketCounter->UDPPerConnectionCounters)
 	{
-		// the tuples can have different remote endpoints
+		// the tuples can have different remote endpoints,
 		// so we have to look them up individually
 		auto const TupleKey = std::make_pair(AppName, TupleEndpoint);
 		if (!ActiveConnections.contains(TupleKey))
 		{
 			continue;
 		}
-		auto ConnectionSet = ActiveConnections[TupleKey];
+		auto const ConnectionSet = ActiveConnections[TupleKey];
 		ConnectionSet->BaseDataIn += UDPCounter->TrafficItem->TotalDownloadBytes;
 		ConnectionSet->BaseDataOut += UDPCounter->TrafficItem->TotalUploadBytes;
 		ConnectionSet->Connections.erase(UDPCounter->TrafficItem);
@@ -149,7 +149,7 @@ void WConnectionHistory::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& 
 void WConnectionHistory::OnUDPTupleCreated(
 	std::shared_ptr<WTupleCounter> const& TupleCounter, WEndpoint const& Endpoint)
 {
-	auto App = TupleCounter->ParentSocket->ParentProcess->ParentApp;
+	auto const App = TupleCounter->ParentSocket->ParentProcess->ParentApp;
 	auto AppName = App->TrafficItem->ApplicationName;
 	if (!App)
 	{
@@ -169,14 +169,14 @@ void WConnectionHistory::OnUDPTupleCreated(
 
 	if (!bHaveConnection)
 	{
-		// insert new connection set
-		auto NewSet = std::make_shared<WConnectionSet>();
+		// insert the new connection set
+		auto const NewSet = std::make_shared<WConnectionSet>();
 		NewSet->Connections.insert(TupleCounter->TrafficItem);
 		ActiveConnections[Key] = NewSet;
 		Push(App, NewSet, Endpoint);
 		return;
 	}
-	// add new tuple to existing connection set
+	// add a new tuple to the existing connection set
 	ActiveConnections[Key]->Connections.insert(TupleCounter->TrafficItem);
 }
 
@@ -282,8 +282,8 @@ WMemoryStat WConnectionHistory::GetMemoryUsage()
 
 	WMemoryStatEntry ActiveConnectionsEntry{};
 	ActiveConnectionsEntry.Name = "Active connections";
-	ActiveConnectionsEntry.Usage = sizeof(ActiveConnections)
-		+ ActiveConnections.max_size()
+	ActiveConnectionsEntry.Usage = sizeof(decltype(ActiveConnections))
+		+ ActiveConnections.size()
 			* (sizeof(std::pair<std::string, WEndpoint>) + sizeof(std::shared_ptr<WConnectionSet>));
 
 	return Stats;
