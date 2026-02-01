@@ -43,6 +43,6 @@ EOF
 # Create product archive (final PKG)
 productbuild --distribution distribution.xml \
              --package-path . \
-             "waechter-${TARGET_ARCH}-${SHORT_SHA}.pkg"
+             "waechter-${SHORT_SHA}-${TARGET_ARCH}-macos.pkg"
 
 echo "PKG installer created successfully!"

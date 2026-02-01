@@ -90,19 +90,11 @@ jobs:
       - name: Create ZIP archive
         shell: pwsh
         run: |
-          Compress-Archive -Path dist/* -DestinationPath waechter-windows-client-${{ env.SHORT_SHA }}.zip
+          Compress-Archive -Path dist/* -DestinationPath waechter-${{ env.SHORT_SHA }}-amd64-windows.zip
 
       - name: Upload Artifacts (Executable)
         uses: actions/upload-artifact@v4
         with:
-          name: waechter-windows-client-${{ env.SHORT_SHA }}
-          path: waechter-windows-client-${{ env.SHORT_SHA }}.zip
+          name: waechter-${{ env.SHORT_SHA }}-amd64-windows
+          path: waechter-${{ env.SHORT_SHA }}-amd64-windows.zip
           if-no-files-found: error
-
-      - name: Upload to Release
-        if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v1
-        with:
-          files: waechter-windows-client-${{ env.SHORT_SHA }}.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
