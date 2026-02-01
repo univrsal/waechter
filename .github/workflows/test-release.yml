@@ -262,6 +262,8 @@ jobs:
         run: .github/scripts/macos/create-app-bundle.sh
 
       - name: Create PKG installer
+        env:
+          VERSION: ${{ inputs.test_tag }}
         run: .github/scripts/macos/create-pkg.sh ${{ matrix.arch }} ${{ inputs.test_tag }}
 
       - name: Code sign app
