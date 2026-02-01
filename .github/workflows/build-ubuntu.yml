@@ -40,7 +40,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: .github/scripts/install-dependencies.sh
+        run: .github/scripts/ubuntu/install-dependencies.sh
 
       - name: Cache ccache
         uses: actions/cache@v4
@@ -64,35 +64,20 @@ jobs:
 
       - name: Install bpftool for ARM64
         if: matrix.arch == 'arm64'
-        run: |
-          # ARM64 runners may not have bpftool in linux-tools-common
-          # Install bpftool from github
-          wget https://github.com/libbpf/bpftool/releases/download/v7.6.0/bpftool-v7.6.0-arm64.tar.gz
-          tar -xzf bpftool-v7.6.0-arm64.tar.gz
-          sudo install -m 755 bpftool /usr/local/bin/bpftool
-          bpftool --version     
-      
+        run: .github/scripts/install-bpftool-arm64.sh
+
       - name: Configure (CMake + Ninja)
-        run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/artifacts" \
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        run: .github/scripts/ubuntu/configure.sh
 
       - name: Build
-        run: |
-          cmake --build build --config Release -- -k 0
+        run: .github/scripts/ubuntu/build.sh
 
       - name: Show ccache stats (after)
         run: |
           ccache -s || true
 
-      - name: Package (Install)
-        run: |
-          cmake --install build --prefix artifacts || true
-
-      - name: Package (DEB)
-        run: |
-          cd build
-          cpack -G DEB
+      - name: Package
+        run: .github/scripts/ubuntu/package.sh
 
       - name: Get short commit
         run: |
