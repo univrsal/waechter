@@ -1,0 +1,390 @@
+name: Test Release Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_tag:
+        description: 'Test tag name (e.g., v0.0.0-test)'
+        required: true
+        default: 'v0.0.0-test'
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: .github/scripts/ubuntu/install-dependencies.sh
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ./.ccache
+          key: ${{ runner.os }}-ccache-test-release-${{ hashFiles('**/CMakeLists.txt', '**/*.cpp', '**/*.c', '**/*.h') }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-release-
+            ${{ runner.os }}-ccache-
+
+      - name: Show ccache stats (before)
+        run: |
+          ccache --version || true
+          ccache -s || true
+
+      - name: Configure (CMake + Ninja)
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/artifacts" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+      - name: Build
+        run: .github/scripts/ubuntu/build.sh
+
+      - name: Show ccache stats (after)
+        run: |
+          ccache -s || true
+
+      - name: Package
+        run: .github/scripts/ubuntu/package.sh
+
+      - name: Create tarball of installed files
+        run: |
+          cd artifacts
+          tar -czf ../waechter-${{ inputs.test_tag }}-linux-x86_64.tar.gz .
+          cd ..
+
+      - name: Generate SHA256 checksums
+        run: |
+          sha256sum build/*.deb > checksums.txt
+          sha256sum waechter-${{ inputs.test_tag }}-linux-x86_64.tar.gz >> checksums.txt
+          cat checksums.txt
+
+      - name: Import GPG key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        if: ${{ env.GPG_PRIVATE_KEY != '' }}
+        run: |
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          gpg --list-secret-keys
+
+      - name: Sign artifacts with GPG
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        if: ${{ env.GPG_PRIVATE_KEY != '' }}
+        run: .github/scripts/release/sign-linux-release.sh
+
+      - name: Generate initial release notes
+        id: release_notes
+        run: |
+          cat > release_notes.md << EOF
+          ## Waechter Test Release ${{ inputs.test_tag }}
+
+          **Note:** This is a TEST release for workflow validation.
+
+          ### Downloads
+
+          - **Linux**: \`waechter-${{ inputs.test_tag }}-linux-x86_64.tar.gz\` or \`.deb\` package
+          - **Windows**: \`waechter-${{ inputs.test_tag }}-windows-client.zip\`
+          - **macOS**: \`waechter-${{ inputs.test_tag }}-macos-x86_64.pkg\` or \`waechter-${{ inputs.test_tag }}-macos-arm64.pkg\`
+
+          ### SHA256 Checksums
+
+          Checksums will be updated once all platform builds complete.
+          EOF
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          prerelease: true
+          name: Waechter Test ${{ inputs.test_tag }}
+          tag_name: ${{ inputs.test_tag }}
+          body_path: release_notes.md
+          files: |
+            build/*.deb
+            build/*.deb.asc
+            waechter-${{ inputs.test_tag }}-linux-x86_64.tar.gz
+            waechter-${{ inputs.test_tag }}-linux-x86_64.tar.gz.asc
+            checksums.txt
+            checksums.txt.asc
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-windows:
+    runs-on: windows-latest
+    needs: build-linux
+    permissions:
+      contents: write
+    env:
+      VCPKG_DEFAULT_TRIPLET: x64-windows
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup vcpkg
+        run: .github/scripts/windows/setup-vcpkg.ps1
+        shell: pwsh
+
+      - name: Cache vcpkg
+        uses: actions/cache@v4
+        with:
+          path: |
+            vcpkg/installed
+            vcpkg/packages
+          key: ${{ runner.os }}-vcpkg-${{ hashFiles('**/vcpkg.json') }}-v2
+          restore-keys: |
+            ${{ runner.os }}-vcpkg-
+
+      - name: Install dependencies via vcpkg
+        run: .github/scripts/windows/install-dependencies.ps1
+        shell: pwsh
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Cache CMake build directory
+        uses: actions/cache@v4
+        with:
+          path: build
+          key: ${{ runner.os }}-cmake-build-test-${{ hashFiles('CMakeLists.txt', '**/CMakeLists.txt', '**/*.cmake', 'Source/**', 'Thirdparty/**') }}
+
+      - name: Configure (CMake)
+        run: .github/scripts/windows/configure.ps1
+        shell: pwsh
+
+      - name: Build
+        run: .github/scripts/windows/build.ps1
+        shell: pwsh
+
+      - name: Sign executable
+        shell: pwsh
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: .github/scripts/release/sign-windows-binary.ps1
+
+      - name: Create distribution package
+        shell: bash
+        run: .github/scripts/windows/package.sh
+
+      - name: Create ZIP archive
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist/* -DestinationPath waechter-${{ inputs.test_tag }}-windows-client.zip
+
+      - name: Generate SHA256 checksum
+        shell: bash
+        run: |
+          sha256sum waechter-${{ inputs.test_tag }}-windows-client.zip > windows-checksums.txt
+          cat windows-checksums.txt
+
+      - name: Import GPG key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: .github/scripts/release/import-gpg-key.sh
+
+      - name: Sign Windows artifacts with GPG
+        run: .github/scripts/release/sign-windows-release.sh ${{ inputs.test_tag }} ${{ matrix.arch }}
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Upload Windows artifacts to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          tag_name: ${{ inputs.test_tag }}
+          files: |
+            waechter-${{ inputs.test_tag }}-windows-client.zip
+            waechter-${{ inputs.test_tag }}-windows-client.zip.asc
+            windows-checksums.txt
+            windows-checksums.txt.asc
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-macos:
+    runs-on: macos-latest
+    needs: build-linux
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        arch: [ x86_64, arm64 ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies via Homebrew
+        run: |
+          brew update
+          brew install cmake ninja pkg-config curl zlib libwebsockets ccache
+
+      - name: Setup ccache
+        run: |
+          echo "CCACHE_DIR=${{ github.workspace }}/.ccache" >> $GITHUB_ENV
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ${{ runner.os }}-${{ matrix.arch }}-ccache-test-${{ hashFiles('**/CMakeLists.txt', '**/*.cpp', '**/*.c', '**/*.h') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.arch }}-ccache-
+
+      - name: Configure (CMake + Ninja)
+        run: .github/scripts/macos/configure.sh
+
+      - name: Build
+        run: .github/scripts/macos/build.sh
+
+      - name: Get short commit
+        run: |
+          echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+
+      - name: Create .app bundle structure
+        run: .github/scripts/macos/create-app-bundle.sh
+
+      - name: Create PKG installer
+        run: .github/scripts/macos/create-pkg.sh ${{ matrix.target }} ${{ inputs.test_tag }}
+
+      - name: Code sign app
+        run: .github/scripts/macos/sign.sh ${{ matrix.target }} ${{ inputs.test_tag }}
+        env:
+          MACOS_INSTALLER_CERTIFICATE: ${{ secrets.MACOS_INSTALLER_CERTIFICATE }}
+          MACOS_INSTALLER_CERTIFICATE_PWD: ${{ secrets.MACOS_INSTALLER_CERTIFICATE_PWD }}
+          MACOS_INSTALLER_SIGNING_IDENTITY: ${{ secrets.MACOS_INSTALLER_SIGNING_IDENTITY }}
+
+      - name: Import GPG key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: .github/scripts/release/import-gpg-key.sh
+
+      - name: Sign macOS artifacts with GPG
+        run: .github/scripts/release/sign-macos-release.sh ${{ inputs.test_tag }} ${{ matrix.arch }}
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Upload macOS artifacts to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          tag_name: ${{ inputs.test_tag }}
+          files: |
+            waechter-${{ inputs.test_tag }}-macos-${{ matrix.arch }}.pkg
+            waechter-${{ inputs.test_tag }}-macos-${{ matrix.arch }}.pkg.asc
+            macos-${{ matrix.arch }}-checksums.txt
+            macos-${{ matrix.arch }}-checksums.txt.asc
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-release-notes:
+    runs-on: ubuntu-latest
+    needs: [ build-linux, build-windows, build-macos ]
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Download all checksum files from the release
+          gh release download "${{ inputs.test_tag }}" \
+            --pattern '*checksums.txt' \
+            --dir checksums || true
+
+      - name: Consolidate checksums and update release notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cat > release_notes.md << EOF
+          ## Waechter Test Release ${{ inputs.test_tag }}
+
+          **Note:** This is a TEST release for workflow validation.
+
+          ### Downloads
+
+          - **Linux**: \`waechter-${{ inputs.test_tag }}-linux-x86_64.tar.gz\` or \`.deb\` package
+          - **Windows**: \`waechter-${{ inputs.test_tag }}-windows-client.zip\`
+          - **macOS**: \`waechter-${{ inputs.test_tag }}-macos-x86_64.pkg\` or \`waechter-${{ inputs.test_tag }}-macos-arm64.pkg\`
+
+          ### SHA256 Checksums
+
+          #### Linux
+          \`\`\`
+          EOF
+
+          if [ -f checksums/checksums.txt ]; then
+            cat checksums/checksums.txt >> release_notes.md
+          else
+            echo "checksums.txt not found" >> release_notes.md
+          fi
+
+          cat >> release_notes.md << EOF
+          \`\`\`
+
+          #### Windows
+          \`\`\`
+          EOF
+
+          if [ -f checksums/windows-checksums.txt ]; then
+            cat checksums/windows-checksums.txt >> release_notes.md
+          else
+            echo "windows-checksums.txt not found" >> release_notes.md
+          fi
+
+          cat >> release_notes.md << EOF
+          \`\`\`
+
+          #### macOS (x86_64)
+          \`\`\`
+          EOF
+
+          if [ -f checksums/macos-x86_64-checksums.txt ]; then
+            cat checksums/macos-x86_64-checksums.txt >> release_notes.md
+          else
+            echo "macos-x86_64-checksums.txt not found" >> release_notes.md
+          fi
+
+          cat >> release_notes.md << EOF
+          \`\`\`
+
+          #### macOS (arm64)
+          \`\`\`
+          EOF
+
+          if [ -f checksums/macos-arm64-checksums.txt ]; then
+            cat checksums/macos-arm64-checksums.txt >> release_notes.md
+          else
+            echo "macos-arm64-checksums.txt not found" >> release_notes.md
+          fi
+
+          cat >> release_notes.md << EOF
+          \`\`\`
+          EOF
+
+          # Update the release notes
+          gh release edit "${{ inputs.test_tag }}" \
+            --notes-file release_notes.md
