@@ -64,7 +64,7 @@ jobs:
 
       - name: Install bpftool for ARM64
         if: matrix.arch == 'arm64'
-        run: .github/scripts/install-bpftool-arm64.sh
+        run: .github/scripts/ubuntu/install-bpftool-arm64.sh
 
       - name: Configure (CMake + Ninja)
         run: .github/scripts/ubuntu/configure.sh
