@@ -1,4 +1,4 @@
-name: Deploy Emscripten build
+name: Build (Emscripten)
 
 on:
   push:
