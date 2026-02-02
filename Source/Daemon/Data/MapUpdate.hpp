@@ -35,7 +35,14 @@ class WMapUpdate : public IMemoryTrackable
 public:
 	WMapUpdate() = default;
 
-	void MarkItemForRemoval(WTrafficItemId ItemId) { MarkedForRemovalItems.emplace_back(ItemId); }
+	void MarkItemForRemoval(WTrafficItemId ItemId)
+	{
+		if (!TrackUpdates())
+		{
+			return;
+		}
+		MarkedForRemovalItems.emplace_back(ItemId);
+	}
 
 	bool HasUpdates() const
 	{
