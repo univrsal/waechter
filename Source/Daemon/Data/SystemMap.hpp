@@ -6,6 +6,7 @@
 #pragma once
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 #include <mutex>
 #include <atomic>
 
@@ -44,6 +45,7 @@ class WSystemMap : public TSingleton<WSystemMap>, public IMemoryTrackable
 	std::unordered_map<WProcessId, std::shared_ptr<WProcessCounter>>   Processes{};
 	std::unordered_map<WSocketCookie, std::shared_ptr<WSocketCounter>> Sockets{};
 	std::unordered_map<WTrafficItemId, std::shared_ptr<ITrafficItem>>  TrafficItems{};
+	std::unordered_set<WSocketCookie>                                  ClosedSocketCookies{};
 
 	std::shared_ptr<WSocketCounter> FindOrMapSocket(
 		WSocketCookie SocketCookie, std::shared_ptr<WProcessCounter> const& ParentProcess);
@@ -76,6 +78,9 @@ public:
 
 	void MarkSocketForRemoval(WSocketCookie SocketCookie)
 	{
+		// Track this cookie as closed, even if the socket doesn't exist yet
+		ClosedSocketCookies.insert(SocketCookie);
+
 		if (auto const It = Sockets.find(SocketCookie); It != Sockets.end())
 		{
 			It->second->MarkForRemoval();
