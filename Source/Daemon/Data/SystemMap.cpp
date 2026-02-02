@@ -192,7 +192,7 @@ std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketEvent const& Event,
 		// If argv[0] is absolute, use it; else leave empty.
 		if (!Argv[0].empty() && Argv[0].front() == '/')
 		{
-			ExePath = Argv[0];
+			ExePath = NormalizeAppImagePaths(Argv[0]);
 		}
 	}
 
@@ -278,15 +278,14 @@ std::shared_ptr<WAppCounter> WSystemMap::FindOrMapApplication(
 	if (Key.empty())
 	{
 		Key = CommandLine;
-		if (auto pos = Key.find(' '); pos != std::string::npos)
-		{
-			Key = Key.substr(0, pos);
-		}
-		// FIXME: Using just argv[0] would group all python applications under the same
-		// tree entry, with the first one encountered used as the parent
-		// falsely grouping python processes of unrelated programs under that application
-		Key = WStringFormat::Trim(Key + " " + AppName);
 	}
+
+	if (auto Pos = Key.find(' '); Pos != std::string::npos)
+	{
+		Key = NormalizeAppImagePaths(Key.substr(0, Pos));
+	}
+
+	Key = WStringFormat::Trim(Key);
 
 	if (auto It = Applications.find(Key); It != Applications.end())
 	{
