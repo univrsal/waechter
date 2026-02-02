@@ -31,7 +31,7 @@ public:
 	bool StartListenThread()
 	{
 		Socket->GetNewConnectionSignal().connect(
-			std::bind(&WDaemonSocket::OnNewConnection, this, std::placeholders::_1));
+			[&](std::shared_ptr<WDaemonClient> const& Client) { OnNewConnection(Client); });
 		return Socket->StartListenThread();
 	}
 
