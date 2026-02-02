@@ -244,6 +244,14 @@ std::shared_ptr<WSocketCounter> WSystemMap::FindOrMapSocket(
 
 	MapUpdate.AddSocketAddition(Socket);
 
+	// Check if this socket was already closed before it was created (due to event ordering)
+	if (ClosedSocketCookies.contains(SocketCookie))
+	{
+		Socket->MarkForRemoval();
+		SocketItem->ConnectionState = ESocketConnectionState::Closed;
+		MapUpdate.MarkItemForRemoval(SocketItem->ItemId);
+	}
+
 	return Socket;
 }
 
@@ -426,7 +434,7 @@ WMemoryStat WSystemMap::GetMemoryUsage()
 	std::scoped_lock Lock(DataMutex);
 	WMemoryStat      Stats;
 	Stats.Name = "WSystemMap";
-	WMemoryStatEntry Apps{}, ProcessesEntry{}, SocketsEntry{}, TrafficItemsEntry{};
+	WMemoryStatEntry Apps{}, ProcessesEntry{}, SocketsEntry{}, TrafficItemsEntry{}, ClosedSocketsEntry{};
 
 	Apps.Name = "Applications";
 	Apps.Usage += sizeof(decltype(Applications));
@@ -455,10 +463,15 @@ WMemoryStat WSystemMap::GetMemoryUsage()
 	TrafficItemsEntry.Usage += sizeof(decltype(TrafficItems));
 	TrafficItemsEntry.Usage += (sizeof(WTrafficItemId) + sizeof(ITrafficItem)) * TrafficItems.size();
 
+	ClosedSocketsEntry.Name = "Closed socket cookies";
+	ClosedSocketsEntry.Usage += sizeof(decltype(ClosedSocketCookies));
+	ClosedSocketsEntry.Usage += sizeof(WSocketCookie) * ClosedSocketCookies.size();
+
 	Stats.ChildEntries.emplace_back(Apps);
 	Stats.ChildEntries.emplace_back(ProcessesEntry);
 	Stats.ChildEntries.emplace_back(SocketsEntry);
 	Stats.ChildEntries.emplace_back(TrafficItemsEntry);
+	Stats.ChildEntries.emplace_back(ClosedSocketsEntry);
 	return Stats;
 }
 
@@ -493,6 +506,7 @@ void WSystemMap::Cleanup()
 				Sockets.erase(SocketCookie);
 				TrafficItems.erase(Socket->ItemId);
 				MapUpdate.AddItemRemoval(Socket->ItemId);
+				ClosedSocketCookies.erase(SocketCookie);
 			}
 			WNetworkEvents::GetInstance().OnProcessRemoved(Process);
 			Process->ParentApp->TrafficItem->Processes.erase(ProcessIt->first);
@@ -515,10 +529,12 @@ void WSystemMap::Cleanup()
 			// When cleaning up a socket we have to
 			//  - Remove it from its parent process's Sockets map
 			//  - Remove it from the Sockets map
+			//  - Remove it from the closed socket cookies tracking set
 			WNetworkEvents::GetInstance().OnSocketRemoved(Socket);
 			Socket->ParentProcess->TrafficItem->Sockets.erase(SocketIt->first);
 			TrafficItems.erase(Socket->TrafficItem->ItemId);
 			MapUpdate.AddItemRemoval(Socket->TrafficItem->ItemId);
+			ClosedSocketCookies.erase(SocketIt->first);
 			SocketIt = Sockets.erase(SocketIt);
 		}
 		else
