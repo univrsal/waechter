@@ -41,7 +41,7 @@ public:
 
 	std::vector<std::shared_ptr<WDaemonClient>>& GetClients() { return Clients; }
 
-	IServerSocket* GetSocketImpl() const { return Socket.get(); }
+	[[nodiscard]] IServerSocket* GetSocketImpl() const { return Socket.get(); }
 
 	[[nodiscard]] bool HasClients() const { return bHasClients; }
 
