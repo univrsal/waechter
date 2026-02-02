@@ -67,6 +67,7 @@ void WDaemonSocket::OnNewConnection(std::shared_ptr<WDaemonClient> const& NewCli
 	SendInitialDataToClient(NewClient);
 	ClientsMutex.lock();
 	Clients.push_back(NewClient);
+	bHasClients = true;
 	ClientsMutex.unlock();
 	RemoveInactiveClients();
 }

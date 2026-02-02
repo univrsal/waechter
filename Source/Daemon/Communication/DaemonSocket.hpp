@@ -20,6 +20,7 @@ class WDaemonSocket
 	std::string       Hostname{};
 
 	std::mutex                                  ClientsMutex{};
+	std::atomic<bool>                           bHasClients{};
 	std::vector<std::shared_ptr<WDaemonClient>> Clients;
 
 	void OnNewConnection(std::shared_ptr<WDaemonClient> const& NewClient);
@@ -42,17 +43,14 @@ public:
 
 	IServerSocket* GetSocketImpl() const { return Socket.get(); }
 
-	bool HasClients()
-	{
-		std::lock_guard Lock(ClientsMutex);
-		return !Clients.empty();
-	}
+	[[nodiscard]] bool HasClients() const { return bHasClients; }
 
 	void RemoveInactiveClients()
 	{
 		ClientsMutex.lock();
 		Clients.erase(std::remove_if(Clients.begin(), Clients.end(), [](auto& Client) { return !Client->IsRunning(); }),
 			Clients.end());
+		bHasClients = !Clients.empty();
 		ClientsMutex.unlock();
 	}
 
