@@ -93,7 +93,6 @@ void WIP2Asn::UpdateDatabase()
 		DownloadThread.join();
 	}
 	static std::string const URL = "https://waechter.st/ip2asn-combined.tsv.gz";
-	DownloadMutex.lock();
 
 	auto OldDatabasePath = WSysUtil::GetConfigFolder() / "ip2asn_db.tsv";
 	if (std::filesystem::exists(OldDatabasePath))
@@ -113,6 +112,7 @@ void WIP2Asn::UpdateDatabase()
 
 	bUpdateInProgress = true;
 	DownloadThread = std::thread([this] {
+		std::scoped_lock lock(DownloadMutex);
 		auto DatabasePath = WSysUtil::GetConfigFolder() / "ip2asn_db.tsv.gz";
 		WLibCurl::DownloadFile(
 			URL, DatabasePath, [&](float Progress) { DownloadProgress = Progress; },
@@ -122,7 +122,6 @@ void WIP2Asn::UpdateDatabase()
 			spdlog::info("Extracted IP2ASN database successfully");
 			Init();
 		}
-		DownloadMutex.unlock();
 		bUpdateInProgress = false;
 	});
 }
@@ -147,7 +146,7 @@ void WIP2Asn::DrawDownloadProgressWindow() const
 
 std::optional<WIP2AsnLookupResult> WIP2Asn::Lookup(std::string const& IpAddress)
 {
-	if (!Database)
+	if (!Database || bUpdateInProgress)
 	{
 		return std::nullopt;
 	}
