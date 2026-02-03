@@ -10,6 +10,13 @@ add_executable(waechter
         Assets.hpp
 )
 
+# On Windows, use WIN32 subsystem for Release builds to hide console
+if(WIN32 AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set_target_properties(waechter PROPERTIES
+        WIN32_EXECUTABLE TRUE
+    )
+endif()
+
 # Add Windows resource file for icon and metadata
 if(WIN32)
     configure_file(
