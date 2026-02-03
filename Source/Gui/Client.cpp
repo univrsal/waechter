@@ -131,7 +131,8 @@ void WClient::Start()
 	{
 		spdlog::error("Invalid socket path: {}", WSettings::GetInstance().SocketPath);
 	}
-	if (DaemonSocket)
+
+	if (DaemonSocket && WSettings::GetInstance().SocketPath.find("example.com") == std::string::npos)
 	{
 		DaemonSocket->Start();
 	}
