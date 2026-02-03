@@ -34,11 +34,14 @@ bool WIP2Asn::ExtractDatabase(std::filesystem::path const& GzPath, std::filesyst
 		return false;
 	}
 
-	char Buffer[128 * 1024];
-	int  BytesRead;
-	while ((BytesRead = gzread(InputFile, Buffer, sizeof(Buffer))) > 0)
+	constexpr std::size_t   BufferSize = 128 * 1024;
+	std::unique_ptr<char[]> Buffer = std::make_unique<char[]>(BufferSize);
+	int                     BytesRead;
+
+	while ((BytesRead = gzread(InputFile, static_cast<void*>(Buffer.get()), 128 * 1024)) > 0)
 	{
-		if (std::fwrite(Buffer, 1, static_cast<size_t>(BytesRead), OutputFile) != static_cast<size_t>(BytesRead))
+		if (std::fwrite(static_cast<void*>(Buffer.get()), 1, static_cast<size_t>(BytesRead), OutputFile)
+			!= static_cast<size_t>(BytesRead))
 		{
 			spdlog::error("Failed to write to output file {}", OutPath.string());
 			break;
