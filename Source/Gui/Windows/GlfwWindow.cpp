@@ -96,6 +96,7 @@ bool WGlfwWindow::Init()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
 	MainScale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor()); // Valid on GLFW 3.3+ only
 
+
 	Window = glfwCreateWindow(900, 700, "Wächter", nullptr, nullptr);
 	if (!Window)
 	{
@@ -169,7 +170,6 @@ bool WGlfwWindow::Init()
 	}
 	ImGuiStyle& Style = ImGui::GetStyle();
 	Style.ScaleAllSizes(MainScale);
-	Style.FontScaleDpi = MainScale;
 
 	ImGui_ImplGlfw_InitForOpenGL(Window, true);
 	ImGui_ImplOpenGL3_Init(GetPreferredShaderVersion());
