@@ -17,6 +17,13 @@
 	#include <emscripten.h>
 #endif
 
+#ifndef __EMSCRIPTEN__
+	#include "imgui.h"
+	#include "imgui_impl_opengl3.h"
+	#include "spdlog/spdlog.h"
+	#include "Settings.hpp"
+#endif
+
 bool WSysUtil::IsUsingDarkTheme()
 {
 #if _WIN32
@@ -196,5 +203,68 @@ void WSysUtil::LoadFilesystemFromIndexedDB()
 {
 #if EMSCRIPTEN
 	load_filesystem_impl();
+#endif
+}
+
+void WSysUtil::UpdateImGuiScale(float CurrentScale, float NewScale)
+{
+#ifndef __EMSCRIPTEN__
+	ImGuiIO& Io = ImGui::GetIO();
+	ImGuiStyle& Style = ImGui::GetStyle();
+	
+	// Only update if the scale actually changed
+	if (std::abs(NewScale - CurrentScale) > 0.01f)
+	{
+		spdlog::info("Updating ImGui scale from {:.2f} to {:.2f}", CurrentScale, NewScale);
+		
+		// Store the base style (unscaled at 1.0)
+		static ImGuiStyle BaseStyle;
+		static bool bBaseStyleInitialized = false;
+		
+		if (!bBaseStyleInitialized)
+		{
+			// Get a fresh unscaled style
+			if (WSettings::GetInstance().bUseDarkTheme)
+			{
+				ImGui::StyleColorsDark(&BaseStyle);
+			}
+			else
+			{
+				ImGui::StyleColorsLight(&BaseStyle);
+			}
+			bBaseStyleInitialized = true;
+		}
+		
+		// Restore base style and scale to new value
+		Style = BaseStyle;
+		Style.ScaleAllSizes(NewScale);
+		
+		// Destroy the existing device objects (including font texture)
+		ImGui_ImplOpenGL3_DestroyDeviceObjects();
+		
+		// Clear and rebuild fonts with new scale
+		Io.Fonts->Clear();
+		
+		ImFontConfig Cfg;
+		Cfg.OversampleH = 2;
+		Cfg.OversampleV = 2;
+		Cfg.PixelSnapH = true;
+		Cfg.FontDataOwnedByAtlas = false;
+		
+		// Get font data from the existing font if available
+		extern unsigned char const GFontData[];
+		extern unsigned int const GFontSize;
+		
+		// Base font size is 13.0f (same as in GlfwWindow.cpp Init)
+		float FontSize = std::round(14.0f * NewScale);
+		spdlog::info("Setting font size to {:.1f} for scale {:.2f}", FontSize, NewScale);
+		
+		auto NonConstFontData = const_cast<unsigned char*>(GFontData);
+		auto* FontData = Io.Fonts->AddFontFromMemoryTTF(NonConstFontData, static_cast<int>(GFontSize), FontSize, &Cfg);
+		Io.FontDefault = FontData;
+		
+		// Build font atlas - ImGui_ImplOpenGL3_NewFrame will recreate device objects automatically
+		Io.Fonts->Build();
+	}
 #endif
 }

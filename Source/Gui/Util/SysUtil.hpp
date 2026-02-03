@@ -14,4 +14,7 @@ public:
 
 	static void SyncFilesystemToIndexedDB();
 	static void LoadFilesystemFromIndexedDB();
+	
+	// Update ImGui scale when DPI changes (e.g., moving window between monitors)
+	static void UpdateImGuiScale(float CurrentScale, float NewScale);
 };

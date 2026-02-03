@@ -50,7 +50,7 @@ void WRegisterDialog::Draw()
 	ImGuiIO& Io = ImGui::GetIO();
 	auto     DisplaySize = Io.DisplaySize;
 	ImGui::SetNextWindowPos(ImVec2(DisplaySize.x * 0.5f, DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-	ImGui::SetNextWindowSize({ 300, 155 });
+	ImGui::SetNextWindowSize(WGlfwWindow::ScaleSize(ImVec2(300, 155)));
 
 	if (ImGui::Begin(TR("window.register"), &bVisible,
 			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))

@@ -11,6 +11,7 @@
 #include "Client.hpp"
 #include "Util/I18n.hpp"
 #include "Util/Settings.hpp"
+#include "Windows/GlfwWindow.hpp"
 
 void WSettingsWindow::Draw()
 {
@@ -21,7 +22,7 @@ void WSettingsWindow::Draw()
 	ImGuiIO& Io = ImGui::GetIO();
 	auto     DisplaySize = Io.DisplaySize;
 	ImGui::SetNextWindowPos(ImVec2(DisplaySize.x * 0.5f, DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-	ImGui::SetNextWindowSize({ 500, 310 });
+	ImGui::SetNextWindowSize(WGlfwWindow::ScaleSize({ 580, 400 }));
 	if (ImGui::Begin(TR("window.settings"), &bVisible,
 			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
 	{

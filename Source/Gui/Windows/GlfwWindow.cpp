@@ -34,6 +34,22 @@ static void GlfwErrorCallback(int Error, char const* Description)
 	spdlog::error("GLFW Error {}: {}", Error, Description);
 }
 
+void WGlfwWindow::ContentScaleCallback(GLFWwindow* Window, float XScale, float YScale)
+{
+	// Use the larger of the two scales (they should typically be the same)
+	float NewScale = std::max(XScale, YScale);
+	
+	// Get the WGlfwWindow instance from the window user pointer
+	auto* Self = static_cast<WGlfwWindow*>(glfwGetWindowUserPointer(Window));
+	if (Self && std::abs(NewScale - Self->MainScale) > 0.01f)
+	{
+		spdlog::info("Content scale changed from {:.2f} to {:.2f}", Self->MainScale, NewScale);
+		// Update ImGui scaling (handles both style and font scaling)
+		WSysUtil::UpdateImGuiScale(Self->MainScale, NewScale);
+		Self->MainScale = NewScale;
+	}
+}
+
 void WGlfwWindow::Tick() const
 {
 	static constexpr ImVec4 ClearColor = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
@@ -104,6 +120,13 @@ bool WGlfwWindow::Init()
 		glfwTerminate();
 		return false;
 	}
+	
+	// Set window user pointer to this instance so we can access it in callbacks
+	glfwSetWindowUserPointer(Window, this);
+	
+	// Register content scale callback to handle DPI changes when moving between monitors
+	glfwSetWindowContentScaleCallback(Window, ContentScaleCallback);
+	
 	glfwMakeContextCurrent(Window);
 #if !defined(__EMSCRIPTEN__)
 	if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
@@ -154,11 +177,12 @@ bool WGlfwWindow::Init()
 	Cfg.PixelSnapH = true;
 	Cfg.FontDataOwnedByAtlas = false; // font data comes from static incbin; do not let ImGui free it
 
-	auto FontSize = std::round(16.0f * MainScale);
+	auto FontSize = std::round(14.0f * MainScale);
 	auto NonConstFontData = const_cast<unsigned char*>(GFontData);
 
 	auto* FontData = Io.Fonts->AddFontFromMemoryTTF(NonConstFontData, static_cast<int>(GFontSize), FontSize, &Cfg);
 	Io.FontDefault = FontData;
+
 	// Setup Dear ImGui style
 	if (WSettings::GetInstance().bUseDarkTheme)
 	{

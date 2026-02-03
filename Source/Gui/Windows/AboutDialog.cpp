@@ -59,7 +59,7 @@ void WAboutDialog::Draw()
 	ImGuiIO& io = ImGui::GetIO();
 	auto     display_size = io.DisplaySize; // Current window/swapchain size
 	ImGui::SetNextWindowPos(ImVec2(display_size.x * 0.5f, display_size.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-	ImGui::SetNextWindowSize({ 700, display_size.y - 100 });
+	ImGui::SetNextWindowSize({ WGlfwWindow::ScaleValue(700), display_size.y - WGlfwWindow::ScaleValue(100) });
 
 	if (ImGui::Begin(TR("window.about"), &bVisible,
 			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
