@@ -108,5 +108,12 @@ struct WTrafficTreeUpdates
 		AddedSockets.clear();
 		AddedTuples.clear();
 		SocketStateChange.clear();
+
+		MarkedForRemovalItems.shrink_to_fit();
+		RemovedItems.shrink_to_fit();
+		UpdatedItems.shrink_to_fit();
+		AddedSockets.shrink_to_fit();
+		AddedTuples.shrink_to_fit();
+		SocketStateChange.shrink_to_fit();
 	}
 };
