@@ -26,11 +26,17 @@ class WMapUpdate : public IMemoryTrackable
 
 	void Clear()
 	{
+		MarkedForRemovalItems.clear();
+		RemovedItems.clear();
+		SocketStateChanges.clear();
 		AddedSockets.clear();
 		AddedTuples.clear();
-		RemovedItems.clear();
-		MarkedForRemovalItems.clear();
-		SocketStateChanges.clear();
+
+		MarkedForRemovalItems.shrink_to_fit();
+		RemovedItems.shrink_to_fit();
+		SocketStateChanges.shrink_to_fit();
+		AddedSockets.shrink_to_fit();
+		AddedTuples.shrink_to_fit();
 	}
 
 	static bool TrackUpdates();
