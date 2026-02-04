@@ -60,6 +60,8 @@ class WSystemMap : public TSingleton<WSystemMap>, public IMemoryTrackable
 	std::shared_ptr<WTupleCounter> GetOrCreateUDPTupleCounter(
 		std::shared_ptr<WSocketCounter> const& SockCounter, WEndpoint const& Endpoint);
 
+	WSec LastCleanupMessageTime{};
+
 public:
 	WSystemMap();
 	~WSystemMap() override = default;

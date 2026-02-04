@@ -479,6 +479,10 @@ void WSystemMap::Cleanup()
 {
 	bool bRemovedAny{ false };
 
+	auto OldSocketCount = Sockets.size();
+	auto OldProcessCount = Processes.size();
+	auto OldTrafficItemCount = TrafficItems.size();
+
 	for (auto ProcessIt = Processes.begin(); ProcessIt != Processes.end();)
 	{
 		auto PID = ProcessIt->first;
@@ -547,5 +551,16 @@ void WSystemMap::Cleanup()
 	{
 		auto NodeCount = Applications.size() + Processes.size() + Sockets.size();
 		spdlog::debug("{} nodes remain in the system map after cleanup.", NodeCount);
+	}
+	if (WTime::GetEpochSeconds() - LastCleanupMessageTime > 5)
+	{
+		LastCleanupMessageTime = WTime::GetEpochSeconds();
+		auto DiffSocketCount = OldSocketCount - Sockets.size();
+		auto DiffProcessCount = OldProcessCount - Processes.size();
+		auto DiffTrafficItemCount = OldTrafficItemCount - TrafficItems.size();
+
+		spdlog::info("Cleanup removed {} sockets({} -> {}), {} processes ({} -> {}), and {} traffic items ({} -> {}).",
+			DiffSocketCount, OldSocketCount, Sockets.size(), DiffProcessCount, OldProcessCount, Processes.size(),
+			DiffTrafficItemCount, OldTrafficItemCount, TrafficItems.size());
 	}
 }
