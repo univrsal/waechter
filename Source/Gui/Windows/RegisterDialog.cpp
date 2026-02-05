@@ -6,6 +6,7 @@
 #include "RegisterDialog.hpp"
 
 #include "imgui.h"
+#include "imgui_internal.h"
 
 #include "Assets.hpp"
 #include "GlfwWindow.hpp"
@@ -35,12 +36,17 @@ void WRegisterDialog::Draw()
 		if (ImGui::Begin("Watermark", nullptr,
 				ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove
 					| ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoResize
-					| ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDecoration))
+					| ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDecoration
+					| ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoInputs))
 		{
 			ImGui::Image(Watermark.TextureId, ImVec2(Watermark.Width / 2.f, Watermark.Height / 2.f));
 		}
-		ImGui::PopStyleVar(2);
 		ImGui::End();
+
+		// Ensure the watermark is always rendered on top of all other windows
+		ImGui::BringWindowToDisplayFront(ImGui::FindWindowByName("Watermark"));
+
+		ImGui::PopStyleVar(2);
 	}
 	if (!bVisible)
 	{

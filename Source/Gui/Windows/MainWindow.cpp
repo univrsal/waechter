@@ -181,7 +181,6 @@ void WMainWindow::Draw()
 	NetworkGraphWindow.Draw();
 	DetailsWindow.Draw();
 	AboutDialog.Draw();
-	RegisterDialog.Draw();
 	ConnectionHistoryWindow.Draw();
 	SettingsWindow.Draw();
 	MemoryUsageWindow.Draw();
@@ -189,4 +188,6 @@ void WMainWindow::Draw()
 	WIP2Asn::GetInstance().DrawDownloadProgressWindow();
 #endif
 	WClient::GetInstance().GetTrafficTree()->Draw(Main);
+	// draw last for the watermark
+	RegisterDialog.Draw();
 }
