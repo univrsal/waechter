@@ -17,12 +17,10 @@
 	#include <emscripten.h>
 #endif
 
-#ifndef __EMSCRIPTEN__
-	#include "imgui.h"
-	#include "imgui_impl_opengl3.h"
-	#include "spdlog/spdlog.h"
-	#include "Settings.hpp"
-#endif
+#include "imgui.h"
+#include "imgui_impl_opengl3.h"
+#include "spdlog/spdlog.h"
+#include "Settings.hpp"
 
 bool WSysUtil::IsUsingDarkTheme()
 {
@@ -208,7 +206,6 @@ void WSysUtil::LoadFilesystemFromIndexedDB()
 
 void WSysUtil::UpdateImGuiScale(float CurrentScale, float NewScale)
 {
-#ifndef __EMSCRIPTEN__
 	ImGuiIO& Io = ImGui::GetIO();
 	ImGuiStyle& Style = ImGui::GetStyle();
 	
@@ -266,5 +263,4 @@ void WSysUtil::UpdateImGuiScale(float CurrentScale, float NewScale)
 		// Build font atlas - ImGui_ImplOpenGL3_NewFrame will recreate device objects automatically
 		Io.Fonts->Build();
 	}
-#endif
 }

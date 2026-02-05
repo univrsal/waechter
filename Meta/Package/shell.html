@@ -42,12 +42,6 @@
         e.preventDefault();
     }, false);
 
-    function resizeCanvas() {
-        canvasElement.width = window.innerWidth;
-        canvasElement.height = window.innerHeight;
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas(); // Set initial size
 
     var setStatus = (text) => {
         if (!setStatus.last) setStatus.last = { time: Date.now(), text: '' };
