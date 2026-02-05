@@ -219,7 +219,9 @@ std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketEvent const& Event,
 	}
 
 	auto App = FindOrMapApplication(ExePath, CmdlIne, Comm);
+	assert(App);
 	auto Process = FindOrMapProcess(PID, App);
+	assert(Process);
 	return FindOrMapSocket(SocketCookie, Process);
 }
 

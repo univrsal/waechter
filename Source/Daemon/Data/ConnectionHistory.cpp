@@ -99,14 +99,14 @@ void WConnectionHistory::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& 
 {
 	std::scoped_lock Lock(Mutex);
 	auto const       App = SocketCounter->ParentProcess->ParentApp;
-	auto             AppName = App->TrafficItem->ApplicationName;
-	auto             Endpoint = SocketCounter->TrafficItem->SocketTuple.RemoteEndpoint;
-	auto const       Key = std::make_pair(AppName, Endpoint);
 	if (!App)
 	{
 		spdlog::error("No app for socket {}", SocketCounter->TrafficItem->ItemId);
 		return;
 	}
+	auto             AppName = App->TrafficItem->ApplicationName;
+	auto             Endpoint = SocketCounter->TrafficItem->SocketTuple.RemoteEndpoint;
+	auto const       Key = std::make_pair(AppName, Endpoint);
 
 	if (ActiveConnections.contains(Key))
 	{
@@ -148,12 +148,12 @@ void WConnectionHistory::OnUDPTupleCreated(
 	std::shared_ptr<WTupleCounter> const& TupleCounter, WEndpoint const& Endpoint)
 {
 	auto const App = TupleCounter->ParentSocket->ParentProcess->ParentApp;
-	auto AppName = App->TrafficItem->ApplicationName;
 	if (!App)
 	{
 		spdlog::info("No app for tuple {}", TupleCounter->TrafficItem->ItemId);
 		return;
 	}
+	auto AppName = App->TrafficItem->ApplicationName;
 	std::scoped_lock Lock(Mutex);
 
 	auto const Key = std::make_pair(AppName, Endpoint);
@@ -219,6 +219,11 @@ WConnectionHistoryUpdate WConnectionHistory::Update()
 		for (; It != History.end(); ++It)
 		{
 			auto const&                Entry = *It;
+			assert(Entry.App && Entry.Set);
+			if (!Entry.App || !Entry.Set)
+			{
+				continue;
+			}
 			WNewConnectionHistoryEntry NewEntry{};
 			NewEntry.AppId = Entry.App->TrafficItem->ItemId;
 			NewEntry.RemoteEndpoint = Entry.RemoteEndpoint;
@@ -241,6 +246,10 @@ WConnectionHistoryUpdate WConnectionHistory::Serialize()
 	for (auto const& Entry : History)
 	{
 		assert(Entry.App && Entry.Set);
+		if (!Entry.App || !Entry.Set)
+		{
+			continue;
+		}
 		WNewConnectionHistoryEntry NewEntry{};
 		NewEntry.AppId = Entry.App->TrafficItem->ItemId;
 		NewEntry.RemoteEndpoint = Entry.RemoteEndpoint;
@@ -266,6 +275,10 @@ WMemoryStat WConnectionHistory::GetMemoryUsage()
 	for (auto const& E : History)
 	{
 		assert(E.App && E.Set);
+		if (!E.App || !E.Set)
+		{
+			continue;
+		}
 		HistoryEntry.Usage += sizeof(WConnectionHistoryEntry);
 		HistoryEntry.Usage += sizeof(WConnectionSet);
 		HistoryEntry.Usage += sizeof(std::shared_ptr<ITrafficItem>) * E.Set->Connections.size();
