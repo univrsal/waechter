@@ -210,6 +210,13 @@ void WNetworkGraphWindow::Draw()
 				}
 			}
 
+			if (DownloadInverted.empty() || UploadInverted.empty())
+			{
+				// No data to plot
+				ImPlot::EndPlot();
+				return;
+			}
+
 			// Plot Upload on Y2 (right axis)
 			ImPlot::SetAxes(ImAxis_X1, ImAxis_Y2);
 			ImPlot::SetNextLineStyle(ImVec4(0.9f, 0.3f, 0.05f, 1.0f), WSettings::GetInstance().NetworkGraphLineWidth);
