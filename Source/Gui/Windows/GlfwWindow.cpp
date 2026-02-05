@@ -139,11 +139,12 @@ bool WGlfwWindow::Init()
 		return false;
 	}
 	
-	// Set window user pointer to this instance so we can access it in callbacks
 	glfwSetWindowUserPointer(Window, this);
-	
+
+#if !defined(__linux__) // wayland handles this automatically
 	// Register content scale callback to handle DPI changes when moving between monitors
 	glfwSetWindowContentScaleCallback(Window, ContentScaleCallback);
+#endif
 
 	glfwMakeContextCurrent(Window);
 #if !defined(__EMSCRIPTEN__)
