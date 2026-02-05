@@ -27,8 +27,13 @@ void WRegisterDialog::Draw()
 {
 	if (!bValid)
 	{
-		ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y + 15),
-			ImGuiCond_Always, ImVec2(1.0f, 1.0f));
+		auto const WholeScale = std::ceil(WGlfwWindow::GetInstance().GetMainScale());
+		auto const ImageSize = ImVec2(Watermark.Width / 2.f * WholeScale, Watermark.Height / 2.f * WholeScale);
+
+		// Position in bottom-right corner with proper offset accounting for scaled image size
+		ImGui::SetNextWindowPos(
+			ImVec2(ImGui::GetIO().DisplaySize.x - ImageSize.x, ImGui::GetIO().DisplaySize.y - ImageSize.y),
+			ImGuiCond_Always);
 		ImGui::SetNextWindowBgAlpha(0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
@@ -39,7 +44,7 @@ void WRegisterDialog::Draw()
 					| ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDecoration
 					| ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoInputs))
 		{
-			ImGui::Image(Watermark.TextureId, ImVec2(Watermark.Width / 2.f, Watermark.Height / 2.f));
+			ImGui::Image(Watermark.TextureId, ImageSize);
 		}
 		ImGui::End();
 
