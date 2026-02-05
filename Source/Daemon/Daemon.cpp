@@ -77,7 +77,11 @@ void WDaemon::PeriodicUpdatesThreadFunction() const
 
 		{
 			ZoneScopedN("WConnectionHistory::Update");
-			auto Updates = WConnectionHistory::GetInstance().Update();
+			WConnectionHistoryUpdate Updates{};
+			{
+				std::scoped_lock SystemMapLock(WSystemMap::GetInstance().DataMutex);
+				Updates = WConnectionHistory::GetInstance().Update();
+			}
 			if (!Updates.Changes.empty())
 			{
 				DaemonSocket->BroadcastConnectionHistoryUpdate(Updates);

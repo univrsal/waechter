@@ -43,13 +43,13 @@ static void SendInitialDataToClient(std::shared_ptr<WDaemonClient> const& Client
 	{
 		std::lock_guard Lock(SystemMap.DataMutex);
 		Client->SendMessage(MT_TrafficTree, *SystemMap.GetSystemItem());
+		Client->SendMessage(MT_ConnectionHistory, WConnectionHistory::GetInstance().Serialize());
 	}
 	{
 		std::lock_guard Lock(WResolver::GetInstance().ResolvedAddressesMutex);
 		Client->SendMessage(MT_ResolvedAddresses, WResolver::GetInstance().GetResolvedAddresses());
 	}
 
-	Client->SendMessage(MT_ConnectionHistory, WConnectionHistory::GetInstance().Serialize());
 	Client->SendMessage(MT_MemoryStats, WMemoryUsage::GetMemoryStats());
 
 	// Send app icon atlas
