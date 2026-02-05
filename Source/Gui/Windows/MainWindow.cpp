@@ -20,7 +20,7 @@
 
 void WMainWindow::DrawConnectionIndicator()
 {
-	float const IndicatorSize = 12.0f;
+	float const IndicatorSize = WGlfwWindow::ScaleValue(12.0f);
 	float const Radius = IndicatorSize * 0.5f;
 	float const MarginRight = -2.0f;
 
