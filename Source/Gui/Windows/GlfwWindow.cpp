@@ -60,9 +60,22 @@ void WGlfwWindow::Tick() const
 		return;
 	}
 #ifdef __EMSCRIPTEN__
+	// Update canvas size to match CSS dimensions and device pixel ratio for HiDPI
 	double CanvasWidth, CanvasHeight;
 	emscripten_get_element_css_size("#canvas", &CanvasWidth, &CanvasHeight);
-	glfwSetWindowSize(Window, static_cast<int>(CanvasWidth), static_cast<int>(CanvasHeight));
+	double DevicePixelRatio = emscripten_get_device_pixel_ratio();
+	int    ActualWidth = static_cast<int>(CanvasWidth * DevicePixelRatio);
+	int    ActualHeight = static_cast<int>(CanvasHeight * DevicePixelRatio);
+
+	int CurrentWidth, CurrentHeight;
+	emscripten_get_canvas_element_size("#canvas", &CurrentWidth, &CurrentHeight);
+	if (CurrentWidth != ActualWidth || CurrentHeight != ActualHeight)
+	{
+		emscripten_set_canvas_element_size("#canvas", ActualWidth, ActualHeight);
+		glfwSetWindowSize(Window, ActualWidth, ActualHeight);
+	}
+	// force one initial update
+	ContentScaleCallback(Window, DevicePixelRatio, DevicePixelRatio);
 #endif
 	if (WSettings::GetInstance().bReduceFrameRateWhenInactive && glfwGetWindowAttrib(Window, GLFW_FOCUSED) != 1)
 	{
@@ -94,7 +107,12 @@ void WGlfwWindow::Tick() const
 bool WGlfwWindow::Init()
 {
 #if __EMSCRIPTEN__
-	emscripten_set_canvas_element_size("#canvas", 900, 700);
+	// Get the device pixel ratio to properly set canvas resolution for HiDPI displays
+	double DevicePixelRatio = emscripten_get_device_pixel_ratio();
+	double CanvasWidth, CanvasHeight;
+	emscripten_get_element_css_size("#canvas", &CanvasWidth, &CanvasHeight);
+	emscripten_set_canvas_element_size(
+		"#canvas", static_cast<int>(CanvasWidth * DevicePixelRatio), static_cast<int>(CanvasHeight * DevicePixelRatio));
 #else
 	WLibCurl::Init();
 #endif
@@ -126,7 +144,7 @@ bool WGlfwWindow::Init()
 	
 	// Register content scale callback to handle DPI changes when moving between monitors
 	glfwSetWindowContentScaleCallback(Window, ContentScaleCallback);
-	
+
 	glfwMakeContextCurrent(Window);
 #if !defined(__EMSCRIPTEN__)
 	if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
@@ -227,9 +245,6 @@ void WGlfwWindow::RunLoop()
 	}
 #endif
 
-	while (!glfwWindowShouldClose(Window))
-	{
-	}
 	WClient::GetInstance().Stop();
 	MainWindow = nullptr;
 }
