@@ -26,6 +26,8 @@ protected:
 
 	ECounterState State{ CS_Inactive };
 
+	// The number of ticks this counter has not received any traffic in, currently one
+	// tick = one second, clamped at 255
 	uint8_t InactiveCounter{ 0 };
 
 public:
@@ -39,7 +41,7 @@ public:
 	static constexpr WMsec RecentTrafficTimeWindow{ 1000 };
 	static constexpr WMsec RemovalTimeWindow{ 5000 }; // Time between pending removal and actual removal
 
-	~TTrafficCounter() = default;
+	virtual ~TTrafficCounter() = default;
 
 	void PushOutgoingTraffic(WBytes Bytes)
 	{
@@ -55,9 +57,9 @@ public:
 		InactiveCounter = 0;
 	}
 
-	bool IsActive() const { return State == CS_Active; }
+	[[nodiscard]] bool IsActive() const { return State == CS_Active; }
 
-	void Refresh()
+	virtual void Refresh()
 	{
 		if (State == CS_PendingRemoval)
 		{
@@ -94,9 +96,9 @@ public:
 				TrafficItem->UploadSpeed = 0;
 			}
 
-			if (TrafficItem->DownloadSpeed == 0 && TrafficItem->UploadSpeed == 0 && State == CS_Active)
+			if (TrafficItem->DownloadSpeed == 0 && TrafficItem->UploadSpeed == 0)
 			{
-				InactiveCounter++;
+				InactiveCounter = std::min(InactiveCounter + 1, 255);
 			}
 
 			// We don't set it to inactive immediately
@@ -117,7 +119,7 @@ public:
 
 	[[nodiscard]] ECounterState GetState() const { return State; }
 
-	bool IsMarkedForRemoval() const { return State == CS_PendingRemoval; }
+	[[nodiscard]] bool IsMarkedForRemoval() const { return State == CS_PendingRemoval; }
 
 	void MarkForRemoval()
 	{
@@ -131,5 +133,8 @@ public:
 		RemovalTimeStamp = WTime::GetEpochMs() + RemovalTimeWindow;
 	}
 
-	bool DueForRemoval() { return State == CS_PendingRemoval && WTime::GetEpochMs() >= RemovalTimeStamp; }
+	[[nodiscard]] bool DueForRemoval() const
+	{
+		return State == CS_PendingRemoval && WTime::GetEpochMs() >= RemovalTimeStamp;
+	}
 };

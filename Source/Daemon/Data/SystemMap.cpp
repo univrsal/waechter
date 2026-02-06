@@ -523,6 +523,16 @@ void WSystemMap::Cleanup()
 		}
 		else
 		{
+			for (auto const& [EndPoint, TupleCounter] : Socket->UDPPerConnectionCounters)
+			{
+				if (TupleCounter->DueForRemoval())
+				{
+					bRemovedAny = true;
+					TrafficItems.erase(TupleCounter->TrafficItem->ItemId);
+					MapUpdate.AddItemRemoval(TupleCounter->TrafficItem->ItemId);
+					Socket->UDPPerConnectionCounters.erase(EndPoint);
+				}
+			}
 			++SocketIt;
 		}
 	}

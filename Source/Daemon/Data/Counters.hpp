@@ -50,4 +50,16 @@ struct WTupleCounter : TTrafficCounter<WTupleItem>
 	}
 
 	std::shared_ptr<WSocketCounter> ParentSocket;
+
+	void Refresh() override
+	{
+		TTrafficCounter::Refresh();
+		// If a UDP socket has not sent/received data on a connection for one minute,
+		// we'll treat it as dead. In the worst case it'll be re-added once traffic
+		// is detected for it again
+		if (InactiveCounter >= 60)
+		{
+			MarkForRemoval();
+		}
+	}
 };
