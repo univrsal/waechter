@@ -314,23 +314,7 @@ int main(int Argc, char** Argv)
 	WBuffer        RecvBuffer;
 	WMsgQueue      Queue;
 
-	// Create a thread pool to process messages in parallel
-	// Using hardware concurrency, but capping at reasonable limit
-	// todo: i think we can remove this now, it was only a test
-	// when we had to create a filter for each port
-	size_t ThreadCount = std::min(std::thread::hardware_concurrency(), 4u);
-	if (ThreadCount == 0)
-	{
-		ThreadCount = 4; // fallback default
-	}
-	spdlog::info("Starting thread pool with {} worker threads", ThreadCount);
-
-	std::vector<std::thread> WorkerPool;
-	WorkerPool.reserve(ThreadCount);
-	for (size_t i = 0; i < ThreadCount; ++i)
-	{
-		WorkerPool.emplace_back([&Queue, &Handler, IfbDev] { WorkerThreadMain(Queue, Handler, IfbDev); });
-	}
+	std::thread WorkerThread([&Queue, &Handler, IfbDev] { WorkerThreadMain(Queue, Handler, IfbDev); });
 
 	ClientSocket->OnClosed.connect([&Handler, &Queue]() {
 		spdlog::info("Daemon socket closed, exiting");
@@ -348,15 +332,11 @@ int main(int Argc, char** Argv)
 	}
 
 	Queue.Stop();
-	spdlog::info("Waiting for worker threads to finish...");
-	for (auto& Worker : WorkerPool)
+	spdlog::info("Waiting for worker thread to finish...");
+	if (WorkerThread.joinable())
 	{
-		if (Worker.joinable())
-		{
-			Worker.join();
-		}
+		WorkerThread.join();
 	}
-	spdlog::info("All worker threads finished");
 
 	Cleanup(IfbDev, IngressInterface);
 	return 0;
