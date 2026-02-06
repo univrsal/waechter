@@ -26,6 +26,7 @@ struct WProcessCounter : TTrafficCounter<WProcessItem>
 };
 
 struct WTupleCounter;
+
 struct WSocketCounter : TTrafficCounter<WSocketItem>
 {
 	explicit WSocketCounter(

@@ -15,7 +15,7 @@ enum ECounterState
 };
 
 template <typename T>
-class TTrafficCounter
+struct TTrafficCounter
 {
 protected:
 	WBytes RecentUpload{};

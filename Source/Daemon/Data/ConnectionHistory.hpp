@@ -17,11 +17,11 @@
 #include "Data/ConnectionHistoryUpdate.hpp"
 
 
-class WAppCounter;
-class WSocketItem;
-class WSocketCounter;
-class WTupleCounter;
-class WTupleItem;
+struct WAppCounter;
+struct WSocketItem;
+struct WSocketCounter;
+struct WTupleCounter;
+struct WTupleItem;
 
 struct WConnectionSet
 {
