@@ -36,12 +36,6 @@ struct WBandwidthLimit
 	~WBandwidthLimit();
 };
 
-struct WIngressPortRouting
-{
-	uint32_t QDiscId{ 0 };
-	uint32_t Handle{ 0 };
-};
-
 struct WSocketCounter;
 
 class WIPLink : public TSingleton<WIPLink>, public IMemoryTrackable
