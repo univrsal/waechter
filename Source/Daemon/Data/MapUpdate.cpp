@@ -29,6 +29,8 @@ void WMapUpdate::AddStateChange(WTrafficItemId const Id, ESocketConnectionState 
 	{
 		return;
 	}
+	std::scoped_lock Lock(UpdatesMutex);
+
 	WTrafficTreeSocketStateChange StateChange;
 	StateChange.ItemId = Id;
 	StateChange.NewState = NewState;
@@ -53,6 +55,8 @@ void FetchActiveCounters(std::unordered_map<K, std::shared_ptr<V>> const& Counte
 
 WTrafficTreeUpdates const& WMapUpdate::GetUpdates()
 {
+	std::scoped_lock Lock(UpdatesMutex);
+
 	auto& SM = WSystemMap::GetInstance();
 	Updates.Reset();
 	Updates.RemovedItems = RemovedItems;
@@ -143,6 +147,8 @@ WTrafficTreeUpdates const& WMapUpdate::GetUpdates()
 
 WMemoryStat WMapUpdate::GetMemoryUsage()
 {
+	std::scoped_lock Lock(UpdatesMutex);
+
 	WMemoryStat Stats{};
 	Stats.Name = "WMapUpdate";
 
