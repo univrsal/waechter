@@ -434,7 +434,8 @@ WMemoryStat WSystemMap::GetMemoryUsage()
 	std::scoped_lock Lock(DataMutex);
 	WMemoryStat      Stats;
 	Stats.Name = "WSystemMap";
-	WMemoryStatEntry Apps{}, ProcessesEntry{}, SocketsEntry{}, TrafficItemsEntry{}, ClosedSocketsEntry{};
+	WMemoryStatEntry Apps{}, ProcessesEntry{}, SocketsEntry{}, TrafficItemsEntry{}, ClosedSocketsEntry{},
+		UDPPerConnectionCountersEntry{};
 
 	Apps.Name = "Applications";
 	Apps.Usage += sizeof(decltype(Applications));
@@ -453,9 +454,10 @@ WMemoryStat WSystemMap::GetMemoryUsage()
 	SocketsEntry.Usage += sizeof(decltype(Sockets));
 	SocketsEntry.Usage += (sizeof(WSocketCookie) + sizeof(WSocketCounter) + sizeof(WSocketItem)) * Sockets.size();
 
+	UDPPerConnectionCountersEntry.Name = "UDP connections";
 	for (auto const& Socket : Sockets | std::views::values)
 	{
-		SocketsEntry.Usage +=
+		UDPPerConnectionCountersEntry.Usage +=
 			Socket->UDPPerConnectionCounters.size() * (sizeof(WEndpoint) + sizeof(WTupleCounter) + sizeof(WTupleItem));
 	}
 
@@ -472,6 +474,7 @@ WMemoryStat WSystemMap::GetMemoryUsage()
 	Stats.ChildEntries.emplace_back(SocketsEntry);
 	Stats.ChildEntries.emplace_back(TrafficItemsEntry);
 	Stats.ChildEntries.emplace_back(ClosedSocketsEntry);
+	Stats.ChildEntries.emplace_back(UDPPerConnectionCountersEntry);
 	return Stats;
 }
 
