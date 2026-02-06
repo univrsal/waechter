@@ -6,6 +6,7 @@
 #pragma once
 #include <vector>
 #include <memory>
+#include <mutex>
 
 #include "MemoryStats.hpp"
 #include "Data/TrafficTreeUpdate.hpp"
@@ -20,14 +21,21 @@ class WMapUpdate : public IMemoryTrackable
 	std::vector<std::pair<WEndpoint, std::shared_ptr<WTupleCounter>>> AddedTuples{};
 
 	WTrafficTreeUpdates Updates;
+	mutable std::mutex  UpdatesMutex;
 
 	void Clear()
 	{
+		MarkedForRemovalItems.clear();
+		RemovedItems.clear();
+		SocketStateChanges.clear();
 		AddedSockets.clear();
 		AddedTuples.clear();
-		RemovedItems.clear();
-		MarkedForRemovalItems.clear();
-		SocketStateChanges.clear();
+
+		MarkedForRemovalItems.shrink_to_fit();
+		RemovedItems.shrink_to_fit();
+		SocketStateChanges.shrink_to_fit();
+		AddedSockets.shrink_to_fit();
+		AddedTuples.shrink_to_fit();
 	}
 
 	static bool TrackUpdates();
@@ -41,11 +49,13 @@ public:
 		{
 			return;
 		}
+		std::scoped_lock Lock(UpdatesMutex);
 		MarkedForRemovalItems.emplace_back(ItemId);
 	}
 
 	bool HasUpdates() const
 	{
+		std::scoped_lock Lock(UpdatesMutex);
 		return !RemovedItems.empty() || !MarkedForRemovalItems.empty() || !SocketStateChanges.empty()
 			|| !AddedSockets.empty() || !AddedTuples.empty();
 	}
@@ -59,6 +69,7 @@ public:
 		{
 			return;
 		}
+		std::scoped_lock Lock(UpdatesMutex);
 		AddedTuples.emplace_back(Endpoint, Tuple);
 	}
 
@@ -68,6 +79,7 @@ public:
 		{
 			return;
 		}
+		std::lock_guard<std::mutex> lock(UpdatesMutex);
 		AddedSockets.emplace_back(Socket);
 	}
 
@@ -77,6 +89,7 @@ public:
 		{
 			return;
 		}
+		std::scoped_lock Lock(UpdatesMutex);
 		RemovedItems.emplace_back(ItemId);
 	}
 

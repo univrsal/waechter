@@ -244,6 +244,14 @@ std::shared_ptr<WSocketCounter> WSystemMap::FindOrMapSocket(
 
 	MapUpdate.AddSocketAddition(Socket);
 
+	// Check if this socket was already closed before it was created (due to event ordering)
+	if (ClosedSocketCookies.contains(SocketCookie))
+	{
+		Socket->MarkForRemoval();
+		SocketItem->ConnectionState = ESocketConnectionState::Closed;
+		MapUpdate.MarkItemForRemoval(SocketItem->ItemId);
+	}
+
 	return Socket;
 }
 
@@ -426,7 +434,8 @@ WMemoryStat WSystemMap::GetMemoryUsage()
 	std::scoped_lock Lock(DataMutex);
 	WMemoryStat      Stats;
 	Stats.Name = "WSystemMap";
-	WMemoryStatEntry Apps{}, ProcessesEntry{}, SocketsEntry{}, TrafficItemsEntry{};
+	WMemoryStatEntry Apps{}, ProcessesEntry{}, SocketsEntry{}, TrafficItemsEntry{}, ClosedSocketsEntry{},
+		UDPPerConnectionCountersEntry{};
 
 	Apps.Name = "Applications";
 	Apps.Usage += sizeof(decltype(Applications));
@@ -445,9 +454,10 @@ WMemoryStat WSystemMap::GetMemoryUsage()
 	SocketsEntry.Usage += sizeof(decltype(Sockets));
 	SocketsEntry.Usage += (sizeof(WSocketCookie) + sizeof(WSocketCounter) + sizeof(WSocketItem)) * Sockets.size();
 
+	UDPPerConnectionCountersEntry.Name = "UDP connections";
 	for (auto const& Socket : Sockets | std::views::values)
 	{
-		SocketsEntry.Usage +=
+		UDPPerConnectionCountersEntry.Usage +=
 			Socket->UDPPerConnectionCounters.size() * (sizeof(WEndpoint) + sizeof(WTupleCounter) + sizeof(WTupleItem));
 	}
 
@@ -455,16 +465,26 @@ WMemoryStat WSystemMap::GetMemoryUsage()
 	TrafficItemsEntry.Usage += sizeof(decltype(TrafficItems));
 	TrafficItemsEntry.Usage += (sizeof(WTrafficItemId) + sizeof(ITrafficItem)) * TrafficItems.size();
 
+	ClosedSocketsEntry.Name = "Closed socket cookies";
+	ClosedSocketsEntry.Usage += sizeof(decltype(ClosedSocketCookies));
+	ClosedSocketsEntry.Usage += sizeof(WSocketCookie) * ClosedSocketCookies.size();
+
 	Stats.ChildEntries.emplace_back(Apps);
 	Stats.ChildEntries.emplace_back(ProcessesEntry);
 	Stats.ChildEntries.emplace_back(SocketsEntry);
 	Stats.ChildEntries.emplace_back(TrafficItemsEntry);
+	Stats.ChildEntries.emplace_back(ClosedSocketsEntry);
+	Stats.ChildEntries.emplace_back(UDPPerConnectionCountersEntry);
 	return Stats;
 }
 
 void WSystemMap::Cleanup()
 {
 	bool bRemovedAny{ false };
+
+	auto OldSocketCount = Sockets.size();
+	auto OldProcessCount = Processes.size();
+	auto OldTrafficItemCount = TrafficItems.size();
 
 	for (auto ProcessIt = Processes.begin(); ProcessIt != Processes.end();)
 	{
@@ -493,6 +513,7 @@ void WSystemMap::Cleanup()
 				Sockets.erase(SocketCookie);
 				TrafficItems.erase(Socket->ItemId);
 				MapUpdate.AddItemRemoval(Socket->ItemId);
+				ClosedSocketCookies.erase(SocketCookie);
 			}
 			WNetworkEvents::GetInstance().OnProcessRemoved(Process);
 			Process->ParentApp->TrafficItem->Processes.erase(ProcessIt->first);
@@ -515,10 +536,12 @@ void WSystemMap::Cleanup()
 			// When cleaning up a socket we have to
 			//  - Remove it from its parent process's Sockets map
 			//  - Remove it from the Sockets map
+			//  - Remove it from the closed socket cookies tracking set
 			WNetworkEvents::GetInstance().OnSocketRemoved(Socket);
 			Socket->ParentProcess->TrafficItem->Sockets.erase(SocketIt->first);
 			TrafficItems.erase(Socket->TrafficItem->ItemId);
 			MapUpdate.AddItemRemoval(Socket->TrafficItem->ItemId);
+			ClosedSocketCookies.erase(SocketIt->first);
 			SocketIt = Sockets.erase(SocketIt);
 		}
 		else
@@ -531,5 +554,16 @@ void WSystemMap::Cleanup()
 	{
 		auto NodeCount = Applications.size() + Processes.size() + Sockets.size();
 		spdlog::debug("{} nodes remain in the system map after cleanup.", NodeCount);
+	}
+	if (WTime::GetEpochSeconds() - LastCleanupMessageTime > 5)
+	{
+		LastCleanupMessageTime = WTime::GetEpochSeconds();
+		auto DiffSocketCount = OldSocketCount - Sockets.size();
+		auto DiffProcessCount = OldProcessCount - Processes.size();
+		auto DiffTrafficItemCount = OldTrafficItemCount - TrafficItems.size();
+
+		spdlog::info("Cleanup removed {} sockets({} -> {}), {} processes ({} -> {}), and {} traffic items ({} -> {}).",
+			DiffSocketCount, OldSocketCount, Sockets.size(), DiffProcessCount, OldProcessCount, Processes.size(),
+			DiffTrafficItemCount, OldTrafficItemCount, TrafficItems.size());
 	}
 }

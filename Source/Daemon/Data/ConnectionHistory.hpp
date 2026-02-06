@@ -44,7 +44,7 @@ struct WConnectionHistoryEntry
 	WTrafficItemId                  ConnectionId{};
 
 	WEndpoint RemoteEndpoint{};
-	WSec      StartTime{ WTime::GetUnixNow() };
+	WSec      StartTime{ WTime::GetEpochSeconds() };
 	WSec      EndTime{ 0 };
 	WBytes    DataIn{ 0 };
 	WBytes    DataOut{ 0 };
