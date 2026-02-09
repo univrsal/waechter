@@ -98,7 +98,7 @@ public:
 
 			if (TrafficItem->DownloadSpeed == 0 && TrafficItem->UploadSpeed == 0)
 			{
-				InactiveCounter = std::min(InactiveCounter + 1, 255);
+				InactiveCounter = std::min<uint8_t>(static_cast<uint8_t>(InactiveCounter + 1), 255);
 			}
 
 			// We don't set it to inactive immediately
