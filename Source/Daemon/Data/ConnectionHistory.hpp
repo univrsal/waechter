@@ -83,7 +83,7 @@ class WConnectionHistory : public TSingleton<WConnectionHistory>, public IMemory
 	void Push(std::shared_ptr<WAppCounter> const& App, std::shared_ptr<WConnectionSet> const& Set,
 		WEndpoint const& RemoteEndpoint)
 	{
-		std::scoped_lock        Lock(Mutex);
+		// no lock here, it's already acquired by the caller
 		WConnectionHistoryEntry Entry{ App, Set, RemoteEndpoint };
 		// todo: (maybe) the rest should be pushed into the database
 		History.push_back(Entry);
