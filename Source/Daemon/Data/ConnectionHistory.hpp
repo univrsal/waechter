@@ -91,6 +91,12 @@ class WConnectionHistory : public TSingleton<WConnectionHistory>, public IMemory
 		if (History.size() > kMaxHistorySize)
 		{
 			History.pop_front();
+			// When we pop from the front, we need to adjust NewItemCounter
+			// so that Update() doesn't try to iterate beyond the actual history size
+			if (NewItemCounter > 0)
+			{
+				--NewItemCounter;
+			}
 		}
 	}
 

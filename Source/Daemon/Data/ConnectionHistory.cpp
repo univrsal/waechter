@@ -211,14 +211,20 @@ WConnectionHistoryUpdate WConnectionHistory::Update()
 	// get the new items since last update
 	if (NewItemCounter > 0)
 	{
+		// Ensure we don't try to iterate beyond the history size
+		uint32_t ItemsToProcess = std::min(NewItemCounter, static_cast<uint32_t>(History.size()));
+
 		auto It = History.end();
-		for (uint32_t i = 0; i < NewItemCounter; ++i)
+		for (uint32_t i = 0; i < ItemsToProcess; ++i)
 		{
 			--It;
 		}
 		for (; It != History.end(); ++It)
 		{
 			auto const&                Entry = *It;
+			spdlog::debug("New connection: app='{}', remote='{}', start={}, id={}",
+				Entry.App->TrafficItem->ApplicationName, Entry.RemoteEndpoint.ToString(), Entry.StartTime,
+				Entry.ConnectionId);
 			assert(Entry.App && Entry.Set);
 			if (!Entry.App || !Entry.Set)
 			{
