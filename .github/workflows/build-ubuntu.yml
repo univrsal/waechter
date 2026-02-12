@@ -55,9 +55,8 @@ jobs:
           ccache --version || true
           ccache -s || true
 
-      - name: Install bpftool for ARM64
-        if: matrix.arch == 'arm64'
-        run: .github/scripts/ubuntu/install-bpftool-arm64.sh
+      - name: Install bpftool
+        run: .github/scripts/ubuntu/install-bpftool.sh
 
       - name: Configure (CMake + Ninja)
         run: .github/scripts/ubuntu/configure.sh
