@@ -20,7 +20,7 @@ class WMapUpdate : public IMemoryTrackable
 	std::vector<std::shared_ptr<WSocketCounter>>                      AddedSockets{};
 	std::vector<std::pair<WEndpoint, std::shared_ptr<WTupleCounter>>> AddedTuples{};
 
-	mutable std::mutex Mutex;
+	std::mutex Mutex;
 
 	WTrafficTreeUpdates Updates;
 
@@ -56,7 +56,6 @@ public:
 
 	bool HasUpdates() const
 	{
-		std::scoped_lock Lock(Mutex);
 		return !RemovedItems.empty() || !MarkedForRemovalItems.empty() || !SocketStateChanges.empty()
 			|| !AddedSockets.empty() || !AddedTuples.empty();
 	}
@@ -80,7 +79,6 @@ public:
 		{
 			return;
 		}
-		std::scoped_lock Lock(Mutex);
 		AddedSockets.emplace_back(Socket);
 	}
 
