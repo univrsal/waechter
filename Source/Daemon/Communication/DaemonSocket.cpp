@@ -121,6 +121,10 @@ void WDaemonSocket::BroadcastMemoryUsageUpdate()
 
 void WDaemonSocket::BroadcastTrafficUpdate()
 {
+	if (!HasClients())
+	{
+		return;
+	}
 	auto&           SystemMap = WSystemMap::GetInstance();
 	std::lock_guard Lock(ClientsMutex);
 
