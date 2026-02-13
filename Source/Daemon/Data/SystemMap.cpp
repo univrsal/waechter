@@ -535,6 +535,8 @@ void WSystemMap::Cleanup()
 				auto const& TupleCounter = TupleIt->second;
 				if (TupleCounter->DueForRemoval())
 				{
+					spdlog::debug("Removed tuple {} -> {}", Socket->TrafficItem->SocketTuple.LocalEndpoint.ToString(),
+						TupleIt->first.ToString());
 					bRemovedAny = true;
 					TrafficItems.erase(TupleCounter->TrafficItem->ItemId);
 					MapUpdate.AddItemRemoval(TupleCounter->TrafficItem->ItemId);
