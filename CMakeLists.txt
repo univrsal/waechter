@@ -11,6 +11,8 @@ option(WAECHTER_BUILD_CLIENT "Whether to build the client" ON)
 option(WAECHTER_WITH_WEBSOCKETSERVER "Enable websocket server" ON)
 option(WAECHTER_WITH_WEBSOCKETCLIENT "Enable websocket client" ON)
 
+option(USE_BUILTIN_GLFW "Whether to use the built-in GLFW library" ON)
+
 if (EMSCRIPTEN)
     # disable daemon
     set(WAECHTER_BUILD_DAEMON OFF)

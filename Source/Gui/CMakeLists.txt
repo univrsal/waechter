@@ -48,7 +48,7 @@ if (WAECHTER_WITH_WEBSOCKETCLIENT)
     find_package(libwebsockets CONFIG REQUIRED)
     if (UNIX OR APPLE)
         target_include_directories(waechter PRIVATE ${LIBWEBSOCKETS_INCLUDE_DIRS})
-        target_link_libraries(waechter PRIVATE ${LIBWEBSOCKETS_LIBRARIES} dl)
+        target_link_libraries(waechter PRIVATE ${LIBWEBSOCKETS_LIBRARIES})
     else ()
         target_link_libraries(waechter PRIVATE websockets_shared)
     endif ()
@@ -99,7 +99,7 @@ endif ()
 
 target_include_directories(waechter PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-if (UNIX AND NOT APPLE AND NOT EMSCRIPTEN)
+if (UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT BSD)
     target_compile_options(waechter PRIVATE
             -Wall -Wextra
             -Wshadow -Wformat=2 -Wconversion -Wsign-conversion
@@ -113,12 +113,6 @@ if (UNIX AND NOT APPLE AND NOT EMSCRIPTEN)
     # - I don't know which flags we should use right now
     # - I don't feel like fixing a bunch of warnings on those platforms at the moment
 endif ()
-
-if (APPLE)
-    target_compile_definitions(waechter PRIVATE 
-	INCBIN_SILENCE_BITCODE_WARNING
-    )
-endif()
 
 include("${CMAKE_SOURCE_DIR}/Meta/Licenses.cmake")
 add_thirdparty_licenses(waechter)

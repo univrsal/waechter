@@ -35,7 +35,7 @@ target_link_libraries(util PRIVATE
         thirdparty::deps_includes
 )
 
-if (UNIX AND NOT APPLE AND NOT EMSCRIPTEN)
+if (UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT BSD)
     # Only warnings for linux right now
     target_compile_options(util PRIVATE
             -Wall -Wextra
