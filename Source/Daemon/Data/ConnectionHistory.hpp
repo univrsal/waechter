@@ -4,6 +4,8 @@
  */
 
 #pragma once
+#include "Counters.hpp"
+
 #include <memory>
 #include <deque>
 #include <unordered_set>
@@ -16,6 +18,7 @@
 #include "MemoryStats.hpp"
 #include "Data/ConnectionHistoryUpdate.hpp"
 
+#include <spdlog/spdlog.h>
 
 struct WAppCounter;
 struct WSocketItem;
@@ -81,24 +84,7 @@ class WConnectionHistory : public TSingleton<WConnectionHistory>, public IMemory
 	void OnUDPTupleCreated(std::shared_ptr<WTupleCounter> const& TupleCounter, WEndpoint const& Endpoint);
 
 	void Push(std::shared_ptr<WAppCounter> const& App, std::shared_ptr<WConnectionSet> const& Set,
-		WEndpoint const& RemoteEndpoint)
-	{
-		// no lock here, it's already acquired by the caller
-		WConnectionHistoryEntry Entry{ App, Set, RemoteEndpoint };
-		// todo: (maybe) the rest should be pushed into the database
-		History.push_back(Entry);
-		++NewItemCounter;
-		if (History.size() > kMaxHistorySize)
-		{
-			History.pop_front();
-			// When we pop from the front, we need to adjust NewItemCounter
-			// so that Update() doesn't try to iterate beyond the actual history size
-			if (NewItemCounter > 0)
-			{
-				--NewItemCounter;
-			}
-		}
-	}
+		WEndpoint const& RemoteEndpoint);
 
 public:
 	void RegisterSignalHandlers();

@@ -8,6 +8,7 @@
 #include "spdlog/spdlog.h"
 
 #include "Counters.hpp"
+#include "DaemonConfig.hpp"
 #include "NetworkEvents.hpp"
 #include "SystemMap.hpp"
 
@@ -176,6 +177,33 @@ void WConnectionHistory::OnUDPTupleCreated(
 	}
 	// add a new tuple to the existing connection set
 	ActiveConnections[Key]->Connections.insert(TupleCounter->TrafficItem);
+}
+
+void WConnectionHistory::Push(std::shared_ptr<WAppCounter> const& App, std::shared_ptr<WConnectionSet> const& Set,
+	WEndpoint const& RemoteEndpoint)
+{
+	if (WDaemonConfig::GetInstance().IsIgnoredConnectionHistoryApp(App->TrafficItem->ApplicationName)
+		|| WDaemonConfig::GetInstance().IsIgnoredConnectionHistoryPort(RemoteEndpoint.Port))
+	{
+		return;
+	}
+
+	// no lock here, it's already acquired by the caller
+	WConnectionHistoryEntry Entry{ App, Set, RemoteEndpoint };
+	// todo: (maybe) the rest should be pushed into the database
+	History.push_back(Entry);
+	spdlog::info("New connection for app {}", App->TrafficItem->ApplicationName);
+	++NewItemCounter;
+	if (History.size() > kMaxHistorySize)
+	{
+		History.pop_front();
+		// When we pop from the front, we need to adjust NewItemCounter
+		// so that Update() doesn't try to iterate beyond the actual history size
+		if (NewItemCounter > 0)
+		{
+			--NewItemCounter;
+		}
+	}
 }
 
 void WConnectionHistory::RegisterSignalHandlers()

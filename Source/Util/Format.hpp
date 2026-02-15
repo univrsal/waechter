@@ -43,6 +43,26 @@ public:
 		size_t const Last = Str.find_last_not_of(' ');
 		return Str.substr(First, (Last - First + 1));
 	}
+
+	static std::vector<std::string> SplitString(std::string const& Str, char Delimiter)
+	{
+		if (Str.empty())
+		{
+			return {};
+		}
+
+		std::vector<std::string> Result;
+		size_t                   Start = 0;
+		size_t                   End = Str.find(Delimiter);
+		while (End != std::string::npos)
+		{
+			Result.push_back(Str.substr(Start, End - Start));
+			Start = End + 1;
+			End = Str.find(Delimiter, Start);
+		}
+		Result.push_back(Str.substr(Start));
+		return Result;
+	}
 };
 
 class WTimeFormat

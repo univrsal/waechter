@@ -99,6 +99,24 @@ void WDaemonConfig::Load(std::string const& Path)
 		WebSocketAuthToken = WRandom::GenerateRandomHexString(24);
 		spdlog::warn("No WebSocket auth token specified in config generated random token: {}", WebSocketAuthToken);
 	}
+	std::string IgnoredConnectionHistoryAppNamesStr{};
+	std::string IgnoredConnectionHistoryPortsStr{};
+	SafeGet("daemon", "ignored_connection_history_app_names", IgnoredConnectionHistoryAppNamesStr);
+	SafeGet("daemon", "ignored_connection_history_remote_ports", IgnoredConnectionHistoryAppNamesStr);
+
+	IgnoredConnectionHistoryApps = WStringFormat::SplitString(IgnoredConnectionHistoryAppNamesStr, ';');
+	for (auto const& PortStr : WStringFormat::SplitString(IgnoredConnectionHistoryPortsStr, ';'))
+	{
+		try
+		{
+			auto Port = static_cast<uint16_t>(std::stoul(PortStr));
+			IgnoredConnectionHistoryPorts.push_back(Port);
+		}
+		catch (std::exception const& e)
+		{
+			spdlog::error("Invalid port '{}' in ignored_connection_history_remote_ports: {}", PortStr, e.what());
+		}
+	}
 }
 
 void WDaemonConfig::SetDefaults()
