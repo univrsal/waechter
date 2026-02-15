@@ -28,6 +28,11 @@ else()
             )
 endif()
 
+if (BSD)
+    find_package(OpenGL REQUIRED)
+    target_link_libraries(imgui PUBLIC OpenGL::GL)
+endif ()
+
 add_library(
         thirdparty::imgui ALIAS imgui
 )
