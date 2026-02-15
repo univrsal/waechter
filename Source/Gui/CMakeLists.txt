@@ -99,7 +99,7 @@ endif ()
 
 target_include_directories(waechter PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-if (UNIX AND NOT APPLE AND NOT EMSCRIPTEN)
+if (UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT BSD)
     target_compile_options(waechter PRIVATE
             -Wall -Wextra
             -Wshadow -Wformat=2 -Wconversion -Wsign-conversion
