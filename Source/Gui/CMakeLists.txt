@@ -114,6 +114,11 @@ if (UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT BSD)
     # - I don't feel like fixing a bunch of warnings on those platforms at the moment
 endif ()
 
+if (BSD)
+    find_package(OpenGL REQUIRED)
+    target_link_libraries(waechter PRIVATE OpenGL::GL)
+endif ()
+
 if (APPLE)
     target_compile_definitions(waechter PRIVATE 
 	INCBIN_SILENCE_BITCODE_WARNING
