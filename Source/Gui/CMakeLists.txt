@@ -119,12 +119,6 @@ if (BSD)
     target_link_libraries(waechter PRIVATE OpenGL::GL)
 endif ()
 
-if (APPLE)
-    target_compile_definitions(waechter PRIVATE 
-	INCBIN_SILENCE_BITCODE_WARNING
-    )
-endif()
-
 include("${CMAKE_SOURCE_DIR}/Meta/Licenses.cmake")
 add_thirdparty_licenses(waechter)
 
