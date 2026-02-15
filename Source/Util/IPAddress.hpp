@@ -17,6 +17,12 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #endif
+
+#if defined(__OpenBSD__) || defined(__NetBSD__) || defined(__FreeBSD__)
+	#include <sys/types.h>
+	#include <sys/socket.h>
+#endif
+
 namespace EIPFamily
 {
 	enum Type : uint8_t
