@@ -148,6 +148,8 @@ std::string NormalizeAppImagePaths(std::string const& path)
 
 std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketEvent const& Event, WProcessId PID, bool bSilentFail)
 {
+	std::scoped_lock Lock(DataMutex);
+
 	ZoneScopedN("WSystemMap::MapSocket");
 	auto SocketCookie = Event.Cookie;
 	if (PID == 0)
