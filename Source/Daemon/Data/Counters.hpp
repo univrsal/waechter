@@ -7,6 +7,8 @@
 #include <memory>
 #include <unordered_map>
 
+#include "spdlog/spdlog.h"
+
 #include "TrafficCounter.hpp"
 #include "Data/ApplicationItem.hpp"
 #include "EBPFCommon.h"
@@ -57,8 +59,9 @@ struct WTupleCounter : TTrafficCounter<WTupleItem>
 		// If a UDP socket has not sent/received data on a connection for one minute,
 		// we'll treat it as dead. In the worst case it'll be re-added once traffic
 		// is detected for it again
-		if (InactiveCounter >= 60)
+		if (State != CS_PendingRemoval && InactiveCounter >= 5)
 		{
+			spdlog::debug("Marking udp counter for removal");
 			MarkForRemoval();
 		}
 	}

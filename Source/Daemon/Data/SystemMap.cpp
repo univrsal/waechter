@@ -79,7 +79,7 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 
 		if (Item->SocketTuple.Protocol == EProtocol::UDP)
 		{
-			// Add a new UDP per-connection tuple if the remote endpoint isn't the same as the socket's main one
+			// Add a new UDP per-connection tuple if the remote endpoint is different from the socket's main one
 			if (!RemoteEndpoint.Address.IsZero())
 			{
 				bool bTupleExists = Item->UDPPerConnectionTraffic.contains(RemoteEndpoint);
@@ -123,6 +123,7 @@ std::shared_ptr<WTupleCounter> WSystemMap::GetOrCreateUDPTupleCounter(
 	auto NewItem = std::make_shared<WTupleItem>();
 	NewItem->ItemId = GetNextItemId();
 	Item->UDPPerConnectionTraffic[Endpoint] = NewItem;
+	TrafficItems[NewItem->ItemId] = NewItem;
 
 	auto TupleCounter = std::make_shared<WTupleCounter>(NewItem, SockCounter);
 	SockCounter->UDPPerConnectionCounters[Endpoint] = TupleCounter;
@@ -147,6 +148,8 @@ std::string NormalizeAppImagePaths(std::string const& path)
 
 std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketEvent const& Event, WProcessId PID, bool bSilentFail)
 {
+	std::scoped_lock Lock(DataMutex);
+
 	ZoneScopedN("WSystemMap::MapSocket");
 	auto SocketCookie = Event.Cookie;
 	if (PID == 0)
@@ -243,14 +246,6 @@ std::shared_ptr<WSocketCounter> WSystemMap::FindOrMapSocket(
 	ParentProcess->TrafficItem->Sockets[SocketCookie] = SocketItem;
 
 	MapUpdate.AddSocketAddition(Socket);
-
-	// Check if this socket was already closed before it was created (due to event ordering)
-	if (ClosedSocketCookies.contains(SocketCookie))
-	{
-		Socket->MarkForRemoval();
-		SocketItem->ConnectionState = ESocketConnectionState::Closed;
-		MapUpdate.MarkItemForRemoval(SocketItem->ItemId);
-	}
 
 	return Socket;
 }
@@ -357,12 +352,9 @@ void WSystemMap::RefreshAllTrafficCounters()
 	for (auto const& Socket : Sockets | std::views::values)
 	{
 		Socket->Refresh();
-		if (Socket->TrafficItem->SocketTuple.Protocol == EProtocol::UDP)
+		for (auto const& TupleCounter : Socket->UDPPerConnectionCounters | std::views::values)
 		{
-			for (auto const& TupleCounter : Socket->UDPPerConnectionCounters | std::views::values)
-			{
-				TupleCounter->Refresh();
-			}
+			TupleCounter->Refresh();
 		}
 	}
 
@@ -434,8 +426,7 @@ WMemoryStat WSystemMap::GetMemoryUsage()
 	std::scoped_lock Lock(DataMutex);
 	WMemoryStat      Stats;
 	Stats.Name = "WSystemMap";
-	WMemoryStatEntry Apps{}, ProcessesEntry{}, SocketsEntry{}, TrafficItemsEntry{}, ClosedSocketsEntry{},
-		UDPPerConnectionCountersEntry{};
+	WMemoryStatEntry Apps{}, ProcessesEntry{}, SocketsEntry{}, TrafficItemsEntry{}, UDPPerConnectionCountersEntry{};
 
 	Apps.Name = "Applications";
 	Apps.Usage += sizeof(decltype(Applications));
@@ -465,15 +456,10 @@ WMemoryStat WSystemMap::GetMemoryUsage()
 	TrafficItemsEntry.Usage += sizeof(decltype(TrafficItems));
 	TrafficItemsEntry.Usage += (sizeof(WTrafficItemId) + sizeof(ITrafficItem)) * TrafficItems.size();
 
-	ClosedSocketsEntry.Name = "Closed socket cookies";
-	ClosedSocketsEntry.Usage += sizeof(decltype(ClosedSocketCookies));
-	ClosedSocketsEntry.Usage += sizeof(WSocketCookie) * ClosedSocketCookies.size();
-
 	Stats.ChildEntries.emplace_back(Apps);
 	Stats.ChildEntries.emplace_back(ProcessesEntry);
 	Stats.ChildEntries.emplace_back(SocketsEntry);
 	Stats.ChildEntries.emplace_back(TrafficItemsEntry);
-	Stats.ChildEntries.emplace_back(ClosedSocketsEntry);
 	Stats.ChildEntries.emplace_back(UDPPerConnectionCountersEntry);
 	return Stats;
 }
@@ -510,10 +496,19 @@ void WSystemMap::Cleanup()
 			for (auto const& [SocketCookie, Socket] : Process->TrafficItem->Sockets)
 			{
 				WNetworkEvents::GetInstance().OnSocketRemoved(Sockets[SocketCookie]);
-				Sockets.erase(SocketCookie);
 				TrafficItems.erase(Socket->ItemId);
 				MapUpdate.AddItemRemoval(Socket->ItemId);
-				ClosedSocketCookies.erase(SocketCookie);
+				for (auto const& TupleCounter : Socket->UDPPerConnectionTraffic | std::views::values)
+				{
+					TrafficItems.erase(TupleCounter->ItemId);
+					MapUpdate.AddItemRemoval(TupleCounter->ItemId);
+				}
+				if (auto SocketCounter = Sockets.find(SocketCookie); SocketCounter != Sockets.end())
+				{
+					SocketCounter->second->UDPPerConnectionCounters.clear();
+				}
+				Socket->UDPPerConnectionTraffic.clear();
+				Sockets.erase(SocketCookie);
 			}
 			WNetworkEvents::GetInstance().OnProcessRemoved(Process);
 			Process->ParentApp->TrafficItem->Processes.erase(ProcessIt->first);
@@ -536,12 +531,17 @@ void WSystemMap::Cleanup()
 			// When cleaning up a socket we have to
 			//  - Remove it from its parent process's Sockets map
 			//  - Remove it from the Sockets map
-			//  - Remove it from the closed socket cookies tracking set
 			WNetworkEvents::GetInstance().OnSocketRemoved(Socket);
 			Socket->ParentProcess->TrafficItem->Sockets.erase(SocketIt->first);
 			TrafficItems.erase(Socket->TrafficItem->ItemId);
 			MapUpdate.AddItemRemoval(Socket->TrafficItem->ItemId);
-			ClosedSocketCookies.erase(SocketIt->first);
+			for (auto const& TupleCounter : Socket->UDPPerConnectionCounters | std::views::values)
+			{
+				TrafficItems.erase(TupleCounter->TrafficItem->ItemId);
+				MapUpdate.AddItemRemoval(TupleCounter->TrafficItem->ItemId);
+			}
+			Socket->UDPPerConnectionCounters.clear();
+			Socket->TrafficItem->UDPPerConnectionTraffic.clear();
 			SocketIt = Sockets.erase(SocketIt);
 		}
 		else
@@ -552,9 +552,12 @@ void WSystemMap::Cleanup()
 				auto const& TupleCounter = TupleIt->second;
 				if (TupleCounter->DueForRemoval())
 				{
+					spdlog::debug("Removed tuple {} -> {}", Socket->TrafficItem->SocketTuple.LocalEndpoint.ToString(),
+						TupleIt->first.ToString());
 					bRemovedAny = true;
 					TrafficItems.erase(TupleCounter->TrafficItem->ItemId);
 					MapUpdate.AddItemRemoval(TupleCounter->TrafficItem->ItemId);
+					Socket->TrafficItem->UDPPerConnectionTraffic.erase(TupleIt->first);
 					TupleIt = Socket->UDPPerConnectionCounters.erase(TupleIt);
 				}
 				else
