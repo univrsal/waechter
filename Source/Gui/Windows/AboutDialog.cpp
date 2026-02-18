@@ -47,6 +47,8 @@ WAboutDialog::WAboutDialog()
 
 	VersionString = std::format(
 		"Version {}, commit {}@{}\nCompiled at {}", WAECHTER_VERSION, GIT_COMMIT_HASH, GIT_BRANCH, BUILD_TIME);
+
+	WaechterLicense = std::string(reinterpret_cast<char const*>(GWaechterLicenseData), GWaechterLicenseSize);
 }
 
 void WAboutDialog::Draw()
@@ -84,7 +86,9 @@ void WAboutDialog::Draw()
 		ImGui::PopStyleColor();
 
 		ImGui::Spacing();
+		ImGui::TextWrapped("%s", WaechterLicense.c_str());
 
+		ImGui::Spacing();
 		ImGui::Text("Thirdparty libraries:");
 
 		for (auto const& Library : ThirdPartyLibraries)

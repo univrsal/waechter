@@ -45,6 +45,7 @@ if __name__ == "__main__":
         ("../../Thirdparty/tracy/LICENSE.txt", "TracyLicense"),
         ("../../Thirdparty/jetbrains-mono/LICENSE.txt", "JetbrainsMonoLicense"),
         ("../../Thirdparty/flags/atlas.png", "FlagAtlas"),
+        ("../../LICENSE", "WaechterLicense"),
         ("../I18n/de_DE.json", "de_DE"),
         ("../I18n/en_US.json", "en_US"),
         ("../Assets/Branding/Icon.png", "Icon"),

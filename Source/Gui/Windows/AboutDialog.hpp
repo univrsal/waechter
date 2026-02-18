@@ -24,6 +24,8 @@ class WAboutDialog
 		}
 	};
 
+	std::string WaechterLicense{};
+
 	std::vector<WThirdPartyLibrary> ThirdPartyLibraries;
 
 	std::string VersionString;

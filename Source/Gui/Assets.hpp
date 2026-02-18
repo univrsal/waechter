@@ -44,6 +44,9 @@ extern unsigned int const GJetbrainsMonoLicenseSize;
 extern unsigned char const GFlagAtlasData[];
 extern unsigned int const GFlagAtlasSize;
 
+extern unsigned char const GWaechterLicenseData[];
+extern unsigned int const GWaechterLicenseSize;
+
 extern unsigned char const Gde_DEData[];
 extern unsigned int const Gde_DESize;
 
