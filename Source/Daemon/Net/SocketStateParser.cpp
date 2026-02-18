@@ -16,15 +16,13 @@ constexpr uint16_t EPHEMERAL_PORT_START = 32768;
 
 WSocketStateParser::WSocketStateParser()
 {
-	ParseTcpFile("/proc/net/tcp");
-	ParseTcpFile("/proc/net/tcp6");
-	ParseUdpFile("/proc/net/udp");
-	ParseUdpFile("/proc/net/udp6");
+	ParseData();
 }
 
 ESocketType::Type WSocketStateParser::DetermineSocketType(
 	WEndpoint const& LocalEndpoint, EProtocol::Type Protocol) const
 {
+	std::scoped_lock Lock(Mutex);
 	if (Protocol == EProtocol::TCP)
 	{
 		std::ifstream File("/proc/net/tcp");
@@ -97,6 +95,17 @@ ESocketType::Type WSocketStateParser::DetermineSocketType(
 	return ESocketType::Unknown;
 }
 
+void WSocketStateParser::ParseData()
+{
+	std::scoped_lock Lock(Mutex);
+	KnownListeningPorts.clear();
+	KnownUsedPorts.clear();
+	ParseTcpFile("/proc/net/tcp");
+	ParseTcpFile("/proc/net/tcp6");
+	ParseUdpFile("/proc/net/udp");
+	ParseUdpFile("/proc/net/udp6");
+}
+
 void WSocketStateParser::ParseTcpFile(std::string const& FilePath) const
 {
 	std::ifstream File(FilePath);
@@ -116,14 +125,18 @@ void WSocketStateParser::ParseTcpFile(std::string const& FilePath) const
 
 		Iss >> Slot >> LocalAddr >> RemAddr >> std::hex >> State;
 
-		if (State == TCP_LISTEN)
+		// Extract port from local address (format: ADDR:PORT)
+		size_t ColonPos = LocalAddr.find(':');
+		if (ColonPos != std::string::npos)
 		{
-			// Extract port from local address (format: ADDR:PORT)
-			size_t ColonPos = LocalAddr.find(':');
-			if (ColonPos != std::string::npos)
+			std::string PortStr = LocalAddr.substr(ColonPos + 1);
+			auto        Port = static_cast<uint16_t>(std::stoul(PortStr, nullptr, 16));
+
+			// Track all ports in use
+			KnownUsedPorts.insert(Port);
+			// Track listening ports separately
+			if (State == TCP_LISTEN)
 			{
-				std::string PortStr = LocalAddr.substr(ColonPos + 1);
-				uint16_t    Port = static_cast<uint16_t>(std::stoul(PortStr, nullptr, 16));
 				KnownListeningPorts.insert(Port);
 			}
 		}
@@ -148,14 +161,21 @@ void WSocketStateParser::ParseUdpFile(std::string const& FilePath) const
 
 		Iss >> Slot >> LocalAddr >> RemAddr;
 
-		// UDP listening sockets have remote address 00000000:0000
-		if (RemAddr.find("00000000:0000") == 0 || RemAddr.find("00000000000000000000000000000000:0000") == 0)
+		size_t ColonPos = LocalAddr.find(':');
+		if (ColonPos != std::string::npos)
 		{
-			size_t ColonPos = LocalAddr.find(':');
-			if (ColonPos != std::string::npos)
+			std::string PortStr = LocalAddr.substr(ColonPos + 1);
+			auto        Port = static_cast<uint16_t>(std::stoul(PortStr, nullptr, 16));
+
+			// Track all ports in use (including port 0 for unbound sockets)
+			if (Port != 0)
 			{
-				std::string PortStr = LocalAddr.substr(ColonPos + 1);
-				uint16_t    Port = static_cast<uint16_t>(std::stoul(PortStr, nullptr, 16));
+				KnownUsedPorts.insert(Port);
+			}
+
+			// UDP listening sockets have remote address 00000000:0000
+			if (RemAddr.find("00000000:0000") == 0 || RemAddr.find("00000000000000000000000000000000:0000") == 0)
+			{
 				if (Port != 0) // Ignore unbound sockets
 				{
 					KnownListeningPorts.insert(Port);

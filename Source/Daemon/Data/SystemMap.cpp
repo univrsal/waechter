@@ -522,13 +522,43 @@ void WSystemMap::Cleanup()
 		}
 	}
 
+	// Re-fetch all currently used sockets from /proc/
+	SocketStateParser.ParseData();
+
+	auto IsStaleSocket = [this](std::shared_ptr<WSocketCounter> const& Socket) {
+		if (Socket->IsMarkedForRemoval())
+		{
+			return false;
+		}
+		// If the socket is in an unknown state, we consider it stale and remove it to avoid stale entries in the UI
+		if (Socket->TrafficItem->SocketType == ESocketType::Unknown
+			|| Socket->TrafficItem->ConnectionState == ESocketConnectionState::Unknown
+			|| Socket->TrafficItem->SocketTuple.Protocol == EProtocol::Unknown)
+		{
+			// spdlog::info("bad state");
+			// return true;
+		}
+
+		// If the socket's local port is not in use anymore, we consider it stale (except for ICMP which doesn't have
+		// ports)
+		if (!SocketStateParser.IsUsedPort(Socket->TrafficItem->SocketTuple.LocalEndpoint.Port)
+			&& (Socket->TrafficItem->SocketTuple.Protocol != EProtocol::ICMP
+				&& Socket->TrafficItem->SocketTuple.Protocol != EProtocol::ICMPv6))
+		{
+			// spdlog::info("Unused port");
+			// return true;
+		}
+
+		return false;
+	};
+
 	for (auto SocketIt = Sockets.begin(); SocketIt != Sockets.end();)
 	{
 		if (auto const& Socket = SocketIt->second; Socket->DueForRemoval())
 		{
 			bRemovedAny = true;
 
-			// When cleaning up a socket we have to
+			// When cleaning up a socket, we have to
 			//  - Remove it from its parent process's Sockets map
 			//  - Remove it from the Sockets map
 			WNetworkEvents::GetInstance().OnSocketRemoved(Socket);
@@ -543,6 +573,14 @@ void WSystemMap::Cleanup()
 			Socket->UDPPerConnectionCounters.clear();
 			Socket->TrafficItem->UDPPerConnectionTraffic.clear();
 			SocketIt = Sockets.erase(SocketIt);
+		}
+		// Remove sockets in an unknown state
+		else if (IsStaleSocket(Socket))
+		{
+			spdlog::warn("Unkown socket with id {}, tuple: {}, app: {}", SocketIt->first,
+				Socket->TrafficItem->SocketTuple.ToString(),
+				Socket->ParentProcess->ParentApp->TrafficItem->ApplicationName);
+			Socket->MarkForRemoval();
 		}
 		else
 		{
