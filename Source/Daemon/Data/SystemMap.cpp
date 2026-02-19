@@ -5,6 +5,7 @@
 
 #include "SystemMap.hpp"
 
+#include <cstdlib>
 #include <ranges>
 #include <regex>
 
@@ -154,6 +155,12 @@ std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketEvent const& Event,
 
 	ZoneScopedN("WSystemMap::MapSocket");
 	auto SocketCookie = Event.Cookie;
+	if (SocketCookie == 0)
+	{
+		spdlog::warn("Received socket event with invalid cookie 0 for PID {} and event type {}", PID, Event.EventType);
+		return {};
+	}
+
 	if (PID == 0)
 	{
 		if (!bSilentFail)
@@ -190,14 +197,38 @@ std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketEvent const& Event,
 		}
 	}
 
-	// If exePath missing but argv[0] exists, try to resolve to absolute via /proc/[pid]/cwd or PATH (skip PATH
-	// resolution for now)
-	if (ExePath.empty() && !Argv.empty())
+	// If exePath missing but argv[0] exists, try to resolve to absolute via /proc/[pid]/cwd or PATH
+	if (ExePath.empty() && !Argv.empty() && !Argv[0].empty())
 	{
-		// If argv[0] is absolute, use it; else leave empty.
-		if (!Argv[0].empty() && Argv[0].front() == '/')
+		if (Argv[0].front() == '/')
 		{
+			// Absolute path - use directly
 			ExePath = NormalizeAppImagePaths(Argv[0]);
+		}
+		else
+		{
+			// Relative path - try to resolve via /proc/[pid]/cwd
+			std::string Cwd = WFilesystem::ReadLink("/proc/" + std::to_string(PID) + "/cwd");
+			if (!Cwd.empty() && Cwd.back() != '/')
+			{
+				Cwd += '/';
+			}
+
+			// Resolve relative path
+			std::string ResolvedPath = Cwd + Argv[0];
+
+			// Try to resolve the path to see if it exists
+			char* RealPath = realpath(ResolvedPath.c_str(), nullptr);
+			if (RealPath)
+			{
+				ExePath = NormalizeAppImagePaths(RealPath);
+				free(RealPath);
+			}
+			else
+			{
+				// If realpath fails, just use the resolved path anyway
+				ExePath = NormalizeAppImagePaths(ResolvedPath);
+			}
 		}
 	}
 
