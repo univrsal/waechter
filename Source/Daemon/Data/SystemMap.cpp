@@ -58,7 +58,9 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 			Item->SocketTuple.LocalEndpoint = LocalEndpoint;
 		}
 
-		if (!bHaveRemoteEndpoint)
+		// Don't assign a remote endpoint to UDP sockets, the only time we do that
+		// is if they explicitly connect() to an address
+		if (!bHaveRemoteEndpoint && Item->SocketTuple.Protocol == EProtocol::TCP)
 		{
 			Item->SocketTuple.RemoteEndpoint = RemoteEndpoint;
 		}
