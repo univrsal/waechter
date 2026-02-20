@@ -23,8 +23,8 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 {
 	auto Item = SockCounter->TrafficItem;
 	// if this socket doesn't already have a local/remote endpoint, try to infer from traffic
-	bool const bHaveRemoteEndpoint = !Item->SocketTuple.LocalEndpoint.Address.IsZero();
-	bool const bHaveLocalEndpoint = !Item->SocketTuple.RemoteEndpoint.Address.IsZero();
+	bool const bHaveLocalEndpoint = !Item->SocketTuple.LocalEndpoint.Address.IsZero();
+	bool const bHaveRemoteEndpoint = !Item->SocketTuple.RemoteEndpoint.Address.IsZero();
 	bool const bIsTcp = Item->SocketTuple.Protocol == EProtocol::TCP;
 
 	if (bHaveLocalEndpoint && bHaveRemoteEndpoint && bIsTcp)
