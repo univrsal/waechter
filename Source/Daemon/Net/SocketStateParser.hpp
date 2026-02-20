@@ -40,9 +40,11 @@ public:
 		std::scoped_lock Lock(Mutex);
 		return KnownUsedPorts.contains(Port);
 	}
+	mutable std::mutex Mutex;
+
+	std::unordered_set<uint16_t> const& GetUsedPorts() const { return KnownUsedPorts; }
 
 private:
-	mutable std::mutex Mutex;
 	void ParseTcpFile(std::string const& FilePath) const;
 	void ParseUdpFile(std::string const& FilePath) const;
 

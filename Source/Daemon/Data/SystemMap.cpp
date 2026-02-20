@@ -559,17 +559,22 @@ void WSystemMap::Cleanup()
 	SocketStateParser.ParseData();
 
 	auto IsStaleSocket = [this](std::shared_ptr<WSocketCounter> const& Socket) {
-		if (Socket->IsMarkedForRemoval())
+		// So technically we should never have to clean up sockets in this way,
+		// so we first make sure the socket has not received any data for 30 seconds
+		// at that point the normal cleanup logic should've jumped in,
+		// if not we'll do it here but also log it
+		if (Socket->IsMarkedForRemoval() || Socket->GetInactiveCounter() < 30)
 		{
 			return false;
 		}
+
 		// If the socket is in an unknown state, we consider it stale and remove it to avoid stale entries in the UI
 		if (Socket->TrafficItem->SocketType == ESocketType::Unknown
 			|| Socket->TrafficItem->ConnectionState == ESocketConnectionState::Unknown
 			|| Socket->TrafficItem->SocketTuple.Protocol == EProtocol::Unknown)
 		{
-			// spdlog::info("bad state");
-			// return true;
+			spdlog::debug("Removing socket because of unknown state");
+			return true;
 		}
 
 		// If the socket's local port is not in use anymore, we consider it stale (except for ICMP which doesn't have
@@ -578,8 +583,8 @@ void WSystemMap::Cleanup()
 			&& (Socket->TrafficItem->SocketTuple.Protocol != EProtocol::ICMP
 				&& Socket->TrafficItem->SocketTuple.Protocol != EProtocol::ICMPv6))
 		{
-			// spdlog::info("Unused port");
-			// return true;
+			spdlog::debug("Removing socket because its port is no longer in use");
+			return true;
 		}
 
 		return false;
@@ -610,7 +615,7 @@ void WSystemMap::Cleanup()
 		// Remove sockets in an unknown state
 		else if (IsStaleSocket(Socket))
 		{
-			spdlog::warn("Unkown socket with id {}, tuple: {}, app: {}", SocketIt->first,
+			spdlog::warn("Removing unkown socket with id {}, tuple: {}, app: {}", SocketIt->first,
 				Socket->TrafficItem->SocketTuple.ToString(),
 				Socket->ParentProcess->ParentApp->TrafficItem->ApplicationName);
 			Socket->MarkForRemoval();
