@@ -39,6 +39,9 @@ int tracepoint__inet_sock_set_state(struct trace_event_raw_inet_sock_set_state* 
 SEC("fentry/tcp_set_state")
 int BPF_PROG(on_tcp_set_state, struct sock* Sk, int Newstate)
 {
+	// fentry fires before the function body, so skc_state still holds the OLD state
+	u8 Oldstate = BPF_CORE_READ(Sk, __sk_common.skc_state);
+
 	if (Newstate == TCP_CLOSE)
 	{
 		struct WSocketEvent* Event = MakeSocketEvent(bpf_get_socket_cookie(Sk), NE_SocketClosed);
@@ -48,32 +51,61 @@ int BPF_PROG(on_tcp_set_state, struct sock* Sk, int Newstate)
 			bpf_ringbuf_submit(Event, 0);
 		}
 
-		// Clean up port_to_pid mapping when socket closes
-		u16 Lport = BPF_CORE_READ(Sk, __sk_common.skc_num);
-		if (Lport != 0)
+		// Only clean up port_to_pid mapping if the LISTENING socket itself is closing.
+		// Accepted (child) connections share the same local port as the listener,
+		// so we must NOT delete the mapping when an accepted connection closes.
+		if (Oldstate == TCP_LISTEN)
 		{
-			bpf_map_delete_elem(&port_to_pid, &Lport);
+			u16 Lport = BPF_CORE_READ(Sk, __sk_common.skc_num);
+			if (Lport != 0)
+			{
+				bpf_map_delete_elem(&port_to_pid, &Lport);
+			}
 		}
 	}
 	else if (Newstate == TCP_ESTABLISHED)
 	{
-		struct WSocketEvent* Event = MakeSocketEvent(bpf_get_socket_cookie(Sk), NE_TCPSocketEstablished_4);
-		// Family
-		u16 Family = BPF_CORE_READ(Sk, __sk_common.skc_family);
-
 		// Local port: host-endian
 		u16 Lport = BPF_CORE_READ(Sk, __sk_common.skc_num);
 
-		// Look up PID from shared_socket_data_map and populate port_to_pid
+		// Determine if this is a server-side (accepted) connection.
+		// For accepted connections tcp_set_state fires in softirq context,
+		// so bpf_get_current_pid_tgid() returns an arbitrary PID.
+		// Use port_to_pid (populated at bind time) to find the real owner.
+		__u32* OwnerPid = NULL;
 		if (Lport != 0)
+		{
+			OwnerPid = bpf_map_lookup_elem(&port_to_pid, &Lport);
+		}
+
+		// For client-side (outgoing) connections, populate port_to_pid
+		// only if there isn't already an entry (don't overwrite server mappings).
+		if (!OwnerPid && Lport != 0)
 		{
 			__u64 PidTgid = bpf_get_current_pid_tgid();
 			__u32 Pid = (__u32)(PidTgid >> 32);
-			bpf_map_update_elem(&port_to_pid, &Lport, &Pid, BPF_ANY);
+			bpf_map_update_elem(&port_to_pid, &Lport, &Pid, BPF_NOEXIST);
 		}
+
+		struct WSocketEvent* Event = MakeSocketEvent2(bpf_get_socket_cookie(Sk), NE_TCPSocketEstablished_4, false);
 
 		if (Event)
 		{
+			// Override PidTgId: use the real owner PID from port_to_pid if available,
+			// otherwise fall back to bpf_get_current_pid_tgid()
+			if (OwnerPid && *OwnerPid != 0)
+			{
+				Event->PidTgId = ((__u64)(*OwnerPid)) << 32;
+			}
+			else
+			{
+				Event->PidTgId = bpf_get_current_pid_tgid();
+			}
+			Event->CgroupId = bpf_get_current_cgroup_id();
+
+			// Family
+			u16 Family = BPF_CORE_READ(Sk, __sk_common.skc_family);
+
 			Event->Data.TCPSocketEstablishedEventData.UserPort = Lport;
 
 			if (Family == AF_INET)
