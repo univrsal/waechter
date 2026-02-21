@@ -147,6 +147,33 @@ void WWaechterEbpf::UpdateData()
 		uint64_t Raw = SocketEvent.PidTgId;
 		auto     Tgid = static_cast<WProcessId>(Raw >> 32);
 
+		static constexpr char const* EventNames[] = { "SocketCreate", "SocketConnect_4", "SocketConnect_6",
+			"SocketBind_4", "SocketBind_6", "TCPSocketEstablished_4", "TCPSocketEstablished_6", "TCPSocketListening",
+			"SocketAccept_4", "SocketAccept_6", "SocketClosed", "Traffic" };
+
+		auto const  EventTypeIdx = static_cast<unsigned>(SocketEvent.EventType);
+		auto const* EventName = EventTypeIdx < std::size(EventNames) ? EventNames[EventTypeIdx] : "Unknown";
+
+		if (SocketEvent.EventType != NE_Traffic)
+		{
+			spdlog::debug("[eBPF event] type={} cookie={} pid={}", EventName, SocketEvent.Cookie, Tgid);
+		}
+
+		if (SocketEvent.EventType == NE_TCPSocketEstablished_4 || SocketEvent.EventType == NE_TCPSocketEstablished_6)
+		{
+			spdlog::info("[eBPF TCP_ESTABLISHED] cookie={} pid={} localPort={} remotePort={} isAccept={}",
+				SocketEvent.Cookie, Tgid, SocketEvent.Data.TCPSocketEstablishedEventData.UserPort,
+				SocketEvent.Data.TCPSocketEstablishedEventData.RemotePort,
+				SocketEvent.Data.TCPSocketEstablishedEventData.bIsAccept);
+		}
+
+		if (SocketEvent.EventType == NE_SocketAccept_4 || SocketEvent.EventType == NE_SocketAccept_6)
+		{
+			spdlog::info("[eBPF SocketAccept] cookie={} pid={} srcPort={} dstPort={}", SocketEvent.Cookie, Tgid,
+				SocketEvent.Data.SocketAcceptEventData.SourcePort,
+				SocketEvent.Data.SocketAcceptEventData.DestinationPort);
+		}
+
 		/*
 		 This will also create the application/process/socket entries as needed
 		 NE_Traffic and NE_SocketClose usually have PID set to 0, so for those to be properly associated with a process,

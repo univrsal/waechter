@@ -33,6 +33,18 @@ int tracepoint__inet_sock_set_state(struct trace_event_raw_inet_sock_set_state* 
 	{
 		bpf_ringbuf_submit(Event, 0);
 	}
+
+	// Populate port_to_pid when a socket enters LISTEN state.
+	// This is essential on kernels without BPF LSM (e.g. Ubuntu) where
+	// the lsm/socket_bind hook doesn't fire, leaving port_to_pid empty.
+	// Without this, accepted connections can't be attributed to the correct process.
+	__u16 Lport = ctx->sport;
+	if (Lport != 0 && SharedData->Pid != 0)
+	{
+		bpf_map_update_elem(&port_to_pid, &Lport, &SharedData->Pid, BPF_ANY);
+		bpf_printk("waechter: tracepoint TCP_LISTEN lport=%d pid=%d\n", Lport, SharedData->Pid);
+	}
+
 	return 0;
 }
 
@@ -63,6 +75,23 @@ int BPF_PROG(on_tcp_set_state, struct sock* Sk, int Newstate)
 			}
 		}
 	}
+	else if (Newstate == TCP_LISTEN)
+	{
+		// When a socket enters LISTEN state, populate port_to_pid.
+		// This is essential on kernels without BPF LSM (e.g. Ubuntu) where
+		// the lsm/socket_bind hook doesn't fire, leaving port_to_pid empty.
+		u16 Lport = BPF_CORE_READ(Sk, __sk_common.skc_num);
+		if (Lport != 0)
+		{
+			__u64 PidTgid = bpf_get_current_pid_tgid();
+			__u32 Pid = (__u32)(PidTgid >> 32);
+			if (Pid != 0)
+			{
+				bpf_map_update_elem(&port_to_pid, &Lport, &Pid, BPF_ANY);
+				bpf_printk("waechter: TCP_LISTEN lport=%d pid=%d (populating port_to_pid)\n", Lport, Pid);
+			}
+		}
+	}
 	else if (Newstate == TCP_ESTABLISHED)
 	{
 		// Local port: host-endian
@@ -76,6 +105,19 @@ int BPF_PROG(on_tcp_set_state, struct sock* Sk, int Newstate)
 		if (Lport != 0)
 		{
 			OwnerPid = bpf_map_lookup_elem(&port_to_pid, &Lport);
+		}
+
+		__u64 Cookie = bpf_get_socket_cookie(Sk);
+		if (OwnerPid)
+		{
+			bpf_printk("waechter: TCP_ESTABLISHED lport=%d cookie=%llu owner_pid=%d (from port_to_pid)\n", Lport,
+				Cookie, *OwnerPid);
+		}
+		else
+		{
+			__u64 FallbackPid = bpf_get_current_pid_tgid();
+			bpf_printk("waechter: TCP_ESTABLISHED lport=%d cookie=%llu NO port_to_pid, fallback_pid=%d\n", Lport,
+				Cookie, (__u32)(FallbackPid >> 32));
 		}
 
 		// For client-side (outgoing) connections, populate port_to_pid

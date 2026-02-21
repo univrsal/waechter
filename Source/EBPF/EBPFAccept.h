@@ -38,6 +38,8 @@ int BPF_PROG(sock_graft, struct sock* Sk, struct socket* Parent)
 		return WLSM_ALLOW;
 	}
 
+	bpf_printk("waechter: sock_graft cookie=%llu lport=%d owner_pid=%d\n", Cookie, Lport, OwnerPid ? *OwnerPid : 0);
+
 	// Override PidTgId with the actual owner PID from port_to_pid lookup
 	if (OwnerPid && *OwnerPid != 0)
 	{

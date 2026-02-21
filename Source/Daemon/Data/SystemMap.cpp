@@ -167,6 +167,12 @@ std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketEvent const& Event,
 		{
 			spdlog::warn("Attempted to map socket cookie {} to PID 0 for event {}", SocketCookie, Event.EventType);
 		}
+		else if (Event.EventType == NE_TCPSocketEstablished_4 || Event.EventType == NE_TCPSocketEstablished_6)
+		{
+			spdlog::warn(
+				"[MapSocket] TCPSocketEstablished event for cookie {} has PID 0 — port_to_pid lookup likely failed",
+				SocketCookie);
+		}
 		return {};
 	}
 

@@ -69,6 +69,7 @@ int BPF_PROG(socket_bind, struct socket* Sock, struct sockaddr* Addr, int Addrle
 			__u64 PidTgid = bpf_get_current_pid_tgid();
 			__u32 Pid = (__u32)(PidTgid >> 32);
 			bpf_map_update_elem(&port_to_pid, &Port, &Pid, BPF_ANY);
+			bpf_printk("waechter: socket_bind port=%d pid=%d\n", Port, Pid);
 		}
 
 		bpf_ringbuf_submit(SocketEvent, 0);
