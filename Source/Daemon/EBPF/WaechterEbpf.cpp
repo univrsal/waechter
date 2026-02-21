@@ -147,13 +147,13 @@ void WWaechterEbpf::UpdateData()
 		uint64_t Raw = SocketEvent.PidTgId;
 		auto     Tgid = static_cast<WProcessId>(Raw >> 32);
 
+#if WDEBUG
+
 		static constexpr char const* EventNames[] = { "SocketCreate", "SocketConnect_4", "SocketConnect_6",
 			"SocketBind_4", "SocketBind_6", "TCPSocketEstablished_4", "TCPSocketEstablished_6", "TCPSocketListening",
 			"SocketAccept_4", "SocketAccept_6", "SocketClosed", "Traffic" };
-
 		auto const  EventTypeIdx = static_cast<unsigned>(SocketEvent.EventType);
 		auto const* EventName = EventTypeIdx < std::size(EventNames) ? EventNames[EventTypeIdx] : "Unknown";
-#if WDEBUG
 		if (SocketEvent.EventType != NE_Traffic)
 		{
 			spdlog::debug("[eBPF event] type={} cookie={} pid={}", EventName, SocketEvent.Cookie, Tgid);
