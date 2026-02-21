@@ -35,7 +35,7 @@ int on_sock_create(struct bpf_sock* Socket)
 	__u64 Cookie = bpf_get_socket_cookie(Socket);
 	__u64 PidTgid = bpf_get_current_pid_tgid();
 	__u32 Tgid = (__u32)(PidTgid >> 32);
-	if (Socket->type != SOCK_STREAM && Socket->type != SOCK_DGRAM)
+	if (Socket->type != SOCK_STREAM && Socket->type != SOCK_DGRAM && Socket->type != SOCK_RAW)
 	{
 		return WCG_ALLOW;
 	}
