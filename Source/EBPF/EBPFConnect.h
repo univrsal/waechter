@@ -105,12 +105,6 @@ int BPF_PROG(on_tcp_set_state, struct sock* Sk, int Newstate)
 			OwnerPid = bpf_map_lookup_elem(&port_to_pid, &Lport);
 		}
 
-		__u64 Cookie = bpf_get_socket_cookie(Sk);
-		if (!OwnerPid)
-		{
-			__u64 FallbackPid = bpf_get_current_pid_tgid();
-		}
-
 		// For client-side (outgoing) connections, populate port_to_pid
 		// only if there isn't already an entry (don't overwrite server mappings).
 		if (!OwnerPid && Lport != 0)
