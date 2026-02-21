@@ -25,6 +25,8 @@ class WWaechterEbpf : public WEbpfObj
 	std::shared_ptr<WEbpfData> Data{};
 	WMsec                      QueuePileupStartTime{};
 
+	void PrePopulatePortToPid();
+
 public:
 	waechter_ebpf* Skeleton{};
 

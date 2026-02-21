@@ -22,12 +22,34 @@ int BPF_PROG(sock_graft, struct sock* Sk, struct socket* Parent)
 		return WLSM_ALLOW;
 	}
 
-	__u64                Socket = bpf_get_socket_cookie(Sk);
-	struct WSocketEvent* Event = MakeSocketEvent(Socket, NE_SocketAccept_4);
+	__u64 Cookie = bpf_get_socket_cookie(Sk);
+
+	// sock_graft fires in softirq context during TCP handshake completion,
+	// so bpf_get_current_pid_tgid() returns whatever process was interrupted
+	// by the softirq — NOT the process that called accept(). We must look up
+	// the actual owning PID from the local port via port_to_pid map, which
+	// was populated when the listening socket was bound.
+	__u16  Lport = Sk->__sk_common.skc_num; // host-endian
+	__u32* OwnerPid = bpf_map_lookup_elem(&port_to_pid, &Lport);
+
+	struct WSocketEvent* Event = MakeSocketEvent2(Cookie, NE_SocketAccept_4, false);
 	if (!Event)
 	{
 		return WLSM_ALLOW;
 	}
+
+	// Override PidTgId with the actual owner PID from port_to_pid lookup
+	if (OwnerPid && *OwnerPid != 0)
+	{
+		Event->PidTgId = ((__u64)(*OwnerPid)) << 32;
+	}
+	else
+	{
+		// Fallback: use bpf_get_current_pid_tgid() even though it may be wrong
+		// in softirq context. Better than nothing.
+		Event->PidTgId = bpf_get_current_pid_tgid();
+	}
+	Event->CgroupId = bpf_get_current_cgroup_id();
 
 	Event->Data.SocketAcceptEventData.Family = Family;
 	Event->Data.SocketAcceptEventData.Type = Parent ? Parent->type : 0;
