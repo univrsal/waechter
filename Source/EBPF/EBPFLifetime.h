@@ -18,13 +18,11 @@ int BPF_PROG(on_inet_sock_destruct, struct sock* Sk)
 		bpf_ringbuf_submit(Event, 0);
 	}
 
-	// Clean up port_to_pid mapping for this socket
-	// This handles UDP sockets and any TCP edge cases
-	__u16 Lport = BPF_CORE_READ(Sk, __sk_common.skc_num);
-	if (Lport != 0)
-	{
-		bpf_map_delete_elem(&port_to_pid, &Lport);
-	}
+	// NOTE: We intentionally do NOT clean up port_to_pid here.
+	// TCP cleanup is handled in on_tcp_set_state which correctly only deletes
+	// the mapping when the LISTENING socket closes (not accepted child connections).
+	// Cleaning up here would incorrectly remove the server's port mapping when
+	// an accepted connection sharing the same local port is destroyed.
 
 	return 0;
 }
@@ -35,7 +33,7 @@ int on_sock_create(struct bpf_sock* Socket)
 	__u64 Cookie = bpf_get_socket_cookie(Socket);
 	__u64 PidTgid = bpf_get_current_pid_tgid();
 	__u32 Tgid = (__u32)(PidTgid >> 32);
-	if (Socket->type != SOCK_STREAM && Socket->type != SOCK_DGRAM)
+	if (Socket->type != SOCK_STREAM && Socket->type != SOCK_DGRAM && Socket->type != SOCK_RAW)
 	{
 		return WCG_ALLOW;
 	}

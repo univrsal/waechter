@@ -192,7 +192,7 @@ void WConnectionHistory::Push(std::shared_ptr<WAppCounter> const& App, std::shar
 	WConnectionHistoryEntry Entry{ App, Set, RemoteEndpoint };
 	// todo: (maybe) the rest should be pushed into the database
 	History.push_back(Entry);
-	spdlog::info("New connection for app {}", App->TrafficItem->ApplicationName);
+	spdlog::debug("New connection for app {}", App->TrafficItem->ApplicationName);
 	++NewItemCounter;
 	if (History.size() > kMaxHistorySize)
 	{

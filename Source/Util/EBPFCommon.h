@@ -92,11 +92,18 @@ struct WSocketConnectEventData
 
 struct WSocketTCPEstablishedEventData
 {
-	__u32 UserPort;
+	__u32 UserPort;   // local port
+	__u32 RemotePort; // remote port
+	__u8  bIsAccept;  // 1 if this is a server-side (accepted) connection
 	union
 	{
 		__u32 Addr4;
 		__u32 Addr6[4];
+	};
+	union
+	{
+		__u32 RemoteAddr4;
+		__u32 RemoteAddr6[4];
 	};
 };
 

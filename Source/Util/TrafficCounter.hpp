@@ -31,6 +31,8 @@ protected:
 	uint8_t InactiveCounter{ 0 };
 
 public:
+	uint8_t GetInactiveCounter() const { return InactiveCounter; }
+
 	std::shared_ptr<T> TrafficItem;
 
 	explicit TTrafficCounter(std::shared_ptr<T> const& TrafficItem_) : TrafficItem(TrafficItem_)

@@ -7,6 +7,7 @@
 #include <string>
 #include <optional>
 #include <unordered_set>
+#include <mutex>
 
 #include "IPAddress.hpp"
 #include "Data/SocketItem.hpp"
@@ -27,6 +28,22 @@ public:
 
 	[[nodiscard]] ESocketType::Type DetermineSocketType(WEndpoint const& LocalEndpoint, EProtocol::Type Protocol) const;
 
+	void ParseData();
+
+	bool IsUsedPort(uint16_t Port)
+	{
+		if (Port == 0)
+		{
+			// Can't determine
+			return true;
+		}
+		std::scoped_lock Lock(Mutex);
+		return KnownUsedPorts.contains(Port);
+	}
+	mutable std::mutex Mutex;
+
+	std::unordered_set<uint16_t> const& GetUsedPorts() const { return KnownUsedPorts; }
+
 private:
 	void ParseTcpFile(std::string const& FilePath) const;
 	void ParseUdpFile(std::string const& FilePath) const;
@@ -39,6 +56,8 @@ private:
 
 	// parse hex address:port format
 	static bool ParseAddressPort(std::string const& AddrPortStr, WIPAddress& OutAddr, uint16_t& OutPort, bool bIsIPv6);
+
+	mutable std::unordered_set<uint16_t> KnownUsedPorts;
 
 	// Store known listening ports for heuristics
 	mutable std::unordered_set<uint16_t> KnownListeningPorts;

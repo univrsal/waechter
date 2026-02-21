@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <bpf/bpf.h>
 #include <net/if.h>
+#include <sys/vfs.h>
 
 #include "spdlog/spdlog.h"
 
@@ -16,16 +17,41 @@
 #include "Filesystem.hpp"
 #include "NetworkInterface.hpp"
 
+#ifndef CGROUP2_SUPER_MAGIC
+	#define CGROUP2_SUPER_MAGIC 0x63677270
+#endif
+
+static bool IsCgroup2Mount(std::string const& Path)
+{
+	struct statfs Buf{};
+	if (statfs(Path.c_str(), &Buf) != 0)
+	{
+		return false;
+	}
+	return static_cast<unsigned long>(Buf.f_type) == CGROUP2_SUPER_MAGIC;
+}
+
 WEbpfObj::WEbpfObj()
 {
 	int CGroupFdRaw = -1;
 	if (!WDaemonConfig::GetInstance().CGroupPath.empty())
 	{
-		CGroupFdRaw = open(WDaemonConfig::GetInstance().CGroupPath.c_str(), O_RDONLY | O_CLOEXEC);
+		auto const& CGroupPath = WDaemonConfig::GetInstance().CGroupPath;
+
+		if (!IsCgroup2Mount(CGroupPath))
+		{
+			spdlog::critical("Cgroup path '{}' is not a cgroup v2 mount. "
+							 "BPF cgroup programs require a unified cgroup v2 hierarchy. "
+							 "On systems using cgroup v1 or hybrid mode (common on Ubuntu), "
+							 "you may need to boot with 'systemd.unified_cgroup_hierarchy=1' "
+							 "or set the cgroup_path to a valid cgroup v2 mount point.",
+				CGroupPath);
+		}
+
+		CGroupFdRaw = open(CGroupPath.c_str(), O_RDONLY | O_CLOEXEC);
 		if (CGroupFdRaw < 0)
 		{
-			spdlog::critical(
-				"Failed to open cgroup path '{}': {}", WDaemonConfig::GetInstance().CGroupPath, WErrnoUtil::StrError());
+			spdlog::critical("Failed to open cgroup path '{}': {}", CGroupPath, WErrnoUtil::StrError());
 			return;
 		}
 		CGroupFd.reset(new int(CGroupFdRaw));

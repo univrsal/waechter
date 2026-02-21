@@ -9,9 +9,11 @@ server_socket.listen(5)
 print("TCP server listening on port 8888")
 
 try:
+    conn, addr = server_socket.accept()
+    print(f"Accepted connection from {addr}")
     while True:
         time.sleep(0.1)
 except KeyboardInterrupt:
     server_socket.close()
     print("Server closed")
-    time.sleep(10000);
+    time.sleep(10000)

@@ -44,6 +44,25 @@ namespace EProtocol
 		ESP = 50,
 		ICMPv6 = 58
 	};
+
+	inline std::string ToString(Type Protocol)
+	{
+		switch (Protocol)
+		{
+			case EProtocol::TCP:
+				return "TCP";
+			case EProtocol::UDP:
+				return "UDP";
+			case EProtocol::ICMP:
+				return "ICMP";
+			case EProtocol::ESP:
+				return "ESP";
+			case EProtocol::ICMPv6:
+				return "ICMPv6";
+			default:
+				return "Unknown";
+		}
+	}
 } // namespace EProtocol
 
 struct WIPAddress
@@ -273,6 +292,12 @@ struct WSocketTuple
 	void serialize(Archive& archive)
 	{
 		archive(LocalEndpoint, RemoteEndpoint, Protocol);
+	}
+
+	[[nodiscard]] std::string ToString() const
+	{
+		return LocalEndpoint.ToString() + " -> " + RemoteEndpoint.ToString() + " (" + EProtocol::ToString(Protocol)
+			+ ")";
 	}
 };
 
