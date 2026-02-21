@@ -36,7 +36,7 @@ int BPF_PROG(sock_graft, struct sock* Sk, struct socket* Parent)
 	{
 		Event->Data.SocketAcceptEventData.SourceAddr4 = Sk->__sk_common.skc_rcv_saddr;
 		Event->Data.SocketAcceptEventData.DestinationAddr4 = Sk->__sk_common.skc_daddr;
-		Event->Data.SocketAcceptEventData.SourcePort = bpf_ntohs(Sk->__sk_common.skc_num);
+		Event->Data.SocketAcceptEventData.SourcePort = Lport; // already host-endian
 		Event->Data.SocketAcceptEventData.DestinationPort = bpf_ntohs(Sk->__sk_common.skc_dport);
 	}
 	else if (Family == AF_INET6)
@@ -46,7 +46,7 @@ int BPF_PROG(sock_graft, struct sock* Sk, struct socket* Parent)
 			&Event->Data.SocketAcceptEventData.SourceAddr6, Sk, __sk_common.skc_v6_rcv_saddr.in6_u.u6_addr32);
 		BPF_CORE_READ_INTO(
 			&Event->Data.SocketAcceptEventData.DestinationAddr6, Sk, __sk_common.skc_v6_daddr.in6_u.u6_addr32);
-		Event->Data.SocketAcceptEventData.SourcePort = bpf_ntohs(Sk->__sk_common.skc_num);
+		Event->Data.SocketAcceptEventData.SourcePort = Lport; // already host-endian
 		Event->Data.SocketAcceptEventData.DestinationPort = bpf_ntohs(Sk->__sk_common.skc_dport);
 	}
 
