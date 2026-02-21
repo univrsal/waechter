@@ -5,6 +5,7 @@
 
 #include "SystemMap.hpp"
 
+#include <cstdlib>
 #include <ranges>
 #include <regex>
 
@@ -22,8 +23,8 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 {
 	auto Item = SockCounter->TrafficItem;
 	// if this socket doesn't already have a local/remote endpoint, try to infer from traffic
-	bool const bHaveRemoteEndpoint = !Item->SocketTuple.LocalEndpoint.Address.IsZero();
-	bool const bHaveLocalEndpoint = !Item->SocketTuple.RemoteEndpoint.Address.IsZero();
+	bool const bHaveLocalEndpoint = !Item->SocketTuple.LocalEndpoint.Address.IsZero();
+	bool const bHaveRemoteEndpoint = !Item->SocketTuple.RemoteEndpoint.Address.IsZero();
 	bool const bIsTcp = Item->SocketTuple.Protocol == EProtocol::TCP;
 
 	if (bHaveLocalEndpoint && bHaveRemoteEndpoint && bIsTcp)
@@ -58,7 +59,9 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 			Item->SocketTuple.LocalEndpoint = LocalEndpoint;
 		}
 
-		if (!bHaveRemoteEndpoint)
+		// Don't assign a remote endpoint to UDP sockets, the only time we do that
+		// is if they explicitly connect() to an address
+		if (!bHaveRemoteEndpoint && Item->SocketTuple.Protocol != EProtocol::UDP)
 		{
 			Item->SocketTuple.RemoteEndpoint = RemoteEndpoint;
 		}
@@ -152,11 +155,23 @@ std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketEvent const& Event,
 
 	ZoneScopedN("WSystemMap::MapSocket");
 	auto SocketCookie = Event.Cookie;
+	if (SocketCookie == 0)
+	{
+		spdlog::warn("Received socket event with invalid cookie 0 for PID {} and event type {}", PID, Event.EventType);
+		return {};
+	}
+
 	if (PID == 0)
 	{
 		if (!bSilentFail)
 		{
 			spdlog::warn("Attempted to map socket cookie {} to PID 0 for event {}", SocketCookie, Event.EventType);
+		}
+		else if (Event.EventType == NE_TCPSocketEstablished_4 || Event.EventType == NE_TCPSocketEstablished_6)
+		{
+			spdlog::warn(
+				"[MapSocket] TCPSocketEstablished event for cookie {} has PID 0 — port_to_pid lookup likely failed",
+				SocketCookie);
 		}
 		return {};
 	}
@@ -188,14 +203,38 @@ std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketEvent const& Event,
 		}
 	}
 
-	// If exePath missing but argv[0] exists, try to resolve to absolute via /proc/[pid]/cwd or PATH (skip PATH
-	// resolution for now)
-	if (ExePath.empty() && !Argv.empty())
+	// If exePath missing but argv[0] exists, try to resolve to absolute via /proc/[pid]/cwd or PATH
+	if (ExePath.empty() && !Argv.empty() && !Argv[0].empty())
 	{
-		// If argv[0] is absolute, use it; else leave empty.
-		if (!Argv[0].empty() && Argv[0].front() == '/')
+		if (Argv[0].front() == '/')
 		{
+			// Absolute path - use directly
 			ExePath = NormalizeAppImagePaths(Argv[0]);
+		}
+		else
+		{
+			// Relative path - try to resolve via /proc/[pid]/cwd
+			std::string Cwd = WFilesystem::ReadLink("/proc/" + std::to_string(PID) + "/cwd");
+			if (!Cwd.empty() && Cwd.back() != '/')
+			{
+				Cwd += '/';
+			}
+
+			// Resolve relative path
+			std::string ResolvedPath = Cwd + Argv[0];
+
+			// Try to resolve the path to see if it exists
+			char* RealPath = realpath(ResolvedPath.c_str(), nullptr);
+			if (RealPath)
+			{
+				ExePath = NormalizeAppImagePaths(RealPath);
+				free(RealPath);
+			}
+			else
+			{
+				// If realpath fails, just use the resolved path anyway
+				ExePath = NormalizeAppImagePaths(ResolvedPath);
+			}
 		}
 	}
 
@@ -522,13 +561,48 @@ void WSystemMap::Cleanup()
 		}
 	}
 
+	// Re-fetch all currently used sockets from /proc/
+	SocketStateParser.ParseData();
+
+	auto IsStaleSocket = [this](std::shared_ptr<WSocketCounter> const& Socket) {
+		// So technically we should never have to clean up sockets in this way,
+		// so we first make sure the socket has not received any data for 30 seconds
+		// at that point the normal cleanup logic should've jumped in,
+		// if not we'll do it here but also log it
+		if (Socket->IsMarkedForRemoval() || Socket->GetInactiveCounter() < 30)
+		{
+			return false;
+		}
+
+		// If the socket is in an unknown state, we consider it stale and remove it to avoid stale entries in the UI
+		if (Socket->TrafficItem->SocketType == ESocketType::Unknown
+			|| Socket->TrafficItem->ConnectionState == ESocketConnectionState::Unknown
+			|| Socket->TrafficItem->SocketTuple.Protocol == EProtocol::Unknown)
+		{
+			spdlog::debug("Removing socket because of unknown state");
+			return true;
+		}
+
+		// If the socket's local port is not in use anymore, we consider it stale (except for ICMP which doesn't have
+		// ports)
+		if (!SocketStateParser.IsUsedPort(Socket->TrafficItem->SocketTuple.LocalEndpoint.Port)
+			&& (Socket->TrafficItem->SocketTuple.Protocol != EProtocol::ICMP
+				&& Socket->TrafficItem->SocketTuple.Protocol != EProtocol::ICMPv6))
+		{
+			spdlog::debug("Removing socket because its port is no longer in use");
+			return true;
+		}
+
+		return false;
+	};
+
 	for (auto SocketIt = Sockets.begin(); SocketIt != Sockets.end();)
 	{
 		if (auto const& Socket = SocketIt->second; Socket->DueForRemoval())
 		{
 			bRemovedAny = true;
 
-			// When cleaning up a socket we have to
+			// When cleaning up a socket, we have to
 			//  - Remove it from its parent process's Sockets map
 			//  - Remove it from the Sockets map
 			WNetworkEvents::GetInstance().OnSocketRemoved(Socket);
@@ -543,6 +617,14 @@ void WSystemMap::Cleanup()
 			Socket->UDPPerConnectionCounters.clear();
 			Socket->TrafficItem->UDPPerConnectionTraffic.clear();
 			SocketIt = Sockets.erase(SocketIt);
+		}
+		// Remove sockets in an unknown state
+		else if (IsStaleSocket(Socket))
+		{
+			spdlog::warn("Removing unkown socket with id {}, tuple: {}, app: {}", SocketIt->first,
+				Socket->TrafficItem->SocketTuple.ToString(),
+				Socket->ParentProcess->ParentApp->TrafficItem->ApplicationName);
+			Socket->MarkForRemoval();
 		}
 		else
 		{
