@@ -42,7 +42,6 @@ int tracepoint__inet_sock_set_state(struct trace_event_raw_inet_sock_set_state* 
 	if (Lport != 0 && SharedData->Pid != 0)
 	{
 		bpf_map_update_elem(&port_to_pid, &Lport, &SharedData->Pid, BPF_ANY);
-		bpf_printk("waechter: tracepoint TCP_LISTEN lport=%d pid=%d\n", Lport, SharedData->Pid);
 	}
 
 	return 0;
@@ -88,7 +87,6 @@ int BPF_PROG(on_tcp_set_state, struct sock* Sk, int Newstate)
 			if (Pid != 0)
 			{
 				bpf_map_update_elem(&port_to_pid, &Lport, &Pid, BPF_ANY);
-				bpf_printk("waechter: TCP_LISTEN lport=%d pid=%d (populating port_to_pid)\n", Lport, Pid);
 			}
 		}
 	}
@@ -108,16 +106,9 @@ int BPF_PROG(on_tcp_set_state, struct sock* Sk, int Newstate)
 		}
 
 		__u64 Cookie = bpf_get_socket_cookie(Sk);
-		if (OwnerPid)
-		{
-			bpf_printk("waechter: TCP_ESTABLISHED lport=%d cookie=%llu owner_pid=%d (from port_to_pid)\n", Lport,
-				Cookie, *OwnerPid);
-		}
-		else
+		if (!OwnerPid)
 		{
 			__u64 FallbackPid = bpf_get_current_pid_tgid();
-			bpf_printk("waechter: TCP_ESTABLISHED lport=%d cookie=%llu NO port_to_pid, fallback_pid=%d\n", Lport,
-				Cookie, (__u32)(FallbackPid >> 32));
 		}
 
 		// For client-side (outgoing) connections, populate port_to_pid

@@ -153,7 +153,7 @@ void WWaechterEbpf::UpdateData()
 
 		auto const  EventTypeIdx = static_cast<unsigned>(SocketEvent.EventType);
 		auto const* EventName = EventTypeIdx < std::size(EventNames) ? EventNames[EventTypeIdx] : "Unknown";
-
+#if WDEBUG
 		if (SocketEvent.EventType != NE_Traffic)
 		{
 			spdlog::debug("[eBPF event] type={} cookie={} pid={}", EventName, SocketEvent.Cookie, Tgid);
@@ -161,7 +161,7 @@ void WWaechterEbpf::UpdateData()
 
 		if (SocketEvent.EventType == NE_TCPSocketEstablished_4 || SocketEvent.EventType == NE_TCPSocketEstablished_6)
 		{
-			spdlog::info("[eBPF TCP_ESTABLISHED] cookie={} pid={} localPort={} remotePort={} isAccept={}",
+			spdlog::debug("[eBPF TCP_ESTABLISHED] cookie={} pid={} localPort={} remotePort={} isAccept={}",
 				SocketEvent.Cookie, Tgid, SocketEvent.Data.TCPSocketEstablishedEventData.UserPort,
 				SocketEvent.Data.TCPSocketEstablishedEventData.RemotePort,
 				SocketEvent.Data.TCPSocketEstablishedEventData.bIsAccept);
@@ -169,10 +169,11 @@ void WWaechterEbpf::UpdateData()
 
 		if (SocketEvent.EventType == NE_SocketAccept_4 || SocketEvent.EventType == NE_SocketAccept_6)
 		{
-			spdlog::info("[eBPF SocketAccept] cookie={} pid={} srcPort={} dstPort={}", SocketEvent.Cookie, Tgid,
+			spdlog::debug("[eBPF SocketAccept] cookie={} pid={} srcPort={} dstPort={}", SocketEvent.Cookie, Tgid,
 				SocketEvent.Data.SocketAcceptEventData.SourcePort,
 				SocketEvent.Data.SocketAcceptEventData.DestinationPort);
 		}
+#endif
 
 		/*
 		 This will also create the application/process/socket entries as needed
