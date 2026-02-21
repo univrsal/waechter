@@ -44,12 +44,19 @@ void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 	}
 	else if (Event.EventType == NE_TCPSocketEstablished_4)
 	{
-		// Technically we should set the state to connected here instead of constantly setting it to connected
-		// in the traffic counter
 		TrafficItem->SocketTuple.LocalEndpoint.Port =
 			static_cast<uint16_t>(Event.Data.TCPSocketEstablishedEventData.UserPort);
 		TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv4Uint32(Event.Data.TCPSocketEstablishedEventData.Addr4);
+		TrafficItem->SocketTuple.RemoteEndpoint.Port =
+			static_cast<uint16_t>(Event.Data.TCPSocketEstablishedEventData.RemotePort);
+		TrafficItem->SocketTuple.RemoteEndpoint.Address.FromIPv4Uint32(
+			Event.Data.TCPSocketEstablishedEventData.RemoteAddr4);
+		TrafficItem->SocketTuple.Protocol = EProtocol::TCP;
 		TrafficItem->ConnectionState = ESocketConnectionState::Connected;
+		if (Event.Data.TCPSocketEstablishedEventData.bIsAccept)
+		{
+			TrafficItem->SocketType |= ESocketType::Accept;
+		}
 		WNetworkEvents::GetInstance().OnSocketConnected(this);
 	}
 	else if (Event.EventType == NE_TCPSocketEstablished_6)
@@ -57,7 +64,16 @@ void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 		TrafficItem->SocketTuple.LocalEndpoint.Port =
 			static_cast<uint16_t>(Event.Data.TCPSocketEstablishedEventData.UserPort);
 		TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv6Array(Event.Data.TCPSocketEstablishedEventData.Addr6);
+		TrafficItem->SocketTuple.RemoteEndpoint.Port =
+			static_cast<uint16_t>(Event.Data.TCPSocketEstablishedEventData.RemotePort);
+		TrafficItem->SocketTuple.RemoteEndpoint.Address.FromIPv6Array(
+			Event.Data.TCPSocketEstablishedEventData.RemoteAddr6);
+		TrafficItem->SocketTuple.Protocol = EProtocol::TCP;
 		TrafficItem->ConnectionState = ESocketConnectionState::Connected;
+		if (Event.Data.TCPSocketEstablishedEventData.bIsAccept)
+		{
+			TrafficItem->SocketType |= ESocketType::Accept;
+		}
 		WNetworkEvents::GetInstance().OnSocketConnected(this);
 	}
 	else if (Event.EventType == NE_SocketBind_4)

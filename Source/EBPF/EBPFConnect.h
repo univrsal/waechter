@@ -107,20 +107,31 @@ int BPF_PROG(on_tcp_set_state, struct sock* Sk, int Newstate)
 			u16 Family = BPF_CORE_READ(Sk, __sk_common.skc_family);
 
 			Event->Data.TCPSocketEstablishedEventData.UserPort = Lport;
+			Event->Data.TCPSocketEstablishedEventData.bIsAccept = OwnerPid ? 1 : 0;
+
+			// Remote port (network-endian in kernel, convert to host)
+			u16 Dport = BPF_CORE_READ(Sk, __sk_common.skc_dport);
+			Event->Data.TCPSocketEstablishedEventData.RemotePort = bpf_ntohs(Dport);
 
 			if (Family == AF_INET)
 			{
-				// IPv4 address
+				// IPv4 local address
 				__u32 Laddr4 = BPF_CORE_READ(Sk, __sk_common.skc_rcv_saddr);
 				Event->Data.TCPSocketEstablishedEventData.Addr4 = Laddr4;
+				// IPv4 remote address
+				__u32 Daddr4 = BPF_CORE_READ(Sk, __sk_common.skc_daddr);
+				Event->Data.TCPSocketEstablishedEventData.RemoteAddr4 = Daddr4;
 				Event->EventType = NE_TCPSocketEstablished_4;
 			}
 			else if (Family == AF_INET6)
 			{
 				Event->EventType = NE_TCPSocketEstablished_6;
-				// IPv6 address
+				// IPv6 local address
 				BPF_CORE_READ_INTO(
 					&Event->Data.TCPSocketEstablishedEventData.Addr6, Sk, __sk_common.skc_v6_rcv_saddr.in6_u.u6_addr32);
+				// IPv6 remote address
+				BPF_CORE_READ_INTO(&Event->Data.TCPSocketEstablishedEventData.RemoteAddr6, Sk,
+					__sk_common.skc_v6_daddr.in6_u.u6_addr32);
 			}
 			bpf_ringbuf_submit(Event, 0);
 		}
