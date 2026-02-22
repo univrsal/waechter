@@ -8,10 +8,18 @@
 #include <optional>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 #include <mutex>
 
 #include "IPAddress.hpp"
 #include "Data/SocketItem.hpp"
+
+struct WListenSocketInfo
+{
+	WEndpoint       LocalEndpoint{};
+	EProtocol::Type Protocol{};
+	WProcessId      PID{ -1 };
+};
 
 // When the daemon first starts up there are often already a bunch of existing sockets
 // the type of each socket is determined by the EBPF program by monitoring which syscalls (bind(), connect(), accept())
@@ -47,6 +55,8 @@ public:
 
 	std::unordered_map<uint16_t, WProcessId> const& GetListeningPorts() const { return KnownListeningPorts; }
 
+	std::vector<WListenSocketInfo> const& GetListeningSockets() const { return KnownListeningSockets; }
+
 private:
 	void ParseTcpFile(std::string const& FilePath, std::unordered_map<uint64_t, WProcessId> const& InodePidMap) const;
 	void ParseUdpFile(std::string const& FilePath, std::unordered_map<uint64_t, WProcessId> const& InodePidMap) const;
@@ -64,4 +74,7 @@ private:
 
 	// Store known listening ports for heuristics
 	mutable std::unordered_map<uint16_t, WProcessId> KnownListeningPorts;
+
+	// Store full listen socket info for AddExistingSockets
+	mutable std::vector<WListenSocketInfo> KnownListeningSockets;
 };

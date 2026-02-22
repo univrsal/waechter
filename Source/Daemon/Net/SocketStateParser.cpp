@@ -139,6 +139,7 @@ void WSocketStateParser::ParseData() const
 	std::scoped_lock Lock(Mutex);
 	KnownListeningPorts.clear();
 	KnownUsedPorts.clear();
+	KnownListeningSockets.clear();
 	ParseTcpFile("/proc/net/tcp", InodePidMap);
 	ParseTcpFile("/proc/net/tcp6", InodePidMap);
 	ParseUdpFile("/proc/net/udp", InodePidMap);
@@ -186,6 +187,20 @@ void WSocketStateParser::ParseTcpFile(
 					Pid = It->second;
 
 				KnownListeningPorts[Port] = Pid;
+
+				// Parse full local address for AddExistingSockets
+				bool const        bIsIPv6 = LocalAddr.find(':') != LocalAddr.rfind(':');
+				WListenSocketInfo Info;
+				Info.Protocol = EProtocol::TCP;
+				Info.PID = Pid;
+				Info.LocalEndpoint.Port = Port;
+				WIPAddress Addr;
+				uint16_t   ParsedPort;
+				if (ParseAddressPort(LocalAddr, Addr, ParsedPort, bIsIPv6))
+				{
+					Info.LocalEndpoint.Address = Addr;
+				}
+				KnownListeningSockets.emplace_back(Info);
 			}
 		}
 	}
@@ -236,6 +251,20 @@ void WSocketStateParser::ParseUdpFile(
 						Pid = It->second;
 
 					KnownListeningPorts[Port] = Pid;
+
+					// Parse full local address for AddExistingSockets
+					bool const        bIsIPv6 = LocalAddr.find(':') != LocalAddr.rfind(':');
+					WListenSocketInfo Info;
+					Info.Protocol = EProtocol::UDP;
+					Info.PID = Pid;
+					Info.LocalEndpoint.Port = Port;
+					WIPAddress Addr;
+					uint16_t   ParsedPort;
+					if (ParseAddressPort(LocalAddr, Addr, ParsedPort, bIsIPv6))
+					{
+						Info.LocalEndpoint.Address = Addr;
+					}
+					KnownListeningSockets.emplace_back(Info);
 				}
 			}
 		}

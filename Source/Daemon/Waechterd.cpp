@@ -10,6 +10,7 @@
 #include "Daemon.hpp"
 #include "DaemonConfig.hpp"
 #include "Data/ConnectionHistory.hpp"
+#include "Data/SystemMap.hpp"
 #include "EBPF/WaechterEbpf.hpp"
 #include "Net/Resolver.hpp"
 #include "Net/IPLink.hpp"
@@ -43,6 +44,9 @@ int main()
 		WIPLink::GetInstance().Deinit();
 		return -1;
 	}
+	// We need to do this while we still have root
+	// otherwise we can't see the PID for sockets owned by root
+	WSystemMap::GetInstance().AddExistingSockets();
 	WResolver::GetInstance().Start();
 
 	if (!WDaemonConfig::GetInstance().DropPrivileges())

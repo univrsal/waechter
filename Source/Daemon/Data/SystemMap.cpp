@@ -19,6 +19,8 @@
 #include "Net/PacketParser.hpp"
 #include "Net/Resolver.hpp"
 
+static std::string NormalizeAppImagePaths(std::string const& path);
+
 void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSocketCounter> const& SockCounter)
 {
 	auto Item = SockCounter->TrafficItem;
@@ -134,6 +136,110 @@ std::shared_ptr<WTupleCounter> WSystemMap::GetOrCreateUDPTupleCounter(
 	return TupleCounter;
 }
 
+void WSystemMap::AddExistingSockets()
+{
+	SocketStateParser.ParseData();
+	// When the daemon starts, we add any existing sockets once they send/receive data
+	// this does not work for listen() sockets as they do not send/receive data so
+	// instead we add them here manually
+
+	std::scoped_lock Lock(DataMutex);
+
+	// Use a synthetic cookie range with the high bit set to avoid collision with real EBPF cookies
+	static constexpr WSocketCookie SyntheticCookieBase = static_cast<WSocketCookie>(1) << 63;
+	WSocketCookie                  SyntheticCookie = SyntheticCookieBase;
+
+	auto const& ListeningSockets = SocketStateParser.GetListeningSockets();
+	for (auto const& ListenSocket : ListeningSockets)
+	{
+		if (ListenSocket.PID <= 0 || !WFilesystem::IsProcessRunning(ListenSocket.PID))
+		{
+			continue;
+		}
+
+		// Resolve process info the same way MapSocket does
+		std::string              ExePath = NormalizeAppImagePaths(WFilesystem::GetProcessExePath(ListenSocket.PID));
+		std::vector<std::string> Argv = WFilesystem::GetProcessCmdlineArgs(ListenSocket.PID);
+		std::string              Comm = WFilesystem::ReadProc("/proc/" + std::to_string(ListenSocket.PID) + "/comm");
+		if (!Comm.empty() && Comm.back() == '\n')
+		{
+			Comm.pop_back();
+		}
+
+		if (Argv.empty())
+		{
+			if (!ExePath.empty())
+			{
+				Argv.push_back(ExePath);
+			}
+			else if (!Comm.empty())
+			{
+				Argv.push_back(Comm);
+			}
+		}
+
+		if (ExePath.empty() && !Argv.empty() && !Argv[0].empty())
+		{
+			if (Argv[0].front() == '/')
+			{
+				ExePath = NormalizeAppImagePaths(Argv[0]);
+			}
+			else
+			{
+				std::string Cwd = WFilesystem::ReadLink("/proc/" + std::to_string(ListenSocket.PID) + "/cwd");
+				if (!Cwd.empty() && Cwd.back() != '/')
+				{
+					Cwd += '/';
+				}
+				std::string ResolvedPath = Cwd + Argv[0];
+				char*       RealPath = realpath(ResolvedPath.c_str(), nullptr);
+				if (RealPath)
+				{
+					ExePath = NormalizeAppImagePaths(RealPath);
+					free(RealPath);
+				}
+				else
+				{
+					ExePath = NormalizeAppImagePaths(ResolvedPath);
+				}
+			}
+		}
+
+		std::string CmdLine;
+		for (size_t i = 0; i < Argv.size(); ++i)
+		{
+			CmdLine += Argv[i];
+			if (i + 1 < Argv.size())
+				CmdLine += ' ';
+		}
+
+		Comm = WStringFormat::Trim(Comm);
+		if ((Comm.empty() || Comm == "main" || Comm == "Main") && !ExePath.empty())
+		{
+			auto Pos = ExePath.find_last_of('/');
+			Comm = WStringFormat::Trim((Pos == std::string::npos) ? ExePath : ExePath.substr(Pos + 1));
+			if (Comm.empty())
+			{
+				Comm = ExePath.empty() ? "unknown" : ExePath;
+			}
+		}
+
+		auto App = FindOrMapApplication(ExePath, CmdLine, Comm);
+		auto Process = FindOrMapProcess(ListenSocket.PID, App);
+		auto Socket = FindOrMapSocket(SyntheticCookie++, Process);
+
+		Socket->TrafficItem->SocketTuple.LocalEndpoint = ListenSocket.LocalEndpoint;
+		Socket->TrafficItem->SocketTuple.Protocol = ListenSocket.Protocol;
+		Socket->TrafficItem->SocketType = ESocketType::Listen;
+		Socket->TrafficItem->ConnectionState = ESocketConnectionState::Connected;
+
+		spdlog::debug("Added existing listen socket: {} {} (PID {}, app '{}')",
+			EProtocol::ToString(ListenSocket.Protocol), ListenSocket.LocalEndpoint.ToString(), ListenSocket.PID, Comm);
+	}
+
+	spdlog::info("Added {} existing listen sockets.", ListeningSockets.size());
+}
+
 WSystemMap::WSystemMap()
 {
 	auto HostName = WFilesystem::ReadProc("/proc/sys/kernel/hostname");
@@ -143,7 +249,7 @@ WSystemMap::WSystemMap()
 	}
 }
 
-std::string NormalizeAppImagePaths(std::string const& path)
+static std::string NormalizeAppImagePaths(std::string const& path)
 {
 	static std::regex const RE(R"(^/tmp/[^/]+/usr/bin/(.*)$)");
 	return std::regex_replace(path, RE, "/tmp/appimage/bin/$1");

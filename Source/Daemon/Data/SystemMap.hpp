@@ -61,6 +61,8 @@ class WSystemMap : public TSingleton<WSystemMap>, public IMemoryTrackable
 	WSec LastCleanupMessageTime{};
 
 public:
+	void AddExistingSockets();
+
 	WSystemMap();
 	~WSystemMap() override = default;
 
