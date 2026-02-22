@@ -6,6 +6,7 @@
 #pragma once
 #include <string>
 #include <optional>
+#include <unordered_map>
 #include <unordered_set>
 #include <mutex>
 
@@ -28,7 +29,7 @@ public:
 
 	[[nodiscard]] ESocketType::Type DetermineSocketType(WEndpoint const& LocalEndpoint, EProtocol::Type Protocol) const;
 
-	void ParseData();
+	void ParseData() const;
 
 	bool IsUsedPort(uint16_t Port)
 	{
@@ -44,9 +45,11 @@ public:
 
 	std::unordered_set<uint16_t> const& GetUsedPorts() const { return KnownUsedPorts; }
 
+	std::unordered_map<uint16_t, WProcessId> const& GetListeningPorts() const { return KnownListeningPorts; }
+
 private:
-	void ParseTcpFile(std::string const& FilePath) const;
-	void ParseUdpFile(std::string const& FilePath) const;
+	void ParseTcpFile(std::string const& FilePath, std::unordered_map<uint64_t, WProcessId> const& InodePidMap) const;
+	void ParseUdpFile(std::string const& FilePath, std::unordered_map<uint64_t, WProcessId> const& InodePidMap) const;
 
 	// Parse line from /proc/net/tcp or /proc/net/tcp6
 	std::optional<ESocketType::Type> ParseTcpLine(std::string const& Line, WEndpoint const& TargetEndpoint) const;
@@ -60,5 +63,5 @@ private:
 	mutable std::unordered_set<uint16_t> KnownUsedPorts;
 
 	// Store known listening ports for heuristics
-	mutable std::unordered_set<uint16_t> KnownListeningPorts;
+	mutable std::unordered_map<uint16_t, WProcessId> KnownListeningPorts;
 };
