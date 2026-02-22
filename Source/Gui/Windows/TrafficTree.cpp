@@ -403,7 +403,7 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 
 static std::string GetSocketName(WSocketItem* Socket)
 {
-	if (Socket->SocketType == ESocketType::Listen && !Socket->SocketTuple.LocalEndpoint.Address.IsZero())
+	if (Socket->SocketType == ESocketType::Listen && Socket->SocketTuple.LocalEndpoint.Port != 0)
 	{
 		return std::format("● {}", Socket->SocketTuple.LocalEndpoint.ToString());
 	}
