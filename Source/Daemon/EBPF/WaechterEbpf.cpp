@@ -240,7 +240,11 @@ void WWaechterEbpf::PrePopulatePortToPid() const
 	WSocketStateParser const Parser{};
 	for (auto const& [Port, PID] : Parser.GetListeningPorts())
 	{
-		if (!Data->PortToPid->Update(Port, static_cast<uint32_t>(PID)))
+		if (Data->PortToPid->Update(Port, static_cast<uint32_t>(PID)))
+		{
+			spdlog::debug("Pre-populated port_to_pid: port {} → PID {}", Port, PID);
+		}
+		else
 		{
 			spdlog::warn("Failed to pre-populate port_to_pid for port {} PID {}", Port, PID);
 		}
