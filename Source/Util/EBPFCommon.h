@@ -48,7 +48,8 @@ enum ENetEventType
 	NE_SocketAccept_4,
 	NE_SocketAccept_6,
 	NE_SocketClosed,
-	NE_Traffic
+	NE_Traffic,
+	NE_Synthetic
 };
 
 enum ESwitchState : __u8

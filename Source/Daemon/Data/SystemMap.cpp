@@ -140,10 +140,8 @@ void WSystemMap::AddExistingSockets()
 {
 	SocketStateParser.ParseData();
 	// When the daemon starts, we add any existing sockets once they send/receive data
-	// this does not work for listen() sockets as they do not send/receive data so
+	// this does not work for listen() sockets as they do not send/receive data, so
 	// instead we add them here manually
-
-	std::scoped_lock Lock(DataMutex);
 
 	// Use a synthetic cookie range with the high bit set to avoid collision with real EBPF cookies
 	static constexpr WSocketCookie SyntheticCookieBase = static_cast<WSocketCookie>(1) << 63;
@@ -157,84 +155,26 @@ void WSystemMap::AddExistingSockets()
 			continue;
 		}
 
-		// Resolve process info the same way MapSocket does
-		std::string              ExePath = NormalizeAppImagePaths(WFilesystem::GetProcessExePath(ListenSocket.PID));
-		std::vector<std::string> Argv = WFilesystem::GetProcessCmdlineArgs(ListenSocket.PID);
-		std::string              Comm = WFilesystem::ReadProc("/proc/" + std::to_string(ListenSocket.PID) + "/comm");
-		if (!Comm.empty() && Comm.back() == '\n')
+		WSocketEvent SyntheticEvent{};
+		SyntheticEvent.Cookie = SyntheticCookie++;
+		SyntheticEvent.EventType = NE_Synthetic;
+
+		auto const Socket = MapSocket(SyntheticEvent, ListenSocket.PID, false);
+		assert(Socket);
+		if (!Socket)
 		{
-			Comm.pop_back();
+			spdlog::error("Failed to map existing listen socket for PID {} and endpoint {}, skipping", ListenSocket.PID,
+				ListenSocket.LocalEndpoint.ToString());
+			continue;
 		}
-
-		if (Argv.empty())
-		{
-			if (!ExePath.empty())
-			{
-				Argv.push_back(ExePath);
-			}
-			else if (!Comm.empty())
-			{
-				Argv.push_back(Comm);
-			}
-		}
-
-		if (ExePath.empty() && !Argv.empty() && !Argv[0].empty())
-		{
-			if (Argv[0].front() == '/')
-			{
-				ExePath = NormalizeAppImagePaths(Argv[0]);
-			}
-			else
-			{
-				std::string Cwd = WFilesystem::ReadLink("/proc/" + std::to_string(ListenSocket.PID) + "/cwd");
-				if (!Cwd.empty() && Cwd.back() != '/')
-				{
-					Cwd += '/';
-				}
-				std::string ResolvedPath = Cwd + Argv[0];
-				char*       RealPath = realpath(ResolvedPath.c_str(), nullptr);
-				if (RealPath)
-				{
-					ExePath = NormalizeAppImagePaths(RealPath);
-					free(RealPath);
-				}
-				else
-				{
-					ExePath = NormalizeAppImagePaths(ResolvedPath);
-				}
-			}
-		}
-
-		std::string CmdLine;
-		for (size_t i = 0; i < Argv.size(); ++i)
-		{
-			CmdLine += Argv[i];
-			if (i + 1 < Argv.size())
-				CmdLine += ' ';
-		}
-
-		Comm = WStringFormat::Trim(Comm);
-		if ((Comm.empty() || Comm == "main" || Comm == "Main") && !ExePath.empty())
-		{
-			auto Pos = ExePath.find_last_of('/');
-			Comm = WStringFormat::Trim((Pos == std::string::npos) ? ExePath : ExePath.substr(Pos + 1));
-			if (Comm.empty())
-			{
-				Comm = ExePath.empty() ? "unknown" : ExePath;
-			}
-		}
-
-		auto App = FindOrMapApplication(ExePath, CmdLine, Comm);
-		auto Process = FindOrMapProcess(ListenSocket.PID, App);
-		auto Socket = FindOrMapSocket(SyntheticCookie++, Process);
-
 		Socket->TrafficItem->SocketTuple.LocalEndpoint = ListenSocket.LocalEndpoint;
 		Socket->TrafficItem->SocketTuple.Protocol = ListenSocket.Protocol;
 		Socket->TrafficItem->SocketType = ESocketType::Listen;
 		Socket->TrafficItem->ConnectionState = ESocketConnectionState::Connected;
 
 		spdlog::debug("Added existing listen socket: {} {} (PID {}, app '{}')",
-			EProtocol::ToString(ListenSocket.Protocol), ListenSocket.LocalEndpoint.ToString(), ListenSocket.PID, Comm);
+			EProtocol::ToString(ListenSocket.Protocol), ListenSocket.LocalEndpoint.ToString(), ListenSocket.PID,
+			Socket->ParentProcess->ParentApp->TrafficItem->ApplicationName);
 	}
 
 	spdlog::info("Added {} existing listen sockets.", ListeningSockets.size());
