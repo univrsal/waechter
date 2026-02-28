@@ -10,7 +10,7 @@ target_sources(util
         ConnectionHistoryUpdate.hpp
 )
 
-if (UNIX AND NOT APPLE)
+if (UNIX AND NOT APPLE AND NOT EMSCRIPTEN)
     target_sources(util
             PRIVATE
             SocketStateParser.cpp
