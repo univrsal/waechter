@@ -8,6 +8,11 @@ target_sources(util
         AppIconAtlasData.hpp
         TrafficTreeUpdate.hpp
         ConnectionHistoryUpdate.hpp
-        SocketStateParser.cpp
-        SocketStateParser.hpp
 )
+
+if (UNIX AND NOT APPLE)
+    target_sources(util
+            SocketStateParser.cpp
+            SocketStateParser.hpp
+    )
+endif ()
