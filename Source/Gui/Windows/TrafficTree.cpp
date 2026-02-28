@@ -332,6 +332,7 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 		NewSocket->ItemId = Addition.ItemId;
 		NewSocket->SocketTuple = Addition.SocketTuple;
 		NewSocket->ConnectionState = Addition.ConnectionState;
+		NewSocket->SocketType = Addition.SocketType;
 		Proc->Sockets[Addition.ItemId] = NewSocket;
 		TrafficItems[Addition.ItemId] = NewSocket;
 	}

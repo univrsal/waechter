@@ -2,13 +2,12 @@
  * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
-
-#include "SocketStateParser.hpp"
-
 #include <fstream>
 #include <sstream>
 #include <dirent.h>
 #include <unordered_map>
+
+#include "SocketStateParser.hpp"
 
 // TCP states from Linux kernel
 constexpr uint32_t TCP_ESTABLISHED = 0x01;
@@ -139,6 +138,7 @@ void WSocketStateParser::ParseData() const
 	std::scoped_lock Lock(Mutex);
 	KnownListeningPorts.clear();
 	KnownUsedPorts.clear();
+	KnownUsedEndpoints.clear();
 	KnownListeningSockets.clear();
 	ParseTcpFile("/proc/net/tcp", InodePidMap);
 	ParseTcpFile("/proc/net/tcp6", InodePidMap);
@@ -172,34 +172,40 @@ void WSocketStateParser::ParseTcpFile(
 			std::string PortStr = LocalAddr.substr(ColonPos + 1);
 			auto        Port = static_cast<uint16_t>(std::stoul(PortStr, nullptr, 16));
 
+			// Parse full local address
+			bool const bIsIPv6 = LocalAddr.find(':') != LocalAddr.rfind(':');
+			WIPAddress Addr;
+			uint16_t   ParsedPort;
+
+			// Skip fields to reach inode: tx_queue:rx_queue tr:tm->when retrnsmt uid timeout inode
+			std::string TxRx, TrTm, Retrnsmt, Uid, Timeout;
+			uint64_t    Inode = 0;
+			Iss >> std::dec >> TxRx >> TrTm >> Retrnsmt >> Uid >> Timeout >> Inode;
+
+			WProcessId Pid = -1;
+			if (auto It = InodePidMap.find(Inode); It != InodePidMap.end())
+				Pid = It->second;
+
 			// Track all ports in use
 			KnownUsedPorts.insert(Port);
+
+			// Track all used endpoints with their owning PID
+			WEndpoint LocalEndpoint;
+			LocalEndpoint.Port = Port;
+			if (ParseAddressPort(LocalAddr, Addr, ParsedPort, bIsIPv6))
+				LocalEndpoint.Address = Addr;
+			KnownUsedEndpoints[LocalEndpoint] = Pid;
+
 			// Track listening ports separately, mapped to their PID
 			if (State == TCP_LISTEN)
 			{
-				// Skip 5 fields to reach inode: tx_queue:rx_queue tr:tm->when retrnsmt uid timeout inode
-				std::string TxRx, TrTm, Retrnsmt, Uid, Timeout;
-				uint64_t    Inode = 0;
-				Iss >> std::dec >> TxRx >> TrTm >> Retrnsmt >> Uid >> Timeout >> Inode;
-
-				WProcessId Pid = -1;
-				if (auto It = InodePidMap.find(Inode); It != InodePidMap.end())
-					Pid = It->second;
-
 				KnownListeningPorts[Port] = Pid;
 
-				// Parse full local address for AddExistingSockets
-				bool const        bIsIPv6 = LocalAddr.find(':') != LocalAddr.rfind(':');
+				// Store full listen socket info for AddExistingSockets
 				WListenSocketInfo Info;
 				Info.Protocol = EProtocol::TCP;
 				Info.PID = Pid;
-				Info.LocalEndpoint.Port = Port;
-				WIPAddress Addr;
-				uint16_t   ParsedPort;
-				if (ParseAddressPort(LocalAddr, Addr, ParsedPort, bIsIPv6))
-				{
-					Info.LocalEndpoint.Address = Addr;
-				}
+				Info.LocalEndpoint = LocalEndpoint;
 				KnownListeningSockets.emplace_back(Info);
 			}
 		}
@@ -230,10 +236,34 @@ void WSocketStateParser::ParseUdpFile(
 			std::string PortStr = LocalAddr.substr(ColonPos + 1);
 			auto        Port = static_cast<uint16_t>(std::stoul(PortStr, nullptr, 16));
 
+			// Parse full local address
+			bool const bIsIPv6 = LocalAddr.find(':') != LocalAddr.rfind(':');
+			WIPAddress Addr;
+			uint16_t   ParsedPort;
+
+			// Skip st, tx_queue:rx_queue, tr:tm->when, retrnsmt, uid, timeout to reach inode
+			std::string St, TxRx, TrTm, Retrnsmt, Uid, Timeout;
+			uint64_t    Inode = 0;
+			Iss >> std::hex >> St >> std::dec >> TxRx >> TrTm >> Retrnsmt >> Uid >> Timeout >> Inode;
+
+			WProcessId Pid = -1;
+			if (auto It = InodePidMap.find(Inode); It != InodePidMap.end())
+				Pid = It->second;
+
 			// Track all ports in use (including port 0 for unbound sockets)
 			if (Port != 0)
 			{
 				KnownUsedPorts.insert(Port);
+			}
+
+			// Track all used endpoints with their owning PID
+			if (Port != 0)
+			{
+				WEndpoint LocalEndpoint;
+				LocalEndpoint.Port = Port;
+				if (ParseAddressPort(LocalAddr, Addr, ParsedPort, bIsIPv6))
+					LocalEndpoint.Address = Addr;
+				KnownUsedEndpoints[LocalEndpoint] = Pid;
 			}
 
 			// UDP listening sockets have remote address 00000000:0000
@@ -241,25 +271,13 @@ void WSocketStateParser::ParseUdpFile(
 			{
 				if (Port != 0) // Ignore unbound sockets
 				{
-					// Skip st, tx_queue:rx_queue, tr:tm->when, retrnsmt, uid, timeout to reach inode
-					std::string St, TxRx, TrTm, Retrnsmt, Uid, Timeout;
-					uint64_t    Inode = 0;
-					Iss >> std::hex >> St >> std::dec >> TxRx >> TrTm >> Retrnsmt >> Uid >> Timeout >> Inode;
-
-					WProcessId Pid = -1;
-					if (auto It = InodePidMap.find(Inode); It != InodePidMap.end())
-						Pid = It->second;
-
 					KnownListeningPorts[Port] = Pid;
 
-					// Parse full local address for AddExistingSockets
-					bool const        bIsIPv6 = LocalAddr.find(':') != LocalAddr.rfind(':');
+					// Store full listen socket info for AddExistingSockets
 					WListenSocketInfo Info;
 					Info.Protocol = EProtocol::UDP;
 					Info.PID = Pid;
 					Info.LocalEndpoint.Port = Port;
-					WIPAddress Addr;
-					uint16_t   ParsedPort;
 					if (ParseAddressPort(LocalAddr, Addr, ParsedPort, bIsIPv6))
 					{
 						Info.LocalEndpoint.Address = Addr;

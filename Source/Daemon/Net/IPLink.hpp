@@ -19,6 +19,7 @@
 #include "Data/TrafficItem.hpp"
 #include "Socket.hpp"
 
+struct WLookupEndpointsMsg;
 enum class ELimitDirection
 {
 	Upload,
@@ -53,6 +54,7 @@ class WIPLink : public TSingleton<WIPLink>, public IMemoryTrackable
 
 	void SetupHTBLimitClass(std::shared_ptr<WBandwidthLimit> const& Limit, std::string const& IfName) const;
 	void OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket);
+	static void OnDataReceived(WBuffer const& data);
 
 public:
 	unsigned int             WaechterIngressIfIndex{ 0 };
@@ -84,6 +86,8 @@ public:
 		spdlog::info("{} active upload limits, {} active download limits", ActiveUploadLimits.size(),
 			ActiveDownloadLimits.size());
 	}
+
+	void SendLookupMessage(WLookupEndpointsMsg const& LookupMsg);
 
 	WMemoryStat GetMemoryUsage() override;
 };

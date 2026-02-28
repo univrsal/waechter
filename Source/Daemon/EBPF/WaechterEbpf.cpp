@@ -238,18 +238,20 @@ void WWaechterEbpf::PrePopulatePortToPid() const
 	}
 
 	WSocketStateParser const Parser{};
-	for (auto const& [Port, PID] : Parser.GetListeningPorts())
+	for (auto const& ListenSocket : Parser.GetListeningSockets())
 	{
-		if (Data->PortToPid->Update(Port, static_cast<uint32_t>(PID)))
+		if (Data->PortToPid->Update(ListenSocket.LocalEndpoint.Port, static_cast<uint32_t>(ListenSocket.PID)))
 		{
-			spdlog::debug("Pre-populated port_to_pid: port {} → PID {}", Port, PID);
+			spdlog::debug(
+				"Pre-populated port_to_pid: port {} → PID {}", ListenSocket.LocalEndpoint.ToString(), ListenSocket.PID);
 		}
 		else
 		{
-			spdlog::warn("Failed to pre-populate port_to_pid for port {} PID {}", Port, PID);
+			spdlog::warn("Failed to pre-populate port_to_pid for port {} PID {}", ListenSocket.LocalEndpoint.ToString(),
+				ListenSocket.PID);
 		}
 	}
 
 	spdlog::info(
-		"Pre-populated {} port_to_pid entries for pre-existing listening sockets", Parser.GetListeningPorts().size());
+		"Pre-populated {} port_to_pid entries for pre-existing listening sockets", Parser.GetListeningSockets().size());
 }

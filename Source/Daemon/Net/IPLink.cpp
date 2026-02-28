@@ -12,15 +12,17 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/fmt/fmt.h"
 #include "cereal/types/memory.hpp"
+#include "cereal/types/tuple.hpp"
+#include "cereal/types/vector.hpp"
 
 #include "Daemon.hpp"
 #include "NetworkInterface.hpp"
 #include "DaemonConfig.hpp"
 #include "ErrnoUtil.hpp"
 #include "Filesystem.hpp"
+#include "IPLinkMsg.hpp"
 #include "Data/Counters.hpp"
 #include "Data/NetworkEvents.hpp"
-#include "IPLinkMsg.hpp"
 #include "Data/SystemMap.hpp"
 #include "EBPF/EbpfData.hpp"
 
@@ -78,30 +80,52 @@ void WIPLink::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket)
 	RemoveUploadLimit(Socket->TrafficItem->ItemId);
 }
 
+void WIPLink::OnDataReceived(WBuffer const& Buf)
+{
+	spdlog::info("Got response");
+	WLookupEndpointsResponseMsg Response{};
+	std::stringstream           ss;
+	ss.write(Buf.GetData(), static_cast<long int>(Buf.GetWritePos()));
+	try
+	{
+		{
+			cereal::BinaryInputArchive iar(ss);
+			iar(Response);
+		}
+	}
+	catch (std::exception const& e)
+	{
+		return;
+	}
+	for (auto const& Lookup : Response.LookupResults)
+	{
+		auto const& Endpoint = std::get<0>(Lookup);
+		auto const& Pid = std::get<1>(Lookup);
+		WSystemMap::GetInstance().ReparentOrphanedSocket(Endpoint, Pid);
+	}
+}
+
 std::string const WIPLink::IfbDev = "ifb0";
 
 bool WIPLink::Init()
 {
 	WNetworkEvents::GetInstance().OnSocketRemoved.connect(
-		std::bind(&WIPLink::OnSocketRemoved, this, std::placeholders::_1));
+		[this](std::shared_ptr<WSocketCounter> const& Socket) { OnSocketRemoved(Socket); });
 
 	// Get the path to waechter-iplink, assuming it's in the Net/IPLinkProc subdirectory relative to this executable's
 	// directory
 	std::string IPLinkProcPath = "waechter-iplink"; // fallback
 #if WDEBUG
-	char    exe_path[PATH_MAX];
-	ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
-	if (len > 0)
+	char ExePath[PATH_MAX];
+	if (ssize_t const Len = readlink("/proc/self/exe", ExePath, sizeof(ExePath) - 1); Len > 0)
 	{
-		exe_path[len] = '\0';
-		std::string full_exe_path = exe_path;
-		size_t      last_slash = full_exe_path.find_last_of('/');
-		if (last_slash != std::string::npos)
+		ExePath[Len] = '\0';
+		std::string const FullExePath = ExePath;
+		if (size_t const LastSlash = FullExePath.find_last_of('/'); LastSlash != std::string::npos)
 		{
-			std::string exe_dir = full_exe_path.substr(0, last_slash + 1);
-			auto        IpLinkProcPath = exe_dir + "Net/IPLinkProc/waechter-iplink";
+			std::string const ExeDir = FullExePath.substr(0, LastSlash + 1);
 
-			if (WFilesystem::Exists(IpLinkProcPath))
+			if (auto IpLinkProcPath = ExeDir + "Net/IPLinkProc/waechter-iplink"; WFilesystem::Exists(IpLinkProcPath))
 			{
 				spdlog::debug("Found waechter-iplink at {}", IpLinkProcPath);
 				IPLinkProcPath = IpLinkProcPath;
@@ -144,6 +168,9 @@ bool WIPLink::Init()
 		spdlog::error("Failed to connect to waechter-iplink process socket: {}", WErrnoUtil::StrError());
 		return false;
 	}
+
+	IpProcSocket->OnData.connect([](WBuffer& Data) { OnDataReceived(Data); });
+	IpProcSocket->StartListenThread();
 
 	spdlog::debug("IP link process socket connected");
 
@@ -210,6 +237,17 @@ void WIPLink::RemovePidDownloadMark(uint32_t Pid)
 	if (!Data->PidDownloadMarks->Delete(Pid))
 	{
 		spdlog::debug("Failed to remove PID download mark for PID {} (may not exist)", Pid);
+	}
+}
+
+void WIPLink::SendLookupMessage(WLookupEndpointsMsg const& LookupMsg)
+{
+	if (IpProcSocket)
+	{
+		WIPLinkMsg Msg{};
+		Msg.Type = EIPLinkMsgType::LookupEndpoints;
+		Msg.LookupEndpoints = std::make_shared<WLookupEndpointsMsg>(LookupMsg);
+		IpProcSocket->SendMessage(Msg);
 	}
 }
 

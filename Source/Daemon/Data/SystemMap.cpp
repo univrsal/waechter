@@ -15,7 +15,9 @@
 #include "AppIconAtlasBuilder.hpp"
 #include "Filesystem.hpp"
 #include "Format.hpp"
+#include "IPLinkMsg.hpp"
 #include "NetworkEvents.hpp"
+#include "Net/IPLink.hpp"
 #include "Net/PacketParser.hpp"
 #include "Net/Resolver.hpp"
 
@@ -178,6 +180,37 @@ void WSystemMap::AddExistingSockets()
 	}
 
 	spdlog::info("Added {} existing listen sockets.", ListeningSockets.size());
+}
+
+void WSystemMap::ReparentOrphanedSocket(WEndpoint const& Endpoint, WProcessId NewParentProcess)
+{
+	std::scoped_lock Lock(DataMutex);
+	if (auto const& It = OrphanedSockets.find(Endpoint); It != OrphanedSockets.end())
+	{
+		if (NewParentProcess == 0)
+		{
+			// lookup failed, so we'll just have to get rid of this socket
+			OrphanedSockets.erase(It);
+			return;
+		}
+
+		auto App = It->second->ParentProcess->ParentApp;
+		auto bExistingProcess = Processes.contains(NewParentProcess);
+		auto NewProcess = FindOrMapProcess(NewParentProcess, App);
+		It->second->ParentProcess = NewProcess;
+		NewProcess->TrafficItem->Sockets[It->second->TrafficItem->ItemId] = It->second->TrafficItem;
+		spdlog::info("Reparented {} (type {}) to {}", It->second->TrafficItem->SocketTuple.ToString(),
+			It->second->TrafficItem->SocketType, App->TrafficItem->ApplicationName);
+
+		OrphanedSockets.erase(It);
+		if (!bExistingProcess)
+		{
+			spdlog::info("New process {} created as parent for orphaned socket {}, id: {}", NewParentProcess,
+				It->second->TrafficItem->SocketTuple.ToString(), It->second->TrafficItem->ItemId);
+		}
+		// Re-add it to the new process
+		MapUpdate.AddSocketAddition(It->second);
+	}
 }
 
 WSystemMap::WSystemMap()
@@ -573,13 +606,24 @@ void WSystemMap::Cleanup()
 			TrafficCounter.PushIncomingTraffic(0); // Force state update
 			Process->ParentApp->PushIncomingTraffic(0);
 
-			// When cleaning up a process we have to
+			// If this process exited, but there are still open sockets left,
+			// they most likely now belong to a child process. Since those
+			// processes might be running as root and we are not running as root
+			// we can't look them up via /proc/. So instead we sent these endpoints
+			// to the ip link process which does run as root, which will check
+			// what processes (if any) own these ports now. Not exactly a good
+			// solution but the best I could think of for now.
+			WLookupEndpointsMsg LookupMsg{};
+
+			// When cleaning up a process, we have to
 			//  - Remove all its sockets from the Sockets map
 			//  - Remove the process from its parent application's Processes map
 			//  - Remove the process from the Processes map
 			//  - Remove any rules associated with the process and its sockets
+			//  - Reparent any leftover sockets in case this process forked
 			for (auto const& [SocketCookie, Socket] : Process->TrafficItem->Sockets)
 			{
+
 				WNetworkEvents::GetInstance().OnSocketRemoved(Sockets[SocketCookie]);
 				TrafficItems.erase(Socket->ItemId);
 				MapUpdate.AddItemRemoval(Socket->ItemId);
@@ -590,11 +634,21 @@ void WSystemMap::Cleanup()
 				}
 				if (auto SocketCounter = Sockets.find(SocketCookie); SocketCounter != Sockets.end())
 				{
+					if (Socket->ConnectionState != ESocketConnectionState::Closed)
+					{
+						spdlog::info("Forked socket {} for {}", Process->ParentApp->TrafficItem->ApplicationName,
+							Socket->SocketTuple.ToString());
+						// This process exited, but the socket was not closed via the close event sent from ebppf
+						// that indicates that a forked child process owns the socket now
+						OrphanedSockets[Socket->SocketTuple.LocalEndpoint] = SocketCounter->second;
+						LookupMsg.Endpoints.emplace_back(Socket->SocketTuple.LocalEndpoint);
+					}
 					SocketCounter->second->UDPPerConnectionCounters.clear();
 				}
 				Socket->UDPPerConnectionTraffic.clear();
 				Sockets.erase(SocketCookie);
 			}
+			WIPLink::GetInstance().SendLookupMessage(LookupMsg);
 			WNetworkEvents::GetInstance().OnProcessRemoved(Process);
 			Process->ParentApp->TrafficItem->Processes.erase(ProcessIt->first);
 			MapUpdate.AddItemRemoval(ProcessIt->second->TrafficItem->ItemId);

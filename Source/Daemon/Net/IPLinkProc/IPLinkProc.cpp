@@ -18,13 +18,17 @@
 #include "cereal/types/memory.hpp"
 // ReSharper disable once CppUnusedIncludeDirective
 #include "cereal/types/string.hpp"
+#include "cereal/types/array.hpp"
+#include "cereal/types/vector.hpp"
+#include "cereal/types/tuple.hpp"
 
 #include "Socket.hpp"
 #include "ErrnoUtil.hpp"
 #include "IPLinkMsg.hpp"
 #include "SignalHandler.hpp"
+#include "Data/SocketStateParser.hpp"
 
-// Sole purpose of this executable is to run `tc` commands which require root
+// The sole purpose of this executable is to run `tc` commands which require root
 // Commands are sent via unix socket from waechterd after it has dropped privileges
 
 #define SYSFMT(_fmt, ...)                                                                                             \
@@ -70,6 +74,7 @@ struct WMsgQueue
 	std::condition_variable Cv;
 	std::deque<WIPLinkMsg>  Queue;
 	std::atomic<bool>       bStop{ false };
+	std::shared_ptr<WClientSocket> Client{};
 
 	// soft limit; we only warn when exceeded
 	size_t WarnLimit{ 256 };
@@ -192,6 +197,29 @@ static bool Init(std::string const& IfbDev, std::string const& IngressInterface,
 	return true;
 }
 
+WLookupEndpointsResponseMsg LookupEndpoints(std::shared_ptr<WLookupEndpointsMsg> const& Msg)
+{
+	WSocketStateParser          Parser{};
+	WLookupEndpointsResponseMsg Response{};
+	auto const&                 UsedEndpoints = Parser.GetUsedEndpoints();
+
+	for (auto const& Endpoint : Msg->Endpoints)
+	{
+		if (auto It = UsedEndpoints.find(Endpoint); It != UsedEndpoints.end())
+		{
+			spdlog::info("Looking up {} -> {}", Endpoint.ToString(), It->second);
+			Response.LookupResults.emplace_back(Endpoint, It->second);
+		}
+		else
+		{
+			spdlog::info("Looking up {} -> 0", Endpoint.ToString());
+			Response.LookupResults.emplace_back(Endpoint, 0);
+		}
+	}
+
+	return Response;
+}
+
 static void WorkerThreadMain(WMsgQueue& Queue, WSignalHandler& Handler, std::string const& IfbDev)
 {
 	WIPLinkMsg Msg;
@@ -226,6 +254,11 @@ static void ProcessMessage(WMsgQueue& Queue, WIPLinkMsg const& Msg, WSignalHandl
 	{
 		RemoveHtbClass(Msg.RemoveHtbClass);
 		return;
+	}
+	if (Msg.Type == EIPLinkMsgType::LookupEndpoints && Msg.LookupEndpoints)
+	{
+		auto Result = LookupEndpoints(Msg.LookupEndpoints);
+		Queue.Client->SendMessage(Result);
 	}
 }
 
@@ -313,6 +346,7 @@ int main(int Argc, char** Argv)
 	WSignalHandler Handler;
 	WBuffer        RecvBuffer;
 	WMsgQueue      Queue;
+	Queue.Client = ClientSocket;
 
 	std::thread WorkerThread([&Queue, &Handler, IfbDev] { WorkerThreadMain(Queue, Handler, IfbDev); });
 

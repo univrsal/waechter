@@ -18,7 +18,7 @@
 #include "Data/TrafficTreeUpdate.hpp"
 #include "Data/Counters.hpp"
 #include "Data/MapUpdate.hpp"
-#include "Net/SocketStateParser.hpp"
+#include "Data/SocketStateParser.hpp"
 
 /**
  * Both the client and the daemon need a tree of applications, processes, and sockets
@@ -35,6 +35,7 @@ class WSystemMap : public TSingleton<WSystemMap>, public IMemoryTrackable
 	friend class WMapUpdate;
 	WSocketStateParser SocketStateParser{};
 	WMapUpdate         MapUpdate{};
+	WSec               LastCleanupMessageTime{};
 
 	std::atomic<WTrafficItemId>  NextItemId{ 1 }; // 0 is the root item
 	std::shared_ptr<WSystemItem> SystemItem = std::make_shared<WSystemItem>();
@@ -44,6 +45,7 @@ class WSystemMap : public TSingleton<WSystemMap>, public IMemoryTrackable
 	std::unordered_map<WProcessId, std::shared_ptr<WProcessCounter>>   Processes{};
 	std::unordered_map<WSocketCookie, std::shared_ptr<WSocketCounter>> Sockets{};
 	std::unordered_map<WTrafficItemId, std::shared_ptr<ITrafficItem>>  TrafficItems{};
+	std::unordered_map<WEndpoint, std::shared_ptr<WSocketCounter>>     OrphanedSockets{};
 
 	std::shared_ptr<WSocketCounter> FindOrMapSocket(
 		WSocketCookie SocketCookie, std::shared_ptr<WProcessCounter> const& ParentProcess);
@@ -57,11 +59,7 @@ class WSystemMap : public TSingleton<WSystemMap>, public IMemoryTrackable
 
 	std::shared_ptr<WTupleCounter> GetOrCreateUDPTupleCounter(
 		std::shared_ptr<WSocketCounter> const& SockCounter, WEndpoint const& Endpoint);
-
-	WSec LastCleanupMessageTime{};
-
 public:
-	void AddExistingSockets();
 
 	WSystemMap();
 	~WSystemMap() override = default;
@@ -71,6 +69,10 @@ public:
 	WTrafficItemId GetNextItemId() { return NextItemId.fetch_add(1); }
 
 	std::shared_ptr<WSocketCounter> MapSocket(WSocketEvent const& Event, WProcessId PID, bool bSilentFail = false);
+
+	void AddExistingSockets();
+
+	void ReparentOrphanedSocket(WEndpoint const& Endpoint, WProcessId NewParentProcess);
 
 	void RefreshAllTrafficCounters();
 

@@ -49,11 +49,20 @@ public:
 		std::scoped_lock Lock(Mutex);
 		return KnownUsedPorts.contains(Port);
 	}
+
+	// Look up the PID that owns a given endpoint, returns -1 if not found
+	WProcessId GetEndpointPID(WEndpoint const& Endpoint) const
+	{
+		std::scoped_lock Lock(Mutex);
+		if (auto It = KnownUsedEndpoints.find(Endpoint); It != KnownUsedEndpoints.end())
+			return It->second;
+		return -1;
+	}
+
+	// Returns the full map of all known used endpoints to their owning PIDs
+	std::unordered_map<WEndpoint, WProcessId> const& GetUsedEndpoints() const { return KnownUsedEndpoints; }
+
 	mutable std::mutex Mutex;
-
-	std::unordered_set<uint16_t> const& GetUsedPorts() const { return KnownUsedPorts; }
-
-	std::unordered_map<uint16_t, WProcessId> const& GetListeningPorts() const { return KnownListeningPorts; }
 
 	std::vector<WListenSocketInfo> const& GetListeningSockets() const { return KnownListeningSockets; }
 
@@ -71,6 +80,9 @@ private:
 	static bool ParseAddressPort(std::string const& AddrPortStr, WIPAddress& OutAddr, uint16_t& OutPort, bool bIsIPv6);
 
 	mutable std::unordered_set<uint16_t> KnownUsedPorts;
+
+	// Map all known used endpoints (address + port) to their owning PID
+	mutable std::unordered_map<WEndpoint, WProcessId> KnownUsedEndpoints;
 
 	// Store known listening ports for heuristics
 	mutable std::unordered_map<uint16_t, WProcessId> KnownListeningPorts;

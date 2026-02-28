@@ -8,4 +8,6 @@ target_sources(util
         AppIconAtlasData.hpp
         TrafficTreeUpdate.hpp
         ConnectionHistoryUpdate.hpp
+        SocketStateParser.cpp
+        SocketStateParser.hpp
 )
