@@ -106,12 +106,16 @@ void WSocketStateParser::ParseData() const
 			char*      EndPtr;
 			long const Pid = strtol(ProcEntry->d_name, &EndPtr, 10);
 			if (*EndPtr != '\0' || Pid <= 0)
+			{
 				continue;
+			}
 
 			std::string FdPath = "/proc/" + std::string(ProcEntry->d_name) + "/fd";
 			DIR*        FdDir = opendir(FdPath.c_str());
 			if (!FdDir)
+			{
 				continue;
+			}
 
 			dirent* FdEntry;
 			while ((FdEntry = readdir(FdDir)) != nullptr)
@@ -120,7 +124,9 @@ void WSocketStateParser::ParseData() const
 				char          LinkTarget[256] = {};
 				ssize_t const Len = readlink(LinkPath.c_str(), LinkTarget, sizeof(LinkTarget) - 1);
 				if (Len <= 0)
+				{
 					continue;
+				}
 
 				// Socket symlinks look like "socket:[inode]"
 				std::string Target(LinkTarget, static_cast<std::size_t>(Len));
@@ -184,7 +190,9 @@ void WSocketStateParser::ParseTcpFile(
 
 			WProcessId Pid = -1;
 			if (auto It = InodePidMap.find(Inode); It != InodePidMap.end())
+			{
 				Pid = It->second;
+			}
 
 			// Track all ports in use
 			KnownUsedPorts.insert(Port);
@@ -193,7 +201,9 @@ void WSocketStateParser::ParseTcpFile(
 			WEndpoint LocalEndpoint;
 			LocalEndpoint.Port = Port;
 			if (ParseAddressPort(LocalAddr, Addr, ParsedPort, bIsIPv6))
+			{
 				LocalEndpoint.Address = Addr;
+			}
 			KnownUsedEndpoints[LocalEndpoint] = Pid;
 
 			// Track listening ports separately, mapped to their PID
@@ -248,7 +258,9 @@ void WSocketStateParser::ParseUdpFile(
 
 			WProcessId Pid = -1;
 			if (auto It = InodePidMap.find(Inode); It != InodePidMap.end())
+			{
 				Pid = It->second;
+			}
 
 			// Track all ports in use (including port 0 for unbound sockets)
 			if (Port != 0)
@@ -349,7 +361,9 @@ std::optional<ESocketType::Type> WSocketStateParser::ParseUdpLine(
 	bool const bIsIPv6 = LocalAddrStr.find(':') != LocalAddrStr.rfind(':');
 
 	if (!ParseAddressPort(LocalAddrStr, LocalAddr, LocalPort, bIsIPv6))
+	{
 		return std::nullopt;
+	}
 
 	if (LocalPort != TargetEndpoint.Port || TargetEndpoint.Address != LocalAddr)
 	{
@@ -360,7 +374,9 @@ std::optional<ESocketType::Type> WSocketStateParser::ParseUdpLine(
 	uint16_t   RemPort;
 
 	if (!ParseAddressPort(RemAddrStr, RemAddr, RemPort, bIsIPv6))
+	{
 		return std::nullopt;
+	}
 
 	if (RemAddr.IsZero() && RemPort == 0)
 	{
@@ -381,7 +397,9 @@ bool WSocketStateParser::ParseAddressPort(
 {
 	size_t const ColonPos = AddrPortStr.find(':');
 	if (ColonPos == std::string::npos)
+	{
 		return false;
+	}
 
 	std::string const AddrStr = AddrPortStr.substr(0, ColonPos);
 	std::string const PortStr = AddrPortStr.substr(ColonPos + 1);
