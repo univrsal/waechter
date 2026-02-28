@@ -12,6 +12,7 @@ target_sources(util
 
 if (UNIX AND NOT APPLE)
     target_sources(util
+            PRIVATE
             SocketStateParser.cpp
             SocketStateParser.hpp
     )
