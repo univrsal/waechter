@@ -202,6 +202,15 @@ void WWaechterEbpf::UpdateData()
 				{
 					ZoneScopedN("ProcessSocketEvent");
 					SocketInfo->ProcessSocketEvent(SocketEvent);
+
+					// port_to_pid holds the master PID (from bind()), but the accepted socket
+					// fd is owned by a worker process. Delegate PID resolution to the IPLink
+					// process (which runs as root) via the same orphan-lookup path used for
+					// fork() reparenting.
+					if (SocketEvent.EventType == NE_SocketAccept_4 || SocketEvent.EventType == NE_SocketAccept_6)
+					{
+						WSystemMap::GetInstance().ReparentAcceptedSocket(SocketInfo);
+					}
 				}
 				break;
 			case NE_Traffic:

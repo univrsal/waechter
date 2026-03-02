@@ -213,6 +213,30 @@ void WSystemMap::ReparentOrphanedSocket(WEndpoint const& Endpoint, WProcessId Ne
 	}
 }
 
+void WSystemMap::ReparentAcceptedSocket(std::shared_ptr<WSocketCounter> const& Socket)
+{
+	std::scoped_lock Lock(DataMutex);
+
+	auto const& LocalEndpoint = Socket->TrafficItem->SocketTuple.LocalEndpoint;
+	if (LocalEndpoint.Port == 0)
+	{
+		return;
+	}
+
+	// port_to_pid stores the master PID (whoever called bind()), but for a pre-forked
+	// server like nginx the accepted fd is owned by a worker. The daemon doesn't run as
+	// root so it can't read /proc/[pid]/fd to resolve the real owner itself. Delegate
+	// to the IPLink process (which runs as root) using the same orphan-lookup path that
+	// fork() reparenting already uses.
+	spdlog::debug("ReparentAcceptedSocket: queuing IPLink lookup for accepted socket on {}", LocalEndpoint.ToString());
+
+	OrphanedSockets[LocalEndpoint] = Socket;
+
+	WLookupEndpointsMsg LookupMsg{};
+	LookupMsg.Endpoints.emplace_back(LocalEndpoint);
+	WIPLink::GetInstance().SendLookupMessage(LookupMsg);
+}
+
 WSystemMap::WSystemMap()
 {
 	auto HostName = WFilesystem::ReadProc("/proc/sys/kernel/hostname");
