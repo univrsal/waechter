@@ -117,6 +117,7 @@ WTrafficTreeUpdates const& WMapUpdate::GetUpdates()
 		}
 		Addition.SocketTuple = Socket->TrafficItem->SocketTuple;
 		Addition.ConnectionState = Socket->TrafficItem->ConnectionState;
+		Addition.SocketType = Socket->TrafficItem->SocketType;
 		Updates.AddedSockets.emplace_back(Addition);
 	}
 

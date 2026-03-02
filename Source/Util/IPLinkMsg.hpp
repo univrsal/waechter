@@ -4,17 +4,18 @@
  */
 
 #pragma once
-#include <cstdint>
 #include <string>
 #include <memory>
 
 #include "Types.hpp"
+#include "IPAddress.hpp"
 
 enum class EIPLinkMsgType : char
 {
 	Exit = 0,
 	SetupHtbClass = 1,
 	RemoveHtbClass = 2,
+	LookupEndpoints = 3,
 };
 
 struct WRemoveHtbClassMsg
@@ -44,12 +45,35 @@ struct WSetupHtbClassMsg
 	}
 };
 
+struct WLookupEndpointsMsg
+{
+	std::vector<WEndpoint> Endpoints{};
+
+	template <class Archive>
+	void serialize(Archive& Ar)
+	{
+		Ar(Endpoints);
+	}
+};
+
+struct WLookupEndpointsResponseMsg
+{
+	std::vector<std::tuple<WEndpoint, WProcessId>> LookupResults;
+
+	template <class Archive>
+	void serialize(Archive& Ar)
+	{
+		Ar(LookupResults);
+	}
+};
+
 struct WIPLinkMsg
 {
 	EIPLinkMsgType Type{};
 
 	std::shared_ptr<WSetupHtbClassMsg>     SetupHtbClass{};
 	std::shared_ptr<WRemoveHtbClassMsg>    RemoveHtbClass{};
+	std::shared_ptr<WLookupEndpointsMsg>   LookupEndpoints{};
 
 	template <class Archive>
 	void serialize(Archive& Ar)
@@ -57,5 +81,6 @@ struct WIPLinkMsg
 		Ar(Type);
 		Ar(SetupHtbClass);
 		Ar(RemoveHtbClass);
+		Ar(LookupEndpoints);
 	}
 };

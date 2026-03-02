@@ -48,12 +48,13 @@ struct WTrafficTreeSocketAddition
 	std::string            ResolvedAddress{};
 	WSocketTuple           SocketTuple{};
 	ESocketConnectionState ConnectionState{};
+	uint8_t                SocketType{};
 
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
 		archive(ItemId, ProcessItemId, ApplicationItemId, ProcessId, ApplicationName, ApplicationPath,
-			ApplicationCommandLine, SocketTuple, ConnectionState, ResolvedAddress);
+			ApplicationCommandLine, SocketTuple, ConnectionState, ResolvedAddress, SocketType);
 	}
 };
 
