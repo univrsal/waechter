@@ -75,6 +75,11 @@ void WIPLink::SetupHTBLimitClass(std::shared_ptr<WBandwidthLimit> const& Limit, 
 
 void WIPLink::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket)
 {
+	if (!Socket || !Socket->TrafficItem)
+	{
+		spdlog::warn("OnSocketRemoved called with null Socket or TrafficItem, ignoring");
+		return;
+	}
 	RemoveIngressPortRouting(Socket->TrafficItem->SocketTuple.LocalEndpoint.Port);
 	RemoveDownloadLimit(Socket->TrafficItem->ItemId);
 	RemoveUploadLimit(Socket->TrafficItem->ItemId);

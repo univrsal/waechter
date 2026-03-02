@@ -648,8 +648,10 @@ void WSystemMap::Cleanup()
 			//  - Reparent any leftover sockets in case this process forked
 			for (auto const& [SocketCookie, Socket] : Process->TrafficItem->Sockets)
 			{
-
-				WNetworkEvents::GetInstance().OnSocketRemoved(Sockets[SocketCookie]);
+				if (auto It = Sockets.find(SocketCookie); It != Sockets.end() && It->second)
+				{
+					WNetworkEvents::GetInstance().OnSocketRemoved(It->second);
+				}
 				TrafficItems.erase(Socket->ItemId);
 				MapUpdate.AddItemRemoval(Socket->ItemId);
 				for (auto const& TupleCounter : Socket->UDPPerConnectionTraffic | std::views::values)
