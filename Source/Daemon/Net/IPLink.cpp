@@ -102,6 +102,18 @@ void WIPLink::OnDataReceived(WBuffer const& Buf)
 		auto const& Endpoint = std::get<0>(Lookup);
 		auto const& Pid = std::get<1>(Lookup);
 		WSystemMap::GetInstance().ReparentOrphanedSocket(Endpoint, Pid);
+
+		// Also update port_to_pid in the eBPF map so future accepts on this port
+		// are attributed to the worker directly, without needing another reparent cycle.
+		if (Pid > 0 && Endpoint.Port != 0)
+		{
+			auto const& EbpfData = WDaemon::GetInstance().GetEbpfObj().GetData();
+			if (EbpfData && EbpfData->PortToPid && EbpfData->PortToPid->IsValid())
+			{
+				EbpfData->PortToPid->Update(Endpoint.Port, static_cast<uint32_t>(Pid));
+				spdlog::debug("Updated port_to_pid: port {} → worker PID {}", Endpoint.Port, Pid);
+			}
+		}
 	}
 }
 
