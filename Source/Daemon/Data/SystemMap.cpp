@@ -199,6 +199,7 @@ void WSystemMap::ReparentOrphanedSocket(WEndpoint const& Endpoint, WProcessId Ne
 		auto NewProcess = FindOrMapProcess(NewParentProcess, App);
 		It->second->ParentProcess = NewProcess;
 		NewProcess->TrafficItem->Sockets[It->second->TrafficItem->ItemId] = It->second->TrafficItem;
+		Sockets[It->second->TrafficItem->Cookie] = It->second;
 		spdlog::info("Reparented {} (type {}) to {}", It->second->TrafficItem->SocketTuple.ToString(),
 			It->second->TrafficItem->SocketType, App->TrafficItem->ApplicationName);
 
