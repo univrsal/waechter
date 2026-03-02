@@ -87,7 +87,6 @@ void WIPLink::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket)
 
 void WIPLink::OnDataReceived(WBuffer const& Buf)
 {
-	spdlog::info("Got response");
 	WLookupEndpointsResponseMsg Response{};
 	std::stringstream           ss;
 	ss.write(Buf.GetData(), static_cast<long int>(Buf.GetWritePos()));
