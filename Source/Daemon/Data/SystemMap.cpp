@@ -794,7 +794,7 @@ void WSystemMap::Cleanup()
 		if (AppIt->second->TrafficItem->Processes.empty())
 		{
 			bRemovedAny = true;
-			spdlog::debug("Removing application '{}'.", AppIt->second->TrafficItem->ApplicationName);
+			spdlog::debug("Removing application '{}' ({}).", AppIt->second->TrafficItem->ApplicationName, AppIt->first);
 			MapUpdate.AddItemRemoval(AppIt->second->TrafficItem->ItemId);
 			TrafficItems.erase(AppIt->second->TrafficItem->ItemId);
 			SystemItem->Applications.erase(AppIt->first);
