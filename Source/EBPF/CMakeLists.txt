@@ -10,7 +10,7 @@ elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "ppc64le")
     set(BPF_TARGET_ARCH powerpc)
 endif ()
 
-find_program(CLANG_EXECUTABLE NAMES clang REQUIRED)
+find_program(CLANG_EXECUTABLE NAMES clang-21 clang-20 clang-19 clang-18 clang-17 clang-16 clang REQUIRED)
 
 find_program(BPFTTOOL_EXECUTABLE bpftool)
 
@@ -62,7 +62,7 @@ target_include_directories(ebpf_includes SYSTEM INTERFACE
 
 add_custom_command(
         OUTPUT ${BPF_OBJ} ${SKELETON_OUT}
-        COMMAND ${CLANG_EXECUTABLE} -O2 -g -target bpf -D__TARGET_ARCH_${BPF_TARGET_ARCH} -Wall -Wno-unused-value -Wno-pointer-sign -Wno-compare-distinct-pointer-types -Werror
+        COMMAND ${CLANG_EXECUTABLE} -O2 -g -target bpf -D__TARGET_ARCH_${BPF_TARGET_ARCH} -Wall -Wno-unused-value -Wno-pointer-sign -Wno-compare-distinct-pointer-types -Wno-missing-declarations -Werror
         -I/usr/include -I/usr/include/bpf
         -I${CMAKE_CURRENT_BINARY_DIR}/vmlinux
         -I${CMAKE_SOURCE_DIR}/Source/Util
