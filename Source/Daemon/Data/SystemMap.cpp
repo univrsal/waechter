@@ -195,6 +195,16 @@ void WSystemMap::ReparentOrphanedSocket(WEndpoint const& Endpoint, WProcessId Ne
 		}
 
 		auto App = It->second->ParentProcess->ParentApp;
+
+		// Re-register the application if it was cleaned up while the socket was orphaned
+		auto const& AppKey = App->TrafficItem->ApplicationPath;
+		if (!Applications.contains(AppKey))
+		{
+			Applications[AppKey] = App;
+			SystemItem->Applications[AppKey] = App->TrafficItem;
+			TrafficItems[App->TrafficItem->ItemId] = App->TrafficItem;
+		}
+
 		auto bExistingProcess = Processes.contains(NewParentProcess);
 		auto NewProcess = FindOrMapProcess(NewParentProcess, App);
 		It->second->ParentProcess = NewProcess;
@@ -775,6 +785,24 @@ void WSystemMap::Cleanup()
 				}
 			}
 			++SocketIt;
+		}
+	}
+
+	// Remove applications that have no remaining processes
+	for (auto AppIt = Applications.begin(); AppIt != Applications.end();)
+	{
+		if (AppIt->second->TrafficItem->Processes.empty())
+		{
+			bRemovedAny = true;
+			spdlog::debug("Removing application '{}' ({}).", AppIt->second->TrafficItem->ApplicationName, AppIt->first);
+			MapUpdate.AddItemRemoval(AppIt->second->TrafficItem->ItemId);
+			TrafficItems.erase(AppIt->second->TrafficItem->ItemId);
+			SystemItem->Applications.erase(AppIt->first);
+			AppIt = Applications.erase(AppIt);
+		}
+		else
+		{
+			++AppIt;
 		}
 	}
 

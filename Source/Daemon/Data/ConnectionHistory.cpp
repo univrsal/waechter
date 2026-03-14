@@ -324,5 +324,8 @@ WMemoryStat WConnectionHistory::GetMemoryUsage()
 		+ ActiveConnections.size()
 			* (sizeof(std::pair<std::string, WEndpoint>) + sizeof(std::shared_ptr<WConnectionSet>));
 
+	Stats.ChildEntries.emplace_back(HistoryEntry);
+	Stats.ChildEntries.emplace_back(ActiveConnectionsEntry);
+
 	return Stats;
 }
