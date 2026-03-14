@@ -18,7 +18,7 @@ sudo apt-get install -y \
   libcurl4-gnutls-dev \
   zlib1g-dev \
   libwebsockets-dev \
-  libx11-dev libxrandr-dev libxi-dev libxinerama-dev libxcursor-dev libxxf86vm-dev \
+  libsdl2-dev \
   libgl1-mesa-dev \
   libwayland-dev wayland-protocols libxkbcommon-dev \
   ccache

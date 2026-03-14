@@ -30,10 +30,10 @@ if [[ "${TARGET_ARCH}" == "x86_64" ]]; then
   # Install x86_64 Homebrew and dependencies for cross-compilation
   echo "Installing x86_64 Homebrew for cross-compilation..."
   arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || true
-  arch -x86_64 /usr/local/bin/brew install cmake zlib libwebsockets
+  arch -x86_64 /usr/local/bin/brew install cmake zlib libwebsockets sdl2
 else
   echo "Installing native dependencies..."
-  brew install cmake zlib libwebsockets
+  brew install cmake zlib libwebsockets sdl2
 fi
 
 echo "Dependencies installed successfully!"
