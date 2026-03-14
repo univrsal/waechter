@@ -9,7 +9,7 @@
 #include "imgui_internal.h"
 
 #include "Assets.hpp"
-#include "GlfwWindow.hpp"
+#include "SdlWindow.hpp"
 #include "Util/I18n.hpp"
 #include "Util/Settings.hpp"
 #include "Util/Keylogic/validate.h"
@@ -27,7 +27,7 @@ void WRegisterDialog::Draw()
 {
 	if (!bValid)
 	{
-		auto const WholeScale = std::ceil(WGlfwWindow::GetInstance().GetMainScale());
+		auto const WholeScale = std::ceil(WSdlWindow::GetInstance().GetMainScale());
 		auto const ImageSize = ImVec2(Watermark.Width / 2.f * WholeScale, Watermark.Height / 2.f * WholeScale);
 
 		// Position in bottom-right corner with proper offset accounting for scaled image size
@@ -61,7 +61,7 @@ void WRegisterDialog::Draw()
 	ImGuiIO& Io = ImGui::GetIO();
 	auto     DisplaySize = Io.DisplaySize;
 	ImGui::SetNextWindowPos(ImVec2(DisplaySize.x * 0.5f, DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-	ImGui::SetNextWindowSize(WGlfwWindow::ScaleSize(ImVec2(300, 155)));
+	ImGui::SetNextWindowSize(WSdlWindow::ScaleSize(ImVec2(300, 155)));
 
 	if (ImGui::Begin(TR("window.register"), &bVisible,
 			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
@@ -81,7 +81,7 @@ void WRegisterDialog::Draw()
 				WSettings::GetInstance().Save();
 				bValid = false;
 				bFailedActivation = false;
-				WGlfwWindow::GetInstance().SetTitle("Wächter (UNREGISTERED)");
+				WSdlWindow::GetInstance().SetTitle("Wächter (UNREGISTERED)");
 			}
 		}
 		else
@@ -116,10 +116,10 @@ void WRegisterDialog::Validate()
 		WSettings::GetInstance().RegistrationSerialKey = SerialKey;
 		WSettings::GetInstance().Save();
 		bValid = true;
-		WGlfwWindow::GetInstance().SetTitle("Wächter");
+		WSdlWindow::GetInstance().SetTitle("Wächter");
 	}
 	else
 	{
-		WGlfwWindow::GetInstance().SetTitle("Wächter (UNREGISTERED)");
+		WSdlWindow::GetInstance().SetTitle("Wächter (UNREGISTERED)");
 	}
 }

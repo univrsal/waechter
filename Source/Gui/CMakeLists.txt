@@ -65,12 +65,13 @@ target_link_libraries(waechter PRIVATE
         thirdparty::sigslot
         thirdparty::cereal
         thirdparty::tracy
+        thirdparty::traycon
         waechter::util
 )
 
 if (EMSCRIPTEN)
     target_link_options(waechter PRIVATE
-            -sUSE_GLFW=3
+            -sUSE_SDL=2
             -sUSE_WEBGL2=1
             -sALLOW_MEMORY_GROWTH=1
             -sNO_DISABLE_EXCEPTION_CATCHING
@@ -91,8 +92,9 @@ if (EMSCRIPTEN)
 else ()
     find_package(ZLIB REQUIRED)
     find_package(CURL REQUIRED)
+    find_package(SDL2 REQUIRED)
     target_link_libraries(waechter PRIVATE CURL::libcurl ZLIB::ZLIB
-            thirdparty::glfw
+            SDL2::SDL2
             thirdparty::glad
     )
 endif ()

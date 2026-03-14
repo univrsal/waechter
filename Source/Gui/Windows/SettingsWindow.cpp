@@ -11,7 +11,8 @@
 #include "Client.hpp"
 #include "Util/I18n.hpp"
 #include "Util/Settings.hpp"
-#include "Windows/GlfwWindow.hpp"
+#include "Util/TrayIcon.hpp"
+#include "Windows/SdlWindow.hpp"
 
 void WSettingsWindow::Draw()
 {
@@ -22,7 +23,7 @@ void WSettingsWindow::Draw()
 	ImGuiIO& Io = ImGui::GetIO();
 	auto     DisplaySize = Io.DisplaySize;
 	ImGui::SetNextWindowPos(ImVec2(DisplaySize.x * 0.5f, DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-	ImGui::SetNextWindowSize(WGlfwWindow::ScaleSize({ 580, 400 }));
+	ImGui::SetNextWindowSize(WSdlWindow::ScaleSize({ 580, 400 }));
 	if (ImGui::Begin(TR("window.settings"), &bVisible,
 			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
 	{
@@ -105,6 +106,31 @@ void WSettingsWindow::Draw()
 				ImGui::StyleColorsLight();
 			}
 		}
+
+#ifndef __EMSCRIPTEN__
+		if (ImGui::Checkbox(TR("ui.enable_tray_icon"), &WSettings::GetInstance().bEnableTrayIcon))
+		{
+			WSettings::GetInstance().Save();
+			if (WSettings::GetInstance().bEnableTrayIcon)
+			{
+				WTrayIcon::GetInstance().Init();
+			}
+			else
+			{
+				WTrayIcon::GetInstance().Destroy();
+			}
+		}
+
+		if (WSettings::GetInstance().bEnableTrayIcon)
+		{
+			ImGui::Indent();
+			if (ImGui::Checkbox(TR("ui.minimize_to_tray_on_close"), &WSettings::GetInstance().bMinimizeToTrayOnClose))
+			{
+				WSettings::GetInstance().Save();
+			}
+			ImGui::Unindent();
+		}
+#endif
 
 		// drop down for language selection
 		static std::vector<std::pair<std::string, std::string>> const Languages = { { "en_US", "English (US)" },

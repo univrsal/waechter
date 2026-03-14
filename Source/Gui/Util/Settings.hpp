@@ -38,6 +38,8 @@ public:
 
 	bool         bUseDarkTheme{ false };
 	bool         bReduceFrameRateWhenInactive{ true };
+	bool         bEnableTrayIcon{ false };
+	bool         bMinimizeToTrayOnClose{ true };
 	float        NetworkGraphLineWidth{ 1.0f };
 	int          NetworkGraphHistorySetting{ NGH_5Min };
 	ETrafficUnit TrafficTreeUnitSetting{ TU_Auto };
@@ -53,7 +55,8 @@ public:
 			CEREAL_NVP(bShowOfflineProcesses), CEREAL_NVP(NetworkGraphLineWidth),
 			CEREAL_NVP(NetworkGraphHistorySetting), CEREAL_NVP(TrafficTreeUnitSetting), CEREAL_NVP(bUseDarkTheme),
 			CEREAL_NVP(bAllowSelfSignedCertificates), CEREAL_NVP(bSkipCertificateHostnameCheck),
-			CEREAL_NVP(SelectedLanguage), CEREAL_NVP(bReduceFrameRateWhenInactive));
+			CEREAL_NVP(SelectedLanguage), CEREAL_NVP(bReduceFrameRateWhenInactive), CEREAL_NVP(bEnableTrayIcon),
+			CEREAL_NVP(bMinimizeToTrayOnClose));
 	}
 
 	void Load();

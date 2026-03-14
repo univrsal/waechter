@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include "Windows/GlfwWindow.hpp"
+#include "Windows/SdlWindow.hpp"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -34,11 +34,11 @@ int main()
 		setlocale(LC_ALL, "C.UTF-8");
 	}
 #endif
-	if (!WGlfwWindow::GetInstance().Init())
+	if (!WSdlWindow::GetInstance().Init())
 	{
 		return -1;
 	}
-	WGlfwWindow::GetInstance().RunLoop();
-	WGlfwWindow::GetInstance().Destroy();
+	WSdlWindow::GetInstance().RunLoop();
+	WSdlWindow::GetInstance().Destroy();
 	return 0;
 }

@@ -11,8 +11,8 @@ extern unsigned int const GFlagsLicenseSize;
 extern unsigned char const GGladLicenseData[];
 extern unsigned int const GGladLicenseSize;
 
-extern unsigned char const GGlfwLicenseData[];
-extern unsigned int const GGlfwLicenseSize;
+extern unsigned char const GSdl2LicenseData[];
+extern unsigned int const GSdl2LicenseSize;
 
 extern unsigned char const GImguiLicenseData[];
 extern unsigned int const GImguiLicenseSize;

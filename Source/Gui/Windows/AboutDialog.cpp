@@ -7,7 +7,7 @@
 
 #include "imgui.h"
 
-#include "GlfwWindow.hpp"
+#include "SdlWindow.hpp"
 #include "Util/I18n.hpp"
 #include "Util/Settings.hpp"
 #include "Assets.hpp"
@@ -23,7 +23,7 @@ WAboutDialog::WAboutDialog()
 	};
 	ThirdPartyLibraries.emplace_back(
 		"glad", "https://github.com/Dav1dde/glad", MakeString(GGladLicenseData, GGladLicenseSize));
-	ThirdPartyLibraries.emplace_back("glfw", "https://www.glfw.org", MakeString(GGlfwLicenseData, GGlfwLicenseSize));
+	ThirdPartyLibraries.emplace_back("SDL2", "https://www.libsdl.org", MakeString(GSdl2LicenseData, GSdl2LicenseSize));
 	ThirdPartyLibraries.emplace_back(
 		"Dear ImGui", "https://github.com/ocornut/imgui", MakeString(GImguiLicenseData, GImguiLicenseSize));
 	ThirdPartyLibraries.emplace_back(
@@ -61,7 +61,7 @@ void WAboutDialog::Draw()
 	ImGuiIO& io = ImGui::GetIO();
 	auto     display_size = io.DisplaySize; // Current window/swapchain size
 	ImGui::SetNextWindowPos(ImVec2(display_size.x * 0.5f, display_size.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-	ImGui::SetNextWindowSize({ WGlfwWindow::ScaleValue(700), display_size.y - WGlfwWindow::ScaleValue(100) });
+	ImGui::SetNextWindowSize({ WSdlWindow::ScaleValue(700), display_size.y - WSdlWindow::ScaleValue(100) });
 
 	if (ImGui::Begin(TR("window.about"), &bVisible,
 			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
@@ -75,7 +75,7 @@ void WAboutDialog::Draw()
 		ImGui::Spacing();
 		ImGui::PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_TextDisabled]);
 		ImGui::Text("%s", VersionString.c_str());
-		if (WGlfwWindow::GetInstance().GetMainWindow()->IsRegistered())
+		if (WSdlWindow::GetInstance().GetMainWindow()->IsRegistered())
 		{
 			ImGui::Text("Registered to %s", WSettings::GetInstance().RegisteredUsername.c_str());
 		}

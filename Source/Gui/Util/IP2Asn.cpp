@@ -15,7 +15,7 @@
 #include "LibCurl.hpp"
 #include "Settings.hpp"
 #include "SysUtil.hpp"
-#include "Windows/GlfwWindow.hpp"
+#include "Windows/SdlWindow.hpp"
 
 bool WIP2Asn::ExtractDatabase(std::filesystem::path const& GzPath, std::filesystem::path const& OutPath)
 {

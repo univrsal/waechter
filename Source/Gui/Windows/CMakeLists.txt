@@ -1,7 +1,7 @@
 target_sources(waechter
         PRIVATE
-        GlfwWindow.cpp
-        GlfwWindow.hpp
+        SdlWindow.cpp
+        SdlWindow.hpp
         MainWindow.cpp
         MainWindow.hpp
         AboutDialog.cpp

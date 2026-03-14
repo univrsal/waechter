@@ -12,7 +12,7 @@
 
 #include "Client.hpp"
 #include "Util/I18n.hpp"
-#include "Windows/GlfwWindow.hpp"
+#include "Windows/SdlWindow.hpp"
 #include "Util/IP2Asn.hpp"
 #include "Util/LibCurl.hpp"
 #include "Util/ProtocolDB.hpp"
@@ -20,7 +20,7 @@
 
 void WMainWindow::DrawConnectionIndicator()
 {
-	float const IndicatorSize = WGlfwWindow::ScaleValue(12.0f);
+	float const IndicatorSize = WSdlWindow::ScaleValue(12.0f);
 	float const Radius = IndicatorSize * 0.5f;
 	float const MarginRight = -2.0f;
 
@@ -106,7 +106,7 @@ void WMainWindow::Init(ImGuiID Main)
 
 WMainWindow& WMainWindow::Get()
 {
-	return *WGlfwWindow::GetInstance().GetMainWindow();
+	return *WSdlWindow::GetInstance().GetMainWindow();
 }
 
 void WMainWindow::Draw()
@@ -119,6 +119,15 @@ void WMainWindow::Draw()
 
 	if (ImGui::BeginMainMenuBar())
 	{
+		if (ImGui::BeginMenu(TR("menu.file")))
+		{
+			if (ImGui::MenuItem(TR("menu.exit"), ""))
+			{
+				WSdlWindow::GetInstance().RequestClose();
+			}
+			ImGui::EndMenu();
+		}
+
 		if (ImGui::BeginMenu(TR("menu.view")))
 		{
 			if (ImGui::MenuItem(

@@ -5,7 +5,7 @@ add_library(imgui STATIC
         imgui_tables.cpp
         imgui_widgets.cpp
         imgui_stdlib.cpp
-        backends/imgui_impl_glfw.cpp
+        backends/imgui_impl_sdl2.cpp
         backends/imgui_impl_opengl3.cpp
 )
 
@@ -18,10 +18,13 @@ if (EMSCRIPTEN)
     target_compile_definitions(imgui PUBLIC
             IMGUI_IMPL_OPENGL_ES2
             )
+    target_compile_options(imgui PUBLIC -sUSE_SDL=2)
+    target_link_options(imgui PUBLIC -sUSE_SDL=2)
 else()
+    find_package(SDL2 REQUIRED)
     target_link_libraries(imgui PRIVATE
             thirdparty::glad
-            thirdparty::glfw
+            SDL2::SDL2
     )
     target_compile_definitions(imgui PUBLIC
             IMGUI_IMPL_OPENGL_LOADER_GLAD

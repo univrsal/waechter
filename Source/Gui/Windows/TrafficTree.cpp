@@ -25,7 +25,7 @@
 #include "ClientRuleManager.hpp"
 #include "Util/ImGuiUtil.hpp"
 #include "Format.hpp"
-#include "GlfwWindow.hpp"
+#include "SdlWindow.hpp"
 #include "Messages.hpp"
 #include "Data/TrafficTreeUpdate.hpp"
 #include "Icons/IconAtlas.hpp"
@@ -395,7 +395,7 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 
 			if (Update.ItemId == 0)
 			{
-				WGlfwWindow::GetInstance().GetMainWindow()->GetNetworkGraphWindow().AddData(
+				WSdlWindow::GetInstance().GetMainWindow()->GetNetworkGraphWindow().AddData(
 					It->second->UploadSpeed, It->second->DownloadSpeed);
 			}
 		}

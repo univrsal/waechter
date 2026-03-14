@@ -11,7 +11,6 @@ option(WAECHTER_BUILD_CLIENT "Whether to build the client" ON)
 option(WAECHTER_WITH_WEBSOCKETSERVER "Enable websocket server" ON)
 option(WAECHTER_WITH_WEBSOCKETCLIENT "Enable websocket client" ON)
 
-option(USE_BUILTIN_GLFW "Whether to use the built-in GLFW library" ON)
 
 if (EMSCRIPTEN)
     # disable daemon
@@ -81,7 +80,7 @@ set(CPACK_PACKAGE_DESCRIPTION "Waechter is a traffic shaping and monitoring tool
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Alex <alex@waechter.st>")
 set(CPACK_DEBIAN_PACKAGE_SECTION "net")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "systemd, libbpf0 | libbpf1, libxkbcommon0, libgl1, libx11-6, libxrandr2, libxinerama1, libxcursor1, libxi6, libcurl4 | libcurl3-gnutls, zlib1g")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "systemd, libbpf0 | libbpf1, libxkbcommon0, libgl1, libsdl2-2.0-0, libcurl4 | libcurl3-gnutls, zlib1g")
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_SOURCE_DIR}/Meta/Package/postinst;${CMAKE_SOURCE_DIR}/Meta/Package/prerm;${CMAKE_SOURCE_DIR}/Meta/Package/postrm")
 set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CMAKE_SYSTEM_PROCESSOR}-linux")
 set(CPACK_DEBIAN_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}.deb")

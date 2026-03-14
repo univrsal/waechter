@@ -34,7 +34,7 @@ if __name__ == "__main__":
         ("../../Thirdparty/cereal/LICENSE.txt", "CerealLicense"),
         ("../../Thirdparty/flags/LICENSE.txt", "FlagsLicense"),
         ("../../Thirdparty/glad/LICENSE.txt", "GladLicense"),
-        ("../../Thirdparty/glfw/LICENSE.txt", "GlfwLicense"),
+        ("../../Thirdparty/sdl2/LICENSE.txt", "Sdl2License"),
         ("../../Thirdparty/imgui/LICENSE.txt", "ImguiLicense"),
         ("../../Thirdparty/implot/LICENSE.txt", "ImPlotLicense"),
         ("../../Thirdparty/inih/LICENSE.txt", "InihLicense"),

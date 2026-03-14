@@ -22,7 +22,7 @@
 #endif
 #include "Data/Protocol.hpp"
 #include "Util/Settings.hpp"
-#include "Windows/GlfwWindow.hpp"
+#include "Windows/SdlWindow.hpp"
 
 void WClient::OnDataReceived(WBuffer& Buf)
 {

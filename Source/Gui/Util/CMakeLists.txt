@@ -13,6 +13,8 @@ target_sources(waechter
         SysUtil.hpp
         ProtocolDB.cpp
         ProtocolDB.hpp
+        TrayIcon.cpp
+        TrayIcon.hpp
 )
 
 if (NOT EMSCRIPTEN)
