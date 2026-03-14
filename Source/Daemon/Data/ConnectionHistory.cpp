@@ -179,6 +179,34 @@ void WConnectionHistory::OnUDPTupleCreated(
 	ActiveConnections[Key]->Connections.insert(TupleCounter->TrafficItem);
 }
 
+void WConnectionHistory::OnUDPTupleRemoved(
+	std::shared_ptr<WTupleCounter> const& TupleCounter, WEndpoint const& Endpoint)
+{
+	auto const App = TupleCounter->ParentSocket->ParentProcess->ParentApp;
+	if (!App)
+	{
+		return;
+	}
+	auto             AppName = App->TrafficItem->ApplicationName;
+	std::scoped_lock Lock(Mutex);
+
+	auto const Key = std::make_pair(AppName, Endpoint);
+	if (!ActiveConnections.contains(Key))
+	{
+		return;
+	}
+
+	auto const ConnectionSet = ActiveConnections[Key];
+	ConnectionSet->BaseDataIn += TupleCounter->TrafficItem->TotalDownloadBytes;
+	ConnectionSet->BaseDataOut += TupleCounter->TrafficItem->TotalUploadBytes;
+	ConnectionSet->Connections.erase(TupleCounter->TrafficItem);
+
+	if (ConnectionSet->Connections.empty())
+	{
+		ActiveConnections.erase(Key);
+	}
+}
+
 void WConnectionHistory::Push(std::shared_ptr<WAppCounter> const& App, std::shared_ptr<WConnectionSet> const& Set,
 	WEndpoint const& RemoteEndpoint)
 {
@@ -211,6 +239,11 @@ void WConnectionHistory::RegisterSignalHandlers()
 	WNetworkEvents::GetInstance().OnUDPTupleCreated.connect(
 		[this](std::shared_ptr<WTupleCounter> const& TupleCounter, WEndpoint const& Endpoint) {
 			OnUDPTupleCreated(TupleCounter, Endpoint);
+		});
+
+	WNetworkEvents::GetInstance().OnUDPTupleRemoved.connect(
+		[this](std::shared_ptr<WTupleCounter> const& TupleCounter, WEndpoint const& Endpoint) {
+			OnUDPTupleRemoved(TupleCounter, Endpoint);
 		});
 
 	WNetworkEvents::GetInstance().OnSocketConnected.connect(

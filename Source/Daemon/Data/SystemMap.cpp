@@ -764,6 +764,7 @@ void WSystemMap::Cleanup()
 					spdlog::debug("Removed tuple {} -> {}", Socket->TrafficItem->SocketTuple.LocalEndpoint.ToString(),
 						TupleIt->first.ToString());
 					bRemovedAny = true;
+					WNetworkEvents::GetInstance().OnUDPTupleRemoved(TupleCounter, TupleIt->first);
 					TrafficItems.erase(TupleCounter->TrafficItem->ItemId);
 					MapUpdate.AddItemRemoval(TupleCounter->TrafficItem->ItemId);
 					Socket->TrafficItem->UDPPerConnectionTraffic.erase(TupleIt->first);

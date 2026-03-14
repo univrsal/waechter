@@ -82,6 +82,7 @@ class WConnectionHistory : public TSingleton<WConnectionHistory>, public IMemory
 	void OnSocketRemoved(std::shared_ptr<WSocketCounter> const& SocketCounter);
 
 	void OnUDPTupleCreated(std::shared_ptr<WTupleCounter> const& TupleCounter, WEndpoint const& Endpoint);
+	void OnUDPTupleRemoved(std::shared_ptr<WTupleCounter> const& TupleCounter, WEndpoint const& Endpoint);
 
 	void Push(std::shared_ptr<WAppCounter> const& App, std::shared_ptr<WConnectionSet> const& Set,
 		WEndpoint const& RemoteEndpoint);
