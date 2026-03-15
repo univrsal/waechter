@@ -116,10 +116,6 @@ if (UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT BSD)
     # - I don't feel like fixing a bunch of warnings on those platforms at the moment
 endif ()
 
-include("${CMAKE_SOURCE_DIR}/Meta/Licenses.cmake")
-add_thirdparty_licenses(waechter)
-
-
 install(TARGETS waechter
         RUNTIME DESTINATION bin)
 

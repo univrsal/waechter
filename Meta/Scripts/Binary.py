@@ -43,6 +43,7 @@ if __name__ == "__main__":
         ("../../Thirdparty/spdlog/LICENSE.txt", "SpdlogLicense"),
         ("../../Thirdparty/stb/LICENSE.txt", "StbLicense"),
         ("../../Thirdparty/tracy/LICENSE.txt", "TracyLicense"),
+        ("../../Thirdparty/traycon/LICENSE.txt", "TrayconLicense"),
         ("../../Thirdparty/jetbrains-mono/LICENSE.txt", "JetbrainsMonoLicense"),
         ("../../Thirdparty/flags/atlas.png", "FlagAtlas"),
         ("../../LICENSE", "WaechterLicense"),

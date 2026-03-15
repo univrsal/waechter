@@ -38,6 +38,9 @@ extern unsigned int const GStbLicenseSize;
 extern unsigned char const GTracyLicenseData[];
 extern unsigned int const GTracyLicenseSize;
 
+extern unsigned char const GTrayconLicenseData[];
+extern unsigned int const GTrayconLicenseSize;
+
 extern unsigned char const GJetbrainsMonoLicenseData[];
 extern unsigned int const GJetbrainsMonoLicenseSize;
 

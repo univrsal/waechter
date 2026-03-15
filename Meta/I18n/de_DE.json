@@ -13,6 +13,8 @@
   "menu.show_offline_processes": "Offline-Prozesse anzeigen",
   "window.about": "Über",
   "window.memory_usage": "Dämonarbeitsspeichernutzung",
+  "__tray.menu.exit": "Beenden",
+  "__tray.menu.toggle_window": "Fenster ein/ausblenden",
   "==== Details window": "",
   "window.details": "Details",
   "local_endpoint": "Lokaler Endpunkt",

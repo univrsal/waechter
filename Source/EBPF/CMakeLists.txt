@@ -11,6 +11,7 @@ elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "ppc64le")
 endif ()
 
 find_program(CLANG_EXECUTABLE NAMES clang-21 clang-20 clang-19 clang-18 clang-17 clang-16 clang REQUIRED)
+message(STATUS "Using clang for bpf compilation: ${CLANG_EXECUTABLE}")
 
 find_program(BPFTTOOL_EXECUTABLE bpftool)
 

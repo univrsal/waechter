@@ -15,6 +15,13 @@ class WTrayIcon : public TSingleton<WTrayIcon>
 	std::atomic<int> PendingVisibility{ -1 }; // -1 = no-op, 0 = hide, 1 = show
 
 	static void OnClick(traycon* Tray, void* Userdata);
+	static void OnMenuClick(traycon* Tray, int MenuId, void* Userdata);
+
+	enum EMenuItem
+	{
+		MI_ToggleWindow,
+		MI_Exit
+	};
 
 public:
 	void Init();

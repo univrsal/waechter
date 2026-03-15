@@ -13,6 +13,8 @@
   "menu.show_offline_processes": "Show offline processes",
   "window.about": "About",
   "window.memory_usage": "Daemon memory usage",
+  "__tray.menu.exit": "Exit",
+  "__tray.menu.toggle_window": "Toggle window",
   "==== Details window": "",
   "window.details": "Details",
   "local_endpoint": "Local endpoint",

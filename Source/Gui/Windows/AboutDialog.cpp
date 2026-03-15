@@ -44,6 +44,8 @@ WAboutDialog::WAboutDialog()
 		"flag-icons", "https://github.com/lipis/flag-icons", MakeString(GFlagsLicenseData, GFlagsLicenseSize));
 	ThirdPartyLibraries.emplace_back(
 		"sigslot", "https://github.com/palacaze/sigslot", MakeString(GSigSlotLicenseData, GSigSlotLicenseSize));
+	// ThirdPartyLibraries.emplace_back(
+	// 	"traycon", "https://github.com/univrsal/traycon", MakeString(GTray, GSigSlotLicenseSize));
 
 	VersionString = std::format(
 		"Version {}, commit {}@{}\nCompiled at {}", WAECHTER_VERSION, GIT_COMMIT_HASH, GIT_BRANCH, BUILD_TIME);

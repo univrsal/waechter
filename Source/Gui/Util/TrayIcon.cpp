@@ -10,6 +10,7 @@
 #include "spdlog/spdlog.h"
 
 #include "Assets.hpp"
+#include "I18n.hpp"
 #include "Settings.hpp"
 #include "Windows/SdlWindow.hpp"
 
@@ -27,6 +28,23 @@ void WTrayIcon::OnClick(traycon* /*Tray*/, void* Userdata)
 
 	int const Visible = (SDL_GetWindowFlags(Window) & SDL_WINDOW_SHOWN) ? 1 : 0;
 	Self->PendingVisibility.store(Visible ? 0 : 1);
+}
+
+void WTrayIcon::OnMenuClick(traycon*, int MenuId, void* Userdata)
+{
+	auto* Self = static_cast<WTrayIcon*>(Userdata);
+	switch (MenuId)
+	{
+		case MI_ToggleWindow:
+			OnClick(nullptr, Self);
+			break;
+		case MI_Exit:
+		{
+			WSdlWindow::GetInstance().RequestClose();
+			break;
+		}
+		default:;
+	}
 }
 
 void WTrayIcon::Init()
@@ -52,7 +70,14 @@ void WTrayIcon::Init()
 	if (!Traycon)
 	{
 		spdlog::error("TrayIcon: traycon_create failed");
+		return;
 	}
+	traycon_menu_item MenuItems[] = {
+		{ TR("__tray.menu.toggle_window"), MI_ToggleWindow, 0 },
+		{ NULL, 0, 0 }, /* separator */
+		{ TR("__tray.menu.exit"), MI_Exit, 0 },
+	};
+	traycon_set_menu(Traycon, MenuItems, 3, OnMenuClick, this);
 }
 
 void WTrayIcon::Destroy()
