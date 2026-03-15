@@ -102,6 +102,22 @@ void WSdlWindow::Tick()
 		WSysUtil::UpdateImGuiScale(MainScale, NewScale);
 		MainScale = NewScale;
 	}
+#else
+	// Check for DPI scale changes on desktop (e.g., moving the window between monitors
+	// with different scale factors, or Wayland compositor scale changes).
+	// Compute the ratio of drawable (physical) pixels to logical pixels; this is the
+	// only reliable way to get the true scale on Wayland with SDL2.
+	{
+		auto  Index = SDL_GetWindowDisplayIndex(Window);
+		float Ddpi, Hdpi, Vdpi;
+		auto  NewScale = SDL_GetDisplayDPI(Index, &Ddpi, &Hdpi, &Vdpi) == 0 ? Ddpi / 96.0f : 1.0f;
+		if (NewScale >= 0.5f && std::abs(NewScale - MainScale) > 0.01f)
+		{
+			spdlog::info("Content scale changed from {:.2f} to {:.2f}", MainScale, NewScale);
+			WSysUtil::UpdateImGuiScale(MainScale, NewScale);
+			MainScale = NewScale;
+		}
+	}
 #endif
 
 	if (WSettings::GetInstance().bReduceFrameRateWhenInactive && !(SDL_GetWindowFlags(Window) & SDL_WINDOW_INPUT_FOCUS))
@@ -168,9 +184,6 @@ bool WSdlWindow::Init()
 
 #if __EMSCRIPTEN__
 	MainScale = static_cast<float>(DevicePixelRatio);
-#else
-	// Get DPI scale from the default display
-	MainScale = ImGui_ImplSDL2_GetContentScaleForDisplay(0);
 #endif
 
 	Uint32 WindowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
@@ -192,6 +205,30 @@ bool WSdlWindow::Init()
 	}
 	SDL_GL_MakeCurrent(Window, GlContext);
 	SDL_GL_SetSwapInterval(1); // vsync
+
+#if !defined(__EMSCRIPTEN__)
+	// Compute the true DPI scale from the ratio of drawable (physical) pixels to logical pixels.
+	// SDL_GetDisplayDPI returns 1.0f on Wayland (the compositor manages scaling), so we derive
+	// the scale from SDL_GL_GetDrawableSize vs SDL_GetWindowSize instead, which works correctly
+	// across X11, Wayland, and other platforms.
+	{
+		int DrawableW = 0, LogicalW = 0;
+		SDL_GL_GetDrawableSize(Window, &DrawableW, nullptr);
+		SDL_GetWindowSize(Window, &LogicalW, nullptr);
+		if (LogicalW > 0 && DrawableW > 0)
+		{
+			float ComputedScale = static_cast<float>(DrawableW) / static_cast<float>(LogicalW);
+			if (ComputedScale >= 0.5f)
+				MainScale = ComputedScale;
+		}
+		// Fall back to the SDL DPI helper if the drawable/logical ratio is 1:1
+		// (e.g., on X11 without high-DPI framebuffer support).
+		if (MainScale == 1.0f)
+			MainScale = ImGui_ImplSDL2_GetContentScaleForDisplay(SDL_GetWindowDisplayIndex(Window));
+		spdlog::info("Detected DPI scale: {:.2f} (driver: {})", MainScale,
+			SDL_GetCurrentVideoDriver() ? SDL_GetCurrentVideoDriver() : "unknown");
+	}
+#endif
 
 #if !defined(__EMSCRIPTEN__)
 	if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(SDL_GL_GetProcAddress)))
