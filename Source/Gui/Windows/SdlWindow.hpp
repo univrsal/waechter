@@ -30,7 +30,7 @@ class WSdlWindow : public TSingleton<WSdlWindow>
 
 	static char const* GetPreferredShaderVersion()
 	{
-#if EMSCRIPTEN
+#if __EMSCRIPTEN__
 		return "#version 300 es";
 #else
 		return "#version 130";

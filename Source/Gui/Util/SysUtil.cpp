@@ -150,7 +150,7 @@ stdfs::path WSysUtil::GetConfigFolder()
 
 void WSysUtil::SyncFilesystemToIndexedDB()
 {
-#if EMSCRIPTEN
+#if __EMSCRIPTEN__
 	EM_ASM(FS.syncfs(
 		false, function(err) {
 			if (err)
@@ -166,7 +166,7 @@ void WSysUtil::SyncFilesystemToIndexedDB()
 }
 
 // clang-format off
-#if EMSCRIPTEN
+#if __EMSCRIPTEN__
 EM_ASYNC_JS(void, load_filesystem_impl, (), {
 	try
 	{
@@ -199,7 +199,7 @@ EM_ASYNC_JS(void, load_filesystem_impl, (), {
 
 void WSysUtil::LoadFilesystemFromIndexedDB()
 {
-#if EMSCRIPTEN
+#if __EMSCRIPTEN__
 	load_filesystem_impl();
 #endif
 }

@@ -312,7 +312,7 @@ bool WSdlWindow::Init()
 	WTimerManager::GetInstance().Start(static_cast<double>(SDL_GetTicks()) / 1000.0);
 	WIconAtlas::GetInstance().Load();
 	WI18n::GetInstance().Init();
-#if EMSCRIPTEN
+#if __EMSCRIPTEN__
 	// don't auto-connect to the placeholder server
 	if (WSettings::GetInstance().SocketPath != "wss://example.com/ws")
 #endif

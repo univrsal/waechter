@@ -17,7 +17,7 @@
 #if WAECHTER_WITH_WEBSOCKETCLIENT
 	#include "Communication/WebSocketSource.hpp"
 #endif
-#if EMSCRIPTEN
+#if __EMSCRIPTEN__
 	#include "Communication/EmscriptenSocketSource.hpp"
 #endif
 #include "Data/Protocol.hpp"
@@ -103,11 +103,11 @@ void WClient::HandleHandshake(WBuffer& Buf)
 void WClient::Start()
 {
 	Stop();
-#if WAECHTER_WITH_WEBSOCKETCLIENT || EMSCRIPTEN
+#if WAECHTER_WITH_WEBSOCKETCLIENT || __EMSCRIPTEN__
 	if (WSettings::GetInstance().SocketPath.starts_with("ws://")
 		|| WSettings::GetInstance().SocketPath.starts_with("wss://"))
 	{
-	#if EMSCRIPTEN
+	#if __EMSCRIPTEN__
 		DaemonSocket = std::make_shared<WEmscriptenSocketSource>(
 			WSettings::GetInstance().SocketPath, WSettings::GetInstance().WebSocketAuthToken);
 	#else

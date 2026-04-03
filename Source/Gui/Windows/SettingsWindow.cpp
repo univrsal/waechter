@@ -153,7 +153,7 @@ void WSettingsWindow::Draw()
 			ImGui::EndCombo();
 		}
 
-#if EMSCRIPTEN
+#if __EMSCRIPTEN__
 		if (ImGui::Button("Save"))
 		{
 			WSettings::GetInstance().Save();
