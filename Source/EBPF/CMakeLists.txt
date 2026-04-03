@@ -10,7 +10,45 @@ elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "ppc64le")
     set(BPF_TARGET_ARCH powerpc)
 endif ()
 
-find_program(CLANG_EXECUTABLE NAMES clang-21 clang-20 clang-19 clang-18 clang-17 clang-16 clang REQUIRED)
+# Find a clang that explicitly supports the BPF target (e.g. ROCm clang does not).
+# Search well-known system paths first so that a vendor clang shadowing the system
+# clang via PATH (e.g. /opt/rocm/lib/llvm/bin/clang) is not picked up accidentally.
+set(_CLANG_CANDIDATES clang-22 clang-21 clang-20 clang-19 clang-18 clang-17 clang-16 clang)
+set(_CLANG_SYSTEM_PATHS /usr/bin /usr/local/bin)
+set(CLANG_EXECUTABLE "")
+
+foreach (_CANDIDATE IN LISTS _CLANG_CANDIDATES)
+    # 1) Prefer the binary found in known system directories (ignores PATH order).
+    find_program(_CLANG_CANDIDATE_BIN NAMES ${_CANDIDATE}
+            PATHS ${_CLANG_SYSTEM_PATHS} NO_DEFAULT_PATH)
+    # 2) Fall back to a regular PATH search if not found in system dirs.
+    if (NOT _CLANG_CANDIDATE_BIN)
+        find_program(_CLANG_CANDIDATE_BIN NAMES ${_CANDIDATE})
+    endif ()
+
+    if (_CLANG_CANDIDATE_BIN)
+        execute_process(
+                COMMAND ${_CLANG_CANDIDATE_BIN} --print-targets
+                OUTPUT_VARIABLE _CLANG_TARGETS
+                ERROR_QUIET
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+        if (_CLANG_TARGETS MATCHES "bpf")
+            set(CLANG_EXECUTABLE ${_CLANG_CANDIDATE_BIN})
+        endif ()
+    endif ()
+    unset(_CLANG_CANDIDATE_BIN CACHE)
+    if (CLANG_EXECUTABLE)
+        break()
+    endif ()
+endforeach ()
+
+if (NOT CLANG_EXECUTABLE)
+    message(FATAL_ERROR "Could not find a clang executable that supports the 'bpf' target. "
+            "Tried: ${_CLANG_CANDIDATES}. "
+            "Make sure a standard LLVM/clang is installed.")
+endif ()
+
 message(STATUS "Using clang for bpf compilation: ${CLANG_EXECUTABLE}")
 
 find_program(BPFTTOOL_EXECUTABLE bpftool)
