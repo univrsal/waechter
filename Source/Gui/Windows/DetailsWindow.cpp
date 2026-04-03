@@ -217,7 +217,20 @@ void WDetailsWindow::DrawTupleDetails() const
 		return;
 	}
 	auto const& Ep = Endpoint.value();
-	ImGui::Text("%s: %s", TR("__remote_endpoint"), Ep.ToString().c_str());
+	bool const  bIsZero = Ep.Address.IsZero();
+	if (!bIsZero)
+	{
+		ImGui::InputText(
+			TR("remote_endpoint"), const_cast<char*>(Ep.ToString().c_str()), 64, ImGuiInputTextFlags_ReadOnly);
+	}
+	if (auto It = Tree->GetResolvedAddresses().find(Ep.Address); It != Tree->GetResolvedAddresses().end())
+	{
+		if (!It->second.empty())
+		{
+			ImGui::InputText(TR("hostname"), const_cast<char*>(It->second.c_str()), 128, ImGuiInputTextFlags_ReadOnly);
+		}
+	}
+
 	ImGui::Separator();
 	ImGui::Text("%s: %s", TR("__total_download"), WStorageFormat::AutoFormat(Tuple->TotalDownloadBytes).c_str());
 	ImGui::Text("%s: %s", TR("__total_upload"), WStorageFormat::AutoFormat(Tuple->TotalUploadBytes).c_str());
