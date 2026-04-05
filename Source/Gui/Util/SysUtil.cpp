@@ -97,7 +97,7 @@ stdfs::path WSysUtil::GetConfigFolder()
 		}
 		Base = stdfs::path(Home) / ".config";
 	}
-#elif EMSCRIPTEN
+#elif __EMSCRIPTEN__
 	stdfs::path Base = "/waechter_data";
 #elif _WIN32
 	wchar_t*    AppDataPath = nullptr;
