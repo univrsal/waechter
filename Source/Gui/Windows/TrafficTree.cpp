@@ -80,19 +80,20 @@ inline bool DrawIcon(
 	// Reduce spacing between arrow and icon
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, ImGui::GetStyle().ItemSpacing.y));
 	ImGui::SameLine();
+	auto const IconSize = ImGui::CalcTextSize(Name.c_str()).y;
 	if (Item->GetType() == TI_Application)
 	{
 		std::lock_guard Lock(WAppIconAtlas::GetInstance().GetMutex());
 		WAppIconAtlas::GetInstance().DrawIconForApplication(
-			std::dynamic_pointer_cast<WApplicationItem>(Item)->ApplicationName, ImVec2{ 16, 16 });
+			std::dynamic_pointer_cast<WApplicationItem>(Item)->ApplicationName, ImVec2{ IconSize, IconSize });
 	}
 	else if (Item->GetType() == TI_Process)
 	{
-		WIconAtlas::GetInstance().DrawIcon("process", ImVec2{ 16, 16 });
+		WIconAtlas::GetInstance().DrawIcon("process", ImVec2{ IconSize, IconSize });
 	}
 	else
 	{
-		WIconAtlas::GetInstance().DrawIcon("computer", ImVec2{ 16, 16 });
+		WIconAtlas::GetInstance().DrawIcon("computer", ImVec2{ IconSize, IconSize });
 	}
 	ImGui::SameLine();
 	ImGui::TextUnformatted(Name.c_str());

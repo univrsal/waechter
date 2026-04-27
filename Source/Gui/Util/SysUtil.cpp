@@ -253,7 +253,7 @@ void WSysUtil::UpdateImGuiScale(float CurrentScale, float NewScale)
 		extern unsigned int const GFontSize;
 
 		// Base font size is 13.0f (same as in SdlWindow.cpp Init)
-		float FontSize = std::round(14.0f * NewScale);
+		float FontSize = std::round(15.0f * NewScale);
 		spdlog::info("Setting font size to {:.1f} for scale {:.2f}", FontSize, NewScale);
 		
 		auto NonConstFontData = const_cast<unsigned char*>(GFontData);
