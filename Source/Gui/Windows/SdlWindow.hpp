@@ -45,15 +45,15 @@ public:
 
 	~WSdlWindow() override = default;
 
-	WMainWindow* GetMainWindow() { return MainWindow.get(); }
+	[[nodiscard]] WMainWindow* GetMainWindow() const { return MainWindow.get(); }
 
-	SDL_Window* GetWindow() const { return Window; }
+	[[nodiscard]] SDL_Window* GetWindow() const { return Window; }
 
 	void Destroy();
 
 	void SetTitle(std::string const& Title) const;
 
-	float GetMainScale() const { return MainScale; }
+	[[nodiscard]] float GetMainScale() const { return MainScale; }
 	void  SetMainScale(float Scale) { MainScale = Scale; }
 
 	void RequestClose() { bShouldClose = true; }
@@ -62,7 +62,7 @@ public:
 	static ImVec2 ScaleSize(ImVec2 const& Size)
 	{
 		float Scale = GetInstance().GetMainScale();
-		return ImVec2(Size.x * Scale, Size.y * Scale);
+		return { Size.x * Scale, Size.y * Scale };
 	}
 
 	static float ScaleValue(float Value) { return Value * GetInstance().GetMainScale(); }
