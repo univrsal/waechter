@@ -34,12 +34,14 @@ class WDaemonClient
 
 	WProcessId ClientPid{ 0 };
 
-	static void OnDataReceived(WBuffer& RecvBuf);
+	void OnDataReceived(WBuffer& RecvBuf);
+
+	void HandleResolveRequest(WBuffer const& Buf);
 
 public:
 	explicit WDaemonClient(std::shared_ptr<IClientSocket> CS) : ClientSocket(std::move(CS))
 	{
-		ClientSocket->GetDataSignal().connect([](WBuffer& Buffer) { OnDataReceived(Buffer); });
+		ClientSocket->GetDataSignal().connect([this](WBuffer& Buffer) { OnDataReceived(Buffer); });
 		ClientSocket->GetClosedSignal().connect([] { spdlog::info("Client disconnected"); });
 		ClientSocket->StartListenThread();
 	}

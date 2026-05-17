@@ -27,6 +27,7 @@
 #include "Format.hpp"
 #include "SdlWindow.hpp"
 #include "Messages.hpp"
+#include "Data/ResolveData.hpp"
 #include "Data/TrafficTreeUpdate.hpp"
 #include "Icons/IconAtlas.hpp"
 #include "Util/I18n.hpp"
@@ -619,16 +620,27 @@ void WTrafficTree::Draw(ImGuiID MainID)
 	ImGui::End();
 }
 
-void WTrafficTree::SetResolvedAddresses(WBuffer const& Buffer)
+void WTrafficTree::HandleResolveResponse(WBuffer const& Buffer)
 {
-	std::unordered_map<WIPAddress, std::string> NewResolvedAddresses{};
-	std::stringstream                           SS;
-	SS.write(Buffer.GetData(), static_cast<long int>(Buffer.GetWritePos()));
+	WResolveResponse ResolveResponse{};
+	if (WClient::ReadMessage(Buffer, ResolveResponse))
 	{
-		SS.seekg(1); // Skip message type
-		cereal::BinaryInputArchive Iar(SS);
-		Iar(NewResolvedAddresses);
+		std::lock_guard Lock(DataMutex);
+		ResolvedAddresses[ResolveResponse.AddressToResolve] = ResolveResponse.ResolveResult;
 	}
-	std::lock_guard Lock(DataMutex);
-	ResolvedAddresses = std::move(NewResolvedAddresses);
+}
+
+std::string const& WTrafficTree::ResolveAddress(WIPAddress const& Address)
+{
+	static std::string Empty{};
+	std::scoped_lock   Lock(DataMutex);
+	if (auto It = ResolvedAddresses.find(Address); It != ResolvedAddresses.end())
+	{
+		return It->second;
+	}
+	ResolvedAddresses[Address] = Empty;
+	WResolveRequest Request;
+	Request.AddressToResolve = Address;
+	WClient::GetInstance().SendMessage(MT_ResolveRequest, Request);
+	return Empty;
 }

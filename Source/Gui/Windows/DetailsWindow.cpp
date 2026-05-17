@@ -184,14 +184,9 @@ void WDetailsWindow::DrawSocketDetails() const
 				const_cast<char*>(Sock->SocketTuple.RemoteEndpoint.ToString().c_str()), 64,
 				ImGuiInputTextFlags_ReadOnly);
 		}
-		if (auto It = Tree->GetResolvedAddresses().find(Sock->SocketTuple.RemoteEndpoint.Address);
-			It != Tree->GetResolvedAddresses().end())
+		if (auto Addr = Tree->ResolveAddress(Sock->SocketTuple.RemoteEndpoint.Address); !Addr.empty())
 		{
-			if (!It->second.empty())
-			{
-				ImGui::InputText(
-					TR("hostname"), const_cast<char*>(It->second.c_str()), 128, ImGuiInputTextFlags_ReadOnly);
-			}
+			ImGui::InputText(TR("hostname"), const_cast<char*>(Addr.c_str()), 128, ImGuiInputTextFlags_ReadOnly);
 		}
 		ImGui::Text("%s: %s", TR("__protocol"), ProtocolToString(Sock->SocketTuple.Protocol));
 #if !defined(__EMSCRIPTEN__)
@@ -223,12 +218,9 @@ void WDetailsWindow::DrawTupleDetails() const
 		ImGui::InputText(
 			TR("remote_endpoint"), const_cast<char*>(Ep.ToString().c_str()), 64, ImGuiInputTextFlags_ReadOnly);
 	}
-	if (auto It = Tree->GetResolvedAddresses().find(Ep.Address); It != Tree->GetResolvedAddresses().end())
+	if (auto Addr = Tree->ResolveAddress(Ep.Address); !Addr.empty())
 	{
-		if (!It->second.empty())
-		{
-			ImGui::InputText(TR("hostname"), const_cast<char*>(It->second.c_str()), 128, ImGuiInputTextFlags_ReadOnly);
-		}
+		ImGui::InputText(TR("hostname"), const_cast<char*>(Addr.c_str()), 128, ImGuiInputTextFlags_ReadOnly);
 	}
 
 	ImGui::Separator();
