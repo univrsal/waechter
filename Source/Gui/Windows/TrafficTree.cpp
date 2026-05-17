@@ -306,10 +306,6 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 			App->ApplicationPath = Addition.ApplicationPath;
 			Root->Applications[Addition.ApplicationPath] = App;
 			TrafficItems[App->ItemId] = App;
-			if (!ResolvedAddresses.contains(Addition.SocketTuple.RemoteEndpoint.Address))
-			{
-				ResolvedAddresses[Addition.SocketTuple.RemoteEndpoint.Address] = Addition.ResolvedAddress;
-			}
 		}
 		else
 		{
@@ -360,11 +356,6 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 			NewTuple->ItemId = Addition.ItemId;
 			SocketItem->UDPPerConnectionTraffic[Addition.Endpoint] = NewTuple;
 			TrafficItems[Addition.ItemId] = NewTuple;
-
-			if (!ResolvedAddresses.contains(Addition.Endpoint.Address))
-			{
-				ResolvedAddresses[Addition.Endpoint.Address] = Addition.ResolvedAddress;
-			}
 		}
 	}
 
