@@ -45,7 +45,6 @@ struct WTrafficTreeSocketAddition
 	std::string            ApplicationPath{};
 	std::string            ApplicationName{};
 	std::string            ApplicationCommandLine{};
-	std::string            ResolvedAddress{};
 	WSocketTuple           SocketTuple{};
 	ESocketConnectionState ConnectionState{};
 	uint8_t                SocketType{};
@@ -54,7 +53,7 @@ struct WTrafficTreeSocketAddition
 	void serialize(Archive& archive)
 	{
 		archive(ItemId, ProcessItemId, ApplicationItemId, ProcessId, ApplicationName, ApplicationPath,
-			ApplicationCommandLine, SocketTuple, ConnectionState, ResolvedAddress, SocketType);
+			ApplicationCommandLine, SocketTuple, ConnectionState, SocketType);
 	}
 };
 
@@ -63,12 +62,11 @@ struct WTrafficTreeTupleAddition
 	WTrafficItemId ItemId{};
 	WTrafficItemId SocketItemId{};
 	WEndpoint      Endpoint{};
-	std::string    ResolvedAddress{};
 
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(ItemId, SocketItemId, Endpoint, ResolvedAddress);
+		archive(ItemId, SocketItemId, Endpoint);
 	}
 };
 

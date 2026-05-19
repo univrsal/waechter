@@ -12,10 +12,12 @@
 #include "tracy/Tracy.hpp"
 #include "spdlog/spdlog.h"
 
-void WResolver::ResolveAddress(WIPAddress const& Address)
+void WResolver::ResolveAddress(WQueuedRequest const& Request)
 {
 	int  Result = 0;
 	char Host[NI_MAXHOST]{};
+
+	auto const& Address = Request.AddressToResolve;
 
 	if (Address.Family == EIPFamily::IPv6)
 	{
@@ -92,15 +94,18 @@ void WResolver::ResolveAddress(WIPAddress const& Address)
 	if (Host == Address.ToString())
 	{
 		ResolvedAddresses[Address] = {};
+		Request.Promise.Finish({});
 		return;
 	}
 
 	spdlog::debug("Resolved {} to {}", Address.ToString(), Host);
 	ResolvedAddresses[Address] = Host;
+	Request.Promise.Finish(Host);
 }
 
 void WResolver::ResolverThreadFunc()
 {
+	static std::string Empty = {};
 	tracy::SetThreadName("ResolverThread");
 	while (bRunning)
 	{
@@ -114,11 +119,22 @@ void WResolver::ResolverThreadFunc()
 
 		if (!PendingAddresses.empty())
 		{
-			WIPAddress Address = PendingAddresses.front();
+			auto Request = PendingAddresses.front(); // copy before pop to keep TPromise's WSharedState alive
 			PendingAddresses.pop();
-			Lock.unlock();
 
-			ResolveAddress(Address);
+			if (Request.AddressToResolve.IsZero())
+			{
+				Request.Promise.Finish(Empty);
+			}
+			else if (auto It = ResolvedAddresses.find(Request.AddressToResolve); It != ResolvedAddresses.end())
+			{
+				Request.Promise.Finish(It->second);
+			}
+			else
+			{
+				Lock.unlock();
+				ResolveAddress(Request);
+			}
 		}
 	}
 }
@@ -139,30 +155,18 @@ void WResolver::Stop()
 	}
 }
 
-std::string const& WResolver::Resolve(WIPAddress const& Address)
+TPromise<std::string const&> WResolver::Resolve(WIPAddress const& Address)
 {
-	static std::string Empty = {};
-	if (Address.IsZero())
-	{
-		return Empty;
-	}
-	{
-		std::lock_guard Lock(ResolvedAddressesMutex);
-
-		if (auto It = ResolvedAddresses.find(Address); It != ResolvedAddresses.end())
-		{
-			return It->second;
-		}
-		ResolvedAddresses[Address] = Empty;
-	}
+	TPromise<std::string const&> Promise{};
 
 	{
-		std::lock_guard QueueLock(QueueMutex);
-		PendingAddresses.push(Address);
+		WQueuedRequest  Request{ Address, Promise };
+		std::lock_guard Lock(QueueMutex);
+		PendingAddresses.push(Request);
 		QueueCondition.notify_one();
 	}
 
-	return Empty;
+	return Promise;
 }
 
 WMemoryStat WResolver::GetMemoryUsage()

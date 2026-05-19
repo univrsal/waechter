@@ -54,9 +54,9 @@ public:
 	void UpdateFromBuffer(WBuffer const& Buffer);
 	void Draw(ImGuiID MainID);
 
-	void SetResolvedAddresses(WBuffer const& Buffer);
+	void HandleResolveResponse(WBuffer const& Buffer);
 
-	std::unordered_map<WIPAddress, std::string> const& GetResolvedAddresses() const { return ResolvedAddresses; }
+	std::string const& ResolveAddress(WIPAddress const& Address);
 
 	template <class T>
 	std::shared_ptr<T> GetSeletedTrafficItem()

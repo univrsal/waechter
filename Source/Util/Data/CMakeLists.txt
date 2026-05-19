@@ -8,6 +8,7 @@ target_sources(util
         AppIconAtlasData.hpp
         TrafficTreeUpdate.hpp
         ConnectionHistoryUpdate.hpp
+        ResolveData.hpp
 )
 
 if (UNIX AND NOT APPLE AND NOT EMSCRIPTEN)

@@ -51,8 +51,8 @@ void WClient::OnDataReceived(WBuffer& Buf)
 		case MT_AppIconAtlasData:
 			WAppIconAtlas::GetInstance().FromAtlasData(Buf);
 			break;
-		case MT_ResolvedAddresses:
-			TrafficTree->SetResolvedAddresses(Buf);
+		case MT_ResolveResponse:
+			TrafficTree->HandleResolveResponse(Buf);
 			break;
 		case MT_ConnectionHistory:
 			WMainWindow::Get().GetConnectionHistoryWindow().Initialize(Buf);

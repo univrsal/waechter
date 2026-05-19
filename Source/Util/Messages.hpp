@@ -10,7 +10,6 @@ enum EMessageType : int8_t
 {
 	MT_Invalid = -1,
 	MT_TrafficTree,
-	MT_ResolvedAddresses,
 	MT_TrafficTreeUpdate,
 	MT_AppIconAtlasData,
 	MT_RuleUpdate,
@@ -18,6 +17,8 @@ enum EMessageType : int8_t
 	MT_ConnectionHistory,
 	MT_ConnectionHistoryUpdate,
 	MT_MemoryStats,
+	MT_ResolveRequest,
+	MT_ResolveResponse,
 
 	MT_Count
 };

@@ -110,11 +110,6 @@ WTrafficTreeUpdates const& WMapUpdate::GetUpdates()
 		Addition.ApplicationPath = PATI->ApplicationPath;
 		Addition.ApplicationName = PATI->ApplicationName;
 		Addition.ApplicationCommandLine = PATI->ApplicationCommandLine;
-		{
-			ZoneScopedN("ResolveAddress");
-			Addition.ResolvedAddress =
-				WResolver::GetInstance().Resolve(Socket->TrafficItem->SocketTuple.RemoteEndpoint.Address);
-		}
 		Addition.SocketTuple = Socket->TrafficItem->SocketTuple;
 		Addition.ConnectionState = Socket->TrafficItem->ConnectionState;
 		Addition.SocketType = Socket->TrafficItem->SocketType;
@@ -134,10 +129,6 @@ WTrafficTreeUpdates const& WMapUpdate::GetUpdates()
 		Addition.ItemId = TupleCounter.second->TrafficItem->ItemId;
 		Addition.SocketItemId = TupleCounter.second->ParentSocket->TrafficItem->ItemId;
 		Addition.Endpoint = TupleCounter.first;
-		{
-			ZoneScopedN("ResolveAddress");
-			Addition.ResolvedAddress = WResolver::GetInstance().Resolve(Addition.Endpoint.Address);
-		}
 	}
 
 	Clear();
