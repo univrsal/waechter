@@ -47,13 +47,13 @@ int main()
 	// We need to do this while we still have root
 	// otherwise we can't see the PID for sockets owned by root
 	WSystemMap::GetInstance().AddExistingSockets();
-	WResolver::GetInstance().Start();
 
 	if (!WDaemonConfig::GetInstance().DropPrivileges())
 	{
 		spdlog::error("Failed to drop privileges");
 		return -1;
 	}
+	WResolver::GetInstance().Start();
 
 	WDaemon::RegisterSignalHandlers();
 	WConnectionHistory::GetInstance().RegisterSignalHandlers();
