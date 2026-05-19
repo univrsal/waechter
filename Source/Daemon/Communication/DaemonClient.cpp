@@ -54,11 +54,20 @@ void WDaemonClient::HandleResolveRequest(WBuffer const& Buf)
 		spdlog::error("Failed to deserialize resolve request: {}", e.what());
 		return;
 	}
-
-	WResolver::GetInstance().Resolve(Request.AddressToResolve).Then([Request, this](std::string const& Hostname) {
-		WResolveResponse Response{};
-		Response.AddressToResolve = Request.AddressToResolve;
-		Response.ResolveResult = Hostname;
-		SendMessage(MT_ResolveResponse, Response);
-	});
+	WResolver::GetInstance()
+		.Resolve(Request.AddressToResolve)
+		.Then([Request, Socket = ClientSocket](std::string const& Hostname) {
+			if (!Socket->IsConnected())
+			{
+				spdlog::warn("Client disconnected before resolve response could be sent for {}",
+					Request.AddressToResolve.ToString());
+				return;
+			}
+			spdlog::debug(
+				"Finished resolve request for address: {} -> {}", Request.AddressToResolve.ToString(), Hostname);
+			WResolveResponse Response{};
+			Response.AddressToResolve = Request.AddressToResolve;
+			Response.ResolveResult = Hostname;
+			Socket->SendFramed(WDaemonClient::MakeMessage(MT_ResolveResponse, Response));
+		});
 }
