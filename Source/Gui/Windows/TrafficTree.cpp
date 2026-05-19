@@ -19,7 +19,6 @@
 #include "cereal/types/memory.hpp"
 #include "cereal/types/string.hpp"
 // ReSharper enable CppUnusedIncludeDirective
-#include "cereal/archives/binary.hpp"
 
 #include "AppIconAtlas.hpp"
 #include "ClientRuleManager.hpp"
@@ -210,12 +209,10 @@ void WTrafficTree::LoadFromBuffer(WBuffer const& Buffer)
 {
 	std::lock_guard Lock(DataMutex);
 	TrafficItems.clear();
-	std::stringstream ss;
-	ss.write(Buffer.GetData(), static_cast<long int>(Buffer.GetWritePos()));
+	if (!DeserializeMessage(Buffer, *Root.get()))
 	{
-		ss.seekg(1); // Skip message type
-		cereal::BinaryInputArchive iar(ss);
-		iar(*Root.get());
+		spdlog::error("Failed to deserialize traffic tree");
+		return;
 	}
 
 	// Remove any NULL entries that may have been deserialized
@@ -252,12 +249,10 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 {
 	std::lock_guard     Lock(DataMutex);
 	WTrafficTreeUpdates Updates{};
-	std::stringstream   ss;
-	ss.write(Buffer.GetData(), static_cast<long int>(Buffer.GetWritePos()));
+	if (!DeserializeMessage(Buffer, Updates))
 	{
-		ss.seekg(1); // Skip message type
-		cereal::BinaryInputArchive iar(ss);
-		iar(Updates);
+		spdlog::error("Failed to deserialize traffic tree update");
+		return;
 	}
 
 	for (auto const& MarkedId : Updates.MarkedForRemovalItems)

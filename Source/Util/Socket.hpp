@@ -100,6 +100,23 @@ public:
 		}
 		return SendFramed(Os.str());
 	}
+
+	// Deserializes a message from a WBuffer written by SendMessage (no type-byte prefix).
+	template <typename T>
+	static bool ReceiveMessage(WBuffer const& Buffer, T& OutData)
+	{
+		std::stringstream Ss(std::string(Buffer.GetData(), Buffer.GetReadableSize()));
+		try
+		{
+			cereal::BinaryInputArchive Archive(Ss);
+			Archive(OutData);
+		}
+		catch (std::exception const&)
+		{
+			return false;
+		}
+		return true;
+	}
 };
 
 class WServerSocket : public WSocket

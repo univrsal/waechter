@@ -72,12 +72,10 @@ void WClient::OnDataReceived(WBuffer& Buf)
 void WClient::HandleHandshake(WBuffer& Buf)
 {
 	WProtocolHandshake Handshake{};
-	std::stringstream  ss;
-	ss.write(Buf.GetData(), static_cast<long int>(Buf.GetWritePos()));
+	if (!DeserializeMessage(Buf, Handshake))
 	{
-		ss.seekg(1); // Skip message type
-		cereal::BinaryInputArchive iar(ss);
-		iar(Handshake);
+		spdlog::error("Failed to deserialize handshake");
+		return;
 	}
 
 #if WDEBUG

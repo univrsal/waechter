@@ -38,20 +38,10 @@ void WDaemonClient::OnDataReceived(WBuffer& RecvBuf)
 
 void WDaemonClient::HandleResolveRequest(WBuffer const& Buf)
 {
-	WResolveRequest   Request{};
-	std::stringstream ss;
-	ss.write(Buf.GetData(), static_cast<long int>(Buf.GetWritePos()));
-	try
+	WResolveRequest Request{};
+	if (!DeserializeMessage(Buf, Request))
 	{
-		{
-			ss.seekg(1); // Skip message type
-			cereal::BinaryInputArchive iar(ss);
-			iar(Request);
-		}
-	}
-	catch (std::exception const& e)
-	{
-		spdlog::error("Failed to deserialize resolve request: {}", e.what());
+		spdlog::error("Failed to deserialize resolve request");
 		return;
 	}
 	WResolver::GetInstance()

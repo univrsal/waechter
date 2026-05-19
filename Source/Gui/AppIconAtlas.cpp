@@ -5,13 +5,12 @@
 
 #include "AppIconAtlas.hpp"
 
-#include <sstream>
-
-#include "cereal/archives/binary.hpp"
 #include "cereal/types/unordered_map.hpp"
 #include "cereal/types/string.hpp"
 #include "cereal/types/vector.hpp"
 #include "spdlog/spdlog.h"
+
+#include "Messages.hpp"
 
 #include "Data/AppIconAtlasData.hpp"
 #include "Icons/IconAtlas.hpp"
@@ -33,20 +32,10 @@ void WAppIconAtlas::DrawIconForApplication(std::string const& BinaryName, ImVec2
 void WAppIconAtlas::FromAtlasData(WBuffer& Buffer)
 {
 	WAppIconAtlasData Data{};
-	std::stringstream ss;
-	ss.write(Buffer.GetData(), static_cast<long int>(Buffer.GetWritePos()));
+	if (!DeserializeMessage(Buffer, Data))
 	{
-		ss.seekg(1); // Skip message type
-		try
-		{
-			cereal::BinaryInputArchive iar(ss);
-			iar(Data);
-		}
-		catch (std::exception const& e)
-		{
-			spdlog::error("Failed to deserialize app icon atlas data: {}", e.what());
-			return;
-		}
+		spdlog::error("Failed to deserialize app icon atlas data");
+		return;
 	}
 
 	std::lock_guard Lock(Mutex);

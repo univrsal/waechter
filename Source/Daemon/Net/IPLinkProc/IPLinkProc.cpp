@@ -14,7 +14,6 @@
 
 #include "spdlog/spdlog.h"
 #include "spdlog/fmt/fmt.h"
-#include "cereal/archives/binary.hpp"
 #include "cereal/types/memory.hpp"
 // ReSharper disable once CppUnusedIncludeDirective
 #include "cereal/types/string.hpp"
@@ -262,19 +261,13 @@ static void ProcessMessage(WMsgQueue& Queue, WIPLinkMsg const& Msg, WSignalHandl
 	}
 }
 
-void OnDataReceived(WBuffer& RecvBuffer, WSignalHandler& Handler, WMsgQueue& Queue)
+void OnDataReceived(WBuffer const& RecvBuffer, WSignalHandler& Handler, WMsgQueue& Queue)
 {
 	// Important: do not execute any slow system calls here. Just deserialize and enqueue.
-	std::stringstream SS(std::string(RecvBuffer.GetData(), RecvBuffer.GetReadableSize()));
-	WIPLinkMsg        Msg;
-	try
+	WIPLinkMsg Msg;
+	if (!WClientSocket::ReceiveMessage(RecvBuffer, Msg))
 	{
-		cereal::BinaryInputArchive Iar(SS);
-		Iar(Msg);
-	}
-	catch (std::exception const& e)
-	{
-		spdlog::error("Failed to deserialize message: {}", e.what());
+		spdlog::error("Failed to deserialize message");
 		return;
 	}
 

@@ -1,9 +1,15 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #pragma once
+#include <sstream>
+
+// ReSharper disable CppUnusedIncludeDirective
+#include "cereal/archives/binary.hpp"
+// ReSharper restore CppUnusedIncludeDirective
+
 #include "Buffer.hpp"
 
 enum EMessageType : int8_t
@@ -42,4 +48,36 @@ static EMessageType ReadMessageTypeFromBuffer(WBuffer& Buf)
 	}
 
 	return static_cast<EMessageType>(Type);
+}
+
+// Serializes a typed message into a framed string:
+//   [1 byte: EMessageType] [cereal binary payload]
+template <class T>
+static std::string SerializeMessage(EMessageType Type, T const& Data)
+{
+	std::stringstream Os{};
+	Os << Type;
+	cereal::BinaryOutputArchive Archive(Os);
+	Archive(Data);
+	return Os.str();
+}
+
+// Deserializes the payload of a received buffer into OutData.
+// Expects the buffer to contain [1 byte: EMessageType] followed by the cereal binary payload.
+template <class T>
+static bool DeserializeMessage(WBuffer const& Buffer, T& OutData)
+{
+	std::stringstream Ss;
+	Ss.write(Buffer.GetData(), static_cast<long int>(Buffer.GetWritePos()));
+	Ss.seekg(1); // Skip message type byte
+	try
+	{
+		cereal::BinaryInputArchive Iar(Ss);
+		Iar(OutData);
+	}
+	catch (std::exception const&)
+	{
+		return false;
+	}
+	return true;
 }
