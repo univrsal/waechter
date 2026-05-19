@@ -119,7 +119,7 @@ void WResolver::ResolverThreadFunc()
 
 		if (!PendingAddresses.empty())
 		{
-			auto const& Request = PendingAddresses.front();
+			auto Request = PendingAddresses.front(); // copy before pop to keep TPromise's WSharedState alive
 			PendingAddresses.pop();
 
 			if (Request.AddressToResolve.IsZero())
@@ -163,6 +163,7 @@ TPromise<std::string const&> WResolver::Resolve(WIPAddress const& Address)
 		WQueuedRequest  Request{ Address, Promise };
 		std::lock_guard Lock(QueueMutex);
 		PendingAddresses.push(Request);
+		QueueCondition.notify_one();
 	}
 
 	return Promise;
