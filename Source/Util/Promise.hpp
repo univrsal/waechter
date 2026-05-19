@@ -6,32 +6,40 @@
 #pragma once
 #include <functional>
 #include <memory>
-#include <future>
+#include <mutex>
+#include <condition_variable>
 
 template <typename T>
 class TPromise
 {
 	struct WSharedState
 	{
-		std::function<void(T)> Callback;
-		std::promise<void>     CallbackReady;
+		std::function<void(T)>  Callback;
+		std::mutex              Mutex;
+		std::condition_variable CV;
+		bool                    Ready = false;
 	};
 
 	std::shared_ptr<WSharedState> SharedState;
 
 public:
 	TPromise() { SharedState = std::make_shared<WSharedState>(); }
-	virtual ~TPromise() {}
+	virtual ~TPromise() = default;
 
 	void Finish(T const& Result) const
 	{
-		SharedState->CallbackReady.get_future().wait();
+		std::unique_lock Lock(SharedState->Mutex);
+		SharedState->CV.wait(Lock, [this] { return SharedState->Ready; });
 		SharedState->Callback(Result);
 	}
 
 	void Then(std::function<void(T)> Callback)
 	{
-		SharedState->Callback = Callback;
-		SharedState->CallbackReady.set_value();
+		{
+			std::scoped_lock Lock(SharedState->Mutex);
+			SharedState->Callback = Callback;
+			SharedState->Ready = true;
+		}
+		SharedState->CV.notify_one();
 	}
 };
