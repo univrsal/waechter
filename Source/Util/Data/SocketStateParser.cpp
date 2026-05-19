@@ -6,6 +6,7 @@
 #include <sstream>
 #include <dirent.h>
 #include <unordered_map>
+#include <unistd.h>
 
 #include "SocketStateParser.hpp"
 
