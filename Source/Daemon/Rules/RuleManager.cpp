@@ -6,7 +6,7 @@
 #include "RuleManager.hpp"
 
 #include "spdlog/spdlog.h"
-#include "cereal/archives/binary.hpp"
+#include "Messages.hpp"
 
 #include "Daemon.hpp"
 #include "EBPF/EbpfData.hpp"
@@ -273,20 +273,10 @@ void WRuleManager::RegisterSignalHandlers()
 
 void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 {
-	WRuleUpdate       Update{};
-	std::stringstream ss;
-	ss.write(Buf.GetData(), static_cast<long int>(Buf.GetWritePos()));
-	try
+	WRuleUpdate Update{};
+	if (!DeserializeMessage(Buf, Update))
 	{
-		{
-			ss.seekg(1); // Skip message type
-			cereal::BinaryInputArchive iar(ss);
-			iar(Update);
-		}
-	}
-	catch (std::exception const& e)
-	{
-		spdlog::error("Failed to deserialize rule update: {}", e.what());
+		spdlog::error("Failed to deserialize rule update");
 		return;
 	}
 

@@ -18,7 +18,7 @@
 #include "cereal/types/unordered_map.hpp"
 #include "cereal/types/memory.hpp"
 #include "cereal/types/string.hpp"
-#include "cereal/archives/binary.hpp"
+// (cereal/archives/binary.hpp provided via Messages.hpp)
 // ReSharper restore CppUnusedIncludeDirective
 
 #include "Socket.hpp"
@@ -65,27 +65,15 @@ public:
 	template <class T>
 	[[nodiscard]] static std::string MakeMessage(EMessageType Type, T const& Data)
 	{
-		std::stringstream AtlasOs{};
-		{
-			ZoneScopedN("SerializeMessage");
-			AtlasOs << Type;
-			cereal::BinaryOutputArchive AtlasArchive(AtlasOs);
-			AtlasArchive(Data);
-		}
-		return AtlasOs.str();
+		ZoneScopedN("SerializeMessage");
+		return SerializeMessage(Type, Data);
 	}
 
 	template <class T>
 	ssize_t SendMessage(EMessageType Type, T const& Data)
 	{
-		std::stringstream AtlasOs{};
-		{
-			ZoneScopedN("SerializeMessage");
-			AtlasOs << Type;
-			cereal::BinaryOutputArchive AtlasArchive(AtlasOs);
-			AtlasArchive(Data);
-		}
-		auto Sent = SendFramedData(AtlasOs.str());
+		ZoneScopedN("SerializeMessage");
+		auto Sent = SendFramedData(SerializeMessage(Type, Data));
 		if (Sent < 0)
 		{
 			spdlog::error(

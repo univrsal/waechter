@@ -11,9 +11,12 @@
 
 #include "spdlog/spdlog.h"
 #include "spdlog/fmt/fmt.h"
+// ReSharper disable CppUnusedIncludeDirective
 #include "cereal/types/memory.hpp"
 #include "cereal/types/tuple.hpp"
 #include "cereal/types/vector.hpp"
+// (cereal/archives/binary.hpp provided via Socket.hpp)
+// ReSharper restore CppUnusedIncludeDirective
 
 #include "Daemon.hpp"
 #include "NetworkInterface.hpp"
@@ -88,16 +91,7 @@ void WIPLink::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket)
 void WIPLink::OnDataReceived(WBuffer const& Buf)
 {
 	WLookupEndpointsResponseMsg Response{};
-	std::stringstream           ss;
-	ss.write(Buf.GetData(), static_cast<long int>(Buf.GetWritePos()));
-	try
-	{
-		{
-			cereal::BinaryInputArchive iar(ss);
-			iar(Response);
-		}
-	}
-	catch (std::exception const& e)
+	if (!WClientSocket::ReceiveMessage(Buf, Response))
 	{
 		return;
 	}

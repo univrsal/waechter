@@ -11,9 +11,8 @@
 // ReSharper disable CppUnusedIncludeDirective
 #include "cereal/types/vector.hpp"
 #include "cereal/types/memory.hpp"
-#include "cereal/archives/binary.hpp"
+// (cereal/archives/binary.hpp provided via Messages.hpp)
 // ReSharper restore CppUnusedIncludeDirective
-
 #include "Types.hpp"
 #include "Messages.hpp"
 #include "ErrnoUtil.hpp"
@@ -76,13 +75,7 @@ public:
 	template <class T>
 	void SendMessage(EMessageType Type, T const& Data) const
 	{
-		std::stringstream AtlasOs{};
-		{
-			AtlasOs << Type;
-			cereal::BinaryOutputArchive AtlasArchive(AtlasOs);
-			AtlasArchive(Data);
-		}
-		if (!DaemonSocket->SendFramed(AtlasOs.str()))
+		if (!DaemonSocket->SendFramed(SerializeMessage(Type, Data)))
 		{
 			spdlog::error(
 				"Failed to send message of type {} to daemon: {}", static_cast<int>(Type), WErrnoUtil::StrError());
@@ -92,20 +85,6 @@ public:
 	template <class T>
 	static bool ReadMessage(WBuffer const& Buffer, T& OutData)
 	{
-		std::stringstream ss;
-		ss.write(Buffer.GetData(), static_cast<long int>(Buffer.GetWritePos()));
-		{
-			ss.seekg(1); // Skip message type
-			try
-			{
-				cereal::BinaryInputArchive iar(ss);
-				iar(OutData);
-			}
-			catch (std::exception const& e)
-			{
-				return false;
-			}
-		}
-		return true;
+		return DeserializeMessage(Buffer, OutData);
 	}
 };
