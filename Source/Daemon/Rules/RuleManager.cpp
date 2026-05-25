@@ -264,11 +264,11 @@ void WRuleManager::RemoveEmptyRules()
 void WRuleManager::RegisterSignalHandlers()
 {
 	WNetworkEvents::GetInstance().OnSocketConnected.connect(
-		std::bind(&WRuleManager::OnSocketConnected, this, std::placeholders::_1));
+		[this](WSocketCounter const* Socket) { OnSocketConnected(Socket); });
 	WNetworkEvents::GetInstance().OnSocketRemoved.connect(
-		std::bind(&WRuleManager::OnSocketRemoved, this, std::placeholders::_1));
+		[this](std::shared_ptr<WSocketCounter> const& Socket) { OnSocketRemoved(Socket); });
 	WNetworkEvents::GetInstance().OnProcessRemoved.connect(
-		std::bind(&WRuleManager::OnProcessRemoved, this, std::placeholders::_1));
+		[this](std::shared_ptr<WProcessCounter> const& Process) { OnProcessRemoved(Process); });
 }
 
 void WRuleManager::HandleRuleChange(WBuffer const& Buf)
