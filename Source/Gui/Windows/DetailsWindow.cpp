@@ -160,7 +160,7 @@ void WDetailsWindow::DrawSocketDetails() const
 	else
 #endif
 	{
-		ImGui::Text("%s: %s", TR("__socket_type"), SocketTypeToString(Sock->SocketType));
+		ImGui::Text("%s: %s (%i)", TR("__socket_type"), SocketTypeToString(Sock->SocketType), Sock->SocketType);
 	}
 
 	if (Sock->SocketType & ESocketType::Listen && Sock->SocketTuple.Protocol == EProtocol::TCP)
