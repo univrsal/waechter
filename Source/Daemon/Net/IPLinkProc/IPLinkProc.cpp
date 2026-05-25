@@ -301,6 +301,12 @@ int main(int Argc, char** Argv)
 {
 	spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] [tc] %v");
 
+	if (std::getenv("INVOCATION_ID") != nullptr)
+	{
+		// Running under systemd so we don't need the timestamp from spdlog
+		spdlog::set_pattern("[%^%l%$] [tc] %v");
+	}
+
 	if (Argc < 4)
 	{
 		spdlog::error("Usage: waechter-iplink [socket path] [ifb dev] [ingress interface] [main interface]");
