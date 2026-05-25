@@ -21,9 +21,13 @@ bool WConnectionHistoryEntry::Update()
 
 	if (Set->Connections.empty())
 	{
-		// technically we should set this when the socket actually closes, but this is close enough
-		EndTime = WTime::GetEpochSeconds();
-		return true;
+		if (EndTime == 0)
+		{
+			// technically we should set this when the socket actually closes, but this is close enough
+			EndTime = WTime::GetEpochSeconds();
+			return true;
+		}
+		return false;
 	}
 
 	bool bChanged = false;
