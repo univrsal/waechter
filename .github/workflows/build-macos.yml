@@ -81,7 +81,7 @@ jobs:
           MACOS_INSTALLER_SIGNING_IDENTITY: ${{ secrets.MACOS_INSTALLER_SIGNING_IDENTITY }}
 
       - name: Upload Artifacts (PKG)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: waechter-${{ env.SHORT_SHA }}-${{ matrix.target }}-macos
           path: waechter-${{ env.SHORT_SHA }}-${{ matrix.target }}-macos.pkg

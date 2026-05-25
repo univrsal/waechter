@@ -93,7 +93,7 @@ jobs:
           Compress-Archive -Path dist/* -DestinationPath waechter-${{ env.SHORT_SHA }}-amd64-windows.zip
 
       - name: Upload Artifacts (Executable)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: waechter-${{ env.SHORT_SHA }}-amd64-windows
           path: waechter-${{ env.SHORT_SHA }}-amd64-windows.zip
