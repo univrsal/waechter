@@ -37,7 +37,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install dependencies
         run: .github/scripts/ubuntu/install-dependencies.sh
@@ -77,14 +77,14 @@ jobs:
           echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
 
       - name: Upload Artifacts (Installed Files)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: waechter-ubuntu-${{ matrix.arch }}-${{ env.SHORT_SHA }}
           path: artifacts
           if-no-files-found: ignore
 
       - name: Upload Artifacts (DEB Package)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: waechter-deb-${{ matrix.arch }}-${{ env.SHORT_SHA }}
           path: build/*.deb
