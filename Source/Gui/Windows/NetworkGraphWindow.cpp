@@ -214,6 +214,7 @@ void WNetworkGraphWindow::Draw()
 			{
 				// No data to plot
 				ImPlot::EndPlot();
+				ImGui::End();
 				return;
 			}
 
