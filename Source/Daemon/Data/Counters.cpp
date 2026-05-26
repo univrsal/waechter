@@ -55,7 +55,7 @@ void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 		TrafficItem->ConnectionState = ESocketConnectionState::Connected;
 		if (Event.Data.TCPSocketEstablishedEventData.bIsAccept)
 		{
-			TrafficItem->SocketType |= ESocketType::Accept;
+			TrafficItem->SocketType = ESocketType::Accept;
 		}
 		WNetworkEvents::GetInstance().OnSocketConnected(this);
 	}
@@ -72,7 +72,7 @@ void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 		TrafficItem->ConnectionState = ESocketConnectionState::Connected;
 		if (Event.Data.TCPSocketEstablishedEventData.bIsAccept)
 		{
-			TrafficItem->SocketType |= ESocketType::Accept;
+			TrafficItem->SocketType = ESocketType::Accept;
 		}
 		WNetworkEvents::GetInstance().OnSocketConnected(this);
 	}
@@ -114,14 +114,19 @@ void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 	else if (Event.EventType == NE_SocketAccept_4)
 	{
 		TrafficItem->ConnectionState = ESocketConnectionState::Connected;
-		TrafficItem->SocketType = ESocketType::Accept;
 		if (Event.Data.SocketAcceptEventData.Type == SOCK_STREAM)
 		{
 			TrafficItem->SocketTuple.Protocol = EProtocol::TCP;
+			TrafficItem->SocketType = ESocketType::Accept;
 		}
 		else if (Event.Data.SocketAcceptEventData.Type == SOCK_DGRAM)
 		{
 			TrafficItem->SocketTuple.Protocol = EProtocol::UDP;
+			TrafficItem->SocketType |= ESocketType::Accept;
+		}
+		else
+		{
+			spdlog::error("Unknown socket type in accept event: {}", Event.Data.SocketAcceptEventData.Type);
 		}
 		TrafficItem->SocketTuple.RemoteEndpoint.Port =
 			static_cast<uint16_t>(Event.Data.SocketAcceptEventData.DestinationPort);
@@ -135,14 +140,19 @@ void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 	else if (Event.EventType == NE_SocketAccept_6)
 	{
 		TrafficItem->ConnectionState = ESocketConnectionState::Connected;
-		TrafficItem->SocketType = ESocketType::Accept;
 		if (Event.Data.SocketAcceptEventData.Type == SOCK_STREAM)
 		{
 			TrafficItem->SocketTuple.Protocol = EProtocol::TCP;
+			TrafficItem->SocketType = ESocketType::Accept;
 		}
 		else if (Event.Data.SocketAcceptEventData.Type == SOCK_DGRAM)
 		{
 			TrafficItem->SocketTuple.Protocol = EProtocol::UDP;
+			TrafficItem->SocketType |= ESocketType::Accept;
+		}
+		else
+		{
+			spdlog::error("Unknown socket type in accept event: {}", Event.Data.SocketAcceptEventData.Type);
 		}
 		TrafficItem->SocketTuple.RemoteEndpoint.Port =
 			static_cast<uint16_t>(Event.Data.SocketAcceptEventData.DestinationPort);
