@@ -64,6 +64,7 @@ target_link_libraries(waechter PRIVATE
         thirdparty::flags
         thirdparty::sigslot
         thirdparty::cereal
+        thirdparty::traycon
         waechter::util
 )
 
@@ -95,7 +96,6 @@ else ()
             SDL2::SDL2
             thirdparty::glad
             thirdparty::tracy
-            thirdparty::traycon
     )
 endif ()
 
