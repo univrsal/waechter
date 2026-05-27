@@ -1,4 +1,0 @@
-# For formatting tony table examples
-BasedOnStyle : "Chromium"
-
-ColumnLimit: 50

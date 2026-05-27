@@ -7,7 +7,7 @@ add_subdirectory(json11)
 add_subdirectory(inih)
 
 if (WAECHTER_BUILD_DAEMON)
-    add_subdirectory(sqlpp23)
+    add_subdirectory(sqlpp11)
 endif()
 
 if (WAECHTER_BUILD_CLIENT)
@@ -37,5 +37,5 @@ target_include_directories(deps_includes SYSTEM INTERFACE
         ${CMAKE_SOURCE_DIR}/Thirdparty/spdlog/include
         ${CMAKE_SOURCE_DIR}/Thirdparty/cereal/include
         ${CMAKE_SOURCE_DIR}/Thirdparty/sigslot/include
-        ${CMAKE_SOURCE_DIR}/Thirdparty/sqlpp23/include
+        ${CMAKE_SOURCE_DIR}/Thirdparty/sqlpp11/include
 )

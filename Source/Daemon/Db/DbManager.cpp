@@ -7,7 +7,7 @@
 
 #include <memory>
 
-#include "sqlpp23/sqlite3/sqlite3.h"
+#include "sqlpp11/sqlite3/sqlite3.h"
 
 void WDbManager::Initialize()
 {
@@ -17,5 +17,5 @@ void WDbManager::Initialize()
 
 	// Create a connection
 	sqlpp::sqlite3::connection db;
-	db.connect_using(config); // This can throw an exception.
+	db.connectUsing(config); // This can throw an exception.
 }
