@@ -30,7 +30,8 @@ def output_to_cpp(arrays: list[str], defs: list[str], output_path: str):
 if __name__ == "__main__":
 
     input_files = [
-        ("../../Thirdparty/jetbrains-mono/JetBrainsMono-Regular.ttf", "Font"),
+        ("../../Thirdparty/jetbrains-mono/JetBrainsMono-Regular.ttf", "JetBrainsMono"),
+        ("../../Thirdparty/adwaita-sans/AdwaitaSans-Regular.ttf", "AdwaitaSans"),
         ("../../Thirdparty/cereal/LICENSE.txt", "CerealLicense"),
         ("../../Thirdparty/flags/LICENSE.txt", "FlagsLicense"),
         ("../../Thirdparty/glad/LICENSE.txt", "GladLicense"),
@@ -44,6 +45,7 @@ if __name__ == "__main__":
         ("../../Thirdparty/stb/LICENSE.txt", "StbLicense"),
         ("../../Thirdparty/tracy/LICENSE.txt", "TracyLicense"),
         ("../../Thirdparty/traycon/LICENSE.txt", "TrayconLicense"),
+        ("../../Thirdparty/adwaita-sans/LICENSE.txt", "AdwaitaSansLicense"),
         ("../../Thirdparty/jetbrains-mono/LICENSE.txt", "JetbrainsMonoLicense"),
         ("../../Thirdparty/flags/atlas.png", "FlagAtlas"),
         ("../../LICENSE", "WaechterLicense"),

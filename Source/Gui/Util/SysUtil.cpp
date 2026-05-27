@@ -21,6 +21,8 @@
 #include "imgui_impl_opengl3.h"
 #include "spdlog/spdlog.h"
 #include "Settings.hpp"
+#include "Assets.hpp"
+#include "Windows/SdlWindow.hpp"
 
 bool WSysUtil::IsUsingDarkTheme()
 {
@@ -248,18 +250,20 @@ void WSysUtil::UpdateImGuiScale(float CurrentScale, float NewScale)
 		Cfg.PixelSnapH = true;
 		Cfg.FontDataOwnedByAtlas = false;
 		
-		// Get font data from the existing font if available
-		extern unsigned char const GFontData[];
-		extern unsigned int const GFontSize;
-
 		// Base font size is 13.0f (same as in SdlWindow.cpp Init)
-		float FontSize = std::round(15.0f * NewScale);
+		float FontSize = std::round(14.0f * NewScale);
 		spdlog::info("Setting font size to {:.1f} for scale {:.2f}", FontSize, NewScale);
-		
-		auto NonConstFontData = const_cast<unsigned char*>(GFontData);
-		auto* FontData = Io.Fonts->AddFontFromMemoryTTF(NonConstFontData, static_cast<int>(GFontSize), FontSize, &Cfg);
+
+		auto  NonConstFontData = const_cast<unsigned char*>(GAdwaitaSansData);
+		auto* FontData =
+			Io.Fonts->AddFontFromMemoryTTF(NonConstFontData, static_cast<int>(GAdwaitaSansSize), FontSize, &Cfg);
 		Io.FontDefault = FontData;
-		
+
+		auto  NonConstMonoFontData = const_cast<unsigned char*>(GJetBrainsMonoData);
+		auto* MonoFontData =
+			Io.Fonts->AddFontFromMemoryTTF(NonConstMonoFontData, static_cast<int>(GJetBrainsMonoSize), FontSize, &Cfg);
+		WSdlWindow::GetInstance().SetMonoFont(MonoFontData);
+
 		// Build font atlas - ImGui_ImplOpenGL3_NewFrame will recreate device objects automatically
 		Io.Fonts->Build();
 	}

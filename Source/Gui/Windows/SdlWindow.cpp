@@ -289,10 +289,16 @@ bool WSdlWindow::Init()
 	Cfg.FontDataOwnedByAtlas = false; // font data comes from static incbin; do not let ImGui free it
 
 	auto FontSize = std::round(14.0f * MainScale);
-	auto NonConstFontData = const_cast<unsigned char*>(GFontData);
+	auto NonConstFontData = const_cast<unsigned char*>(GAdwaitaSansData);
 
-	auto* FontData = Io.Fonts->AddFontFromMemoryTTF(NonConstFontData, static_cast<int>(GFontSize), FontSize, &Cfg);
+	auto* FontData =
+		Io.Fonts->AddFontFromMemoryTTF(NonConstFontData, static_cast<int>(GAdwaitaSansSize), FontSize, &Cfg);
 	Io.FontDefault = FontData;
+
+	auto  NonConstMonoFontData = const_cast<unsigned char*>(GJetBrainsMonoData);
+	auto* MonoFontData =
+		Io.Fonts->AddFontFromMemoryTTF(NonConstMonoFontData, static_cast<int>(GJetBrainsMonoSize), FontSize, &Cfg);
+	MonoFont = MonoFontData;
 
 	// Setup Dear ImGui style
 	if (WSettings::GetInstance().bUseDarkTheme)

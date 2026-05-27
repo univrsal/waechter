@@ -1,6 +1,9 @@
 #pragma once
-extern unsigned char const GFontData[];
-extern unsigned int const GFontSize;
+extern unsigned char const GJetBrainsMonoData[];
+extern unsigned int const GJetBrainsMonoSize;
+
+extern unsigned char const GAdwaitaSansData[];
+extern unsigned int const GAdwaitaSansSize;
 
 extern unsigned char const GCerealLicenseData[];
 extern unsigned int const GCerealLicenseSize;
@@ -40,6 +43,9 @@ extern unsigned int const GTracyLicenseSize;
 
 extern unsigned char const GTrayconLicenseData[];
 extern unsigned int const GTrayconLicenseSize;
+
+extern unsigned char const GAdwaitaSansLicenseData[];
+extern unsigned int const GAdwaitaSansLicenseSize;
 
 extern unsigned char const GJetbrainsMonoLicenseData[];
 extern unsigned int const GJetbrainsMonoLicenseSize;

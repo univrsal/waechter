@@ -22,6 +22,7 @@ class WSdlWindow : public TSingleton<WSdlWindow>
 	SDL_GLContext GlContext{};
 	float         MainScale{ 1.0f };
 	bool          bShouldClose{ false };
+	ImFont*       MonoFont{};
 
 	std::unique_ptr<WMainWindow> MainWindow{};
 
@@ -55,6 +56,9 @@ public:
 
 	[[nodiscard]] float GetMainScale() const { return MainScale; }
 	void  SetMainScale(float Scale) { MainScale = Scale; }
+
+	[[nodiscard]] ImFont* GetMonoFont() const { return MonoFont; }
+	void  SetMonoFont(ImFont* Font) { MonoFont = Font; }
 
 	void RequestClose() { bShouldClose = true; }
 

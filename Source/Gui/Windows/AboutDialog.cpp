@@ -36,6 +36,8 @@ WAboutDialog::WAboutDialog()
 		"stb", "https://github.com/nothings/stb", MakeString(GStbLicenseData, GStbLicenseSize));
 	ThirdPartyLibraries.emplace_back("JetBrains Mono", "https://www.jetbrains.com/lp/mono/",
 		MakeString(GJetbrainsMonoLicenseData, GJetbrainsMonoLicenseSize));
+	ThirdPartyLibraries.emplace_back("AdwaitaSans Regular", "https://github.com/GNOME/adwaita-fonts",
+		MakeString(GAdwaitaSansLicenseData, GAdwaitaSansLicenseSize));
 	ThirdPartyLibraries.emplace_back(
 		"cereal", "https://github.com/USCiLab/cereal", MakeString(GCerealLicenseData, GCerealLicenseSize));
 	ThirdPartyLibraries.emplace_back(
