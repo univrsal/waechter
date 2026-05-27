@@ -32,9 +32,16 @@ find_package(SQLite3 REQUIRED)
 target_include_directories(waechterd PRIVATE ${LIBBPF_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(waechterd PRIVATE ${LIBBPF_LIBRARIES}
         waechter::util thirdparty::spdlog thirdparty::inih thirdparty::json11 thirdparty::cereal thirdparty::deps_includes
-        thirdparty::tracy SQLite3::SQLite3
+        thirdparty::tracy
         ebpf_includes
 )
+
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.23")
+    target_link_libraries(waechterd PRIVATE SQLite3::SQLite3)
+else ()
+    target_link_libraries(waechterd PRIVATE SQLite::SQLite3)
+endif ()
+
 add_dependencies(waechterd bpfobj)
 
 add_subdirectory(Net)
