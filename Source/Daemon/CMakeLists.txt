@@ -36,7 +36,7 @@ target_link_libraries(waechterd PRIVATE ${LIBBPF_LIBRARIES}
         ebpf_includes
 )
 
-if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.23")
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "4.3.2")
     target_link_libraries(waechterd PRIVATE SQLite3::SQLite3)
 else ()
     target_link_libraries(waechterd PRIVATE SQLite::SQLite3)
