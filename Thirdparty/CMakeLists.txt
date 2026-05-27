@@ -6,6 +6,7 @@ add_subdirectory(stb)
 add_subdirectory(json11)
 add_subdirectory(inih)
 add_subdirectory(traycon)
+add_subdirectory(sqlpp23)
 
 if (WAECHTER_BUILD_CLIENT)
     add_subdirectory(flags)
@@ -33,4 +34,5 @@ target_include_directories(deps_includes SYSTEM INTERFACE
         ${CMAKE_SOURCE_DIR}/Thirdparty/spdlog/include
         ${CMAKE_SOURCE_DIR}/Thirdparty/cereal/include
         ${CMAKE_SOURCE_DIR}/Thirdparty/sigslot/include
+        ${CMAKE_SOURCE_DIR}/Thirdparty/sqlpp23/include
 )
