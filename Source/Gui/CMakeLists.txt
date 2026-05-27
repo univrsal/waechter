@@ -64,8 +64,6 @@ target_link_libraries(waechter PRIVATE
         thirdparty::flags
         thirdparty::sigslot
         thirdparty::cereal
-        thirdparty::tracy
-        thirdparty::traycon
         waechter::util
 )
 
@@ -96,6 +94,8 @@ else ()
     target_link_libraries(waechter PRIVATE CURL::libcurl ZLIB::ZLIB
             SDL2::SDL2
             thirdparty::glad
+            thirdparty::tracy
+            thirdparty::traycon
     )
 endif ()
 
