@@ -410,7 +410,7 @@ static std::string GetSocketName(WSocketItem* Socket)
 		}
 		if (!Socket->SocketTuple.LocalEndpoint.Address.IsZero())
 		{
-			return std::format("{}", Socket->SocketTuple.LocalEndpoint.ToString());
+			return std::format("{} →", Socket->SocketTuple.LocalEndpoint.ToString());
 		}
 	}
 	if (Socket->SocketType == ESocketType::Accept)
