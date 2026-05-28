@@ -5,17 +5,24 @@
 
 #include "DbManager.hpp"
 
-#include <memory>
+#include <stdexcept>
 
-#include "sqlpp11/sqlite3/sqlite3.h"
-
-void WDbManager::Initialize()
+void WDbManager::Initialize(EDbBackend backend, std::string const& path)
 {
-	auto config = std::make_shared<sqlpp::sqlite3::connection_config>();
-	config->path_to_database = ":memory:";
-	config->flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+	Conn = IDbConnection::Create(backend, path);
+	Conn->Connect();
+}
 
-	// Create a connection
-	sqlpp::sqlite3::connection db;
-	db.connectUsing(config); // This can throw an exception.
+IDbConnection& WDbManager::Connection()
+{
+	if (!Conn)
+		throw std::runtime_error("WDbManager: not initialized");
+	return *Conn;
+}
+
+IDbConnection const& WDbManager::Connection() const
+{
+	if (!Conn)
+		throw std::runtime_error("WDbManager: not initialized");
+	return *Conn;
 }
