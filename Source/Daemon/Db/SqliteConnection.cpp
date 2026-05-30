@@ -17,12 +17,12 @@ std::unique_ptr<IDbConnection> IDbConnection::Create(EDbBackend Backend, std::st
 	throw std::invalid_argument("Unsupported database backend");
 }
 
-SqliteConnection::SqliteConnection(std::string const& path) : m_Path(path) {}
+SqliteConnection::SqliteConnection(std::string const& ConnectionString) : DbPath(ConnectionString) {}
 
 void SqliteConnection::Connect()
 {
 	auto Config = std::make_shared<sqlpp::sqlite3::connection_config>();
-	Config->path_to_database = m_Path;
+	Config->path_to_database = DbPath;
 	Config->flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
 	Conn.connectUsing(Config); // throws on failure
 }

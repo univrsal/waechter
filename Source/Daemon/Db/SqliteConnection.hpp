@@ -12,7 +12,7 @@
 class SqliteConnection final : public IDbConnection
 {
 public:
-	explicit SqliteConnection(std::string const& path = ":memory:");
+	explicit SqliteConnection(std::string const& ConnectionString = ":memory:");
 
 	void                     Connect() override;
 	void                     Disconnect() override;
@@ -27,6 +27,6 @@ public:
 	[[nodiscard]] sqlpp::sqlite3::connection const& Get() const { return Conn; }
 
 private:
-	std::string                m_Path;
+	std::string                DbPath;
 	sqlpp::sqlite3::connection Conn;
 };

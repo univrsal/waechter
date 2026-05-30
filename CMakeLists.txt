@@ -70,6 +70,10 @@ install(FILES Meta/Package/waechterd.service
 install(FILES Meta/Package/waechterd.ini
         DESTINATION etc/waechter)
 
+install(DIRECTORY Meta/Database/Migrations/
+        DESTINATION etc/waechterd/migrations
+        FILES_MATCHING PATTERN "*.sql")
+
 # CPack configuration for .deb packages
 set(CPACK_GENERATOR "DEB")
 set(CPACK_PACKAGE_NAME "waechter")

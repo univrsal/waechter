@@ -57,3 +57,8 @@ target_compile_definitions(waechterd PRIVATE
 
 install(TARGETS waechterd
         RUNTIME DESTINATION bin)
+
+add_custom_command(TARGET waechterd POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/Meta/Database/Migrations
+        ${CMAKE_CURRENT_BINARY_DIR}/migrations)

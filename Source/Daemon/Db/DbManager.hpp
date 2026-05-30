@@ -12,7 +12,7 @@
 #include <memory>
 #include <stdexcept>
 
-class WDbManager final : TSingleton<WDbManager>
+class WDbManager final : public TSingleton<WDbManager>
 {
 public:
 	void Initialize(EDbBackend backend = EDbBackend::SQLite, std::string const& path = ":memory:");

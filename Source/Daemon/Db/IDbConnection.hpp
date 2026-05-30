@@ -16,6 +16,17 @@ enum class EDbBackend
 class IDbConnection
 {
 public:
+	static char const* BackendToString(EDbBackend backend)
+	{
+		switch (backend)
+		{
+			case EDbBackend::SQLite:
+				return "SQLite";
+			default:
+				return "Unknown";
+		}
+	}
+
 	virtual ~IDbConnection() = default;
 
 	virtual void Connect() = 0;
