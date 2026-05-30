@@ -15,6 +15,8 @@
 #include "Time.hpp"
 #include "Data/SystemMap.hpp"
 
+#include <tracy/Tracy.hpp>
+
 WMemoryStat WStatsManager::GetMemoryUsage()
 {
 	std::scoped_lock Lock(DataMutex);
@@ -63,6 +65,7 @@ void WStatsManager::MakeSnapshot()
 
 	std::vector<Db::Schema::TrafficEvent> Events;
 	{
+		ZoneScopedN("MakeSnapshot - Prepare events");
 		std::scoped_lock Lock(DataMutex);
 
 		for (auto const& [AppId, AppStats] : CurrentSnapshot.Apps)
@@ -83,17 +86,27 @@ void WStatsManager::MakeSnapshot()
 
 					auto AppResult =
 						DbConn(sqlpp::select(App.ID).from(App).where(App.BinaryPath == AppItem->ApplicationPath));
-					if (AppResult.empty())
-						NewEvent.AppID = DbConn(sqlpp::insert_into(App).set(App.BinaryPath = AppItem->ApplicationPath));
-					else
-						NewEvent.AppID = AppResult.front().ID.value();
 
-					auto IPStr = IP.ToString();
-					auto HostResult = DbConn(sqlpp::select(Host.ID).from(Host).where(Host.IPAddress == IPStr));
-					if (HostResult.empty())
-						NewEvent.HostID = DbConn(sqlpp::insert_into(Host).set(Host.IPAddress = IPStr));
+					if (AppResult.empty())
+					{
+						NewEvent.AppID = DbConn(sqlpp::insert_into(App).set(App.BinaryPath = AppItem->ApplicationPath));
+					}
 					else
+					{
+						NewEvent.AppID = AppResult.front().ID.value();
+					}
+
+					auto const IPStr = IP.ToString();
+					auto const HostResult = DbConn(sqlpp::select(Host.ID).from(Host).where(Host.IPAddress == IPStr));
+
+					if (HostResult.empty())
+					{
+						NewEvent.HostID = DbConn(sqlpp::insert_into(Host).set(Host.IPAddress = IPStr));
+					}
+					else
+					{
 						NewEvent.HostID = HostResult.front().ID.value();
+					}
 				});
 				NewEvent.SnapshotID = SnapshotID;
 				NewEvent.BytesIn = Traffic.BytesIn;
