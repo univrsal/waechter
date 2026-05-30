@@ -21,6 +21,8 @@ class WDaemon : public TSingleton<WDaemon>, public IMemoryTrackable
 
 	void PeriodicUpdatesThreadFunction() const;
 
+	void BroadcastUpdates() const;
+
 public:
 	WDaemon();
 	bool        InitEbpfObj();

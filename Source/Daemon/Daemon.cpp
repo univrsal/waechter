@@ -17,6 +17,7 @@
 #include "Data/AppIconAtlasBuilder.hpp"
 #include "Data/ConnectionHistory.hpp"
 #include "Data/SystemMap.hpp"
+#include "Db/StatsManager.hpp"
 #include "EBPF/EbpfData.hpp"
 #include "Rules/RuleManager.hpp"
 
@@ -36,62 +37,70 @@ void WDaemon::EbpfPollThreadFunction()
 	}
 }
 
+void WDaemon::BroadcastUpdates() const
+{
+	if (!DaemonSocket->HasClients())
+	{
+		return;
+	}
+	if (WSystemMap::GetInstance().HasNewData())
+	{
+		ZoneScopedN("BroadcastTrafficUpdate");
+		DaemonSocket->BroadcastTrafficUpdate();
+	}
+	if (WAppIconAtlasBuilder::GetInstance().IsDirty())
+	{
+		ZoneScopedN("BroadcastAtlasUpdate");
+		DaemonSocket->BroadcastAtlasUpdate();
+	}
+
+	{
+		ZoneScopedN("WConnectionHistory::Update");
+		WConnectionHistoryUpdate Updates{};
+		{
+			std::scoped_lock SystemMapLock(WSystemMap::GetInstance().DataMutex);
+			Updates = WConnectionHistory::GetInstance().Update();
+		}
+		if (!Updates.Changes.empty())
+		{
+			DaemonSocket->BroadcastConnectionHistoryUpdate(Updates);
+		}
+	}
+}
+
 void WDaemon::PeriodicUpdatesThreadFunction() const
 {
 	tracy::SetThreadName("periodic-updates");
 	pthread_setname_np(pthread_self(), "per-updates");
 
 	auto const& SignalHandler = WSignalHandler::GetInstance();
-	int         Counter = 0;
+	auto&       TimerManager = WTimerManager::GetInstance();
+	double      Time = 0;
+
+	TimerManager.Start(Time);
+	TimerManager.AddTimer(1, [this] {
+		ZoneScopedN("RefreshAllTrafficCounters");
+		WSystemMap::GetInstance().RefreshAllTrafficCounters();
+		BroadcastUpdates();
+	});
+	TimerManager.AddTimer(5, [this] {
+		if (!DaemonSocket->HasClients())
+		{
+			return;
+		}
+		ZoneScopedN("BroadcastMemoryUsageUpdate");
+		DaemonSocket->BroadcastMemoryUsageUpdate();
+	});
+	TimerManager.AddAlignedTimer(60 * 60, [] { WStatsManager::GetInstance().MakeSnapshot(); });
+
 	while (!SignalHandler.bStop)
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		Time += 0.1;
+		TimerManager.UpdateTimers(Time);
 		if (SignalHandler.bStop)
 		{
 			break;
-		}
-
-		Counter++;
-
-		{
-			ZoneScopedN("RefreshAllTrafficCounters");
-			WSystemMap::GetInstance().RefreshAllTrafficCounters();
-		}
-		if (!DaemonSocket->HasClients())
-		{
-			continue;
-		}
-
-		if (WSystemMap::GetInstance().HasNewData())
-		{
-			ZoneScopedN("BroadcastTrafficUpdate");
-			DaemonSocket->BroadcastTrafficUpdate();
-		}
-
-		if (Counter >= 5)
-		{
-			ZoneScopedN("BroadcastMemoryUsageUpdate");
-			Counter = 0;
-			DaemonSocket->BroadcastMemoryUsageUpdate();
-		}
-
-		{
-			ZoneScopedN("WConnectionHistory::Update");
-			WConnectionHistoryUpdate Updates{};
-			{
-				std::scoped_lock SystemMapLock(WSystemMap::GetInstance().DataMutex);
-				Updates = WConnectionHistory::GetInstance().Update();
-			}
-			if (!Updates.Changes.empty())
-			{
-				DaemonSocket->BroadcastConnectionHistoryUpdate(Updates);
-			}
-		}
-
-		if (WAppIconAtlasBuilder::GetInstance().IsDirty())
-		{
-			ZoneScopedN("BroadcastAtlasUpdate");
-			DaemonSocket->BroadcastAtlasUpdate();
 		}
 	}
 }
