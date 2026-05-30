@@ -5,9 +5,13 @@ add_subdirectory(tracy)
 add_subdirectory(stb)
 add_subdirectory(json11)
 add_subdirectory(inih)
-add_subdirectory(traycon)
+
+if (WAECHTER_BUILD_DAEMON)
+    add_subdirectory(sqlpp11)
+endif()
 
 if (WAECHTER_BUILD_CLIENT)
+    add_subdirectory(traycon)
     add_subdirectory(flags)
     if (NOT EMSCRIPTEN)
         find_package(SDL2 REQUIRED)
@@ -33,4 +37,5 @@ target_include_directories(deps_includes SYSTEM INTERFACE
         ${CMAKE_SOURCE_DIR}/Thirdparty/spdlog/include
         ${CMAKE_SOURCE_DIR}/Thirdparty/cereal/include
         ${CMAKE_SOURCE_DIR}/Thirdparty/sigslot/include
+        ${CMAKE_SOURCE_DIR}/Thirdparty/sqlpp11/include
 )

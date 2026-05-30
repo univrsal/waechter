@@ -11,6 +11,7 @@
 #include "DaemonConfig.hpp"
 #include "Data/ConnectionHistory.hpp"
 #include "Data/SystemMap.hpp"
+#include "Db/DbManager.hpp"
 #include "EBPF/WaechterEbpf.hpp"
 #include "Net/Resolver.hpp"
 #include "Net/IPLink.hpp"
@@ -53,6 +54,7 @@ int main()
 		spdlog::error("Failed to drop privileges");
 		return -1;
 	}
+	WDbManager::GetInstance().Initialize(EDbBackend::SQLite);
 	WResolver::GetInstance().Start();
 
 	WDaemon::RegisterSignalHandlers();

@@ -1,0 +1,30 @@
+CREATE TABLE IF NOT EXISTS "Application" (
+	"ID"	INTEGER,
+	"BinaryPath"	TEXT NOT NULL,
+	PRIMARY KEY("ID")
+);
+CREATE TABLE IF NOT EXISTS "Host" (
+	"ID"	INTEGER,
+	"IPAddress"	TEXT NOT NULL,
+	PRIMARY KEY("ID")
+);
+CREATE TABLE IF NOT EXISTS "Migration" (
+	"Version"	INTEGER,
+	"AppliedAt"	INTEGER NOT NULL DEFAULT (unixepoch()),
+	PRIMARY KEY("Version")
+);
+CREATE TABLE IF NOT EXISTS "TrafficEvent" (
+	"ID"	INTEGER,
+	"SnapshotID"	INTEGER NOT NULL,
+	"AppID"	INTEGER NOT NULL,
+	"BytesIn"	INTEGER NOT NULL,
+	"BytesOut"	INTEGER NOT NULL,
+	PRIMARY KEY("ID"),
+	FOREIGN KEY("AppID") REFERENCES "Application"("ID"),
+	FOREIGN KEY("SnapshotID") REFERENCES "TrafficSnapshot"("ID")
+);
+CREATE TABLE IF NOT EXISTS "TrafficSnapshot" (
+	"ID"	INTEGER,
+	"Start"	INTEGER DEFAULT (unixepoch()),
+	PRIMARY KEY("ID")
+);

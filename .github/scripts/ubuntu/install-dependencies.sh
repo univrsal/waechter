@@ -21,6 +21,7 @@ sudo apt-get install -y \
   libsdl2-dev \
   libgl1-mesa-dev \
   libwayland-dev wayland-protocols libxkbcommon-dev \
+  libsqlite3-dev \
   ccache
 
 echo "Dependencies installed successfully!"

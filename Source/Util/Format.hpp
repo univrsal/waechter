@@ -63,6 +63,16 @@ public:
 		Result.push_back(Str.substr(Start));
 		return Result;
 	}
+
+	static bool StartsWith(std::string const& Str, std::string const& Prefix)
+	{
+		return Str.size() >= Prefix.size() && Str.compare(0, Prefix.size(), Prefix) == 0;
+	}
+
+	static bool EndsWith(std::string const& Str, std::string const& Suffix)
+	{
+		return Str.size() >= Suffix.size() && Str.compare(Str.size() - Suffix.size(), Suffix.size(), Suffix) == 0;
+	}
 };
 
 class WTimeFormat
