@@ -47,6 +47,8 @@ if __name__ == "__main__":
         ("../../Thirdparty/traycon/LICENSE.txt", "TrayconLicense"),
         ("../../Thirdparty/adwaita-sans/LICENSE.txt", "AdwaitaSansLicense"),
         ("../../Thirdparty/jetbrains-mono/LICENSE.txt", "JetbrainsMonoLicense"),
+        ("../../Thirdparty/sqlpp11/LICENSE.txt", "Sqlpp11License"),
+        ("../../Thirdparty/date/LICENSE.txt", "DateLicense"),
         ("../../Thirdparty/flags/atlas.png", "FlagAtlas"),
         ("../../LICENSE", "WaechterLicense"),
         ("../I18n/de_DE.json", "de_DE"),

@@ -112,18 +112,10 @@ if(BUILD_POSTGRESQL_CONNECTOR)
 endif()
 
 ### Packaging
-install(PROGRAMS ${PROJECT_SOURCE_DIR}/scripts/ddl2cpp
-    RENAME sqlpp11-ddl2cpp
-    DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
 
 write_basic_package_version_file(Sqlpp11ConfigVersion.cmake
     COMPATIBILITY SameMajorVersion
     ARCH_INDEPENDENT
-)
-
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Sqlpp11ConfigVersion.cmake
-    DESTINATION ${SQLPP11_INSTALL_CMAKEDIR}
 )
 
 install_component(NAME Sqlpp11 TARGETS sqlpp11 DIRECTORY)
@@ -135,25 +127,14 @@ endif()
 if(BUILD_SQLCIPHER_CONNECTOR)
     install_component(NAME Sqlpp11SQLCipher TARGETS sqlpp11_sqlcipher DIRECTORY sqlite3)
 
-    install(FILES ${PROJECT_SOURCE_DIR}/cmake/modules/FindSQLCipher.cmake
-        DESTINATION ${SQLPP11_INSTALL_CMAKEDIR}
-    )
 endif()
 
 if(BUILD_MYSQL_CONNECTOR)
     install_component(NAME Sqlpp11MySQL TARGETS sqlpp11_mysql DIRECTORY mysql)
-
-    install(FILES ${PROJECT_SOURCE_DIR}/cmake/modules/FindMySQL.cmake
-        DESTINATION ${SQLPP11_INSTALL_CMAKEDIR}
-    )
 endif()
 
 if(BUILD_MARIADB_CONNECTOR)
     install_component(NAME Sqlpp11MariaDB TARGETS sqlpp11_mariadb DIRECTORY mysql)
-
-    install(FILES ${PROJECT_SOURCE_DIR}/cmake/modules/FindMariaDB.cmake
-        DESTINATION ${SQLPP11_INSTALL_CMAKEDIR}
-    )
 endif()
 
 if(BUILD_POSTGRESQL_CONNECTOR)
