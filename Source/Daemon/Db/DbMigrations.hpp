@@ -24,7 +24,7 @@
 // Migration files are loaded at runtime from the first migrations directory
 // that contains applicable files.  Search order:
 //   1. ./migrations/
-//   2. /etc/waechterd/migrations/
+//   2. /usr/share/waechter/migrations/
 //
 // File naming convention:  NNNN_description[.backend].sql
 //   *.sqlite.sql   → applied only when the active backend is SQLite
@@ -64,7 +64,7 @@ class WDbMigrations
 	{
 		static constexpr char const* kSearchPaths[] = {
 			"./migrations",
-			"/etc/waechter/migrations",
+			"/usr/share/waechter/migrations",
 		};
 
 		EDbBackend const    DbBackend = Db.Backend();
@@ -126,8 +126,8 @@ class WDbMigrations
 		{
 			if (!AnyDirFound)
 			{
-				spdlog::critical("DbMigrations: no migrations directory found "
-								 "(searched ./migrations and /etc/waechter/migrations)");
+			spdlog::critical("DbMigrations: no migrations directory found "
+							 "(searched ./migrations and /usr/share/waechter/migrations)");
 			}
 			spdlog::critical("DbMigrations: migrations directory found but contains no applicable "
 							 "migration files for the active backend");
