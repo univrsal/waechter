@@ -25,6 +25,8 @@ enum EMessageType : int8_t
 	MT_MemoryStats,
 	MT_ResolveRequest,
 	MT_ResolveResponse,
+	MT_StatsRequest,
+	MT_StatsResponse,
 
 	MT_Count
 };
