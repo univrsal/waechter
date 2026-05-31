@@ -100,7 +100,7 @@ void WDetailsWindow::DrawSystemDetails() const
 	{
 		WStatsRequest Request{};
 		Request.Target = "system";
-		Request.StartTime = WTime::GetEpochHours() - 60 * 60;
+		Request.StartTime = WTime::GetEpochHours() - 60 * 60 * 24;
 		Request.EndTime = WTime::GetEpochHours();
 		WSdlWindow::GetInstance().GetMainWindow()->OpenStatsWindow(Request);
 	}

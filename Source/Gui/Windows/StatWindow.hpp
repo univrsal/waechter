@@ -8,6 +8,14 @@
 
 #include "Data/Stats.hpp"
 
+enum class ETimeFrame : int
+{
+	Last24Hours = 0,
+	Last7Days   = 1,
+	LastMonth   = 2,
+	LastYear    = 3,
+};
+
 class WStatWindow
 {
 	std::mutex     DataMutex;
@@ -15,6 +23,10 @@ class WStatWindow
 	WStatsResponse Response{};
 	std::string    Title;
 	bool           bOpen{ true };
+	ETimeFrame     CurrentTimeFrame{ ETimeFrame::Last24Hours };
+
+	void ApplyTimeFrame(ETimeFrame TimeFrame);
+	void UpdateTitle();
 
 public:
 	explicit WStatWindow(WStatsRequest const& InRequest);
