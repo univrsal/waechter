@@ -64,7 +64,7 @@ class WDbMigrations
 	{
 		static constexpr char const* kSearchPaths[] = {
 			"./migrations",
-			"/etc/waechterd/migrations",
+			"/etc/waechter/migrations",
 		};
 
 		EDbBackend const    DbBackend = Db.Backend();
@@ -127,7 +127,7 @@ class WDbMigrations
 			if (!AnyDirFound)
 			{
 				spdlog::critical("DbMigrations: no migrations directory found "
-								 "(searched ./migrations and /etc/waechterd/migrations)");
+								 "(searched ./migrations and /etc/waechter/migrations)");
 			}
 			spdlog::critical("DbMigrations: migrations directory found but contains no applicable "
 							 "migration files for the active backend");
