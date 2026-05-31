@@ -32,6 +32,14 @@ namespace WTime
 			.count();
 	}
 
+	static int64_t GetEpochHours()
+	{
+		// Adjust down to last full hour
+		return std::chrono::duration_cast<std::chrono::hours>(std::chrono::system_clock::now().time_since_epoch())
+				   .count()
+			* 3600;
+	}
+
 	static std::string FormatTime(long Time)
 	{
 		long Hours = Time / 3600;
