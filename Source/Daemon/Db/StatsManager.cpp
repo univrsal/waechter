@@ -160,6 +160,7 @@ TPromise<WStatsResponse const&> WStatsManager::RequestStats(WStatsRequest const&
 		std::scoped_lock Lock(QueueMutex);
 		PendingRequests.push(std::move(NewRequest));
 	}
+	QueueCondition.notify_one();
 	return Promise;
 }
 
