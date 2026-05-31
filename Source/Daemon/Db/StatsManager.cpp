@@ -306,12 +306,11 @@ void WStatsManager::RequestThreadFunction()
 	{
 		std::unique_lock Lock(QueueMutex);
 		QueueCondition.wait(Lock, [this] { return !PendingRequests.empty() || !bRunning; });
-
 		if (!bRunning && PendingRequests.empty())
 		{
 			break;
 		}
-
+		spdlog::info("Processing stats request, queue size: {}", PendingRequests.size());
 		auto [Request, Promise] = PendingRequests.front();
 		PendingRequests.pop();
 		Lock.unlock();
