@@ -106,6 +106,7 @@ void WResolver::ResolveAddress(WQueuedRequest const& Request)
 void WResolver::ResolverThreadFunc()
 {
 	static std::string Empty = {};
+	pthread_setname_np(pthread_self(), "resolver");
 	tracy::SetThreadName("ResolverThread");
 	while (bRunning)
 	{
