@@ -121,7 +121,7 @@ void WConnectionHistoryWindow::Draw()
 	ImGui::End();
 }
 
-void WConnectionHistoryWindow::Initialize(WBuffer& Update)
+void WConnectionHistoryWindow::Initialize(WBuffer const& Update)
 {
 	std::scoped_lock Lock(Mutex);
 	HistoryItems.clear();
@@ -139,7 +139,7 @@ void WConnectionHistoryWindow::Initialize(WBuffer& Update)
 	}
 }
 
-void WConnectionHistoryWindow::HandleUpdate(WBuffer& Update)
+void WConnectionHistoryWindow::HandleUpdate(WBuffer const& Update)
 {
 	std::scoped_lock Lock(Mutex);
 

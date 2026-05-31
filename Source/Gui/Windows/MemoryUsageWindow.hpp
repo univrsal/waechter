@@ -22,7 +22,7 @@ public:
 	void Draw();
 	void Show() { bVisible = !bVisible; }
 
-	void HandleUpdate(WBuffer& Update)
+	void HandleUpdate(WBuffer const& Update)
 	{
 		std::lock_guard Lock(Mutex);
 		if (WClient::ReadMessage(Update, Stats) == false)

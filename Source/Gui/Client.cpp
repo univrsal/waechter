@@ -69,7 +69,7 @@ void WClient::OnDataReceived(WBuffer& Buf)
 	}
 }
 
-void WClient::HandleHandshake(WBuffer& Buf)
+void WClient::HandleHandshake(WBuffer const& Buf)
 {
 	WProtocolHandshake Handshake{};
 	if (!DeserializeMessage(Buf, Handshake))
