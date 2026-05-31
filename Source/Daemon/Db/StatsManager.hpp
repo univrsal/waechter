@@ -70,4 +70,8 @@ public:
 	void StopRequestProcessThread();
 
 	TPromise<WStatsResponse const&> RequestStats(WStatsRequest const& Request);
+
+#if WDEBUG
+	void PushDebugSnapshots();
+#endif
 };

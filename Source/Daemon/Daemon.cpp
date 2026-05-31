@@ -93,6 +93,10 @@ void WDaemon::PeriodicUpdatesThreadFunction() const
 	});
 	TimerManager.AddAlignedTimer(60 * 60, [] { WStatsManager::GetInstance().MakeSnapshot(); });
 
+#if WDEBUG
+	WStatsManager::GetInstance().PushDebugSnapshots();
+#endif
+
 	while (!SignalHandler.bStop)
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
