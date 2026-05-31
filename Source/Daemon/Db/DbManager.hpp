@@ -14,6 +14,8 @@
 
 class WDbManager final : public TSingleton<WDbManager>
 {
+	std::mutex RunMutex;
+
 public:
 	void Initialize(EDbBackend backend = EDbBackend::SQLite, std::string const& path = ":memory:");
 
@@ -31,6 +33,7 @@ public:
 		{
 			case EDbBackend::SQLite:
 			{
+				std::scoped_lock Lock(RunMutex);
 				auto* conn = static_cast<SqliteConnection*>(Conn.get());
 				return std::forward<Fn>(fn)(conn->Get());
 			}
