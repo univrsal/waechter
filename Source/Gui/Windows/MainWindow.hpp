@@ -12,6 +12,7 @@
 #include "Windows/RegisterDialog.hpp"
 #include "Windows/SettingsWindow.hpp"
 #include "Windows/ConnectionHistoryWindow.hpp"
+#include "Windows/StatWindow.hpp"
 #include "Util/FlagAtlas.hpp"
 
 class WMainWindow
@@ -25,6 +26,8 @@ class WMainWindow
 	WSettingsWindow          SettingsWindow{};
 	WMemoryUsageWindow       MemoryUsageWindow{};
 	WConnectionHistoryWindow ConnectionHistoryWindow{};
+
+	std::vector<std::unique_ptr<WStatWindow>> StatWindows{};
 
 	bool bInit{ false };
 	static void DrawConnectionIndicator();
@@ -44,4 +47,7 @@ public:
 	WFlagAtlas& GetFlagAtlas() { return FlagAtlas; }
 
 	~WMainWindow() = default;
+
+	void OpenStatsWindow(WStatsRequest Request);
+	void HandleStatsResponse(WBuffer const& Buf) const;
 };
