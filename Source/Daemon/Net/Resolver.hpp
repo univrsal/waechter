@@ -36,7 +36,7 @@ class WResolver : public TSingleton<WResolver>, public IMemoryTrackable
 	WBytes                  CurrentCacheRamUsage{ 0 };
 	std::queue<WQueuedRequest> PendingAddresses;
 
-	void ResolveAddress(WQueuedRequest const& Reuqest);
+	void ResolveAddress(WQueuedRequest const& Request);
 
 	void ResolverThreadFunc();
 
