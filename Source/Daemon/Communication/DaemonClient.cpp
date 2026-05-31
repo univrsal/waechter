@@ -14,9 +14,7 @@
 
 void WDaemonClient::OnDataReceived(WBuffer& RecvBuf)
 {
-
-	// Extract the full message
-	auto Type = ReadMessageTypeFromBuffer(RecvBuf);
+	auto const Type = ReadMessageTypeFromBuffer(RecvBuf);
 	if (Type == MT_Invalid)
 	{
 		spdlog::warn("Received invalid message type from daemon client");
@@ -58,6 +56,6 @@ void WDaemonClient::HandleResolveRequest(WBuffer const& Buf)
 			WResolveResponse Response{};
 			Response.AddressToResolve = Request.AddressToResolve;
 			Response.ResolveResult = Hostname;
-			Socket->SendFramed(WDaemonClient::MakeMessage(MT_ResolveResponse, Response));
+			Socket->SendFramed(MakeMessage(MT_ResolveResponse, Response));
 		});
 }
