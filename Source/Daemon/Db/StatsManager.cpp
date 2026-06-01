@@ -61,18 +61,27 @@ void WStatsManager::UpdateAppStats(WTrafficItemId AppId, WIPAddress const& Remot
 
 void WStatsManager::MakeSnapshot()
 {
-	uint64_t SnapshotID{};
-	WDbManager::GetInstance().Run([&](auto& DbConn) {
-		constexpr Db::Schema::TrafficSnapshot Snapshot;
-		SnapshotID = DbConn(sqlpp::insert_into(Snapshot).set(Snapshot.Start = WTime::GetEpochSeconds()));
-	});
-
-	std::vector<Db::Schema::TrafficEvent> Events;
+	spdlog::info("Making traffic snapshot");
+	// Grab current snapshot data and clear it under the lock
+	WTrafficSnapshot LocalSnapshot{};
 	{
-		ZoneScopedN("MakeSnapshot - Prepare events");
+		ZoneScopedN("MakeSnapshot - Swap snapshot");
 		std::scoped_lock Lock(DataMutex);
+		LocalSnapshot = std::move(CurrentSnapshot);
+		CurrentSnapshot = {};
+	}
 
-		for (auto const& [AppId, AppStats] : CurrentSnapshot.Apps)
+	WDbManager::GetInstance().Run([&](auto& DbConn) {
+		ZoneScopedN("MakeSnapshot - DB write");
+		constexpr Db::Schema::TrafficSnapshot TS;
+		constexpr Db::Schema::TrafficEvent    TE;
+		constexpr Db::Schema::Application     App;
+		constexpr Db::Schema::Host            Host;
+
+		int64_t const SnapshotID =
+			static_cast<int64_t>(DbConn(sqlpp::insert_into(TS).set(TS.Start = WTime::GetEpochSeconds())));
+
+		for (auto const& [AppId, AppStats] : LocalSnapshot.Apps)
 		{
 			auto const& TrafficItem = WSystemMap::GetInstance().GetTrafficItemById(AppId);
 			if (!TrafficItem || TrafficItem->GetType() != TI_Application)
@@ -81,54 +90,26 @@ void WStatsManager::MakeSnapshot()
 				break;
 			}
 			auto AppItem = std::dynamic_pointer_cast<WApplicationItem>(TrafficItem);
+
+			auto AppResult = DbConn(sqlpp::select(App.ID).from(App).where(App.BinaryPath == AppItem->ApplicationPath));
+			int64_t const AppID = AppResult.empty()
+				? static_cast<int64_t>(DbConn(sqlpp::insert_into(App).set(App.BinaryPath = AppItem->ApplicationPath)))
+				: AppResult.front().ID.value();
+
 			for (auto const& [IP, Traffic] : AppStats.Traffic)
 			{
-				Db::Schema::TrafficEvent NewEvent{};
-				WDbManager::GetInstance().Run([&](auto& DbConn) {
-					constexpr Db::Schema::Application App;
-					constexpr Db::Schema::Host        Host;
+				auto const    IPStr = IP.ToString();
+				auto const    HostResult = DbConn(sqlpp::select(Host.ID).from(Host).where(Host.IPAddress == IPStr));
+				int64_t const HostID = HostResult.empty()
+					? static_cast<int64_t>(DbConn(sqlpp::insert_into(Host).set(Host.IPAddress = IPStr)))
+					: HostResult.front().ID.value();
 
-					auto AppResult =
-						DbConn(sqlpp::select(App.ID).from(App).where(App.BinaryPath == AppItem->ApplicationPath));
-
-					if (AppResult.empty())
-					{
-						NewEvent.AppID = DbConn(sqlpp::insert_into(App).set(App.BinaryPath = AppItem->ApplicationPath));
-					}
-					else
-					{
-						NewEvent.AppID = AppResult.front().ID.value();
-					}
-
-					auto const IPStr = IP.ToString();
-					auto const HostResult = DbConn(sqlpp::select(Host.ID).from(Host).where(Host.IPAddress == IPStr));
-
-					if (HostResult.empty())
-					{
-						NewEvent.HostID = DbConn(sqlpp::insert_into(Host).set(Host.IPAddress = IPStr));
-					}
-					else
-					{
-						NewEvent.HostID = HostResult.front().ID.value();
-					}
-				});
-				NewEvent.SnapshotID = SnapshotID;
-				NewEvent.BytesIn = Traffic.BytesIn;
-				NewEvent.BytesOut = Traffic.BytesOut;
-				Events.push_back(NewEvent);
+				DbConn(sqlpp::insert_into(TE).set(TE.SnapshotID = SnapshotID, TE.AppID = AppID, TE.HostID = HostID,
+					TE.BytesIn = static_cast<int64_t>(Traffic.BytesIn),
+					TE.BytesOut = static_cast<int64_t>(Traffic.BytesOut)));
 			}
 		}
-	}
-
-	WDbManager::GetInstance().Run([&](auto& DbConn) {
-		constexpr Db::Schema::TrafficEvent Event;
-		for (auto const& E : Events)
-		{
-			DbConn(sqlpp::insert_into(Event).set(Event.SnapshotID = E.SnapshotID, Event.AppID = E.AppID,
-				Event.HostID = E.HostID, Event.BytesIn = E.BytesIn, Event.BytesOut = E.BytesOut));
-		}
 	});
-	CurrentSnapshot.Apps.clear();
 }
 
 void WStatsManager::StartRequestProcessThread()
