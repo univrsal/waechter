@@ -39,6 +39,13 @@ WMemoryStat WStatsManager::GetMemoryUsage()
 
 void WStatsManager::UpdateAppStats(WTrafficItemId AppId, WIPAddress const& RemoteHost, WBytes In, WBytes Out)
 {
+	if (In == 0 && Out == 0)
+	{
+		// We push empty traffic sometimes to update the average to 0, but that is irrelevant for
+		// the stats
+		return;
+	}
+
 	if (CurrentSnapshot.Apps.contains(AppId))
 	{
 		if (auto& [AppTraffic] = CurrentSnapshot.Apps[AppId]; AppTraffic.contains(RemoteHost))
