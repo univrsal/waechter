@@ -17,7 +17,8 @@ class WDbManager final : public TSingleton<WDbManager>
 	std::mutex RunMutex;
 
 public:
-	void Initialize(EDbBackend backend = EDbBackend::SQLite, std::string const& path = ":memory:");
+	void Initialize(
+		EDbBackend backend = EDbBackend::SQLite, std::string const& path = "/var/lib/waechter/waechter.sqlite");
 
 	/// Access the backend-agnostic interface (lifecycle, transactions, raw SQL).
 	IDbConnection&                     Connection();
