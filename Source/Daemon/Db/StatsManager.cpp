@@ -76,6 +76,7 @@ void WStatsManager::MakeSnapshot()
 		std::scoped_lock Lock(DataMutex);
 		LocalSnapshot = std::move(CurrentSnapshot);
 		CurrentSnapshot = {};
+		spdlog::info("Making snapshot of local snapshot: {} apps", LocalSnapshot.Apps.size());
 	}
 
 	WDbManager::GetInstance().Run([&](auto& DbConn) {
@@ -105,6 +106,8 @@ void WStatsManager::MakeSnapshot()
 
 			for (auto const& [IP, Traffic] : AppStats.Traffic)
 			{
+				spdlog::info("Recording traffic event: App '{}', Remote '{}', In {}, Out {}", AppItem->ApplicationPath,
+					IP.ToString(), Traffic.BytesIn, Traffic.BytesOut);
 				auto const    IPStr = IP.ToString();
 				auto const    HostResult = DbConn(sqlpp::select(Host.ID).from(Host).where(Host.IPAddress == IPStr));
 				int64_t const HostID = HostResult.empty()
