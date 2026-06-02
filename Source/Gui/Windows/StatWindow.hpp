@@ -39,4 +39,6 @@ public:
 	}
 
 	[[nodiscard]] uint32_t GetRequestId() const { return Request.RequestId; }
+
+	bool IsOpen() const { return bOpen; }
 };

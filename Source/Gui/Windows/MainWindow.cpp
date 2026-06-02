@@ -199,6 +199,8 @@ void WMainWindow::Draw()
 	{
 		StatWindow->Draw();
 	}
+	std::erase_if(StatWindows, [](auto const& StatWindow) { return !StatWindow->IsOpen(); });
+
 #ifndef __EMSCRIPTEN__
 	WIP2Asn::GetInstance().DrawDownloadProgressWindow();
 #endif

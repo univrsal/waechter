@@ -81,6 +81,10 @@ static constexpr char const* TimeFrameLabels[] = {
 
 void WStatWindow::Draw()
 {
+	if (!bOpen)
+	{
+		return;
+	}
 	if (ImGui::Begin(Title.c_str(), &bOpen, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking))
 	{
 		// Time frame selector
