@@ -73,7 +73,7 @@ void WStatsManager::UpdateAppStats(
 		NewAppStats.Traffic[RemoteHost] = WTrafficStats{ In, Out };
 		CurrentSnapshot.Apps[AppId] = NewAppStats;
 	}
-	spdlog::info("WStatsManager::UpdateAppStats(): AppId={}, ApplicationPath={}, RemoteHost={}, In={}, Out={}", AppId,
+	spdlog::debug("WStatsManager::UpdateAppStats(): AppId={}, ApplicationPath={}, RemoteHost={}, In={}, Out={}", AppId,
 		ApplicationPath, RemoteHost.ToString(), In, Out);
 }
 
@@ -220,9 +220,11 @@ void WStatsManager::ProcessStatsRequest(WStatsRequest const& Request, WStatsResp
 		Buckets[BucketTime] = WStatData{ 0, 0, BucketTime };
 	}
 
-	// Accumulate one database row into the appropriate bucket
+	// Snapshots are written when an interval ends, so their timestamp marks the end of the
+	// sampled range rather than the beginning. Shift by one second before flooring so a
+	// snapshot written exactly on a bucket boundary is attributed to the bucket that just ended.
 	auto Accumulate = [&](WSec const SnapshotStart, WBytes const BytesIn, WBytes const BytesOut) {
-		WSec const Key = GetBucketStart(SnapshotStart);
+		WSec const Key = GetBucketStart(std::max<WSec>(0, SnapshotStart - 1));
 		if (auto const It = Buckets.find(Key); It != Buckets.end())
 		{
 			It->second.In += BytesIn;
@@ -260,7 +262,7 @@ void WStatsManager::ProcessStatsRequest(WStatsRequest const& Request, WStatsResp
 		{
 			auto Rows = DbConn(sqlpp::select(TS.Start, TE.BytesIn, TE.BytesOut)
 					.from(TE.join(TS).on(TE.SnapshotID == TS.ID))
-					.where(TS.Start >= Request.StartTime && TS.Start < Request.EndTime));
+					.where(TS.Start > Request.StartTime && TS.Start <= Request.EndTime));
 			for (auto const& Row : Rows)
 			{
 				Accumulate(Row.Start.value(), static_cast<uint64_t>(Row.BytesIn), static_cast<uint64_t>(Row.BytesOut));
@@ -271,7 +273,7 @@ void WStatsManager::ProcessStatsRequest(WStatsRequest const& Request, WStatsResp
 			constexpr Db::Schema::Application App;
 			auto                              Rows = DbConn(sqlpp::select(TS.Start, TE.BytesIn, TE.BytesOut)
 												 .from(TE.join(TS).on(TE.SnapshotID == TS.ID).join(App).on(TE.AppID == App.ID))
-												 .where(TS.Start >= Request.StartTime && TS.Start < Request.EndTime
+											 .where(TS.Start > Request.StartTime && TS.Start <= Request.EndTime
 													 && App.BinaryPath == Request.Target));
 			for (auto const& Row : Rows)
 			{
@@ -283,7 +285,7 @@ void WStatsManager::ProcessStatsRequest(WStatsRequest const& Request, WStatsResp
 			constexpr Db::Schema::Host Host;
 			auto                       Rows = DbConn(sqlpp::select(TS.Start, TE.BytesIn, TE.BytesOut)
 										  .from(TE.join(TS).on(TE.SnapshotID == TS.ID).join(Host).on(TE.HostID == Host.ID))
-										  .where(TS.Start >= Request.StartTime && TS.Start < Request.EndTime
+									  .where(TS.Start > Request.StartTime && TS.Start <= Request.EndTime
 											  && Host.IPAddress == Request.Target));
 			for (auto const& Row : Rows)
 			{
