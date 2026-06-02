@@ -511,7 +511,8 @@ void WSystemMap::RefreshAllTrafficCounters()
 		{
 			auto const App = Socket->ParentProcess->ParentApp;
 			WStatsManager::GetInstance().UpdateAppStats(App->TrafficItem->ItemId,
-				Socket->TrafficItem->SocketTuple.RemoteEndpoint.Address, Socket->GetRecentDownload(),
+				App->TrafficItem->ApplicationPath, Socket->TrafficItem->SocketTuple.RemoteEndpoint.Address,
+				Socket->GetRecentDownload(),
 				Socket->GetRecentUpload());
 		}
 

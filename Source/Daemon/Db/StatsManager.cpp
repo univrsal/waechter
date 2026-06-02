@@ -37,7 +37,8 @@ WMemoryStat WStatsManager::GetMemoryUsage()
 	return Stats;
 }
 
-void WStatsManager::UpdateAppStats(WTrafficItemId AppId, WIPAddress const& RemoteHost, WBytes In, WBytes Out)
+void WStatsManager::UpdateAppStats(
+	WTrafficItemId AppId, std::string const& ApplicationPath, WIPAddress const& RemoteHost, WBytes In, WBytes Out)
 {
 	if (In == 0 && Out == 0)
 	{
@@ -49,7 +50,13 @@ void WStatsManager::UpdateAppStats(WTrafficItemId AppId, WIPAddress const& Remot
 
 	if (CurrentSnapshot.Apps.contains(AppId))
 	{
-		if (auto& [AppTraffic] = CurrentSnapshot.Apps[AppId]; AppTraffic.contains(RemoteHost))
+		auto& AppStats = CurrentSnapshot.Apps[AppId];
+		if (AppStats.ApplicationPath.empty())
+		{
+			AppStats.ApplicationPath = ApplicationPath;
+		}
+
+		if (auto& AppTraffic = AppStats.Traffic; AppTraffic.contains(RemoteHost))
 		{
 			AppTraffic[RemoteHost].BytesIn += In;
 			AppTraffic[RemoteHost].BytesOut += Out;
@@ -62,11 +69,12 @@ void WStatsManager::UpdateAppStats(WTrafficItemId AppId, WIPAddress const& Remot
 	else
 	{
 		WAppStats NewAppStats{};
+		NewAppStats.ApplicationPath = ApplicationPath;
 		NewAppStats.Traffic[RemoteHost] = WTrafficStats{ In, Out };
 		CurrentSnapshot.Apps[AppId] = NewAppStats;
 	}
-	spdlog::info("WStatsManager::UpdateAppStats(): AppId={}, RemoteHost={}, In={}, Out={}", AppId,
-		RemoteHost.ToString(), In, Out);
+	spdlog::info("WStatsManager::UpdateAppStats(): AppId={}, ApplicationPath={}, RemoteHost={}, In={}, Out={}", AppId,
+		ApplicationPath, RemoteHost.ToString(), In, Out);
 }
 
 void WStatsManager::MakeSnapshot()
@@ -94,22 +102,20 @@ void WStatsManager::MakeSnapshot()
 
 		for (auto const& [AppId, AppStats] : LocalSnapshot.Apps)
 		{
-			auto const& TrafficItem = WSystemMap::GetInstance().GetTrafficItemById(AppId);
-			if (!TrafficItem || TrafficItem->GetType() != TI_Application)
+			if (AppStats.ApplicationPath.empty())
 			{
-				spdlog::warn("App ID {} not found in system map, skipping traffic event", AppId);
-				break;
+				spdlog::warn("App ID {} has no application path in snapshot, skipping traffic event", AppId);
+				continue;
 			}
-			auto AppItem = std::dynamic_pointer_cast<WApplicationItem>(TrafficItem);
 
-			auto AppResult = DbConn(sqlpp::select(App.ID).from(App).where(App.BinaryPath == AppItem->ApplicationPath));
+			auto AppResult = DbConn(sqlpp::select(App.ID).from(App).where(App.BinaryPath == AppStats.ApplicationPath));
 			int64_t const AppID = AppResult.empty()
-				? static_cast<int64_t>(DbConn(sqlpp::insert_into(App).set(App.BinaryPath = AppItem->ApplicationPath)))
+				? static_cast<int64_t>(DbConn(sqlpp::insert_into(App).set(App.BinaryPath = AppStats.ApplicationPath)))
 				: AppResult.front().ID.value();
 
 			for (auto const& [IP, Traffic] : AppStats.Traffic)
 			{
-				spdlog::info("Recording traffic event: App '{}', Remote '{}', In {}, Out {}", AppItem->ApplicationPath,
+				spdlog::info("Recording traffic event: App '{}', Remote '{}', In {}, Out {}", AppStats.ApplicationPath,
 					IP.ToString(), Traffic.BytesIn, Traffic.BytesOut);
 				auto const    IPStr = IP.ToString();
 				auto const    HostResult = DbConn(sqlpp::select(Host.ID).from(Host).where(Host.IPAddress == IPStr));

@@ -10,6 +10,7 @@
 #include <atomic>
 #include <queue>
 #include <condition_variable>
+#include <string>
 
 #include "Types.hpp"
 #include "MemoryStats.hpp"
@@ -41,6 +42,7 @@ class WStatsManager final : public TSingleton<WStatsManager>, public IMemoryTrac
 	};
 	struct WAppStats
 	{
+		std::string                                  ApplicationPath;
 		std::unordered_map<WIPAddress, WTrafficStats> Traffic;
 	};
 	struct WTrafficSnapshot
@@ -62,7 +64,8 @@ public:
 
 	WMemoryStat GetMemoryUsage() override;
 
-	void UpdateAppStats(WTrafficItemId AppId, WIPAddress const& RemoteHost, WBytes In, WBytes Out);
+	void UpdateAppStats(
+		WTrafficItemId AppId, std::string const& ApplicationPath, WIPAddress const& RemoteHost, WBytes In, WBytes Out);
 
 	void MakeSnapshot();
 
