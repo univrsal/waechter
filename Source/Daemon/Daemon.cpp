@@ -91,10 +91,10 @@ void WDaemon::PeriodicUpdatesThreadFunction() const
 		ZoneScopedN("BroadcastMemoryUsageUpdate");
 		DaemonSocket->BroadcastMemoryUsageUpdate();
 	});
-	TimerManager.AddAlignedTimer(60 * 60, [] { WStatsManager::GetInstance().MakeSnapshot(); });
+	TimerManager.AddAlignedTimer(10, [] { WStatsManager::GetInstance().MakeSnapshot(); });
 
 #if WDEBUG
-	WStatsManager::GetInstance().PushDebugSnapshots();
+	// WStatsManager::GetInstance().PushDebugSnapshots();
 #endif
 
 	while (!SignalHandler.bStop)
