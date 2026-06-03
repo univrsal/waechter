@@ -5,6 +5,7 @@
 
 #include "StatWindow.hpp"
 
+#include <limits>
 #include <ctime>
 
 #include "Client.hpp"
@@ -67,6 +68,37 @@ void WStatWindow::UpdateTitle()
 		+ WTimeFormat::FormatUnixTime(Request.EndTime) + ")###StatWindow_" + std::to_string(Request.RequestId);
 }
 
+void WStatWindow::BuildGraphData()
+{
+	auto const N = Response.DataPoints.size();
+	double     MaxTraffic = 0.0;
+
+	// Choose a compact timestamp format based on the request duration
+	WSec const     Duration = Request.EndTime - Request.StartTime;
+	constexpr WSec OneDay = 86400LL;
+	char const*    TimeFmt = Duration <= OneDay ? "%H:%M" : (Duration <= 31LL * OneDay ? "%m-%d" : "%Y-%m");
+
+	// Build per-group labels and value arrays
+	LabelStrings.resize(N);
+	LabelPtrs.resize(N);
+	Positions.resize(N);
+	// PlotBarGroups layout: values[item * group_count + group]
+	// item 0 = Download (In), item 1 = Upload (Out)
+	Values.resize(2 * N);
+
+	for (std::size_t i = 0; i < N; ++i)
+	{
+		LabelStrings[i] = WTimeFormat::FormatUnixTime(Response.DataPoints[i].Timestamp, TimeFmt);
+		LabelPtrs[i] = LabelStrings[i].c_str();
+		Positions[i] = static_cast<double>(i);
+		Values[i] = static_cast<double>(Response.DataPoints[i].In);      // Download
+		Values[N + i] = static_cast<double>(Response.DataPoints[i].Out); // Upload
+		MaxTraffic = std::max(MaxTraffic, std::max(Values[i], Values[N + i]));
+	}
+
+	YAxisMax = MaxTraffic > 0.0 ? MaxTraffic * 1.10 : 1.0;
+}
+
 WStatWindow::WStatWindow(WStatsRequest const& InRequest) : Request(InRequest)
 {
 	UpdateTitle();
@@ -109,29 +141,6 @@ void WStatWindow::Draw()
 		}
 		else
 		{
-			auto const N = Response.DataPoints.size();
-
-			// Choose a compact timestamp format based on the request duration
-			WSec const     Duration = Request.EndTime - Request.StartTime;
-			constexpr WSec OneDay = 86400LL;
-			char const*    TimeFmt = Duration <= OneDay ? "%H:%M" : (Duration <= 31LL * OneDay ? "%m-%d" : "%Y-%m");
-
-			// Build per-group labels and value arrays
-			std::vector<std::string> LabelStrings(N);
-			std::vector<char const*> LabelPtrs(N);
-			std::vector<double>      Positions(N);
-			// PlotBarGroups layout: values[item * group_count + group]
-			// item 0 = Download (In), item 1 = Upload (Out)
-			std::vector<double> Values(2 * N);
-
-			for (std::size_t i = 0; i < N; ++i)
-			{
-				LabelStrings[i] = WTimeFormat::FormatUnixTime(Response.DataPoints[i].Timestamp, TimeFmt);
-				LabelPtrs[i] = LabelStrings[i].c_str();
-				Positions[i] = static_cast<double>(i);
-				Values[i] = static_cast<double>(Response.DataPoints[i].In);      // Download
-				Values[N + i] = static_cast<double>(Response.DataPoints[i].Out); // Upload
-			}
 
 			static auto ByteFormatter = [](double Value, char* Buf, int Size, void*) -> int {
 				auto Str = WStorageFormat::AutoFormat(static_cast<WBytes>(Value < 0.0 ? 0.0 : Value));
@@ -139,12 +148,15 @@ void WStatWindow::Draw()
 			};
 
 			char const* SeriesLabels[] = { "Download", "Upload" };
+			auto const  N = Response.DataPoints.size();
 
 			if (ImPlot::BeginPlot("##TrafficChart", ImVec2(-1, -1)))
 			{
 				ImPlot::SetupAxes("Time", "Traffic");
 				ImPlot::SetupAxisTicks(ImAxis_X1, Positions.data(), N, LabelPtrs.data());
 				ImPlot::SetupAxisFormat(ImAxis_Y1, ByteFormatter, nullptr);
+				ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, YAxisMax, ImGuiCond_Always);
+				ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, 0.0, std::numeric_limits<double>::infinity());
 				ImPlot::PlotBarGroups(SeriesLabels, Values.data(), 2, N, 0.67, 0.0);
 				ImPlot::EndPlot();
 			}
