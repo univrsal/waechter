@@ -12,6 +12,7 @@
 #include "implot.h"
 
 #include "Format.hpp"
+#include "Windows/SdlWindow.hpp"
 
 static constexpr WSec SecondsPerDay = 86400LL;
 static constexpr WSec SecondsPerWeek = 7LL * SecondsPerDay;
@@ -85,6 +86,7 @@ void WStatWindow::Draw()
 	{
 		return;
 	}
+	ImGui::SetNextWindowSize(WSdlWindow::ScaleSize(ImVec2(800, 450)), ImGuiCond_FirstUseEver);
 	if (ImGui::Begin(Title.c_str(), &bOpen, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking))
 	{
 		// Time frame selector
