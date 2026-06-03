@@ -79,7 +79,7 @@ void WStatsManager::UpdateAppStats(
 
 void WStatsManager::MakeSnapshot()
 {
-	spdlog::info("Making traffic snapshot");
+	spdlog::debug("Making traffic snapshot");
 	// Grab current snapshot data and clear it under the lock
 	WTrafficSnapshot LocalSnapshot{};
 	{
@@ -87,7 +87,7 @@ void WStatsManager::MakeSnapshot()
 		std::scoped_lock Lock(DataMutex);
 		LocalSnapshot = std::move(CurrentSnapshot);
 		CurrentSnapshot = {};
-		spdlog::info("Making snapshot of local snapshot: {} apps", LocalSnapshot.Apps.size());
+		spdlog::debug("Making snapshot of local snapshot: {} apps", LocalSnapshot.Apps.size());
 	}
 
 	WDbManager::GetInstance().Run([&](auto& DbConn) {
@@ -104,7 +104,7 @@ void WStatsManager::MakeSnapshot()
 		{
 			if (AppStats.ApplicationPath.empty())
 			{
-				spdlog::warn("App ID {} has no application path in snapshot, skipping traffic event", AppId);
+				spdlog::debug("App ID {} has no application path in snapshot, skipping traffic event", AppId);
 				continue;
 			}
 
@@ -115,7 +115,7 @@ void WStatsManager::MakeSnapshot()
 
 			for (auto const& [IP, Traffic] : AppStats.Traffic)
 			{
-				spdlog::info("Recording traffic event: App '{}', Remote '{}', In {}, Out {}", AppStats.ApplicationPath,
+				spdlog::debug("Recording traffic event: App '{}', Remote '{}', In {}, Out {}", AppStats.ApplicationPath,
 					IP.ToString(), Traffic.BytesIn, Traffic.BytesOut);
 				auto const    IPStr = IP.ToString();
 				auto const    HostResult = DbConn(sqlpp::select(Host.ID).from(Host).where(Host.IPAddress == IPStr));
@@ -315,7 +315,7 @@ void WStatsManager::RequestThreadFunction()
 		{
 			break;
 		}
-		spdlog::info("Processing stats request, queue size: {}", PendingRequests.size());
+		spdlog::debug("Processing stats request, queue size: {}", PendingRequests.size());
 		auto [Request, Promise] = PendingRequests.front();
 		PendingRequests.pop();
 		Lock.unlock();
@@ -329,7 +329,7 @@ void WStatsManager::RequestThreadFunction()
 #if WDEBUG
 void WStatsManager::PushDebugSnapshots()
 {
-	spdlog::info("WStatsManager::PushDebugSnapshots - inserting debug traffic data for the past 7 days");
+	spdlog::debug("WStatsManager::PushDebugSnapshots - inserting debug traffic data for the past 7 days");
 
 	// Fake applications and remote hosts to use for debug traffic
 	static constexpr std::array<std::string_view, 5> DebugApps = {
@@ -443,6 +443,6 @@ void WStatsManager::PushDebugSnapshots()
 		}
 	});
 
-	spdlog::info("WStatsManager::PushDebugSnapshots - done");
+	spdlog::debug("WStatsManager::PushDebugSnapshots - done");
 }
 #endif
