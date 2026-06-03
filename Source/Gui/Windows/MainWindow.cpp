@@ -11,6 +11,7 @@
 #include "imgui.h"
 
 #include "Client.hpp"
+#include "Random.hpp"
 #include "Util/I18n.hpp"
 #include "Windows/SdlWindow.hpp"
 #include "Util/IP2Asn.hpp"
@@ -193,10 +194,44 @@ void WMainWindow::Draw()
 	ConnectionHistoryWindow.Draw();
 	SettingsWindow.Draw();
 	MemoryUsageWindow.Draw();
+
+	for (auto const& StatWindow : StatWindows)
+	{
+		StatWindow->Draw();
+	}
+	std::erase_if(StatWindows, [](auto const& StatWindow) { return !StatWindow->IsOpen(); });
+
 #ifndef __EMSCRIPTEN__
 	WIP2Asn::GetInstance().DrawDownloadProgressWindow();
 #endif
 	WClient::GetInstance().GetTrafficTree()->Draw(Main);
 	// draw last for the watermark
 	RegisterDialog.Draw();
+}
+
+void WMainWindow::OpenStatsWindow(WStatsRequest Request)
+{
+	Request.RequestId = WRandom::RandomInteger();
+	StatWindows.emplace_back(std::make_unique<WStatWindow>(Request));
+}
+
+void WMainWindow::HandleStatsResponse(WBuffer const& Buf) const
+{
+	WStatsResponse Response{};
+
+	if (!DeserializeMessage(Buf, Response))
+	{
+		spdlog::error("Failed to deserialize stats response");
+		return;
+	}
+
+	for (auto const& StatWindow : StatWindows)
+	{
+		if (StatWindow->GetRequestId() == Response.RequestId)
+		{
+			StatWindow->SetResponse(Response);
+			return;
+		}
+	}
+	spdlog::warn("Received stats response with unknown request ID: {}", Response.RequestId);
 }

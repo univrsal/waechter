@@ -9,14 +9,14 @@
 
 #include "Messages.hpp"
 #include "Data/ResolveData.hpp"
+#include "Data/Stats.hpp"
+#include "Db/StatsManager.hpp"
 #include "Net/Resolver.hpp"
 #include "Rules/RuleManager.hpp"
 
 void WDaemonClient::OnDataReceived(WBuffer& RecvBuf)
 {
-
-	// Extract the full message
-	auto Type = ReadMessageTypeFromBuffer(RecvBuf);
+	auto const Type = ReadMessageTypeFromBuffer(RecvBuf);
 	if (Type == MT_Invalid)
 	{
 		spdlog::warn("Received invalid message type from daemon client");
@@ -31,9 +31,33 @@ void WDaemonClient::OnDataReceived(WBuffer& RecvBuf)
 		case MT_ResolveRequest:
 			HandleResolveRequest(RecvBuf);
 			break;
+		case MT_StatsRequest:
+			HandleStatsRequest(RecvBuf);
+			break;
 		default:
 			break;
 	}
+}
+
+void WDaemonClient::HandleStatsRequest(WBuffer const& Buf) const
+{
+	spdlog::info("Received stats request from client");
+	WStatsRequest Request{};
+	if (!DeserializeMessage(Buf, Request))
+	{
+		spdlog::error("Failed to deserialize stats request");
+		return;
+	}
+
+	WStatsManager::GetInstance().RequestStats(Request).Then([this, Request](WStatsResponse const& Response) {
+		if (!ClientSocket->IsConnected())
+		{
+			spdlog::warn(
+				"Client disconnected before stats response could be sent for request id {}", Request.RequestId);
+			return;
+		}
+		ClientSocket->SendFramed(MakeMessage(MT_StatsResponse, Response));
+	});
 }
 
 void WDaemonClient::HandleResolveRequest(WBuffer const& Buf)
@@ -58,6 +82,6 @@ void WDaemonClient::HandleResolveRequest(WBuffer const& Buf)
 			WResolveResponse Response{};
 			Response.AddressToResolve = Request.AddressToResolve;
 			Response.ResolveResult = Hostname;
-			Socket->SendFramed(WDaemonClient::MakeMessage(MT_ResolveResponse, Response));
+			Socket->SendFramed(MakeMessage(MT_ResolveResponse, Response));
 		});
 }

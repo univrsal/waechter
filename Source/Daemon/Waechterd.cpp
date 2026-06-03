@@ -12,6 +12,7 @@
 #include "Data/ConnectionHistory.hpp"
 #include "Data/SystemMap.hpp"
 #include "Db/DbManager.hpp"
+#include "Db/StatsManager.hpp"
 #include "EBPF/WaechterEbpf.hpp"
 #include "Net/Resolver.hpp"
 #include "Net/IPLink.hpp"
@@ -55,6 +56,7 @@ int main()
 		return -1;
 	}
 	WDbManager::GetInstance().Initialize(EDbBackend::SQLite);
+	WStatsManager::GetInstance().StartRequestProcessThread();
 	WResolver::GetInstance().Start();
 
 	WDaemon::RegisterSignalHandlers();
@@ -65,5 +67,6 @@ int main()
 	spdlog::info("Waechter daemon stopped");
 	WIPLink::GetInstance().Deinit();
 	WResolver::GetInstance().Stop();
+	WStatsManager::GetInstance().StopRequestProcessThread();
 	return 0;
 }

@@ -45,6 +45,9 @@ public:
 
 	virtual ~TTrafficCounter() = default;
 
+	WBytes GetRecentUpload() const { return RecentUpload; }
+	WBytes GetRecentDownload() const { return RecentDownload; }
+
 	void PushOutgoingTraffic(WBytes Bytes)
 	{
 		RecentUpload += Bytes;

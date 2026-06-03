@@ -17,6 +17,7 @@
 #include "Format.hpp"
 #include "IPLinkMsg.hpp"
 #include "NetworkEvents.hpp"
+#include "Db/StatsManager.hpp"
 #include "Net/IPLink.hpp"
 #include "Net/PacketParser.hpp"
 #include "Net/Resolver.hpp"
@@ -492,6 +493,7 @@ void WSystemMap::RefreshAllTrafficCounters()
 {
 	std::lock_guard Lock(DataMutex);
 	TrafficCounter.Refresh();
+
 	for (auto const& App : Applications | std::views::values)
 	{
 		App->Refresh();
@@ -502,14 +504,25 @@ void WSystemMap::RefreshAllTrafficCounters()
 		Process->Refresh();
 	}
 
+	WStatsManager::GetInstance().GetDataMutex().lock();
 	for (auto const& Socket : Sockets | std::views::values)
 	{
+		if (Socket->ParentProcess && Socket->ParentProcess->ParentApp)
+		{
+			auto const App = Socket->ParentProcess->ParentApp;
+			WStatsManager::GetInstance().UpdateAppStats(App->TrafficItem->ItemId,
+				App->TrafficItem->ApplicationPath, Socket->TrafficItem->SocketTuple.RemoteEndpoint.Address,
+				Socket->GetRecentDownload(),
+				Socket->GetRecentUpload());
+		}
+
 		Socket->Refresh();
 		for (auto const& TupleCounter : Socket->UDPPerConnectionCounters | std::views::values)
 		{
 			TupleCounter->Refresh();
 		}
 	}
+	WStatsManager::GetInstance().GetDataMutex().unlock();
 
 	Cleanup();
 }

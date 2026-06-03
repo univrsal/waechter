@@ -25,4 +25,11 @@ public:
 
 		return Result;
 	}
+
+	static uint32_t RandomInteger(uint32_t Min = 0, uint32_t Max = std::numeric_limits<uint32_t>::max())
+	{
+		thread_local std::mt19937_64  Generator(std::random_device{}());
+		std::uniform_int_distribution Distribution(Min, Max);
+		return Distribution(Generator);
+	}
 };

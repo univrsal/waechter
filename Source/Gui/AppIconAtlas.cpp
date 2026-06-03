@@ -29,7 +29,7 @@ void WAppIconAtlas::DrawIconForApplication(std::string const& BinaryName, ImVec2
 	ImGui::Image(TextureId, Size, ImVec2(UV.U1, UV.V1), ImVec2(UV.U2, UV.V2));
 }
 
-void WAppIconAtlas::FromAtlasData(WBuffer& Buffer)
+void WAppIconAtlas::FromAtlasData(WBuffer const& Buffer)
 {
 	WAppIconAtlasData Data{};
 	if (!DeserializeMessage(Buffer, Data))

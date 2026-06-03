@@ -144,7 +144,7 @@ void WSdlWindow::Tick()
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 	SDL_GL_SwapWindow(Window);
-	WTimerManager::GetInstance().UpdateTimers(static_cast<double>(SDL_GetTicks()) / 1000.0);
+	WTimerManager::GetInstance().UpdateTimers(static_cast<double>(SDL_GetTicks64()) / 1000.0);
 }
 
 bool WSdlWindow::Init()

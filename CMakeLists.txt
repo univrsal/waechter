@@ -71,7 +71,7 @@ install(FILES Meta/Package/waechterd.ini
         DESTINATION etc/waechter)
 
 install(DIRECTORY Meta/Database/Migrations/
-        DESTINATION etc/waechterd/migrations
+        DESTINATION usr/share/waechter/migrations
         FILES_MATCHING PATTERN "*.sql")
 
 # CPack configuration for .deb packages
@@ -84,7 +84,7 @@ set(CPACK_PACKAGE_DESCRIPTION "Waechter is a traffic shaping and monitoring tool
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Alex <alex@waechter.st>")
 set(CPACK_DEBIAN_PACKAGE_SECTION "net")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "systemd, libbpf0 | libbpf1, libxkbcommon0, libgl1, libsdl2-2.0-0, libcurl4 | libcurl3-gnutls, zlib1g")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "systemd, libbpf0 | libbpf1, libxkbcommon0, libgl1, libsdl2-2.0-0, libcurl4 | libcurl3-gnutls, zlib1g, libsqlite3-0")
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_SOURCE_DIR}/Meta/Package/postinst;${CMAKE_SOURCE_DIR}/Meta/Package/prerm;${CMAKE_SOURCE_DIR}/Meta/Package/postrm")
 set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CMAKE_SYSTEM_PROCESSOR}-linux")
 set(CPACK_DEBIAN_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}.deb")

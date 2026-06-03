@@ -20,6 +20,7 @@ PrivateTmp=true
 ProtectHome=true
 ProtectSystem=strict
 ReadWritePaths=/sys/fs/bpf
+ReadWritePaths=/var/lib/waechter
 ProtectControlGroups=true
 ProtectKernelModules=true
 LockPersonality=true

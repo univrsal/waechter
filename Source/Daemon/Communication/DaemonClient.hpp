@@ -36,6 +36,8 @@ class WDaemonClient
 
 	void OnDataReceived(WBuffer& RecvBuf);
 
+	void HandleStatsRequest(WBuffer const& Buf) const;
+
 	void HandleResolveRequest(WBuffer const& Buf);
 
 public:

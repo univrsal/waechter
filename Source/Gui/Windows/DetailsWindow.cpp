@@ -95,6 +95,15 @@ void WDetailsWindow::DrawSystemDetails() const
 	ImGui::Text("%s: %s", TR("__uptime"), FormattedUptime.c_str());
 	ImGui::Text("%s: %s", TR("__total_download"), WStorageFormat::AutoFormat(System->TotalDownloadBytes).c_str());
 	ImGui::Text("%s: %s", TR("__total_upload"), WStorageFormat::AutoFormat(System->TotalUploadBytes).c_str());
+
+	if (ImGui::Button("Show system stats"))
+	{
+		WStatsRequest Request{};
+		Request.Target = "system";
+		Request.StartTime = WTime::GetEpochHours() - 60 * 60 * 24;
+		Request.EndTime = WTime::GetEpochHours();
+		WSdlWindow::GetInstance().GetMainWindow()->OpenStatsWindow(Request);
+	}
 }
 
 void WDetailsWindow::DrawApplicationDetails() const

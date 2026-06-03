@@ -63,13 +63,16 @@ void WClient::OnDataReceived(WBuffer& Buf)
 		case MT_MemoryStats:
 			WMainWindow::Get().GetMemoryUsageWindow().HandleUpdate(Buf);
 			break;
+		case MT_StatsResponse:
+			WMainWindow::Get().HandleStatsResponse(Buf);
+			break;
 		default:
 			spdlog::warn("Received unknown message type from server: {}", static_cast<int>(Type));
 			break;
 	}
 }
 
-void WClient::HandleHandshake(WBuffer& Buf)
+void WClient::HandleHandshake(WBuffer const& Buf)
 {
 	WProtocolHandshake Handshake{};
 	if (!DeserializeMessage(Buf, Handshake))

@@ -7,9 +7,15 @@
 
 #include <utility>
 
-WTimer::WTimer(double IntervalSeconds, std::function<void()> Callback_, int Id_)
-	: Interval(IntervalSeconds), Id(Id_), Callback(std::move(Callback_))
+WTimer::WTimer(double IntervalSeconds, std::function<void()> Callback_, int Id_, bool AlignToWallClock_)
+	: Interval(IntervalSeconds), Id(Id_), AlignToWallClock(AlignToWallClock_), Callback(std::move(Callback_))
 {
+	if (AlignToWallClock)
+	{
+		auto const Now = WTime::GetEpochSeconds();
+		auto const IntervalSecs = static_cast<int64_t>(IntervalSeconds);
+		NextWallClockFireTime = (Now / IntervalSecs + 1) * IntervalSecs;
+	}
 }
 
 void WTimerManager::UpdateTimers(double CurrentTime)

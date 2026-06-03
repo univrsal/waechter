@@ -50,6 +50,12 @@ extern unsigned int const GAdwaitaSansLicenseSize;
 extern unsigned char const GJetbrainsMonoLicenseData[];
 extern unsigned int const GJetbrainsMonoLicenseSize;
 
+extern unsigned char const GSqlpp11LicenseData[];
+extern unsigned int const GSqlpp11LicenseSize;
+
+extern unsigned char const GDateLicenseData[];
+extern unsigned int const GDateLicenseSize;
+
 extern unsigned char const GFlagAtlasData[];
 extern unsigned int const GFlagAtlasSize;
 

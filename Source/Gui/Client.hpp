@@ -40,7 +40,7 @@ class WClient : public TSingleton<WClient>
 
 	void OnDataReceived(WBuffer& Buffer);
 
-	static void HandleHandshake(WBuffer& Buf);
+	static void HandleHandshake(WBuffer const& Buf);
 
 public:
 	std::atomic<WBytesPerSecond> DaemonToClientTrafficRate{ 0 };

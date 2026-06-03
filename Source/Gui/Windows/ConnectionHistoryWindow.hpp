@@ -39,7 +39,7 @@ class WConnectionHistoryWindow
 public:
 	void Draw();
 
-	void Initialize(WBuffer& Update);
+	void Initialize(WBuffer const& Update);
 
-	void HandleUpdate(WBuffer& Update);
+	void HandleUpdate(WBuffer const& Update);
 };

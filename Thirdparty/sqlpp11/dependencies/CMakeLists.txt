@@ -24,12 +24,5 @@
 
 
 if(NOT USE_SYSTEM_DATE AND NOT TARGET date::date)
-    include(FetchContent)
 
-    FetchContent_Declare(date
-        GIT_REPOSITORY https://github.com/HowardHinnant/date.git
-        GIT_TAG        v3.0.0
-    )
-
-    add_subdirectory(hinnant_date)
 endif()

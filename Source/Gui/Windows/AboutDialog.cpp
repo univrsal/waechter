@@ -46,8 +46,12 @@ WAboutDialog::WAboutDialog()
 		"flag-icons", "https://github.com/lipis/flag-icons", MakeString(GFlagsLicenseData, GFlagsLicenseSize));
 	ThirdPartyLibraries.emplace_back(
 		"sigslot", "https://github.com/palacaze/sigslot", MakeString(GSigSlotLicenseData, GSigSlotLicenseSize));
-	// ThirdPartyLibraries.emplace_back(
-	// 	"traycon", "https://github.com/univrsal/traycon", MakeString(GTray, GSigSlotLicenseSize));
+	ThirdPartyLibraries.emplace_back(
+		"traycon", "https://github.com/univrsal/traycon", MakeString(GTrayconLicenseData, GTrayconLicenseSize));
+	ThirdPartyLibraries.emplace_back(
+		"date", "https://github.com/HowardHinnant/date", MakeString(GDateLicenseData, GDateLicenseSize));
+	ThirdPartyLibraries.emplace_back(
+		"sqlpp11", "https://github.com/rbock/sqlpp11", MakeString(GSqlpp11LicenseData, GSqlpp11LicenseSize));
 
 	VersionString = std::format(
 		"Version {}, commit {}@{}\nCompiled at {}", WAECHTER_VERSION, GIT_COMMIT_HASH, GIT_BRANCH, BUILD_TIME);

@@ -32,6 +32,14 @@ namespace WTime
 			.count();
 	}
 
+	static int64_t GetEpochHours()
+	{
+		// Adjust down to last full hour
+		return std::chrono::duration_cast<std::chrono::hours>(std::chrono::system_clock::now().time_since_epoch())
+				   .count()
+			* 3600;
+	}
+
 	static std::string FormatTime(long Time)
 	{
 		long Hours = Time / 3600;
@@ -46,10 +54,21 @@ class WTimer
 	double                Interval{};
 	double                ElapsedTime{ 0.0 };
 	int                   Id{};
+	bool                  AlignToWallClock{ false };
+	int64_t               NextWallClockFireTime{ 0 };
 	std::function<void()> Callback{};
 	friend class WTimerManager;
 	bool Update(double DeltaTime)
 	{
+		if (AlignToWallClock)
+		{
+			if (WTime::GetEpochSeconds() >= NextWallClockFireTime)
+			{
+				NextWallClockFireTime += static_cast<int64_t>(Interval);
+				return true;
+			}
+			return false;
+		}
 		ElapsedTime += DeltaTime;
 		if (ElapsedTime >= Interval)
 		{
@@ -58,7 +77,7 @@ class WTimer
 		}
 		return false;
 	}
-	WTimer(double IntervalSeconds, std::function<void()> Callback_, int Id_);
+	WTimer(double IntervalSeconds, std::function<void()> Callback_, int Id_, bool AlignToWallClock_ = false);
 };
 
 class WTimerManager : public TSingleton<WTimerManager>
@@ -74,6 +93,15 @@ public:
 		std::scoped_lock Lock(TimerMutex);
 		auto   NewId = TimerIdCounter++;
 		WTimer Timer(IntervalSeconds, std::move(Callback), NewId);
+		Timers.push_back(Timer);
+		return NewId;
+	}
+
+	int AddAlignedTimer(double IntervalSeconds, std::function<void()> Callback)
+	{
+		std::scoped_lock Lock(TimerMutex);
+		auto   NewId = TimerIdCounter++;
+		WTimer Timer(IntervalSeconds, std::move(Callback), NewId, true);
 		Timers.push_back(Timer);
 		return NewId;
 	}

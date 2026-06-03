@@ -43,7 +43,7 @@ public:
 	}
 
 	void DrawIconForApplication(std::string const& BinaryName, ImVec2 Size);
-	void FromAtlasData(WBuffer& Data);
+	void FromAtlasData(WBuffer const& Data);
 	// Call this on the render thread (with a current GL context)
 	void UploadPendingIfAny();
 };

@@ -8,6 +8,10 @@ if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
 fi
 
 if [ "$1" = "purge" ]; then
+	if [ -d /var/lib/waechter ]; then
+		rm -rf /var/lib/waechter || true
+	fi
+
     if id -u waechter >/dev/null 2>&1; then
         userdel waechter || true
     fi

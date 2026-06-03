@@ -12,6 +12,10 @@ if [ ! -d /etc/waechter ]; then
     chmod 750 /etc/waechter
 fi
 
+mkdir -p /var/lib/waechter
+chown waechter:waechter /var/lib/waechter
+chmod 750 /var/lib/waechter
+
 if [ -f /etc/waechter/waechterd.ini ]; then
     chown root:waechter /etc/waechter/waechterd.ini
     chmod 640 /etc/waechter/waechterd.ini
