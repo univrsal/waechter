@@ -86,7 +86,10 @@ void WStatWindow::Draw()
 	{
 		return;
 	}
-	ImGui::SetNextWindowSize(WSdlWindow::ScaleSize(ImVec2(800, 450)), ImGuiCond_FirstUseEver);
+	ImVec2 const DefaultWindowSize = WSdlWindow::ScaleSize(ImVec2(800, 450));
+	ImGuiIO const& Io = ImGui::GetIO();
+	ImGui::SetNextWindowSize(DefaultWindowSize, ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowPos(ImVec2(Io.DisplaySize.x * 0.5f, Io.DisplaySize.y * 0.5f), ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
 	if (ImGui::Begin(Title.c_str(), &bOpen, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking))
 	{
 		// Time frame selector
