@@ -77,6 +77,23 @@ static char const* ProtocolToString(EProtocol::Type Protocol)
 	}
 }
 
+void WDetailsWindow::DrawFilterDetails() const
+{
+	auto const Filter = Tree->GetSeletedTrafficItem<WFilterItem>();
+
+	if (Filter == nullptr)
+	{
+		return;
+	}
+	WIconAtlas::GetInstance().DrawIcon("filter", ImVec2(16, 16));
+
+	ImGui::SameLine();
+	ImGui::Text("%s", Filter->Name.c_str());
+	ImGui::Separator();
+	ImGui::Text("%s: %s", TR("__total_download"), WStorageFormat::AutoFormat(Filter->TotalDownloadBytes).c_str());
+	ImGui::Text("%s: %s", TR("__total_upload"), WStorageFormat::AutoFormat(Filter->TotalUploadBytes).c_str());
+}
+
 void WDetailsWindow::DrawSystemDetails() const
 {
 	auto const System = Tree->GetSeletedTrafficItem<WSystemItem>();
@@ -291,6 +308,7 @@ void WDetailsWindow::Draw() const
 			case TI_Tuple:
 				DrawTupleDetails();
 				break;
+			default:;
 		}
 	}
 

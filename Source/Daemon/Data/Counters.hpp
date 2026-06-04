@@ -6,11 +6,13 @@
 #pragma once
 #include <memory>
 #include <unordered_map>
+#include <functional>
 
 #include "spdlog/spdlog.h"
 
 #include "TrafficCounter.hpp"
 #include "Data/ApplicationItem.hpp"
+#include "Data/FilterItem.hpp"
 #include "EBPFCommon.h"
 
 struct WAppCounter : TTrafficCounter<WApplicationItem>
@@ -56,7 +58,7 @@ struct WTupleCounter : TTrafficCounter<WTupleItem>
 	void Refresh() override
 	{
 		TTrafficCounter::Refresh();
-		// If a UDP socket has not sent/received data on a connection for one minute,
+		// If a UDP socket has not sent/received data on a connection for five seconds,
 		// we'll treat it as dead. In the worst case it'll be re-added once traffic
 		// is detected for it again
 		if (State != CS_PendingRemoval && InactiveCounter >= 5)
@@ -65,4 +67,11 @@ struct WTupleCounter : TTrafficCounter<WTupleItem>
 			MarkForRemoval();
 		}
 	}
+};
+
+struct WFilterCounter : TTrafficCounter<WFilterItem>
+{
+	std::function<bool(WTrafficItemId const&, WEndpoint const*, WEndpoint const*)> FilterFunction;
+
+	explicit WFilterCounter(std::shared_ptr<WFilterItem> const& Item) : TTrafficCounter(Item) {}
 };

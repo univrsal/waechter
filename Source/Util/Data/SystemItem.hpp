@@ -12,17 +12,21 @@
 
 #include "TrafficItem.hpp"
 #include "ApplicationItem.hpp"
+#include "FilterItem.hpp"
 
 struct WSystemItem : ITrafficItem
 {
 	std::string HostName{ "System" };
+
+	std::vector<std::shared_ptr<WFilterItem>> Filters;
 
 	std::unordered_map<std::string, std::shared_ptr<WApplicationItem>> Applications;
 
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(ItemId, DownloadSpeed, UploadSpeed, HostName, TotalDownloadBytes, TotalUploadBytes, Applications);
+		archive(
+			ItemId, DownloadSpeed, UploadSpeed, HostName, TotalDownloadBytes, TotalUploadBytes, Applications, Filters);
 	}
 
 	[[nodiscard]] ETrafficItemType GetType() const override { return TI_System; }

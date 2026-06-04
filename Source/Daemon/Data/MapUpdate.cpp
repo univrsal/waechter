@@ -69,6 +69,14 @@ WTrafficTreeUpdates const& WMapUpdate::GetUpdates()
 	FetchActiveCounters(SM.Applications, Updates.UpdatedItems);
 	FetchActiveCounters(SM.Processes, Updates.UpdatedItems);
 
+	for (auto const& Filter : SM.FilterCounters)
+	{
+		if (Filter->IsActive())
+		{
+			Updates.UpdatedItems.emplace_back(*Filter->TrafficItem);
+		}
+	}
+
 	for (auto const& Socket : SM.Sockets | std::views::values)
 	{
 		if (!Socket->IsActive())
