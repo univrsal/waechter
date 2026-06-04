@@ -152,12 +152,33 @@ void WStatWindow::Draw()
 
 			if (ImPlot::BeginPlot("##TrafficChart", ImVec2(-1, -1)))
 			{
+				// Thin tick labels so they don't overlap on the X axis.
+				WSec const        Duration = Request.EndTime - Request.StartTime;
+				constexpr WSec    OneDay = 86400LL;
+				float const       PlotWidth = ImGui::GetContentRegionAvail().x;
+				float const       EstLabelWidth = Duration <= OneDay ? 55.0f : 90.0f; // "HH:MM" vs "MM-DD" / "YYYY-MM"
+				std::size_t const SkipN = std::max<std::size_t>(
+					1, static_cast<std::size_t>(std::ceil((EstLabelWidth * static_cast<float>(N)) / PlotWidth)));
+
+				FilteredPositions.clear();
+				FilteredLabelPtrs.clear();
+				for (std::size_t i = 0; i < N; ++i)
+				{
+					if (i % SkipN == 0)
+					{
+						FilteredPositions.push_back(Positions[i]);
+						FilteredLabelPtrs.push_back(LabelPtrs[i]);
+					}
+				}
+
 				ImPlot::SetupAxes("Time", "Traffic");
-				ImPlot::SetupAxisTicks(ImAxis_X1, Positions.data(), N, LabelPtrs.data());
+				ImPlot::SetupAxisTicks(ImAxis_X1, FilteredPositions.data(), static_cast<int>(FilteredPositions.size()),
+					FilteredLabelPtrs.data());
+				ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, -0.5, static_cast<double>(N) - 0.5);
 				ImPlot::SetupAxisFormat(ImAxis_Y1, ByteFormatter, nullptr);
 				ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, YAxisMax, ImGuiCond_Always);
 				ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, 0.0, std::numeric_limits<double>::infinity());
-				ImPlot::PlotBarGroups(SeriesLabels, Values.data(), 2, N, 0.67, 0.0);
+				ImPlot::PlotBarGroups(SeriesLabels, Values.data(), 2, N, 0.7);
 				ImPlot::EndPlot();
 			}
 		}

@@ -29,6 +29,8 @@ class WStatWindow
 	std::vector<char const*> LabelPtrs;
 	std::vector<double>      Positions;
 	std::vector<double>      Values;
+	std::vector<double>      FilteredPositions;
+	std::vector<char const*> FilteredLabelPtrs;
 	double                   YAxisMax;
 
 	void ApplyTimeFrame(ETimeFrame TimeFrame);
