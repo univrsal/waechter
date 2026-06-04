@@ -25,8 +25,18 @@ class WStatWindow
 	bool           bOpen{ true };
 	ETimeFrame     CurrentTimeFrame{ ETimeFrame::Last24Hours };
 
+	std::vector<std::string> LabelStrings;
+	std::vector<char const*> LabelPtrs;
+	std::vector<double>      Positions;
+	std::vector<double>      Values;
+	std::vector<double>      FilteredPositions;
+	std::vector<char const*> FilteredLabelPtrs;
+	double                   YAxisMax;
+
 	void ApplyTimeFrame(ETimeFrame TimeFrame);
 	void UpdateTitle();
+
+	void BuildGraphData();
 
 public:
 	explicit WStatWindow(WStatsRequest const& InRequest);
@@ -36,6 +46,7 @@ public:
 	{
 		std::scoped_lock Lock(DataMutex);
 		Response = InResponse;
+		BuildGraphData();
 	}
 
 	[[nodiscard]] uint32_t GetRequestId() const { return Request.RequestId; }
