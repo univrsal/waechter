@@ -91,6 +91,10 @@ inline bool DrawIcon(
 	{
 		WIconAtlas::GetInstance().DrawIcon("process", ImVec2{ IconSize, IconSize });
 	}
+	else if (Item->GetType() == TI_Filter)
+	{
+		WIconAtlas::GetInstance().DrawIcon("filter", ImVec2{ IconSize, IconSize });
+	}
 	else
 	{
 		WIconAtlas::GetInstance().DrawIcon("computer", ImVec2{ IconSize, IconSize });
@@ -240,6 +244,11 @@ void WTrafficTree::LoadFromBuffer(WBuffer const& Buffer)
 				TrafficItems[Sock->ItemId] = Sock;
 			}
 		}
+	}
+
+	for (auto const& Filter : Root->Filters)
+	{
+		TrafficItems[Filter->ItemId] = Filter;
 	}
 
 	TrafficItems[0] = Root;
@@ -476,6 +485,20 @@ void WTrafficTree::Draw(ImGuiID MainID)
 		ImGui::EndChild();
 		ImGui::End();
 		return;
+	}
+
+	// Draw filters first always
+	for (auto const& Filter : Root->Filters)
+	{
+		ImGui::TableNextRow();
+		ImGui::PushID(Filter->ItemId);
+		WRenderItemArgs Args;
+		Args.Name = Filter->Name;
+		Args.Item = Filter;
+		Args.NodeFlags = ImGuiTreeNodeFlags_Leaf;
+		RenderItem(Args);
+		ImGui::PopID();
+		ImGui::TreePop();
 	}
 
 	for (auto const& [Name, Child] : Root->Applications)

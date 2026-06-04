@@ -75,6 +75,77 @@ struct WIPAddress
 	bool operator<=(WIPAddress const& Other) const { return Bytes <= Other.Bytes; }
 	bool operator>=(WIPAddress const& Other) const { return Bytes >= Other.Bytes; }
 
+	[[nodiscard]] bool IsLANAddress() const
+	{
+		if (Family == EIPFamily::IPv4)
+		{
+			uint8_t const B0 = Bytes[0], B1 = Bytes[1];
+			if (B0 == 10)                        return true; // 10.0.0.0/8
+			if (B0 == 172 && (B1 & 0xF0) == 16) return true; // 172.16.0.0/12
+			if (B0 == 192 && B1 == 168)          return true; // 192.168.0.0/16
+			return false;
+		}
+
+		if (Family == EIPFamily::IPv6)
+		{
+			// fc00::/7 — unique local addresses (ULA), the IPv6 equivalent of RFC1918
+			return (Bytes[0] & 0xFE) == 0xFC;
+		}
+
+		return false;
+	}
+
+	[[nodiscard]] bool IsInternetAddress() const
+	{
+		if (Family == EIPFamily::IPv4)
+		{
+			// Exclude: 0.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10 (CGNAT),
+			//          127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12,
+			//          192.168.0.0/16, 224.0.0.0/4 (multicast),
+			//          240.0.0.0/4 (reserved), 255.255.255.255
+			uint8_t const B0 = Bytes[0], B1 = Bytes[1];
+			if (B0 == 0)
+				return false; // 0.0.0.0/8
+			if (B0 == 10)
+				return false; // 10.0.0.0/8
+			if (B0 == 100 && (B1 & 0xC0) == 64)
+				return false; // 100.64.0.0/10
+			if (B0 == 127)
+				return false; // 127.0.0.0/8
+			if (B0 == 169 && B1 == 254)
+				return false; // 169.254.0.0/16
+			if (B0 == 172 && (B1 & 0xF0) == 16)
+				return false; // 172.16.0.0/12
+			if (B0 == 192 && B1 == 168)
+				return false; // 192.168.0.0/16
+			if ((B0 & 0xF0) == 224)
+				return false; // 224.0.0.0/4 multicast
+			if ((B0 & 0xF0) == 240)
+				return false; // 240.0.0.0/4 reserved
+			return true;
+		}
+
+		if (Family == EIPFamily::IPv6)
+		{
+			// Exclude: unspecified (::), loopback (::1),
+			//          link-local (fe80::/10), unique local (fc00::/7),
+			//          multicast (ff00::/8)
+			if (IsZero())
+				return false; // ::
+			if (IsLocalhost())
+				return false; // ::1
+			if (Bytes[0] == 0xFF)
+				return false; // ff00::/8 multicast
+			if ((Bytes[0] & 0xFE) == 0xFC)
+				return false; // fc00::/7 unique local
+			if (Bytes[0] == 0xFE && (Bytes[1] & 0xC0) == 0x80)
+				return false; // fe80::/10 link-local
+			return true;
+		}
+
+		return false;
+	}
+
 	[[nodiscard]] std::string ToString() const
 	{
 		if (Family == EIPFamily::IPv4)

@@ -96,11 +96,27 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 				{
 					ZoneScopedN("PushOutgoingTraffic");
 					TupleCounter->PushOutgoingTraffic(Event.Data.TrafficEventData.Bytes);
+
+					for (auto const& Filter : FilterCounters)
+					{
+						if (Filter->FilterFunction(TupleCounter->TrafficItem->ItemId, &LocalEndpoint, &RemoteEndpoint))
+						{
+							Filter->PushOutgoingTraffic(Event.Data.TrafficEventData.Bytes);
+						}
+					}
 				}
 				else
 				{
 					ZoneScopedN("PushIncomingTraffic");
 					TupleCounter->PushIncomingTraffic(Event.Data.TrafficEventData.Bytes);
+
+					for (auto const& Filter : FilterCounters)
+					{
+						if (Filter->FilterFunction(TupleCounter->TrafficItem->ItemId, &LocalEndpoint, &RemoteEndpoint))
+						{
+							Filter->PushIncomingTraffic(Event.Data.TrafficEventData.Bytes);
+						}
+					}
 				}
 
 				if (!bTupleExists)
@@ -137,6 +153,35 @@ std::shared_ptr<WTupleCounter> WSystemMap::GetOrCreateUDPTupleCounter(
 	SockCounter->UDPPerConnectionCounters[Endpoint] = TupleCounter;
 	WNetworkEvents::GetInstance().OnUDPTupleCreated(TupleCounter, Endpoint);
 	return TupleCounter;
+}
+
+void WSystemMap::RegisterDefaultFilters()
+{
+	auto AddFilter = [this](std::string const&                                                          Name,
+						 std::function<bool(WTrafficItemId const&, WEndpoint const*, WEndpoint const*)> Func) {
+		auto FilterItem = std::make_shared<WFilterItem>();
+		FilterItem->Name = Name.c_str();
+		FilterItem->ItemId = GetNextItemId();
+		auto FilterCounter = new WFilterCounter(FilterItem);
+		FilterCounter->FilterFunction = Func;
+		SystemItem->Filters.emplace_back(FilterItem);
+		FilterCounters.emplace_back(FilterCounter);
+	};
+
+	AddFilter("Internet", [](WTrafficItemId const&, WEndpoint const*, WEndpoint const* Remote) {
+		if (Remote)
+		{
+			return Remote->Address.IsInternetAddress();
+		}
+		return false;
+	});
+	AddFilter("LAN", [](WTrafficItemId const&, WEndpoint const*, WEndpoint const* Remote) {
+		if (Remote)
+		{
+			return Remote->Address.IsLANAddress();
+		}
+		return false;
+	});
 }
 
 void WSystemMap::AddExistingSockets()
@@ -256,6 +301,7 @@ WSystemMap::WSystemMap()
 	{
 		SystemItem->HostName = HostName;
 	}
+	RegisterDefaultFilters();
 }
 
 static std::string NormalizeAppImagePaths(std::string const& path)
@@ -494,6 +540,11 @@ void WSystemMap::RefreshAllTrafficCounters()
 	std::lock_guard Lock(DataMutex);
 	TrafficCounter.Refresh();
 
+	for (auto const& Filter : FilterCounters)
+	{
+		Filter->Refresh();
+	}
+
 	for (auto const& App : Applications | std::views::values)
 	{
 		App->Refresh();
@@ -543,6 +594,15 @@ void WSystemMap::PushIncomingTraffic(WSocketEvent const& Event)
 			Socket->TrafficItem->ConnectionState = ESocketConnectionState::Connected;
 			Socket->ParentProcess->PushIncomingTraffic(Bytes);
 			Socket->ParentProcess->ParentApp->PushIncomingTraffic(Bytes);
+
+			for (auto const& Filter : FilterCounters)
+			{
+				if (Filter->FilterFunction(Socket->TrafficItem->ItemId, &Socket->TrafficItem->SocketTuple.LocalEndpoint,
+						&Socket->TrafficItem->SocketTuple.RemoteEndpoint))
+				{
+					Filter->PushIncomingTraffic(Bytes);
+				}
+			}
 		}
 
 		DoPacketParsing(Event, Socket);
@@ -565,6 +625,15 @@ void WSystemMap::PushOutgoingTraffic(WSocketEvent const& Event)
 			Socket->TrafficItem->ConnectionState = ESocketConnectionState::Connected;
 			Socket->ParentProcess->PushOutgoingTraffic(Bytes);
 			Socket->ParentProcess->ParentApp->PushOutgoingTraffic(Bytes);
+
+			for (auto const& Filter : FilterCounters)
+			{
+				if (Filter->FilterFunction(Socket->TrafficItem->ItemId, &Socket->TrafficItem->SocketTuple.LocalEndpoint,
+						&Socket->TrafficItem->SocketTuple.RemoteEndpoint))
+				{
+					Filter->PushOutgoingTraffic(Bytes);
+				}
+			}
 		}
 
 		DoPacketParsing(Event, Socket);
@@ -592,7 +661,8 @@ WMemoryStat WSystemMap::GetMemoryUsage()
 	std::scoped_lock Lock(DataMutex);
 	WMemoryStat      Stats;
 	Stats.Name = "WSystemMap";
-	WMemoryStatEntry Apps{}, ProcessesEntry{}, SocketsEntry{}, TrafficItemsEntry{}, UDPPerConnectionCountersEntry{};
+	WMemoryStatEntry Apps{}, ProcessesEntry{}, SocketsEntry{}, TrafficItemsEntry{}, UDPPerConnectionCountersEntry{},
+		FiltersEntry{};
 
 	Apps.Name = "Applications";
 	Apps.Usage += sizeof(decltype(Applications));
@@ -618,6 +688,11 @@ WMemoryStat WSystemMap::GetMemoryUsage()
 			Socket->UDPPerConnectionCounters.size() * (sizeof(WEndpoint) + sizeof(WTupleCounter) + sizeof(WTupleItem));
 	}
 
+	FiltersEntry.Name = "Filters";
+	FiltersEntry.Usage = sizeof(decltype(FilterCounters));
+	FiltersEntry.Usage += sizeof(WFilterCounter) * FilterCounters.size();
+	FiltersEntry.Usage += sizeof(WFilterItem) * FilterCounters.size();
+
 	TrafficItemsEntry.Name = "All traffic items";
 	TrafficItemsEntry.Usage += sizeof(decltype(TrafficItems));
 	TrafficItemsEntry.Usage += (sizeof(WTrafficItemId) + sizeof(ITrafficItem)) * TrafficItems.size();
@@ -627,6 +702,7 @@ WMemoryStat WSystemMap::GetMemoryUsage()
 	Stats.ChildEntries.emplace_back(SocketsEntry);
 	Stats.ChildEntries.emplace_back(TrafficItemsEntry);
 	Stats.ChildEntries.emplace_back(UDPPerConnectionCountersEntry);
+	Stats.ChildEntries.emplace_back(FiltersEntry);
 	return Stats;
 }
 

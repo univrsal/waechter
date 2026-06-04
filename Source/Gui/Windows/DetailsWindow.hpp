@@ -13,6 +13,7 @@ class WDetailsWindow
 {
 	std::shared_ptr<WTrafficTree> Tree{};
 
+	void DrawFilterDetails() const;
 	void DrawSystemDetails() const;
 	void DrawApplicationDetails() const;
 	void DrawProcessDetails() const;

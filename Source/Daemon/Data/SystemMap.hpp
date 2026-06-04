@@ -41,6 +41,8 @@ class WSystemMap : public TSingleton<WSystemMap>, public IMemoryTrackable
 	std::shared_ptr<WSystemItem> SystemItem = std::make_shared<WSystemItem>();
 	TTrafficCounter<WSystemItem> TrafficCounter{ SystemItem };
 
+	std::vector<std::unique_ptr<WFilterCounter>> FilterCounters{};
+
 	std::unordered_map<std::string, std::shared_ptr<WAppCounter>>      Applications{};
 	std::unordered_map<WProcessId, std::shared_ptr<WProcessCounter>>   Processes{};
 	std::unordered_map<WSocketCookie, std::shared_ptr<WSocketCounter>> Sockets{};
@@ -59,6 +61,9 @@ class WSystemMap : public TSingleton<WSystemMap>, public IMemoryTrackable
 
 	std::shared_ptr<WTupleCounter> GetOrCreateUDPTupleCounter(
 		std::shared_ptr<WSocketCounter> const& SockCounter, WEndpoint const& Endpoint);
+
+	void RegisterDefaultFilters();
+
 public:
 
 	WSystemMap();
