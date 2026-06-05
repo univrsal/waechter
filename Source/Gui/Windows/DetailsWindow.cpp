@@ -308,7 +308,9 @@ void WDetailsWindow::Draw() const
 			case TI_Tuple:
 				DrawTupleDetails();
 				break;
-			default:;
+			case TI_Filter:
+				DrawFilterDetails();
+				break;
 		}
 	}
 
