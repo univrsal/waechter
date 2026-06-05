@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <ranges>
 #include <regex>
+#include <utility>
 
 #include "spdlog/spdlog.h"
 #include "tracy/Tracy.hpp"
@@ -160,25 +161,45 @@ void WSystemMap::RegisterDefaultFilters()
 	auto AddFilter = [this](std::string const&                                                          Name,
 						 std::function<bool(WTrafficItemId const&, WEndpoint const*, WEndpoint const*)> Func) {
 		auto FilterItem = std::make_shared<WFilterItem>();
-		FilterItem->Name = Name.c_str();
+		FilterItem->Name = Name;
 		FilterItem->ItemId = GetNextItemId();
 		auto FilterCounter = new WFilterCounter(FilterItem);
-		FilterCounter->FilterFunction = Func;
+		FilterCounter->FilterFunction = std::move(Func);
 		SystemItem->Filters.emplace_back(FilterItem);
 		FilterCounters.emplace_back(FilterCounter);
 	};
 
-	AddFilter("Internet", [](WTrafficItemId const&, WEndpoint const*, WEndpoint const* Remote) {
+	// idk if the checks for the local endpoint make sense here...
+	AddFilter("Internet", [](WTrafficItemId const&, WEndpoint const* Local, WEndpoint const* Remote) {
 		if (Remote)
 		{
 			return Remote->Address.IsInternetAddress();
 		}
+		if (Local)
+		{
+			return Local->Address.IsInternetAddress();
+		}
 		return false;
 	});
-	AddFilter("LAN", [](WTrafficItemId const&, WEndpoint const*, WEndpoint const* Remote) {
+	AddFilter("LAN", [](WTrafficItemId const&, WEndpoint const* Local, WEndpoint const* Remote) {
 		if (Remote)
 		{
 			return Remote->Address.IsLANAddress();
+		}
+		if (Local)
+		{
+			return Local->Address.IsLANAddress();
+		}
+		return false;
+	});
+	AddFilter("Localhost", [](WTrafficItemId const&, WEndpoint const* Local, WEndpoint const* Remote) {
+		if (Remote)
+		{
+			return Remote->Address.IsLocalhost();
+		}
+		if (Local)
+		{
+			return Local->Address.IsLocalhost();
 		}
 		return false;
 	});
