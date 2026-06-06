@@ -43,7 +43,7 @@ jobs:
         run: .github/scripts/ubuntu/install-dependencies.sh
 
       - name: Cache ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ./.ccache
           key: ${{ runner.os }}-${{ matrix.arch }}-ccache-${{ hashFiles('**/CMakeLists.txt', '**/*.cpp', '**/*.c', '**/*.h') }}
