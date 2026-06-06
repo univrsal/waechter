@@ -31,23 +31,7 @@ struct WSystemItem : ITrafficItem
 
 	[[nodiscard]] ETrafficItemType GetType() const override { return TI_System; }
 
-	bool NoChildren() override
-	{
-		if (Applications.empty())
-		{
-			return true;
-		}
-
-		for (auto const& App : Applications | std::views::values)
-		{
-			assert(App);
-			if (App && !App->NoChildren())
-			{
-				return false;
-			}
-		}
-		return true;
-	}
+	bool HasChildren() override { return !Applications.empty(); }
 
 	bool RemoveChild(WTrafficItemId TrafficItemId) override
 	{

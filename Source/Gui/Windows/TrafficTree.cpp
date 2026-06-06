@@ -509,7 +509,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 			continue;
 		}
 
-		if (Child->NoChildren() && !WSettings::GetInstance().bShowOfflineProcesses)
+		if (!Child->HasChildren() && !WSettings::GetInstance().bShowOfflineProcesses)
 		{
 			continue;
 		}
