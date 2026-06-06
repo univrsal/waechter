@@ -33,5 +33,5 @@ struct ITrafficItem
 
 	virtual bool RemoveChild(WTrafficItemId) { return false; }
 
-	virtual bool NoChildren() { return true; }
+	virtual bool HasChildren() { return true; }
 };

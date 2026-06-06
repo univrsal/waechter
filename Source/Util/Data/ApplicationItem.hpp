@@ -32,22 +32,7 @@ public:
 		return TI_Application;
 	}
 
-	bool NoChildren() override
-	{
-		if (Processes.empty())
-		{
-			return true;
-		}
-
-		for (auto const& Process : Processes | std::views::values)
-		{
-			if (!Process->NoChildren())
-			{
-				return false;
-			}
-		}
-		return true;
-	}
+	bool HasChildren() override { return !Processes.empty(); }
 
 	bool RemoveChild(WTrafficItemId TrafficItemId) override
 	{

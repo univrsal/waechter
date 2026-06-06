@@ -24,7 +24,7 @@ struct WProcessItem : ITrafficItem
 
 	[[nodiscard]] ETrafficItemType GetType() const override { return TI_Process; }
 
-	bool NoChildren() override { return Sockets.empty(); }
+	bool HasChildren() override { return !Sockets.empty(); }
 
 	bool RemoveChild(WTrafficItemId TrafficItemId) override
 	{
