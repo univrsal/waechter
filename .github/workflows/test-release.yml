@@ -26,7 +26,7 @@ jobs:
         run: .github/scripts/ubuntu/install-dependencies.sh
 
       - name: Cache ccache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ./.ccache
           key: ${{ runner.os }}-ccache-test-release-${{ hashFiles('**/CMakeLists.txt', '**/*.cpp', '**/*.c', '**/*.h') }}
@@ -117,7 +117,7 @@ jobs:
         shell: pwsh
 
       - name: Cache vcpkg
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             vcpkg/installed
@@ -134,7 +134,7 @@ jobs:
         uses: microsoft/setup-msbuild@v2
 
       - name: Cache CMake build directory
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: build
           key: ${{ runner.os }}-cmake-build-test-${{ hashFiles('CMakeLists.txt', '**/CMakeLists.txt', '**/*.cmake', 'Source/**', 'Thirdparty/**') }}
