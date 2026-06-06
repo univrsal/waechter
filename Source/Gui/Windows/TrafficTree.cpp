@@ -559,6 +559,10 @@ void WTrafficTree::Draw(ImGuiID MainID)
 			Args.Item = Process;
 			Args.bMarkedForRemoval = MarkedForRemovalItems.contains(Process->ItemId);
 			Args.ParentApp = Child;
+			if (!Process->HasChildren())
+			{
+				Args.NodeFlags |= ImGuiTreeNodeFlags_Leaf;
+			}
 			bOpened = RenderItem(Args);
 
 			if (!bOpened)
