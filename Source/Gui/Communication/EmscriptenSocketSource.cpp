@@ -83,8 +83,7 @@ void WEmscriptenSocketSource::HandleReceive(char const* Data, size_t Len)
 		if (ReceiveBuffer.size() >= sizeof(uint32_t) + FrameLength)
 		{
 			WBuffer FrameBuffer(FrameLength);
-			std::memcpy(FrameBuffer.GetData(), ReceiveBuffer.data() + sizeof(uint32_t), FrameLength);
-			FrameBuffer.SetWritingPos(FrameLength);
+			FrameBuffer.Write(std::span<char const>(ReceiveBuffer.data() + sizeof(uint32_t), FrameLength));
 
 			ReceiveBuffer.erase(ReceiveBuffer.begin(), ReceiveBuffer.begin() + sizeof(uint32_t) + FrameLength);
 			OnData(FrameBuffer);

@@ -105,7 +105,8 @@ public:
 	template <typename T>
 	static bool ReceiveMessage(WBuffer const& Buffer, T& OutData)
 	{
-		std::stringstream Ss(std::string(Buffer.GetData(), Buffer.GetReadableSize()));
+		auto const Data = Buffer.GetReadableChars();
+		std::stringstream Ss(std::string(Data.data(), Data.size()));
 		try
 		{
 			cereal::BinaryInputArchive Archive(Ss);
