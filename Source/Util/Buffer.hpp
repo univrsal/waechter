@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -10,14 +10,25 @@
 #include <cassert>
 #include <algorithm>
 #include <limits>
+#include <span>
+#include <type_traits>
 
 class WBuffer
 {
-	std::vector<char> Data{};
+	std::vector<std::byte> Data{};
 	std::size_t       ReadPos{};
 	std::size_t       WritePos{};
 
-	void EnsureCapacity(std::size_t Needed)
+	template <typename TByte>
+	using TCharType = std::conditional_t<std::is_const_v<TByte>, char const, char>;
+
+	template <typename TByte>
+	static std::span<TCharType<TByte>> ByteSpanToCharSpan(std::span<TByte> Bytes)
+	{
+		return { reinterpret_cast<TCharType<TByte>*>(Bytes.data()), Bytes.size() };
+	}
+
+	void EnsureCapacity(std::size_t const Needed)
 	{
 		// grow to at least 'needed' bytes
 		if (Needed <= Data.size())
@@ -38,7 +49,7 @@ class WBuffer
 	}
 
 public:
-	explicit WBuffer(std::size_t Size = 1024) : Data(Size) {}
+	explicit WBuffer(std::size_t const Size = 1024) : Data(Size) {}
 
 	~WBuffer() = default;
 
@@ -49,12 +60,20 @@ public:
 
 	// Number of bytes available to read (unconsumed)
 	[[nodiscard]] std::size_t GetReadableSize() const { return WritePos - ReadPos; }
-	// Pointer to next readable byte (do not write through it)
-	[[nodiscard]] char const* PeekReadPtr() const { return Data.data() + ReadPos; }
-	// Consume N bytes from the readable range
-	void Consume(std::size_t N)
+
+	[[nodiscard]] std::span<std::byte const> GetReadableData() const
 	{
-		std::size_t Adv = std::min(N, GetReadableSize());
+		return { Data.data() + ReadPos, GetReadableSize() };
+	}
+	[[nodiscard]] std::span<char const> GetReadableChars() const { return ByteSpanToCharSpan(GetReadableData()); }
+
+	[[nodiscard]] std::span<std::byte const> GetWrittenData() const { return { Data.data(), WritePos }; }
+	[[nodiscard]] std::span<char const>      GetWrittenChars() const { return ByteSpanToCharSpan(GetWrittenData()); }
+
+	// Consume N bytes from the readable range
+	void Consume(std::size_t const N)
+	{
+		std::size_t const Adv = std::min(N, GetReadableSize());
 		ReadPos += Adv;
 		if (ReadPos == WritePos)
 		{
@@ -67,13 +86,13 @@ public:
 	{
 		if (ReadPos == 0 || ReadPos >= WritePos)
 			return;
-		size_t Remaining = WritePos - ReadPos;
+		size_t const Remaining = WritePos - ReadPos;
 		std::memmove(Data.data(), Data.data() + ReadPos, Remaining);
 		ReadPos = 0;
 		WritePos = Remaining;
 	}
 
-	void SetWritingPos(std::size_t Pos)
+	void SetWritingPos(std::size_t const Pos)
 	{
 		// allow moving within current size, grow if needed
 		if (Pos > Data.size())
@@ -83,43 +102,49 @@ public:
 			ReadPos = WritePos;
 	}
 
-	std::size_t Read(char* Buf, std::size_t Len)
+	[[nodiscard]] std::size_t Read(std::span<std::byte> Buf)
 	{
-		if (Buf == nullptr || Len == 0)
+		if (Buf.empty())
 			return 0;
 
 		if (ReadPos > WritePos) // invariant guard
 			ReadPos = WritePos;
 
 		std::size_t const Available = WritePos - ReadPos;
-		std::size_t const N = std::min(Len, Available);
+		std::size_t const N = std::min(Buf.size(), Available);
 
 		if (N > 0)
 		{
-			std::memcpy(Buf, Data.data() + ReadPos, N);
+			std::memcpy(Buf.data(), Data.data() + ReadPos, N);
 			ReadPos += N;
 		}
 		return N;
 	}
 
-	void Write(char const* Buf, std::size_t BytesToWrite)
+	[[nodiscard]] std::size_t Read(std::span<char> const Buf) { return Read(std::as_writable_bytes(Buf)); }
+
+	void Write(std::span<std::byte const> const Buf)
 	{
-		if (Buf == nullptr || BytesToWrite == 0)
+		if (Buf.empty())
 			return;
 
 		// overflow guard on addition
-		if (BytesToWrite > (std::numeric_limits<std::size_t>::max)() - WritePos)
+		if (Buf.size() > (std::numeric_limits<std::size_t>::max)() - WritePos)
 		{
 			assert(false && "WBuffer::Write overflow");
+#if !WDEBUG
 			return;
+#endif
 		}
 
-		std::size_t const Needed = WritePos + BytesToWrite;
+		std::size_t const Needed = WritePos + Buf.size();
 		EnsureCapacity(Needed);
 
-		std::memcpy(Data.data() + WritePos, Buf, BytesToWrite);
-		WritePos += BytesToWrite;
+		std::memcpy(Data.data() + WritePos, Buf.data(), Buf.size());
+		WritePos += Buf.size();
 	}
+
+	void Write(std::span<char const> const Buf) { Write(std::as_bytes(Buf)); }
 
 	void Reset()
 	{
@@ -134,7 +159,7 @@ public:
 		Reset();
 	}
 
-	void Resize(std::size_t NewSize)
+	void Resize(std::size_t const NewSize)
 	{
 		Data.resize(NewSize);
 		if (WritePos > NewSize)
@@ -143,20 +168,20 @@ public:
 			ReadPos = WritePos;
 	}
 
-	char*                     GetData() { return Data.data(); }
-	[[nodiscard]] char const* GetData() const { return Data.data(); }
+	[[nodiscard]] std::span<std::byte>       GetData() { return Data; }
+	[[nodiscard]] std::span<std::byte const> GetData() const { return Data; }
 
 	template <typename T>
 	void Write(T const& Value)
 	{
-		static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
-		Write(reinterpret_cast<char const*>(&Value), sizeof(T));
+		static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
+		Write(std::as_bytes(std::span{ &Value, static_cast<std::size_t>(1) }));
 	}
 
 	template <typename T>
 	bool Read(T& Value)
 	{
-		static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
-		return Read(reinterpret_cast<char*>(&Value), sizeof(T)) == sizeof(T);
+		static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
+		return Read(std::as_writable_bytes(std::span{ &Value, static_cast<std::size_t>(1) })) == sizeof(T);
 	}
 };

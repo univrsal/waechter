@@ -70,7 +70,8 @@ template <class T>
 static bool DeserializeMessage(WBuffer const& Buffer, T& OutData)
 {
 	std::stringstream Ss;
-	Ss.write(Buffer.GetData(), static_cast<long int>(Buffer.GetWritePos()));
+	auto const Data = Buffer.GetWrittenChars();
+	Ss.write(Data.data(), static_cast<std::streamsize>(Data.size()));
 	Ss.seekg(1); // Skip message type byte
 	try
 	{

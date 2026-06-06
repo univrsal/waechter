@@ -166,8 +166,9 @@ bool WClientSocket::ReceiveFramed(WBuffer& OutputBuffer)
 			return false;
 		}
 
+		auto const ReadableData = IncomingBuffer.GetReadableData();
 		uint32_t FrameLen = 0;
-		std::memcpy(&FrameLen, IncomingBuffer.PeekReadPtr(), sizeof(uint32_t));
+		std::memcpy(&FrameLen, ReadableData.data(), sizeof(uint32_t));
 
 		// Do we have the full body?
 		if (IncomingBuffer.GetReadableSize() < sizeof(uint32_t) + FrameLen)
@@ -179,7 +180,7 @@ bool WClientSocket::ReceiveFramed(WBuffer& OutputBuffer)
 		IncomingBuffer.Consume(sizeof(uint32_t)); // Skip header
 
 		OutputBuffer.Reset();
-		OutputBuffer.Write(IncomingBuffer.PeekReadPtr(), FrameLen);
+		OutputBuffer.Write(IncomingBuffer.GetReadableData().first(FrameLen));
 		IncomingBuffer.Consume(FrameLen);
 
 		if (IncomingBuffer.GetReadPos() > 2048)
@@ -204,7 +205,7 @@ bool WClientSocket::ReceiveFramed(WBuffer& OutputBuffer)
 
 	if (BytesRead > 0)
 	{
-		IncomingBuffer.Write(IoBuf, static_cast<size_t>(BytesRead));
+		IncomingBuffer.Write(std::span{ IoBuf, static_cast<std::size_t>(BytesRead) });
 	}
 	// If BytesRead < 0 (error) or == 0 (closed), IsConnected() will likely be false now,
 	// but we might still have data in IncomingBuffer to process, so we continue.

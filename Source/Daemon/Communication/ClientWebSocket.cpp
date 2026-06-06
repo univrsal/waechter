@@ -84,8 +84,7 @@ void WClientWebSocket::HandleReceive(char const* Data, size_t Len)
 
 		// Extract frame data (skip length prefix)
 		WBuffer FrameBuffer(FrameLength);
-		std::memcpy(FrameBuffer.GetData(), ReceiveBuffer.data() + sizeof(uint32_t), FrameLength);
-		FrameBuffer.SetWritingPos(FrameLength);
+		FrameBuffer.Write(std::span<char const>(ReceiveBuffer.data() + sizeof(uint32_t), FrameLength));
 
 		// Remove processed data from buffer
 		ReceiveBuffer.erase(
