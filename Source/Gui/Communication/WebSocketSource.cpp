@@ -52,6 +52,37 @@ static int ClientWebSocketCallback(
 	return 0;
 }
 
+static lws_protocols const WWebSocketProtocols[] = {
+	{ "waechter-protocol", ClientWebSocketCallback, 0, 65536, 0, nullptr, 0 }, { nullptr, nullptr, 0, 0, 0, nullptr, 0 }
+};
+
+static void EnsureLwsSSLInitialized()
+{
+	// We just keep this around so disconnecting from one daemon and connecting to another one
+	// doesn't fail
+	static lws_context* AnchorContext = [] {
+		// Minimal protocol list - the anchor context never accepts or makes connections.
+		static lws_protocols const NoProtocols[] = { { nullptr, nullptr, 0, 0, 0, nullptr, 0 } };
+
+		lws_context_creation_info Info{};
+		Info.port = CONTEXT_PORT_NO_LISTEN;
+		Info.protocols = NoProtocols;
+		Info.gid = static_cast<gid_t>(-1);
+		Info.uid = static_cast<uid_t>(-1);
+		// LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT makes lws increment lws_tls_shared_ref.
+		// The anchor context is never destroyed, so the ref count never reaches 0
+		// and OpenSSL global state is never torn down for the process lifetime.
+		Info.options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
+
+		lws_context* Ctx = lws_create_context(&Info);
+		if (!Ctx)
+			spdlog::warn(
+				"WebSocket: failed to create SSL anchor context; switching between ws:// and wss:// daemons may fail");
+		return Ctx;
+	}();
+	(void)AnchorContext;
+}
+
 WWebSocketSource::WWebSocketSource(std::string WebSocketUrl, std::string AuthToken_)
 	: Url(std::move(WebSocketUrl)), AuthToken(std::move(AuthToken_))
 {
@@ -63,6 +94,15 @@ WWebSocketSource::~WWebSocketSource()
 	{
 		WTimerManager::GetInstance().RemoveTimer(TimerId);
 		TimerId = -1;
+	}
+
+	// Stop thread before destroying the context it may be using.
+	WWebSocketSource::Stop();
+
+	if (Context)
+	{
+		lws_context_destroy(Context);
+		Context = nullptr;
 	}
 }
 
@@ -176,8 +216,8 @@ void WWebSocketSource::ListenThreadFunction()
 			UrlRest = Url.substr(6);
 			Port = 443;
 		}
-		auto        ColonPos = UrlRest.find(':');
-		auto        SlashPos = UrlRest.find('/');
+		auto ColonPos = UrlRest.find(':');
+		auto SlashPos = UrlRest.find('/');
 
 		if (ColonPos != std::string::npos)
 		{
@@ -217,29 +257,10 @@ void WWebSocketSource::ListenThreadFunction()
 		}
 	}
 
-	// Set up libwebsockets logging to use spdlog
-	lws_set_log_level(LLL_ERR | LLL_WARN, nullptr);
-
-	static lws_protocols Protocols[] = { { "waechter-protocol", ClientWebSocketCallback, 0, 65536, 0, this, 0 },
-		{ nullptr, nullptr, 0, 0, 0, nullptr, 0 } };
-
-	lws_context_creation_info Info{};
-	Info.port = CONTEXT_PORT_NO_LISTEN;
-	Info.protocols = Protocols;
-	Info.gid = static_cast<gid_t>(-1);
-	Info.uid = static_cast<uid_t>(-1);
-	Info.options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
-
-	// Enable client-side SSL
-	if (bIsSecure && WSettings::GetInstance().bAllowSelfSignedCertificates)
-	{
-		Info.options |= LWS_SERVER_OPTION_PEER_CERT_NOT_REQUIRED;
-	}
-
-	Context = lws_create_context(&Info);
 	if (!Context)
 	{
-		spdlog::error("Failed to create libwebsockets context");
+		spdlog::error("WebSocket context is null - was Start() called?");
+		bListenThreadRunning = false;
 		return;
 	}
 
@@ -250,11 +271,10 @@ void WWebSocketSource::ListenThreadFunction()
 	ConnectInfo.path = Path.c_str();
 	ConnectInfo.host = Host.c_str();
 	ConnectInfo.origin = Host.c_str();
-	ConnectInfo.protocol = Protocols[0].name;
+	ConnectInfo.protocol = WWebSocketProtocols[0].name;
 	ConnectInfo.ietf_version_or_minus_one = -1;
 	ConnectInfo.userdata = this;
 
-	// Enable SSL for wss:// connections
 	if (bIsSecure)
 	{
 		ConnectInfo.ssl_connection = LCCSCF_USE_SSL;
@@ -272,8 +292,7 @@ void WWebSocketSource::ListenThreadFunction()
 	if (!Wsi)
 	{
 		spdlog::error("Failed to initiate WebSocket connection");
-		lws_context_destroy(Context);
-		Context = nullptr;
+		bListenThreadRunning = false;
 		return;
 	}
 
@@ -281,60 +300,85 @@ void WWebSocketSource::ListenThreadFunction()
 	{
 		lws_service(Context, 50);
 
-		// Check for connection failure
 		if (bConnectionFailed)
 		{
 			break;
 		}
 	}
 
-	if (Context)
-	{
-		lws_context_destroy(Context);
-		Context = nullptr;
-		Wsi = nullptr;
-	}
-
+	// Do NOT destroy Context here - it is kept alive for the next connection.
+	Wsi = nullptr;
 	bConnected = false;
 	bListenThreadRunning = false;
 }
 
 void WWebSocketSource::Start()
 {
+	EnsureLwsSSLInitialized();
+
+	// Create the lws context once
+	if (!Context)
+	{
+		lws_set_log_level(LLL_ERR | LLL_WARN, nullptr);
+
+		lws_context_creation_info Info{};
+		Info.port = CONTEXT_PORT_NO_LISTEN;
+		Info.protocols = WWebSocketProtocols;
+		Info.gid = static_cast<gid_t>(-1);
+		Info.uid = static_cast<uid_t>(-1);
+		// Always initialise SSL globally so the state is valid for both ws and wss connections.
+		Info.options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
+		if (WSettings::GetInstance().bAllowSelfSignedCertificates)
+		{
+			Info.options |= LWS_SERVER_OPTION_PEER_CERT_NOT_REQUIRED;
+		}
+
+		Context = lws_create_context(&Info);
+		if (!Context)
+		{
+			spdlog::error("Failed to create libwebsockets context");
+			return;
+		}
+	}
+
 	if (!bListenThreadRunning)
 	{
 		if (ListenerThread.joinable())
-		{
 			ListenerThread.join();
-		}
 		bConnectionFailed = false;
 		bListenThreadRunning = true;
 		ListenerThread = std::thread(&WWebSocketSource::ListenThreadFunction, this);
 	}
 
-	// Set up reconnection timer
-	TimerId = WTimerManager::GetInstance().AddTimer(2.0, [this] {
-		if (!IsConnected() && !bListenThreadRunning)
-		{
-			spdlog::info("Attempting to reconnect WebSocket...");
-			bConnectionFailed = false;
-			bListenThreadRunning = true;
-			if (ListenerThread.joinable())
+	// Set up reconnection timer (only if not already active).
+	if (TimerId == -1)
+	{
+		TimerId = WTimerManager::GetInstance().AddTimer(5.0, [this] {
+			if (!IsConnected() && !bListenThreadRunning)
 			{
-				ListenerThread.join();
+				spdlog::info("Attempting to reconnect WebSocket...");
+				bConnectionFailed = false;
+				bListenThreadRunning = true;
+				if (ListenerThread.joinable())
+					ListenerThread.join();
+				ListenerThread = std::thread(&WWebSocketSource::ListenThreadFunction, this);
 			}
-			ListenerThread = std::thread(&WWebSocketSource::ListenThreadFunction, this);
-		}
-	});
+		});
+	}
 }
 
 void WWebSocketSource::Stop()
 {
+	if (TimerId != -1)
+	{
+		WTimerManager::GetInstance().RemoveTimer(TimerId);
+		TimerId = -1;
+	}
 
 	bListenThreadRunning = false;
 	bConnected = false;
 
-	// Cancel the service to wake up lws_service()
+	// Wake up lws_service() so the thread can exit promptly.
 	if (Context)
 	{
 		lws_cancel_service(Context);
@@ -344,6 +388,9 @@ void WWebSocketSource::Stop()
 	{
 		ListenerThread.join();
 	}
+	// Context is intentionally NOT destroyed here.
+	// We keep it alive so that the next Start() can reuse it
+	// otherwise subsequent new connection attempts might fail
 }
 
 bool WWebSocketSource::SendFramed(std::string const& Data)

@@ -81,4 +81,14 @@ public:
 		}
 		return {};
 	}
+
+	void Clear()
+	{
+		std::lock_guard Lock(DataMutex);
+		TrafficItems.clear();
+		ResolvedAddresses.clear();
+		SelectedItemId = std::numeric_limits<WTrafficItemId>::max();
+		SelectedItem = {};
+		Root = std::make_shared<WSystemItem>();
+	}
 };

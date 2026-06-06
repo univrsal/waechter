@@ -53,6 +53,7 @@ public:
 		{
 			DaemonSocket->Stop();
 		}
+		TrafficTree->Clear();
 	}
 
 	WClient();
