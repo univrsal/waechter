@@ -417,7 +417,7 @@ static std::string GetSocketName(WSocketItem* Socket)
 		{
 			return std::format("→ {}", Socket->SocketTuple.RemoteEndpoint.ToString());
 		}
-		if (!Socket->SocketTuple.LocalEndpoint.Address.IsZero())
+		if (Socket->SocketTuple.LocalEndpoint.Port != 0)
 		{
 			return std::format("{} →", Socket->SocketTuple.LocalEndpoint.ToString());
 		}
