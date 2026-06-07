@@ -59,6 +59,10 @@ class WSystemMap : public TSingleton<WSystemMap>, public IMemoryTrackable
 
 	void DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSocketCounter> const& SockCounter);
 
+	std::shared_ptr<WSocketCounter> MapSocketFromTrafficEvent(WSocketEvent const& Event);
+
+	void PushTrafficForSocket(WSocketEvent const& Event, std::shared_ptr<WSocketCounter> const& Socket) const;
+
 	std::shared_ptr<WTupleCounter> GetOrCreateUDPTupleCounter(
 		std::shared_ptr<WSocketCounter> const& SockCounter, WEndpoint const& Endpoint);
 
