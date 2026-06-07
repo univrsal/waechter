@@ -26,7 +26,7 @@ static std::string NormalizeAppImagePaths(std::string const& path);
 
 void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSocketCounter> const& SockCounter)
 {
-	auto Item = SockCounter->TrafficItem;
+	auto const Item = SockCounter->TrafficItem;
 	// if this socket doesn't already have a local/remote endpoint, try to infer from traffic
 	bool const bHaveLocalEndpoint = !Item->SocketTuple.LocalEndpoint.Address.IsZero();
 	bool const bHaveRemoteEndpoint = !Item->SocketTuple.RemoteEndpoint.Address.IsZero();
@@ -160,8 +160,8 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 std::shared_ptr<WTupleCounter> WSystemMap::GetOrCreateUDPTupleCounter(
 	std::shared_ptr<WSocketCounter> const& SockCounter, WEndpoint const& Endpoint)
 {
-	auto Item = SockCounter->TrafficItem;
-	if (auto It = SockCounter->UDPPerConnectionCounters.find(Endpoint);
+	auto const Item = SockCounter->TrafficItem;
+	if (auto const It = SockCounter->UDPPerConnectionCounters.find(Endpoint);
 		It != SockCounter->UDPPerConnectionCounters.end())
 	{
 		return It->second;
@@ -239,9 +239,9 @@ void WSystemMap::AddExistingSockets()
 	WSocketCookie                  SyntheticCookie = SyntheticCookieBase;
 
 	auto const& ListeningSockets = SocketStateParser.GetListeningSockets();
-	for (auto const& ListenSocket : ListeningSockets)
+	for (auto const& [LocalEndpoint, Protocol, PID] : ListeningSockets)
 	{
-		if (ListenSocket.PID <= 0 || !WFilesystem::IsProcessRunning(ListenSocket.PID))
+		if (PID <= 0 || !WFilesystem::IsProcessRunning(PID))
 		{
 			continue;
 		}
@@ -250,22 +250,28 @@ void WSystemMap::AddExistingSockets()
 		SyntheticEvent.Cookie = SyntheticCookie++;
 		SyntheticEvent.EventType = NE_Synthetic;
 
-		auto const Socket = MapSocket(SyntheticEvent, ListenSocket.PID, false);
+		auto const Socket = MapSocket(SyntheticEvent, PID, false);
 		assert(Socket);
 		if (!Socket)
 		{
 			spdlog::error("Failed to map existing listen socket for PID {} and endpoint {}, skipping", ListenSocket.PID,
 				ListenSocket.LocalEndpoint.ToString());
+			spdlog::error("Failed to map existing listen socket for PID {} and endpoint {}, skipping", PID,
+				LocalEndpoint.ToString());
 			continue;
 		}
 		Socket->TrafficItem->SocketTuple.LocalEndpoint = ListenSocket.LocalEndpoint;
 		Socket->TrafficItem->SocketTuple.Protocol = ListenSocket.Protocol;
+		Socket->TrafficItem->SocketTuple.LocalEndpoint = LocalEndpoint;
+		Socket->TrafficItem->SocketTuple.Protocol = Protocol;
 		Socket->TrafficItem->SocketType = ESocketType::Listen;
 		Socket->TrafficItem->ConnectionState = ESocketConnectionState::Connected;
 
 		spdlog::debug("Added existing listen socket: {} {} (PID {}, app '{}')",
 			EProtocol::ToString(ListenSocket.Protocol), ListenSocket.LocalEndpoint.ToString(), ListenSocket.PID,
 			Socket->ParentProcess->ParentApp->TrafficItem->ApplicationName);
+		spdlog::debug("Added existing listen socket: {} {} (PID {}, app '{}')", EProtocol::ToString(Protocol),
+			LocalEndpoint.ToString(), PID, Socket->ParentProcess->ParentApp->TrafficItem->ApplicationName);
 	}
 
 	spdlog::info("Added {} existing listen sockets.", ListeningSockets.size());
@@ -283,7 +289,7 @@ void WSystemMap::ReparentOrphanedSocket(WEndpoint const& Endpoint, WProcessId Ne
 			return;
 		}
 
-		auto App = It->second->ParentProcess->ParentApp;
+		auto const App = It->second->ParentProcess->ParentApp;
 
 		// Re-register the application if it was cleaned up while the socket was orphaned
 		auto const& AppKey = App->TrafficItem->ApplicationPath;
@@ -294,8 +300,8 @@ void WSystemMap::ReparentOrphanedSocket(WEndpoint const& Endpoint, WProcessId Ne
 			TrafficItems[App->TrafficItem->ItemId] = App->TrafficItem;
 		}
 
-		auto bExistingProcess = Processes.contains(NewParentProcess);
-		auto NewProcess = FindOrMapProcess(NewParentProcess, App);
+		auto const bExistingProcess = Processes.contains(NewParentProcess);
+		auto const NewProcess = FindOrMapProcess(NewParentProcess, App);
 		It->second->ParentProcess = NewProcess;
 		NewProcess->TrafficItem->Sockets[It->second->TrafficItem->ItemId] = It->second->TrafficItem;
 		Sockets[It->second->TrafficItem->Cookie] = It->second;
@@ -339,7 +345,7 @@ void WSystemMap::ReparentAcceptedSocket(std::shared_ptr<WSocketCounter> const& S
 
 WSystemMap::WSystemMap()
 {
-	auto HostName = WFilesystem::ReadProc("/proc/sys/kernel/hostname");
+	auto const HostName = WFilesystem::ReadProc("/proc/sys/kernel/hostname");
 	if (!HostName.empty())
 	{
 		SystemItem->HostName = HostName;
@@ -353,7 +359,7 @@ static std::string NormalizeAppImagePaths(std::string const& path)
 	return std::regex_replace(path, RE, "/tmp/appimage/bin/$1");
 }
 
-std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketEvent const& Event, WProcessId PID, bool bSilentFail)
+std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketEvent const& Event, WProcessId PID, bool const bSilentFail)
 {
 	std::scoped_lock Lock(DataMutex);
 
@@ -380,7 +386,7 @@ std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketEvent const& Event,
 		return {};
 	}
 
-	if (auto It = Sockets.find(SocketCookie); It != Sockets.end())
+	if (auto const It = Sockets.find(SocketCookie); It != Sockets.end())
 	{
 		return It->second;
 	}
@@ -425,11 +431,10 @@ std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketEvent const& Event,
 			}
 
 			// Resolve relative path
-			std::string ResolvedPath = Cwd + Argv[0];
+			std::string const ResolvedPath = Cwd + Argv[0];
 
 			// Try to resolve the path to see if it exists
-			char* RealPath = realpath(ResolvedPath.c_str(), nullptr);
-			if (RealPath)
+			if (char* RealPath = realpath(ResolvedPath.c_str(), nullptr))
 			{
 				ExePath = NormalizeAppImagePaths(RealPath);
 				free(RealPath);
@@ -456,23 +461,23 @@ std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketEvent const& Event,
 	if ((Comm.empty() || Comm == "main" || Comm == "Main") && !ExePath.empty())
 	{
 		// derive basename
-		auto Pos = ExePath.find_last_of('/');
-		Comm = WStringFormat::Trim((Pos == std::string::npos) ? ExePath : ExePath.substr(Pos + 1));
+		auto const Pos = ExePath.find_last_of('/');
+		Comm = WStringFormat::Trim(Pos == std::string::npos ? ExePath : ExePath.substr(Pos + 1));
 		if (Comm.empty())
 		{
 			Comm = ExePath.empty() ? "unknown" : ExePath;
 		}
 	}
 
-	auto App = FindOrMapApplication(ExePath, CmdlIne, Comm);
+	auto const App = FindOrMapApplication(ExePath, CmdlIne, Comm);
 	assert(App);
-	auto Process = FindOrMapProcess(PID, App);
+	auto const Process = FindOrMapProcess(PID, App);
 	assert(Process);
 	return FindOrMapSocket(SocketCookie, Process);
 }
 
 std::shared_ptr<WSocketCounter> WSystemMap::FindOrMapSocket(
-	WSocketCookie SocketCookie, std::shared_ptr<WProcessCounter> const& ParentProcess)
+	WSocketCookie const SocketCookie, std::shared_ptr<WProcessCounter> const& ParentProcess)
 {
 	ZoneScopedN("WSystemMap::FindOrMapSocket");
 	if (auto const It = Sockets.find(SocketCookie); It != Sockets.end())
@@ -528,14 +533,14 @@ std::shared_ptr<WAppCounter> WSystemMap::FindOrMapApplication(
 		Key = CommandLine;
 	}
 
-	if (auto Pos = Key.find(' '); Pos != std::string::npos)
+	if (auto const Pos = Key.find(' '); Pos != std::string::npos)
 	{
 		Key = NormalizeAppImagePaths(Key.substr(0, Pos));
 	}
 
 	Key = WStringFormat::Trim(Key);
 
-	if (auto It = Applications.find(Key); It != Applications.end())
+	if (auto const It = Applications.find(Key); It != Applications.end())
 	{
 		return It->second;
 	}
@@ -554,8 +559,8 @@ std::shared_ptr<WAppCounter> WSystemMap::FindOrMapApplication(
 	else
 	{
 		// derive basename
-		auto Pos = Key.find_last_of('/');
-		AppItem->ApplicationName = WStringFormat::Trim((Pos == std::string::npos) ? Key : Key.substr(Pos + 1));
+		auto const Pos = Key.find_last_of('/');
+		AppItem->ApplicationName = WStringFormat::Trim(Pos == std::string::npos ? Key : Key.substr(Pos + 1));
 		if (AppItem->ApplicationName.empty())
 		{
 			AppItem->ApplicationName = Key.empty() ? "unknown" : Key;
@@ -563,7 +568,7 @@ std::shared_ptr<WAppCounter> WSystemMap::FindOrMapApplication(
 	}
 
 	bool bHaveCachedIcon{ false };
-	auto IconPath =
+	auto const IconPath =
 		WAppIconAtlasBuilder::GetInstance().GetResolver().ResolveIcon(AppItem->ApplicationName, &bHaveCachedIcon);
 
 	if (!IconPath.empty() && !bHaveCachedIcon)
@@ -623,9 +628,9 @@ void WSystemMap::RefreshAllTrafficCounters()
 
 void WSystemMap::PushIncomingTraffic(WSocketEvent const& Event)
 {
-	auto            Bytes = Event.Data.TrafficEventData.Bytes;
 	auto            SocketCookie = Event.Cookie;
 	std::lock_guard Lock(DataMutex);
+	auto const       Bytes = Event.Data.TrafficEventData.Bytes;
 	TrafficCounter.PushIncomingTraffic(Bytes);
 
 	if (auto const It = Sockets.find(SocketCookie); It != Sockets.end())
@@ -654,9 +659,9 @@ void WSystemMap::PushIncomingTraffic(WSocketEvent const& Event)
 
 void WSystemMap::PushOutgoingTraffic(WSocketEvent const& Event)
 {
-	auto            Bytes = Event.Data.TrafficEventData.Bytes;
 	auto            SocketCookie = Event.Cookie;
 	std::lock_guard Lock(DataMutex);
+	auto const       Bytes = Event.Data.TrafficEventData.Bytes;
 	TrafficCounter.PushOutgoingTraffic(Bytes);
 
 	if (auto const It = Sockets.find(SocketCookie); It != Sockets.end())
@@ -709,9 +714,9 @@ WMemoryStat WSystemMap::GetMemoryUsage()
 
 	Apps.Name = "Applications";
 	Apps.Usage += sizeof(decltype(Applications));
-	for (auto const& App : Applications)
+	for (auto const& AppPath : Applications | std::views::keys)
 	{
-		Apps.Usage += App.first.capacity();
+		Apps.Usage += AppPath.capacity();
 		Apps.Usage += sizeof(WAppCounter);
 		Apps.Usage += sizeof(WApplicationItem);
 	}
@@ -759,7 +764,7 @@ void WSystemMap::Cleanup()
 
 	for (auto ProcessIt = Processes.begin(); ProcessIt != Processes.end();)
 	{
-		auto PID = ProcessIt->first;
+		auto const PID = ProcessIt->first;
 		if (!WFilesystem::IsProcessRunning(PID) && !ProcessIt->second->IsMarkedForRemoval())
 		{
 			ProcessIt->second->MarkForRemoval();
@@ -775,7 +780,7 @@ void WSystemMap::Cleanup()
 
 			// If this process exited, but there are still open sockets left,
 			// they most likely now belong to a child process. Since those
-			// processes might be running as root and we are not running as root
+			// processes might be running as root, and we are not running as root
 			// we can't look them up via /proc/. So instead we sent these endpoints
 			// to the ip link process which does run as root, which will check
 			// what processes (if any) own these ports now. Not exactly a good
@@ -855,8 +860,8 @@ void WSystemMap::Cleanup()
 		// If the socket's local port is not in use anymore, we consider it stale (except for ICMP which doesn't have
 		// ports)
 		if (!SocketStateParser.IsUsedPort(Socket->TrafficItem->SocketTuple.LocalEndpoint.Port)
-			&& (Socket->TrafficItem->SocketTuple.Protocol != EProtocol::ICMP
-				&& Socket->TrafficItem->SocketTuple.Protocol != EProtocol::ICMPv6))
+			&& Socket->TrafficItem->SocketTuple.Protocol != EProtocol::ICMP
+			&& Socket->TrafficItem->SocketTuple.Protocol != EProtocol::ICMPv6)
 		{
 			spdlog::debug("Removing socket because its port is no longer in use");
 			return true;
