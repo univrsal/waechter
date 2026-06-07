@@ -242,6 +242,10 @@ void WTrafficTree::LoadFromBuffer(WBuffer const& Buffer)
 			for (auto const& Sock : Proc->Sockets | std::views::values)
 			{
 				TrafficItems[Sock->ItemId] = Sock;
+				for (auto const& UDPTuple : Sock->UDPPerConnectionTraffic | std::views::values)
+				{
+					TrafficItems[UDPTuple->ItemId] = UDPTuple;
+				}
 			}
 		}
 	}
