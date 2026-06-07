@@ -254,22 +254,15 @@ void WSystemMap::AddExistingSockets()
 		assert(Socket);
 		if (!Socket)
 		{
-			spdlog::error("Failed to map existing listen socket for PID {} and endpoint {}, skipping", ListenSocket.PID,
-				ListenSocket.LocalEndpoint.ToString());
 			spdlog::error("Failed to map existing listen socket for PID {} and endpoint {}, skipping", PID,
 				LocalEndpoint.ToString());
 			continue;
 		}
-		Socket->TrafficItem->SocketTuple.LocalEndpoint = ListenSocket.LocalEndpoint;
-		Socket->TrafficItem->SocketTuple.Protocol = ListenSocket.Protocol;
 		Socket->TrafficItem->SocketTuple.LocalEndpoint = LocalEndpoint;
 		Socket->TrafficItem->SocketTuple.Protocol = Protocol;
 		Socket->TrafficItem->SocketType = ESocketType::Listen;
 		Socket->TrafficItem->ConnectionState = ESocketConnectionState::Connected;
 
-		spdlog::debug("Added existing listen socket: {} {} (PID {}, app '{}')",
-			EProtocol::ToString(ListenSocket.Protocol), ListenSocket.LocalEndpoint.ToString(), ListenSocket.PID,
-			Socket->ParentProcess->ParentApp->TrafficItem->ApplicationName);
 		spdlog::debug("Added existing listen socket: {} {} (PID {}, app '{}')", EProtocol::ToString(Protocol),
 			LocalEndpoint.ToString(), PID, Socket->ParentProcess->ParentApp->TrafficItem->ApplicationName);
 	}
@@ -628,9 +621,9 @@ void WSystemMap::RefreshAllTrafficCounters()
 
 void WSystemMap::PushIncomingTraffic(WSocketEvent const& Event)
 {
-	auto            SocketCookie = Event.Cookie;
-	std::lock_guard Lock(DataMutex);
 	auto const       Bytes = Event.Data.TrafficEventData.Bytes;
+	auto             SocketCookie = Event.Cookie;
+	std::unique_lock Lock(DataMutex);
 	TrafficCounter.PushIncomingTraffic(Bytes);
 
 	if (auto const It = Sockets.find(SocketCookie); It != Sockets.end())
@@ -659,9 +652,9 @@ void WSystemMap::PushIncomingTraffic(WSocketEvent const& Event)
 
 void WSystemMap::PushOutgoingTraffic(WSocketEvent const& Event)
 {
-	auto            SocketCookie = Event.Cookie;
-	std::lock_guard Lock(DataMutex);
 	auto const       Bytes = Event.Data.TrafficEventData.Bytes;
+	auto             SocketCookie = Event.Cookie;
+	std::unique_lock Lock(DataMutex);
 	TrafficCounter.PushOutgoingTraffic(Bytes);
 
 	if (auto const It = Sockets.find(SocketCookie); It != Sockets.end())
