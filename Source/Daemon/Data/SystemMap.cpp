@@ -21,7 +21,6 @@
 #include "Db/StatsManager.hpp"
 #include "Net/IPLink.hpp"
 #include "Net/PacketParser.hpp"
-#include "Net/Resolver.hpp"
 
 static std::string NormalizeAppImagePaths(std::string const& path);
 
@@ -146,8 +145,6 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 				}
 			}
 		}
-
-		MapUpdate.AddStateChange(Item->ItemId, ESocketConnectionState::Connected, Item->SocketType, Item->SocketTuple);
 		if (bItemModified)
 		{
 			MapUpdate.AddStateChange(Item->ItemId, Item->ConnectionState, Item->SocketType,
