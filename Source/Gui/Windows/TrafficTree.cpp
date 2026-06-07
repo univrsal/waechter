@@ -377,9 +377,9 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 			{
 				SocketItem->ConnectionState = StateChange.NewState;
 				SocketItem->SocketType = StateChange.SocketType;
-				if (StateChange.SocketTuple.has_value())
+				if (StateChange.SocketTuple)
 				{
-					SocketItem->SocketTuple = StateChange.SocketTuple.value();
+					SocketItem->SocketTuple = *StateChange.SocketTuple.get();
 				}
 			}
 		}

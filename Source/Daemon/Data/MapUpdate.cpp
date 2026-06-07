@@ -23,7 +23,7 @@ bool WMapUpdate::TrackUpdates()
 }
 
 void WMapUpdate::AddStateChange(WTrafficItemId const Id, ESocketConnectionState const NewState,
-	uint8_t const SocketType, std::optional<WSocketTuple> const& SocketTuple)
+	uint8_t const SocketType, std::shared_ptr<WSocketTuple> const& SocketTuple)
 {
 	if (!TrackUpdates())
 	{
