@@ -370,6 +370,12 @@ struct WSocketTuple
 		return LocalEndpoint.ToString() + " -> " + RemoteEndpoint.ToString() + " (" + EProtocol::ToString(Protocol)
 			+ ")";
 	}
+
+	bool operator==(WSocketTuple const& Other) const
+	{
+		return LocalEndpoint == Other.LocalEndpoint && RemoteEndpoint == Other.RemoteEndpoint
+			&& Protocol == Other.Protocol;
+	}
 };
 
 struct ByteArray16Hash
