@@ -64,4 +64,10 @@ struct WSocketItem : ITrafficItem
 	}
 
 	[[nodiscard]] ETrafficItemType GetType() const override { return TI_Socket; }
+
+	bool operator==(WSocketItem const& Other) const
+	{
+		return SocketTuple == Other.SocketTuple && SocketType == Other.SocketType
+			&& ConnectionState == Other.ConnectionState && Cookie == Other.Cookie;
+	}
 };
