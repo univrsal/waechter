@@ -738,7 +738,7 @@ void WSystemMap::PushIncomingTraffic(WSocketEvent const& Event)
 void WSystemMap::PushOutgoingTraffic(WSocketEvent const& Event)
 {
 	auto const       Bytes = Event.Data.TrafficEventData.Bytes;
-	auto const       SocketCookie = Event.Cookie;
+	auto             SocketCookie = Event.Cookie;
 	std::unique_lock Lock(DataMutex);
 	TrafficCounter.PushOutgoingTraffic(Bytes);
 
