@@ -45,6 +45,7 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 
 	if (PacketHeader.ParsePacket(Event.Data.TrafficEventData.RawData, PACKET_HEADER_SIZE))
 	{
+		bool bItemModified = false;
 		Item->SocketTuple.Protocol = PacketHeader.L4Proto;
 		WEndpoint LocalEndpoint;
 		WEndpoint RemoteEndpoint;
@@ -62,6 +63,10 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 
 		if (!bHaveLocalEndpoint)
 		{
+			if (Item->SocketTuple.LocalEndpoint != LocalEndpoint)
+			{
+				bItemModified = true;
+			}
 			Item->SocketTuple.LocalEndpoint = LocalEndpoint;
 		}
 
@@ -69,6 +74,10 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 		// is if they explicitly connect() to an address
 		if (!bHaveRemoteEndpoint && Item->SocketTuple.Protocol != EProtocol::UDP)
 		{
+			if (Item->SocketTuple.RemoteEndpoint != RemoteEndpoint)
+			{
+				bItemModified = true;
+			}
 			Item->SocketTuple.RemoteEndpoint = RemoteEndpoint;
 		}
 
@@ -76,13 +85,24 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 		{
 			if (Item->SocketTuple.Protocol == EProtocol::ICMP || Item->SocketTuple.Protocol == EProtocol::ICMPv6)
 			{
+				if (Item->SocketType != ESocketType::Connect)
+				{
+					bItemModified = true;
+				}
 				Item->SocketType = ESocketType::Connect;
 			}
 			else
 			{
 				ZoneScopedN("DetermineSocketType");
-				Item->SocketType =
+				auto const DeterminedType =
 					SocketStateParser.DetermineSocketType(Item->SocketTuple.LocalEndpoint, Item->SocketTuple.Protocol);
+
+				if (Item->SocketType != DeterminedType)
+				{
+					bItemModified = true;
+				}
+
+				Item->SocketType = DeterminedType;
 			}
 		}
 
@@ -91,8 +111,8 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 			// Add a new UDP per-connection tuple if the remote endpoint is different from the socket's main one
 			if (!RemoteEndpoint.Address.IsZero())
 			{
-				bool bTupleExists = Item->UDPPerConnectionTraffic.contains(RemoteEndpoint);
-				auto TupleCounter = GetOrCreateUDPTupleCounter(SockCounter, RemoteEndpoint);
+				bool const bTupleExists = Item->UDPPerConnectionTraffic.contains(RemoteEndpoint);
+				auto const TupleCounter = GetOrCreateUDPTupleCounter(SockCounter, RemoteEndpoint);
 				if (Event.Data.TrafficEventData.Direction == PD_Outgoing)
 				{
 					ZoneScopedN("PushOutgoingTraffic");
@@ -128,6 +148,11 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 		}
 
 		MapUpdate.AddStateChange(Item->ItemId, ESocketConnectionState::Connected, Item->SocketType, Item->SocketTuple);
+		if (bItemModified)
+		{
+			MapUpdate.AddStateChange(Item->ItemId, Item->ConnectionState, Item->SocketType,
+				std::make_shared<WSocketTuple>(Item->SocketTuple));
+		}
 	}
 	else
 	{
