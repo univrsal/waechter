@@ -16,6 +16,21 @@ constexpr uint32_t TCP_LISTEN = 0x0A;
 
 constexpr uint16_t EPHEMERAL_PORT_START = 32768;
 
+static bool MatchesLocalEndpoint(WEndpoint const& ParsedEndpoint, WEndpoint const& TargetEndpoint)
+{
+	if (ParsedEndpoint.Port != TargetEndpoint.Port)
+	{
+		return false;
+	}
+
+	if (ParsedEndpoint.Address == TargetEndpoint.Address)
+	{
+		return true;
+	}
+
+	return ParsedEndpoint.Address.IsZero() && ParsedEndpoint.Address.Family == TargetEndpoint.Address.Family;
+}
+
 WSocketStateParser::WSocketStateParser()
 {
 	ParseData();
@@ -320,7 +335,7 @@ std::optional<ESocketType::Type> WSocketStateParser::ParseTcpLine(
 		return std::nullopt;
 	}
 
-	if (LocalPort != TargetEndpoint.Port || TargetEndpoint.Address != LocalAddr)
+	if (!MatchesLocalEndpoint(WEndpoint{ LocalAddr, LocalPort }, TargetEndpoint))
 	{
 		return std::nullopt;
 	}
@@ -366,7 +381,7 @@ std::optional<ESocketType::Type> WSocketStateParser::ParseUdpLine(
 		return std::nullopt;
 	}
 
-	if (LocalPort != TargetEndpoint.Port || TargetEndpoint.Address != LocalAddr)
+	if (!MatchesLocalEndpoint(WEndpoint{ LocalAddr, LocalPort }, TargetEndpoint))
 	{
 		return std::nullopt;
 	}
@@ -394,7 +409,7 @@ std::optional<ESocketType::Type> WSocketStateParser::ParseUdpLine(
 }
 
 bool WSocketStateParser::ParseAddressPort(
-	std::string const& AddrPortStr, WIPAddress& OutAddr, uint16_t& OutPort, bool bIsIPv6)
+	std::string const& AddrPortStr, WIPAddress& OutAddr, uint16_t& OutPort, bool const bIsIPv6)
 {
 	size_t const ColonPos = AddrPortStr.find(':');
 	if (ColonPos == std::string::npos)

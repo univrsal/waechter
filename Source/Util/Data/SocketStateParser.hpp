@@ -55,7 +55,20 @@ public:
 	{
 		std::scoped_lock Lock(Mutex);
 		if (auto It = KnownUsedEndpoints.find(Endpoint); It != KnownUsedEndpoints.end())
+		{
 			return It->second;
+		}
+
+		if (!Endpoint.Address.IsZero())
+		{
+			WEndpoint WildcardEndpoint = Endpoint;
+			WildcardEndpoint.Address = {};
+			WildcardEndpoint.Address.Family = Endpoint.Address.Family;
+			if (auto It = KnownUsedEndpoints.find(WildcardEndpoint); It != KnownUsedEndpoints.end())
+			{
+				return It->second;
+			}
+		}
 		return -1;
 	}
 
