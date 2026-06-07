@@ -72,10 +72,10 @@ struct WTrafficTreeTupleAddition
 
 struct WTrafficTreeSocketStateChange
 {
-	WTrafficItemId              ItemId{};
-	ESocketConnectionState      NewState{};
-	uint8_t                     SocketType{};
-	std::optional<WSocketTuple> SocketTuple{};
+	WTrafficItemId                ItemId{};
+	ESocketConnectionState        NewState{};
+	uint8_t                       SocketType{};
+	std::shared_ptr<WSocketTuple> SocketTuple{};
 
 	template <class Archive>
 	void serialize(Archive& archive)
