@@ -344,11 +344,11 @@ WSystemMap::WSystemMap()
 		SystemItem->HostName = HostName;
 	}
 	RegisterDefaultFilters();
-	// Periodically check /proc/ for any socket info
-	WTimerManager::GetInstance().AddTimer(5, [this] {
-		std::scoped_lock Lock(DataMutex);
-		SocketStateParser.ParseData();
-	});
+	// Periodically check /proc/ for any socket info (I don't think we need this)
+	// WTimerManager::GetInstance().AddTimer(5, [this] {
+	// 	std::scoped_lock Lock(DataMutex);
+	// 	SocketStateParser.ParseData();
+	// });
 }
 
 static std::string NormalizeAppImagePaths(std::string const& path)
