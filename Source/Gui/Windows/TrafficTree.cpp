@@ -170,7 +170,16 @@ bool WTrafficTree::RenderItem(WRenderItemArgs const& Args)
 	if (ImGui::IsItemHovered())
 	{
 		ImGui::BeginTooltip();
-		ImGui::Text("ID: %llu", Args.Item->ItemId);
+		if (Args.Item->GetType() == TI_Socket)
+		{
+			auto const Socket = std::static_pointer_cast<WSocketItem>(Args.Item);
+			ImGui::Text("ID: %llu, Cookie: %lu", Args.Item->ItemId, Socket->Cookie);
+		}
+		else
+		{
+			ImGui::Text("ID: %llu", Args.Item->ItemId);
+		}
+
 		ImGui::EndTooltip();
 	}
 #endif
