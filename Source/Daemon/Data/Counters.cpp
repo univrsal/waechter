@@ -86,7 +86,7 @@ void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 		{
 			TrafficItem->SocketType |= ESocketType::Connect;
 		}
-		else
+		else if (TrafficItem->SocketTuple.Protocol == EProtocol::UDP)
 		{
 			TrafficItem->SocketType |= ESocketType::Listen;
 		}
@@ -101,7 +101,7 @@ void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 		{
 			TrafficItem->SocketType |= ESocketType::Connect;
 		}
-		else
+		else if (TrafficItem->SocketTuple.Protocol == EProtocol::UDP)
 		{
 			TrafficItem->SocketType |= ESocketType::Listen;
 		}
