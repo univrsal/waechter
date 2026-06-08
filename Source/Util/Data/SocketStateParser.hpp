@@ -35,11 +35,12 @@ class WSocketStateParser
 public:
 	WSocketStateParser();
 
-	[[nodiscard]] ESocketType::Type DetermineSocketType(WEndpoint const& LocalEndpoint, EProtocol::Type Protocol) const;
+	[[nodiscard]] ESocketType::Type DetermineSocketType(
+		WEndpoint const& LocalEndpoint, EProtocol::Type Protocol, WEndpoint const* RemoteEndpoint = nullptr) const;
 
 	void ParseData() const;
 
-	bool IsUsedPort(uint16_t Port)
+	bool IsUsedPort(uint16_t const Port) const
 	{
 		if (Port == 0)
 		{
@@ -54,7 +55,7 @@ public:
 	WProcessId GetEndpointPID(WEndpoint const& Endpoint) const
 	{
 		std::scoped_lock Lock(Mutex);
-		if (auto It = KnownUsedEndpoints.find(Endpoint); It != KnownUsedEndpoints.end())
+		if (auto const It = KnownUsedEndpoints.find(Endpoint); It != KnownUsedEndpoints.end())
 		{
 			return It->second;
 		}
@@ -84,10 +85,12 @@ private:
 	void ParseUdpFile(std::string const& FilePath, std::unordered_map<uint64_t, WProcessId> const& InodePidMap) const;
 
 	// Parse line from /proc/net/tcp or /proc/net/tcp6
-	std::optional<ESocketType::Type> ParseTcpLine(std::string const& Line, WEndpoint const& TargetEndpoint) const;
+	std::optional<ESocketType::Type> ParseTcpLine(
+		std::string const& Line, WEndpoint const& TargetEndpoint, WEndpoint const* RemoteEndpoint) const;
 
 	// Parse line from /proc/net/udp or /proc/net/udp6
-	std::optional<ESocketType::Type> ParseUdpLine(std::string const& Line, WEndpoint const& TargetEndpoint) const;
+	std::optional<ESocketType::Type> ParseUdpLine(
+		std::string const& Line, WEndpoint const& TargetEndpoint, WEndpoint const* RemoteEndpoint) const;
 
 	// parse hex address:port format
 	static bool ParseAddressPort(std::string const& AddrPortStr, WIPAddress& OutAddr, uint16_t& OutPort, bool bIsIPv6);

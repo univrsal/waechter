@@ -31,13 +31,18 @@ static bool MatchesLocalEndpoint(WEndpoint const& ParsedEndpoint, WEndpoint cons
 	return ParsedEndpoint.Address.IsZero() && ParsedEndpoint.Address.Family == TargetEndpoint.Address.Family;
 }
 
+static bool MatchesRemoteEndpoint(WEndpoint const& ParsedEndpoint, WEndpoint const& TargetEndpoint)
+{
+	return ParsedEndpoint == TargetEndpoint;
+}
+
 WSocketStateParser::WSocketStateParser()
 {
 	ParseData();
 }
 
 ESocketType::Type WSocketStateParser::DetermineSocketType(
-	WEndpoint const& LocalEndpoint, EProtocol::Type Protocol) const
+	WEndpoint const& LocalEndpoint, EProtocol::Type Protocol, WEndpoint const* RemoteEndpoint) const
 {
 	std::scoped_lock Lock(Mutex);
 	if (Protocol == EProtocol::TCP)
@@ -50,7 +55,7 @@ ESocketType::Type WSocketStateParser::DetermineSocketType(
 
 			while (std::getline(File, Line))
 			{
-				if (auto Result = ParseTcpLine(Line, LocalEndpoint); Result.has_value())
+				if (auto Result = ParseTcpLine(Line, LocalEndpoint, RemoteEndpoint); Result.has_value())
 				{
 					return Result.value();
 				}
@@ -65,7 +70,7 @@ ESocketType::Type WSocketStateParser::DetermineSocketType(
 
 			while (std::getline(File, Line))
 			{
-				auto Result = ParseTcpLine(Line, LocalEndpoint);
+				auto Result = ParseTcpLine(Line, LocalEndpoint, RemoteEndpoint);
 				if (Result.has_value())
 				{
 					return Result.value();
@@ -83,7 +88,7 @@ ESocketType::Type WSocketStateParser::DetermineSocketType(
 
 			while (std::getline(File, Line))
 			{
-				if (auto Result = ParseUdpLine(Line, LocalEndpoint); Result.has_value())
+				if (auto Result = ParseUdpLine(Line, LocalEndpoint, RemoteEndpoint); Result.has_value())
 				{
 					return Result.value();
 				}
@@ -98,7 +103,7 @@ ESocketType::Type WSocketStateParser::DetermineSocketType(
 
 			while (std::getline(File, Line))
 			{
-				if (auto Result = ParseUdpLine(Line, LocalEndpoint); Result.has_value())
+				if (auto Result = ParseUdpLine(Line, LocalEndpoint, RemoteEndpoint); Result.has_value())
 				{
 					return Result.value();
 				}
@@ -318,7 +323,7 @@ void WSocketStateParser::ParseUdpFile(
 }
 
 std::optional<ESocketType::Type> WSocketStateParser::ParseTcpLine(
-	std::string const& Line, WEndpoint const& TargetEndpoint) const
+	std::string const& Line, WEndpoint const& TargetEndpoint, WEndpoint const* RemoteEndpoint) const
 {
 	std::istringstream Iss(Line);
 	std::string        Slot, LocalAddrStr, RemAddrStr;
@@ -338,6 +343,25 @@ std::optional<ESocketType::Type> WSocketStateParser::ParseTcpLine(
 	if (!MatchesLocalEndpoint(WEndpoint{ LocalAddr, LocalPort }, TargetEndpoint))
 	{
 		return std::nullopt;
+	}
+
+	if (RemoteEndpoint)
+	{
+		WIPAddress RemoteAddr;
+		uint16_t   RemotePort;
+		if (bool const bIsIPv6 = LocalAddrStr.find(':') != LocalAddrStr.rfind(':');
+			!ParseAddressPort(RemAddrStr, RemoteAddr, RemotePort, bIsIPv6))
+		{
+			return std::nullopt;
+		}
+
+		if (!RemoteEndpoint->Address.IsZero() || RemoteEndpoint->Port != 0)
+		{
+			if (!MatchesRemoteEndpoint(WEndpoint{ RemoteAddr, RemotePort }, *RemoteEndpoint))
+			{
+				return std::nullopt;
+			}
+		}
 	}
 
 	if (State == TCP_LISTEN)
@@ -365,7 +389,7 @@ std::optional<ESocketType::Type> WSocketStateParser::ParseTcpLine(
 }
 
 std::optional<ESocketType::Type> WSocketStateParser::ParseUdpLine(
-	std::string const& Line, WEndpoint const& TargetEndpoint) const
+	std::string const& Line, WEndpoint const& TargetEndpoint, WEndpoint const* RemoteEndpoint) const
 {
 	std::istringstream Iss(Line);
 	std::string        Slot, LocalAddrStr, RemAddrStr;
@@ -390,6 +414,12 @@ std::optional<ESocketType::Type> WSocketStateParser::ParseUdpLine(
 	uint16_t   RemPort;
 
 	if (!ParseAddressPort(RemAddrStr, RemAddr, RemPort, bIsIPv6))
+	{
+		return std::nullopt;
+	}
+
+	if (RemoteEndpoint && (!RemoteEndpoint->Address.IsZero() || RemoteEndpoint->Port != 0)
+		&& !MatchesRemoteEndpoint(WEndpoint{ RemAddr, RemPort }, *RemoteEndpoint))
 	{
 		return std::nullopt;
 	}

@@ -93,8 +93,8 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 			else
 			{
 				ZoneScopedN("DetermineSocketType");
-				auto const DeterminedType =
-					SocketStateParser.DetermineSocketType(Item->SocketTuple.LocalEndpoint, Item->SocketTuple.Protocol);
+				auto const DeterminedType = SocketStateParser.DetermineSocketType(
+					Item->SocketTuple.LocalEndpoint, Item->SocketTuple.Protocol, &RemoteEndpoint);
 
 				if (Item->SocketType != DeterminedType)
 				{
