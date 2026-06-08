@@ -250,7 +250,7 @@ void WIPLink::RemovePidDownloadMark(uint32_t Pid)
 	}
 }
 
-void WIPLink::SendLookupMessage(WLookupEndpointsMsg const& LookupMsg)
+void WIPLink::SendLookupMessage(WLookupEndpointsMsg const& LookupMsg) const
 {
 	if (IpProcSocket)
 	{
