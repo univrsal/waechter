@@ -280,7 +280,7 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 		return;
 	}
 
-	spdlog::info("Rule Change: {}", Update.Rules.ToString());
+	spdlog::info("Rule Change for {}: {}", Update.TrafficItemId, Update.Rules.ToString());
 
 	std::lock_guard Lock(Mutex);
 
@@ -295,10 +295,9 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 
 	if (Update.Rules.DownloadLimit == 0)
 	{
-		auto SocketItem = std::dynamic_pointer_cast<WSocketItem>(Item);
-		if (SocketItem)
+		if (auto const SocketItem = std::dynamic_pointer_cast<WSocketItem>(Item))
 		{
-			WIPLink::GetInstance().RemoveIngressPortRouting(SocketItem->SocketTuple.LocalEndpoint.Port);
+			WIPLink::RemoveIngressPortRouting(SocketItem->SocketTuple.LocalEndpoint.Port);
 		}
 		WIPLink::GetInstance().RemoveDownloadLimit(Update.TrafficItemId);
 	}
@@ -328,7 +327,7 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 		{
 			ApplicationRules[Update.TrafficItemId] = Update.Rules;
 			// Set PID download marks for all processes under this application
-			auto AppItemCast = std::dynamic_pointer_cast<WApplicationItem>(Item);
+			auto const AppItemCast = std::dynamic_pointer_cast<WApplicationItem>(Item);
 			if (AppItemCast && Update.Rules.DownloadMark != 0)
 			{
 				for (auto const& Pid : AppItemCast->Processes | std::views::keys)
