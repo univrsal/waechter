@@ -145,8 +145,9 @@ static bool SetupHtbClass(std::shared_ptr<WSetupHtbClassMsg> const& SetupHtbClas
 	spdlog::info("Setup filter with mark {}", SetupHtbClass->Mark);
 	SYSFMT("tc filter replace dev {} parent 1: protocol ip pref 1 handle 0x{:x} fw classid 1:{}", IfName,
 		SetupHtbClass->Mark, SetupHtbClass->MinorId);
-	SYSFMT("tc filter replace dev {} parent 1: protocol ipv6 pref 1 handle 0x{:x} fw classid 1:{}", IfName,
-		SetupHtbClass->Mark, SetupHtbClass->MinorId);
+	// todo: handle ipv6, it should either be a ipv4 OR ipv6 filter so we have to determine that beforehand
+	// SYSFMT("tc filter replace dev {} parent 1: protocol ipv6 pref 1 handle 0x{:x} fw classid 1:{}", IfName,
+	// 	SetupHtbClass->Mark, SetupHtbClass->MinorId);
 	return true;
 }
 
@@ -158,8 +159,9 @@ static bool RemoveHtbClass(std::shared_ptr<WRemoveHtbClassMsg> const& RemoveHtbC
 
 	SYSFMT2("tc filter delete dev {} parent 1: protocol ip pref 1 handle 0x{:x} fw classid 1:{}", IfName,
 		RemoveHtbClass->Mark, RemoveHtbClass->MinorId);
-	SYSFMT2("tc filter delete dev {} parent 1: protocol ipv6 pref 1 handle 0x{:x} fw classid 1:{}", IfName,
-		RemoveHtbClass->Mark, RemoveHtbClass->MinorId);
+	// todo: handle ipv6, it should either be a ipv4 OR ipv6 filter so we have to determine that beforehand
+	// SYSFMT2("tc filter delete dev {} parent 1: protocol ipv6 pref 1 handle 0x{:x} fw classid 1:{}", IfName,
+	// 	RemoveHtbClass->Mark, RemoveHtbClass->MinorId);
 	SYSFMT("tc class delete dev {} classid 1:{}", IfName, RemoveHtbClass->MinorId);
 	return true;
 }
