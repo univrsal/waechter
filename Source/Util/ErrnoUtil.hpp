@@ -11,5 +11,15 @@
 class WErrnoUtil
 {
 public:
-	static std::string StrError() { return std::string(strerror(errno)); }
+	static std::string StrError(int const Err = 0)
+	{
+		if (Err == 0)
+		{
+			return std::string(strerror(errno));
+		}
+		else
+		{
+			return std::string(strerror(Err));
+		}
+	}
 };
