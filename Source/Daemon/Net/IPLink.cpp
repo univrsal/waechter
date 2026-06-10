@@ -93,6 +93,8 @@ void WIPLink::OnDataReceived(WBuffer const& Buf)
 	WLookupEndpointsResponseMsg Response{};
 	if (!WClientSocket::ReceiveMessage(Buf, Response))
 	{
+		spdlog::error("Failed to deserialize IPLink response (readPos={}, writePos={}, readableSize={})",
+			Buf.GetReadPos(), Buf.GetWritePos(), Buf.GetReadableSize());
 		return;
 	}
 	for (auto const& Lookup : Response.LookupResults)
