@@ -18,7 +18,6 @@ void WClientSocket::ListenThreadFunction()
 		{
 			continue;
 		}
-		spdlog::info("Received framed message of size {} bytes", RecvBuf.GetWritePos());
 		OnData(RecvBuf);
 		RecvBuf.Reset();
 	}
@@ -129,7 +128,6 @@ bool WClientSocket::SendFramed(void const* Data, size_t Size)
 
 bool WClientSocket::SendFramed(std::string const& Payload)
 {
-	spdlog::info("Sending {}", Payload.size());
 	return SendFramed(Payload.data(), Payload.size());
 }
 

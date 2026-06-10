@@ -212,12 +212,12 @@ WLookupEndpointsResponseMsg LookupEndpoints(std::shared_ptr<WLookupEndpointsMsg>
 	{
 		if (auto It = UsedEndpoints.find(Endpoint); It != UsedEndpoints.end())
 		{
-			spdlog::info("Looking up {} -> {}", Endpoint.ToString(), It->second);
+			spdlog::debug("Looking up {} -> {}", Endpoint.ToString(), It->second);
 			Response.LookupResults.emplace_back(Endpoint, It->second);
 		}
 		else
 		{
-			spdlog::info("Looking up {} -> 0", Endpoint.ToString());
+			spdlog::debug("Looking up {} -> 0", Endpoint.ToString());
 			Response.LookupResults.emplace_back(Endpoint, 0);
 		}
 	}
