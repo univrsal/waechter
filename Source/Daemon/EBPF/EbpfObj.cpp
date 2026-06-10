@@ -7,6 +7,7 @@
 
 #include <fcntl.h>
 #include <bpf/bpf.h>
+#include <bpf/libbpf.h>
 #include <net/if.h>
 #include <sys/vfs.h>
 
@@ -93,9 +94,9 @@ bool WEbpfObj::FindAndAttachPlainProgram(std::string const& ProgName)
 
 	bpf_link* Link = bpf_program__attach(Prog);
 
-	if (!Link)
+	if (int const Err = libbpf_get_error(Link); Err != 0)
 	{
-		spdlog::critical("Link attachment for program '{}' failed: {}", ProgName, WErrnoUtil::StrError());
+		spdlog::critical("Link attachment for program '{}' failed: {}", ProgName, WErrnoUtil::StrError(-Err));
 		return false;
 	}
 
