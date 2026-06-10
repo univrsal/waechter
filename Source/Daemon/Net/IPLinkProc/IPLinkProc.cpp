@@ -311,7 +311,7 @@ int main(int Argc, char** Argv)
 		spdlog::set_pattern("[%^%l%$] [tc] %v");
 	}
 
-	if (Argc < 4)
+	if (Argc < 5)
 	{
 		spdlog::error("Usage: waechter-iplink [socket path] [ifb dev] [ingress interface] [main interface]");
 		return -1;
