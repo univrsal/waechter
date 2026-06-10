@@ -151,9 +151,10 @@ bool WEbpfObj::CreateAndAttachTcxProgram(bpf_program* Program, int ifboverride)
 	int If = ifboverride > 0 ? ifboverride : static_cast<int>(IfIndex);
 
 	auto* Link = bpf_program__attach_tcx(Program, If, &Opts);
-	if (!Link)
+	if (int const Err = libbpf_get_error(Link); Err != 0)
 	{
-		spdlog::critical("Link attachment for tcx program  failed: {}", WErrnoUtil::StrError());
+		spdlog::critical("Link attachment for tcx program '{}' on ifindex {} failed: {}", bpf_program__name(Program),
+			If, WErrnoUtil::StrError(-Err));
 		return false;
 	}
 	Links.emplace_back(Link, Program);
