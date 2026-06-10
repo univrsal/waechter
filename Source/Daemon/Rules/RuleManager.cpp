@@ -208,19 +208,17 @@ void WRuleManager::SyncRules()
 				static_cast<int>(SockRules.Rules.UploadSwitch), static_cast<int>(SockRules.Rules.DownloadSwitch));
 			SockRules.bDirty = false;
 		}
-		auto TrafficItem = WSystemMap::GetInstance().GetTrafficItemById(SockRules.SocketId);
-		if (TrafficItem)
+		if (auto TrafficItem = WSystemMap::GetInstance().GetTrafficItemById(SockRules.SocketId))
 		{
-			auto SocketItem = std::dynamic_pointer_cast<WSocketItem>(TrafficItem);
-			if (SocketItem)
+			if (auto const SocketItem = std::dynamic_pointer_cast<WSocketItem>(TrafficItem))
 			{
 				if (SockRules.Rules.DownloadMark == 0)
 				{
-					WIPLink::GetInstance().RemoveIngressPortRouting(SocketItem->SocketTuple.LocalEndpoint.Port);
+					WIPLink::RemoveIngressPortRouting(SocketItem->SocketTuple.LocalEndpoint.Port);
 				}
 				else if (SocketItem->SocketTuple.LocalEndpoint.Port != 0)
 				{
-					WIPLink::GetInstance().SetupIngressPortRouting(
+					WIPLink::SetupIngressPortRouting(
 						SockRules.SocketId, SockRules.Rules.DownloadMark, SocketItem->SocketTuple.LocalEndpoint.Port);
 				}
 			}
