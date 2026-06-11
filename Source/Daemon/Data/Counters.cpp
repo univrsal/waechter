@@ -11,6 +11,7 @@
 
 void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 {
+	auto const OldItemState = *TrafficItem.get();
 	if (Event.EventType == NE_SocketConnect_4 && TrafficItem->ConnectionState != ESocketConnectionState::Connecting)
 	{
 		TrafficItem->ConnectionState = ESocketConnectionState::Connecting;
@@ -85,7 +86,7 @@ void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 		{
 			TrafficItem->SocketType |= ESocketType::Connect;
 		}
-		else
+		else if (TrafficItem->SocketTuple.Protocol == EProtocol::UDP)
 		{
 			TrafficItem->SocketType |= ESocketType::Listen;
 		}
@@ -100,7 +101,7 @@ void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 		{
 			TrafficItem->SocketType |= ESocketType::Connect;
 		}
-		else
+		else if (TrafficItem->SocketTuple.Protocol == EProtocol::UDP)
 		{
 			TrafficItem->SocketType |= ESocketType::Listen;
 		}
@@ -164,6 +165,9 @@ void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 		WNetworkEvents::GetInstance().OnSocketConnected(this);
 	}
 
-	WSystemMap::GetInstance().GetMapUpdate().AddStateChange(
-		TrafficItem->ItemId, TrafficItem->ConnectionState, TrafficItem->SocketType, TrafficItem->SocketTuple);
+	if (OldItemState != *TrafficItem.get())
+	{
+		WSystemMap::GetInstance().GetMapUpdate().AddStateChange(TrafficItem->ItemId, TrafficItem->ConnectionState,
+			TrafficItem->SocketType, std::make_shared<WSocketTuple>(TrafficItem->SocketTuple));
+	}
 }

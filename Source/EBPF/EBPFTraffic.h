@@ -252,7 +252,6 @@ int ifb_cls_egress(struct __sk_buff* skb)
 
 	if (Mark && *Mark != 0)
 	{
-		bpf_printk("Setting mark for port %d to %d (port-based)\n", DstPort, *Mark);
 		skb->mark = *Mark;
 	}
 	else
@@ -265,7 +264,6 @@ int ifb_cls_egress(struct __sk_buff* skb)
 			__u32* PidMark = bpf_map_lookup_elem(&pid_download_marks, Pid);
 			if (PidMark && *PidMark != 0)
 			{
-				bpf_printk("Setting mark for port %d to %d (PID %d fallback)\n", DstPort, *PidMark, *Pid);
 				skb->mark = *PidMark;
 			}
 		}

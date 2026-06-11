@@ -170,7 +170,16 @@ bool WTrafficTree::RenderItem(WRenderItemArgs const& Args)
 	if (ImGui::IsItemHovered())
 	{
 		ImGui::BeginTooltip();
-		ImGui::Text("ID: %llu", Args.Item->ItemId);
+		if (Args.Item->GetType() == TI_Socket)
+		{
+			auto const Socket = std::static_pointer_cast<WSocketItem>(Args.Item);
+			ImGui::Text("ID: %llu, Cookie: %lu", Args.Item->ItemId, Socket->Cookie);
+		}
+		else
+		{
+			ImGui::Text("ID: %llu", Args.Item->ItemId);
+		}
+
 		ImGui::EndTooltip();
 	}
 #endif
@@ -242,6 +251,10 @@ void WTrafficTree::LoadFromBuffer(WBuffer const& Buffer)
 			for (auto const& Sock : Proc->Sockets | std::views::values)
 			{
 				TrafficItems[Sock->ItemId] = Sock;
+				for (auto const& UDPTuple : Sock->UDPPerConnectionTraffic | std::views::values)
+				{
+					TrafficItems[UDPTuple->ItemId] = UDPTuple;
+				}
 			}
 		}
 	}
@@ -373,9 +386,9 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 			{
 				SocketItem->ConnectionState = StateChange.NewState;
 				SocketItem->SocketType = StateChange.SocketType;
-				if (StateChange.SocketTuple.has_value())
+				if (StateChange.SocketTuple)
 				{
-					SocketItem->SocketTuple = StateChange.SocketTuple.value();
+					SocketItem->SocketTuple = *StateChange.SocketTuple.get();
 				}
 			}
 		}

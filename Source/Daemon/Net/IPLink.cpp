@@ -93,6 +93,8 @@ void WIPLink::OnDataReceived(WBuffer const& Buf)
 	WLookupEndpointsResponseMsg Response{};
 	if (!WClientSocket::ReceiveMessage(Buf, Response))
 	{
+		spdlog::error("Failed to deserialize IPLink response (readPos={}, writePos={}, readableSize={})",
+			Buf.GetReadPos(), Buf.GetWritePos(), Buf.GetReadableSize());
 		return;
 	}
 	for (auto const& Lookup : Response.LookupResults)
@@ -250,7 +252,7 @@ void WIPLink::RemovePidDownloadMark(uint32_t Pid)
 	}
 }
 
-void WIPLink::SendLookupMessage(WLookupEndpointsMsg const& LookupMsg)
+void WIPLink::SendLookupMessage(WLookupEndpointsMsg const& LookupMsg) const
 {
 	if (IpProcSocket)
 	{

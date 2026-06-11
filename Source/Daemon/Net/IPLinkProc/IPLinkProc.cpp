@@ -145,6 +145,9 @@ static bool SetupHtbClass(std::shared_ptr<WSetupHtbClassMsg> const& SetupHtbClas
 	spdlog::info("Setup filter with mark {}", SetupHtbClass->Mark);
 	SYSFMT("tc filter replace dev {} parent 1: protocol ip pref 1 handle 0x{:x} fw classid 1:{}", IfName,
 		SetupHtbClass->Mark, SetupHtbClass->MinorId);
+	// todo: handle ipv6, it should either be a ipv4 OR ipv6 filter so we have to determine that beforehand
+	// SYSFMT("tc filter replace dev {} parent 1: protocol ipv6 pref 1 handle 0x{:x} fw classid 1:{}", IfName,
+	// 	SetupHtbClass->Mark, SetupHtbClass->MinorId);
 	return true;
 }
 
@@ -156,6 +159,9 @@ static bool RemoveHtbClass(std::shared_ptr<WRemoveHtbClassMsg> const& RemoveHtbC
 
 	SYSFMT2("tc filter delete dev {} parent 1: protocol ip pref 1 handle 0x{:x} fw classid 1:{}", IfName,
 		RemoveHtbClass->Mark, RemoveHtbClass->MinorId);
+	// todo: handle ipv6, it should either be a ipv4 OR ipv6 filter so we have to determine that beforehand
+	// SYSFMT2("tc filter delete dev {} parent 1: protocol ipv6 pref 1 handle 0x{:x} fw classid 1:{}", IfName,
+	// 	RemoveHtbClass->Mark, RemoveHtbClass->MinorId);
 	SYSFMT("tc class delete dev {} classid 1:{}", IfName, RemoveHtbClass->MinorId);
 	return true;
 }
@@ -206,12 +212,12 @@ WLookupEndpointsResponseMsg LookupEndpoints(std::shared_ptr<WLookupEndpointsMsg>
 	{
 		if (auto It = UsedEndpoints.find(Endpoint); It != UsedEndpoints.end())
 		{
-			spdlog::info("Looking up {} -> {}", Endpoint.ToString(), It->second);
+			spdlog::debug("Looking up {} -> {}", Endpoint.ToString(), It->second);
 			Response.LookupResults.emplace_back(Endpoint, It->second);
 		}
 		else
 		{
-			spdlog::info("Looking up {} -> 0", Endpoint.ToString());
+			spdlog::debug("Looking up {} -> 0", Endpoint.ToString());
 			Response.LookupResults.emplace_back(Endpoint, 0);
 		}
 	}
@@ -307,7 +313,7 @@ int main(int Argc, char** Argv)
 		spdlog::set_pattern("[%^%l%$] [tc] %v");
 	}
 
-	if (Argc < 4)
+	if (Argc < 5)
 	{
 		spdlog::error("Usage: waechter-iplink [socket path] [ifb dev] [ingress interface] [main interface]");
 		return -1;

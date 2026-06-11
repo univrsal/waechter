@@ -61,7 +61,7 @@ public:
 	}
 
 	void AddStateChange(WTrafficItemId Id, ESocketConnectionState NewState, uint8_t SocketType,
-		std::optional<WSocketTuple> const& SocketTuple = std::nullopt);
+		std::shared_ptr<WSocketTuple> const& SocketTuple = nullptr);
 
 	void AddTupleAddition(WEndpoint const& Endpoint, std::shared_ptr<WTupleCounter> const& Tuple)
 	{

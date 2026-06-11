@@ -226,7 +226,7 @@ void WWaechterEbpf::UpdateData()
 				}
 				break;
 			case NE_SocketClosed:
-				WSystemMap::GetInstance().MarkSocketForRemoval(SocketEvent.Cookie);
+				WSystemMap::GetInstance().MarkSocketForRemoval(SocketEvent);
 				break;
 			default:;
 		}

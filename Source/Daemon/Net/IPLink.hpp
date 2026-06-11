@@ -87,7 +87,7 @@ public:
 			ActiveDownloadLimits.size());
 	}
 
-	void SendLookupMessage(WLookupEndpointsMsg const& LookupMsg);
+	void SendLookupMessage(WLookupEndpointsMsg const& LookupMsg) const;
 
 	WMemoryStat GetMemoryUsage() override;
 };

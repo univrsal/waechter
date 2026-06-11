@@ -57,8 +57,10 @@ int BPF_PROG(on_tcp_set_state, struct sock* Sk, int Newstate)
 	{
 		struct WSocketEvent* Event = MakeSocketEvent(bpf_get_socket_cookie(Sk), NE_SocketClosed);
 
+		u16 Lport = BPF_CORE_READ(Sk, __sk_common.skc_num);
 		if (Event)
 		{
+			Event->Data.SocketCloseEventData.LocalPort = Lport;
 			bpf_ringbuf_submit(Event, 0);
 		}
 
@@ -67,7 +69,6 @@ int BPF_PROG(on_tcp_set_state, struct sock* Sk, int Newstate)
 		// so we must NOT delete the mapping when an accepted connection closes.
 		if (Oldstate == TCP_LISTEN)
 		{
-			u16 Lport = BPF_CORE_READ(Sk, __sk_common.skc_num);
 			if (Lport != 0)
 			{
 				bpf_map_delete_elem(&port_to_pid, &Lport);

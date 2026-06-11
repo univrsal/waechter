@@ -39,7 +39,7 @@ public:
 class WClientSocket : public WSocket
 {
 	// Stores raw bytes read from the socket until a full frame is assembled
-	WBuffer           IncomingBuffer{ 4096 };
+	std::string       IncomingBuffer{};
 	bool              bIsConnected{ false };
 	std::thread       ListenerThread;
 	std::atomic<bool> bListenThreadRunning{ false };

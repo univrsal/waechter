@@ -20,6 +20,7 @@
 #include "Data/MapUpdate.hpp"
 #include "Data/SocketStateParser.hpp"
 
+static constexpr WSocketCookie kSyntheticCookieBase = static_cast<WSocketCookie>(1) << 63;
 /**
  * Both the client and the daemon need a tree of applications, processes, and sockets
  * but the daemon also needs to maintain global traffic counters and mappings.
@@ -59,6 +60,10 @@ class WSystemMap : public TSingleton<WSystemMap>, public IMemoryTrackable
 
 	void DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSocketCounter> const& SockCounter);
 
+	std::shared_ptr<WSocketCounter> MapSocketFromTrafficEvent(WSocketEvent const& Event);
+
+	void PushTrafficForSocket(WSocketEvent const& Event, std::shared_ptr<WSocketCounter> const& Socket) const;
+
 	std::shared_ptr<WTupleCounter> GetOrCreateUDPTupleCounter(
 		std::shared_ptr<WSocketCounter> const& SockCounter, WEndpoint const& Endpoint);
 
@@ -90,10 +95,30 @@ public:
 
 	void PushOutgoingTraffic(WSocketEvent const& Event);
 
-	void MarkSocketForRemoval(WSocketCookie SocketCookie)
+	void MarkSocketForRemoval(WSocketEvent const& Event)
 	{
-		if (auto const It = Sockets.find(SocketCookie); It != Sockets.end())
+
+		if (auto const It = Sockets.find(Event.Cookie); It != Sockets.end())
 		{
+			if (Event.Data.SocketCloseEventData.LocalPort > 0)
+			{
+				// todo: iterating over all sockets is a bit dumb since this really
+				// only affects listen sockets that were opened before the daemon started
+				// but it's probably not too much of an issue
+				for (auto const& Sock : Sockets | std::views::values)
+				{
+					if (Sock->TrafficItem->SocketTuple.LocalEndpoint.Port == Event.Data.SocketCloseEventData.LocalPort)
+					{
+						Sock->MarkForRemoval();
+						Sock->TrafficItem->ConnectionState = ESocketConnectionState::Closed;
+						MapUpdate.MarkItemForRemoval(Sock->TrafficItem->ItemId);
+						Sock->ParentProcess->PushIncomingTraffic(0); // Force state update
+						Sock->ParentProcess->ParentApp->PushOutgoingTraffic(0);
+						TrafficCounter.PushIncomingTraffic(0);
+						break;
+					}
+				}
+			}
 			It->second->MarkForRemoval();
 			It->second->TrafficItem->ConnectionState = ESocketConnectionState::Closed;
 			MapUpdate.MarkItemForRemoval(It->second->TrafficItem->ItemId);

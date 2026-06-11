@@ -7,6 +7,8 @@
 
 #include "spdlog/spdlog.h"
 
+#include <netinet/in.h>
+
 void WClientSocket::ListenThreadFunction()
 {
 	WBuffer RecvBuf;
@@ -17,7 +19,7 @@ void WClientSocket::ListenThreadFunction()
 			continue;
 		}
 		OnData(RecvBuf);
-		RecvBuf.Compact();
+		RecvBuf.Reset();
 	}
 	bListenThreadRunning = false;
 }
@@ -55,7 +57,6 @@ void WClientSocket::Close()
 	{
 		OnClosed();
 	}
-	IncomingBuffer.Reset();
 }
 
 bool WClientSocket::Connect()
@@ -153,63 +154,36 @@ ssize_t WClientSocket::ReceiveRaw(void* Buffer, size_t Capacity)
 
 bool WClientSocket::ReceiveFramed(WBuffer& OutputBuffer)
 {
+
 	if (!IsConnected())
 	{
 		return false;
 	}
+	static char   IoBuf[4096];
+	ssize_t const BytesRead = ReceiveRaw(IoBuf, sizeof(IoBuf));
 
-	// Helper lambda to try extracting a frame from IncomingBuffer.
-	// Returns true if a complete frame was extracted.
-	auto TryExtractFrame = [&]() -> bool {
-		if (IncomingBuffer.GetReadableSize() < sizeof(uint32_t))
+	// Accumulate data (handle fragmented messages)
+	IncomingBuffer.insert(IncomingBuffer.end(), IoBuf, IoBuf + std::max<ssize_t>(0, BytesRead));
+
+	// Try to extract complete frames
+	while (IncomingBuffer.size() >= sizeof(uint32_t))
+	{
+		uint32_t FrameLength = 0;
+		std::memcpy(&FrameLength, IncomingBuffer.data(), sizeof(uint32_t));
+
+		if (IncomingBuffer.size() < sizeof(uint32_t) + FrameLength)
 		{
+			// Not enough data for complete frame
 			return false;
 		}
 
-		auto const ReadableData = IncomingBuffer.GetReadableData();
-		uint32_t FrameLen = 0;
-		std::memcpy(&FrameLen, ReadableData.data(), sizeof(uint32_t));
+		// Extract frame data (skip length prefix)
+		OutputBuffer.Write(std::span<char const>(IncomingBuffer.data() + sizeof(uint32_t), FrameLength));
 
-		// Do we have the full body?
-		if (IncomingBuffer.GetReadableSize() < sizeof(uint32_t) + FrameLen)
-		{
-			return false;
-		}
-
-		// We have a full frame. Extract it.
-		IncomingBuffer.Consume(sizeof(uint32_t)); // Skip header
-
-		OutputBuffer.Reset();
-		OutputBuffer.Write(IncomingBuffer.GetReadableData().first(FrameLen));
-		IncomingBuffer.Consume(FrameLen);
-
-		if (IncomingBuffer.GetReadPos() > 2048)
-		{
-			IncomingBuffer.Compact();
-		}
-
-		return true;
-	};
-
-	// 1. First check if we already have a complete frame buffered from a previous read.
-	//    This avoids blocking on recv() when we already have data to process.
-	if (TryExtractFrame())
-	{
+		// Remove processed data from buffer
+		IncomingBuffer.erase(
+			IncomingBuffer.begin(), IncomingBuffer.begin() + static_cast<ptrdiff_t>(sizeof(uint32_t) + FrameLength));
 		return true;
 	}
-
-	// 2. No complete frame buffered, so read more data from the network.
-	//    This is a blocking call.
-	char    IoBuf[4096];
-	ssize_t BytesRead = ReceiveRaw(IoBuf, sizeof(IoBuf));
-
-	if (BytesRead > 0)
-	{
-		IncomingBuffer.Write(std::span{ IoBuf, static_cast<std::size_t>(BytesRead) });
-	}
-	// If BytesRead < 0 (error) or == 0 (closed), IsConnected() will likely be false now,
-	// but we might still have data in IncomingBuffer to process, so we continue.
-
-	// 3. Try to extract a frame now
-	return TryExtractFrame();
+	return false;
 }
