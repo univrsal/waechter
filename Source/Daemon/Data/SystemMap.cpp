@@ -5,6 +5,7 @@
 
 #include "SystemMap.hpp"
 
+#include <array>
 #include <cstdlib>
 #include <ranges>
 #include <regex>
@@ -23,6 +24,184 @@
 #include "Net/PacketParser.hpp"
 
 static std::string NormalizeAppImagePaths(std::string const& path);
+
+namespace
+{
+std::string CanonicalizePath(stdfs::path const& Path)
+{
+	std::error_code Error;
+	auto            Canonical = stdfs::weakly_canonical(Path, Error);
+	if (!Error)
+	{
+		return Canonical.string();
+	}
+
+	return Path.lexically_normal().string();
+}
+
+std::string GetBasename(std::string const& Path)
+{
+	auto const Pos = Path.find_last_of('/');
+	return WStringFormat::Trim((Pos == std::string::npos) ? Path : Path.substr(Pos + 1));
+}
+
+std::string SanitizeProcessBinaryCandidate(std::string Value)
+{
+	Value = WStringFormat::Trim(Value);
+	if (Value.empty())
+	{
+		return {};
+	}
+
+	if (auto const SpacePos = Value.find(' '); SpacePos != std::string::npos)
+	{
+		Value = Value.substr(0, SpacePos);
+	}
+
+	Value = WStringFormat::Trim(Value);
+	while (!Value.empty() && Value.back() == ':')
+	{
+		Value.pop_back();
+	}
+
+	Value = WStringFormat::Trim(Value);
+	if (Value.empty() || Value == "main" || Value == "Main")
+	{
+		return {};
+	}
+
+	if (Value.front() == '[' && Value.back() == ']')
+	{
+		return {};
+	}
+
+	return Value;
+}
+
+bool ProcessVisiblePathExists(stdfs::path const& LogicalPath, std::string const& ProcessRoot)
+{
+	if (LogicalPath.empty())
+	{
+		return false;
+	}
+
+	std::error_code Error;
+	if (stdfs::exists(LogicalPath, Error))
+	{
+		return true;
+	}
+
+	if (!ProcessRoot.empty() && LogicalPath.is_absolute())
+	{
+		Error.clear();
+		return stdfs::exists(stdfs::path(ProcessRoot) / LogicalPath.relative_path(), Error);
+	}
+
+	return false;
+}
+
+void AddUniqueEntry(std::vector<std::string>& Entries, std::string Entry)
+{
+	Entry = WStringFormat::Trim(Entry);
+	if (Entry.empty())
+	{
+		return;
+	}
+
+	if (std::ranges::find(Entries, Entry) == Entries.end())
+	{
+		Entries.emplace_back(std::move(Entry));
+	}
+}
+
+std::vector<std::string> GetExecutableSearchPaths(WProcessId PID)
+{
+	std::vector<std::string> Paths{};
+	for (auto const& EnvVar : WFilesystem::ReadProcNulSeparated("/proc/" + std::to_string(PID) + "/environ"))
+	{
+		if (!WStringFormat::StartsWith(EnvVar, "PATH="))
+		{
+			continue;
+		}
+
+		for (auto const& PathEntry : WStringFormat::SplitString(EnvVar.substr(5), ':'))
+		{
+			AddUniqueEntry(Paths, PathEntry);
+		}
+		break;
+	}
+
+	for (auto const& PathEntry : std::array<std::string, 7>{
+			 "/usr/local/sbin", "/usr/local/bin", "/usr/sbin", "/usr/bin", "/sbin", "/bin", "/snap/bin" })
+	{
+		AddUniqueEntry(Paths, PathEntry);
+	}
+
+	return Paths;
+}
+
+std::string ResolveProcessBinaryPath(WProcessId PID, std::vector<std::string> const& Argv, std::string const& Comm)
+{
+	std::string const ProcessRoot = WFilesystem::ReadLink("/proc/" + std::to_string(PID) + "/root");
+	std::string const Cwd = WFilesystem::GetProcessCwd(PID);
+	auto const        SearchPaths = GetExecutableSearchPaths(PID);
+
+	std::vector<std::string> Candidates{};
+	if (!Argv.empty())
+	{
+		AddUniqueEntry(Candidates, Argv[0]);
+	}
+	AddUniqueEntry(Candidates, Comm);
+
+	for (auto const& RawCandidate : Candidates)
+	{
+		auto const Candidate = SanitizeProcessBinaryCandidate(RawCandidate);
+		if (Candidate.empty())
+		{
+			continue;
+		}
+
+		if (Candidate.front() == '/')
+		{
+			if (ProcessVisiblePathExists(Candidate, ProcessRoot))
+			{
+				return NormalizeAppImagePaths(CanonicalizePath(Candidate));
+			}
+			continue;
+		}
+
+		if (Candidate.find('/') != std::string::npos && !Cwd.empty())
+		{
+			auto const ResolvedPath = stdfs::path(Cwd) / Candidate;
+			if (ProcessVisiblePathExists(ResolvedPath, ProcessRoot))
+			{
+				return NormalizeAppImagePaths(CanonicalizePath(ResolvedPath));
+			}
+		}
+
+		for (auto const& SearchPath : SearchPaths)
+		{
+			stdfs::path BasePath = SearchPath;
+			if (!BasePath.is_absolute())
+			{
+				if (Cwd.empty())
+				{
+					continue;
+				}
+				BasePath = stdfs::path(Cwd) / BasePath;
+			}
+
+			auto const ResolvedPath = BasePath / Candidate;
+			if (ProcessVisiblePathExists(ResolvedPath, ProcessRoot))
+			{
+				return NormalizeAppImagePaths(CanonicalizePath(ResolvedPath));
+			}
+		}
+	}
+
+	return {};
+}
+} // namespace
 
 void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSocketCounter> const& SockCounter)
 {
@@ -410,38 +589,11 @@ std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketEvent const& Event,
 		}
 	}
 
-	// If exePath missing but argv[0] exists, try to resolve to absolute via /proc/[pid]/cwd or PATH
-	if (ExePath.empty() && !Argv.empty() && !Argv[0].empty())
+	// If /proc/[pid]/exe is inaccessible (common for setproctitle()-style daemons such as nginx/php-fpm),
+	// fall back to argv[0], comm, PATH, cwd, and the process root.
+	if (ExePath.empty())
 	{
-		if (Argv[0].front() == '/')
-		{
-			// Absolute path - use directly
-			ExePath = NormalizeAppImagePaths(Argv[0]);
-		}
-		else
-		{
-			// Relative path - try to resolve via /proc/[pid]/cwd
-			std::string Cwd = WFilesystem::ReadLink("/proc/" + std::to_string(PID) + "/cwd");
-			if (!Cwd.empty() && Cwd.back() != '/')
-			{
-				Cwd += '/';
-			}
-
-			// Resolve relative path
-			std::string const ResolvedPath = Cwd + Argv[0];
-
-			// Try to resolve the path to see if it exists
-			if (char* RealPath = realpath(ResolvedPath.c_str(), nullptr))
-			{
-				ExePath = NormalizeAppImagePaths(RealPath);
-				free(RealPath);
-			}
-			else
-			{
-				// If realpath fails, just use the resolved path anyway
-				ExePath = NormalizeAppImagePaths(ResolvedPath);
-			}
-		}
+		ExePath = ResolveProcessBinaryPath(PID, Argv, Comm);
 	}
 
 	// Reconstruct human-readable command line preserving argv boundaries with spaces
@@ -457,9 +609,7 @@ std::shared_ptr<WSocketCounter> WSystemMap::MapSocket(WSocketEvent const& Event,
 
 	if ((Comm.empty() || Comm == "main" || Comm == "Main") && !ExePath.empty())
 	{
-		// derive basename
-		auto const Pos = ExePath.find_last_of('/');
-		Comm = WStringFormat::Trim(Pos == std::string::npos ? ExePath : ExePath.substr(Pos + 1));
+		Comm = GetBasename(ExePath);
 		if (Comm.empty())
 		{
 			Comm = ExePath.empty() ? "unknown" : ExePath;
@@ -604,24 +754,81 @@ std::shared_ptr<WAppCounter> WSystemMap::FindOrMapApplication(
 {
 	ZoneScopedN("WSystemMap::FindOrMapApplication");
 
-	// Prefer the resolved exe path as key if available; otherwise fall back to argv[0] from CommandLine's first
-	// token
+	// Prefer the resolved exe path as key if available; otherwise fall back to a sanitized process title.
 	std::string Key = ExePath;
 	if (Key.empty())
 	{
 		Key = CommandLine;
 	}
+	if (Key.empty())
+	{
+		Key = AppName;
+	}
 
 	if (auto const Pos = Key.find(' '); Pos != std::string::npos)
 	{
-		Key = NormalizeAppImagePaths(Key.substr(0, Pos));
+		Key = Key.substr(0, Pos);
 	}
 
 	Key = WStringFormat::Trim(Key);
+	if (Key.empty() || Key.front() != '/')
+	{
+		Key = SanitizeProcessBinaryCandidate(Key);
+	}
+	Key = NormalizeAppImagePaths(Key);
+	if (Key.empty())
+	{
+		Key = AppName.empty() ? "unknown" : WStringFormat::Trim(AppName);
+	}
 
 	if (auto const It = Applications.find(Key); It != Applications.end())
 	{
 		return It->second;
+	}
+
+	if (!Key.empty() && Key.front() == '/')
+	{
+		auto const KeyBasename = GetBasename(Key);
+		auto const AppAlias = SanitizeProcessBinaryCandidate(AppName);
+		for (auto It = Applications.begin(); It != Applications.end(); ++It)
+		{
+			auto const ExistingKey = It->first;
+			auto const ExistingApp = It->second;
+			auto const& ExistingPath = ExistingApp->TrafficItem->ApplicationPath;
+			if (!ExistingPath.empty() && ExistingPath.front() == '/')
+			{
+				continue;
+			}
+
+			auto ExistingAlias = SanitizeProcessBinaryCandidate(ExistingPath);
+			if (ExistingAlias.empty())
+			{
+				ExistingAlias = SanitizeProcessBinaryCandidate(ExistingKey);
+			}
+
+			bool const bMatchesAlias = !ExistingAlias.empty() && (ExistingAlias == KeyBasename || ExistingAlias == AppAlias);
+			bool const bMatchesName = !AppName.empty() && ExistingApp->TrafficItem->ApplicationName == AppName;
+			if (!bMatchesAlias && !bMatchesName)
+			{
+				continue;
+			}
+
+			spdlog::debug("Upgrading application key '{}' -> '{}'", ExistingKey, Key);
+			SystemItem->Applications.erase(ExistingKey);
+			Applications.erase(It);
+			ExistingApp->TrafficItem->ApplicationPath = Key;
+			if (!CommandLine.empty())
+			{
+				ExistingApp->TrafficItem->ApplicationCommandLine = CommandLine;
+			}
+			if (!AppName.empty())
+			{
+				ExistingApp->TrafficItem->ApplicationName = AppName;
+			}
+			SystemItem->Applications[Key] = ExistingApp->TrafficItem;
+			Applications[Key] = ExistingApp;
+			return ExistingApp;
+		}
 	}
 
 	spdlog::debug("Mapped new application: key='{}', exe='{}', cmd='{}'", Key, ExePath, CommandLine);
@@ -638,8 +845,8 @@ std::shared_ptr<WAppCounter> WSystemMap::FindOrMapApplication(
 	else
 	{
 		// derive basename
-		auto const Pos = Key.find_last_of('/');
-		AppItem->ApplicationName = WStringFormat::Trim(Pos == std::string::npos ? Key : Key.substr(Pos + 1));
+		auto Pos = Key.find_last_of('/');
+		AppItem->ApplicationName = WStringFormat::Trim((Pos == std::string::npos) ? Key : Key.substr(Pos + 1));
 		if (AppItem->ApplicationName.empty())
 		{
 			AppItem->ApplicationName = Key.empty() ? "unknown" : Key;
