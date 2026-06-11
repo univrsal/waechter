@@ -235,8 +235,7 @@ void WSystemMap::AddExistingSockets()
 	// instead we add them here manually
 
 	// Use a synthetic cookie range with the high bit set to avoid collision with real EBPF cookies
-	static constexpr WSocketCookie SyntheticCookieBase = static_cast<WSocketCookie>(1) << 63;
-	WSocketCookie                  SyntheticCookie = SyntheticCookieBase;
+	WSocketCookie SyntheticCookie = kSyntheticCookieBase;
 
 	auto const& ListeningSockets = SocketStateParser.GetListeningSockets();
 	for (auto const& [LocalEndpoint, Protocol, PID] : ListeningSockets)

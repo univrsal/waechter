@@ -142,6 +142,11 @@ struct WSocketAcceptEventData
 	};
 };
 
+struct WSocketCloseEventData
+{
+	__u32 LocalPort;
+};
+
 struct WSocketEventData
 {
 	union
@@ -152,6 +157,7 @@ struct WSocketEventData
 		struct WSocketTCPEstablishedEventData TCPSocketEstablishedEventData;
 		struct WSocketBindEventData           SocketBindEventData;
 		struct WSocketAcceptEventData         SocketAcceptEventData;
+		struct WSocketCloseEventData          SocketCloseEventData;
 	};
 };
 
