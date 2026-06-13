@@ -73,6 +73,13 @@ public:
 	{
 		return Str.size() >= Suffix.size() && Str.compare(Str.size() - Suffix.size(), Suffix.size(), Suffix) == 0;
 	}
+
+	static std::string ToLower(std::string const& Str)
+	{
+		std::string Result = Str;
+		std::ranges::transform(Result, Result.begin(), [](unsigned char const Char) { return std::tolower(Char); });
+		return Result;
+	}
 };
 
 class WTimeFormat
