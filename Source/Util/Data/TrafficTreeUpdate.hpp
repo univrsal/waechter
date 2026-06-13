@@ -41,6 +41,7 @@ struct WTrafficTreeSocketAddition
 	WTrafficItemId         ItemId{};
 	WTrafficItemId         ProcessItemId{};
 	WTrafficItemId         ApplicationItemId{};
+	WSocketCookie          SocketCookie{};
 	WProcessId             ProcessId{};
 	std::string            ApplicationPath{};
 	std::string            ApplicationName{};
@@ -53,7 +54,7 @@ struct WTrafficTreeSocketAddition
 	void serialize(Archive& archive)
 	{
 		archive(ItemId, ProcessItemId, ApplicationItemId, ProcessId, ApplicationName, ApplicationPath,
-			ApplicationCommandLine, SocketTuple, ConnectionState, SocketType);
+			ApplicationCommandLine, SocketTuple, ConnectionState, SocketType, SocketCookie);
 	}
 };
 
