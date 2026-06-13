@@ -289,7 +289,7 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 			// Add a new UDP per-connection tuple if the remote endpoint is different from the socket's main one
 			if (!RemoteEndpoint.Address.IsZero())
 			{
-				bool const bTupleExists = Item->UDPPerConnectionTraffic.contains(RemoteEndpoint);
+				bool const bTupleExists = Item->HaveUDPTuple(RemoteEndpoint);
 				auto const TupleCounter = GetOrCreateUDPTupleCounter(SockCounter, RemoteEndpoint);
 				if (Event.Data.TrafficEventData.Direction == PD_Outgoing)
 				{
@@ -348,12 +348,13 @@ std::shared_ptr<WTupleCounter> WSystemMap::GetOrCreateUDPTupleCounter(
 
 	auto NewItem = std::make_shared<WTupleItem>();
 	NewItem->ItemId = GetNextItemId();
-	Item->UDPPerConnectionTraffic[Endpoint] = NewItem;
+	NewItem->Endpoint = Endpoint;
+	Item->UDPPerConnectionTraffic.emplace_back(NewItem);
 	TrafficItems[NewItem->ItemId] = NewItem;
 
 	auto TupleCounter = std::make_shared<WTupleCounter>(NewItem, SockCounter);
 	SockCounter->UDPPerConnectionCounters[Endpoint] = TupleCounter;
-	WNetworkEvents::GetInstance().OnUDPTupleCreated(TupleCounter, Endpoint);
+	WNetworkEvents::GetInstance().OnUDPTupleCreated(TupleCounter);
 	return TupleCounter;
 }
 
@@ -1082,7 +1083,7 @@ void WSystemMap::Cleanup()
 				}
 				TrafficItems.erase(Socket->ItemId);
 				MapUpdate.AddItemRemoval(Socket->ItemId);
-				for (auto const& TupleCounter : Socket->UDPPerConnectionTraffic | std::views::values)
+				for (auto const& TupleCounter : Socket->UDPPerConnectionTraffic)
 				{
 					TrafficItems.erase(TupleCounter->ItemId);
 					MapUpdate.AddItemRemoval(TupleCounter->ItemId);
@@ -1193,10 +1194,11 @@ void WSystemMap::Cleanup()
 					spdlog::debug("Removed tuple {} -> {}", Socket->TrafficItem->SocketTuple.LocalEndpoint.ToString(),
 						TupleIt->first.ToString());
 					bRemovedAny = true;
-					WNetworkEvents::GetInstance().OnUDPTupleRemoved(TupleCounter, TupleIt->first);
+					WNetworkEvents::GetInstance().OnUDPTupleRemoved(TupleCounter);
 					TrafficItems.erase(TupleCounter->TrafficItem->ItemId);
 					MapUpdate.AddItemRemoval(TupleCounter->TrafficItem->ItemId);
-					Socket->TrafficItem->UDPPerConnectionTraffic.erase(TupleIt->first);
+					Socket->TrafficItem->EraseTuple(TupleIt->first);
+
 					TupleIt = Socket->UDPPerConnectionCounters.erase(TupleIt);
 				}
 				else

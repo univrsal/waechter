@@ -251,7 +251,7 @@ void WTrafficTree::LoadFromBuffer(WBuffer const& Buffer)
 			for (auto const& Sock : Proc->Sockets | std::views::values)
 			{
 				TrafficItems[Sock->ItemId] = Sock;
-				for (auto const& UDPTuple : Sock->UDPPerConnectionTraffic | std::views::values)
+				for (auto const& UDPTuple : Sock->UDPPerConnectionTraffic)
 				{
 					TrafficItems[UDPTuple->ItemId] = UDPTuple;
 				}
@@ -373,7 +373,7 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 		{
 			auto NewTuple = std::make_shared<WTupleItem>();
 			NewTuple->ItemId = Addition.ItemId;
-			SocketItem->UDPPerConnectionTraffic[Addition.Endpoint] = NewTuple;
+			SocketItem->UDPPerConnectionTraffic.emplace_back(NewTuple);
 			TrafficItems[Addition.ItemId] = NewTuple;
 		}
 	}

@@ -16,10 +16,10 @@ struct WTupleCounter;
 class WNetworkEvents final : public TSingleton<WNetworkEvents>
 {
 public:
-	sigslot::signal<WSocketCounter const*>                                   OnSocketConnected;
-	sigslot::signal<std::shared_ptr<WTupleCounter> const&, WEndpoint const&> OnUDPTupleCreated;
-	sigslot::signal<std::shared_ptr<WTupleCounter> const&, WEndpoint const&> OnUDPTupleRemoved;
-	sigslot::signal<std::shared_ptr<WSocketCounter> const&>                  OnSocketRemoved;
-	sigslot::signal<std::shared_ptr<WProcessCounter> const&>                 OnProcessRemoved;
-	sigslot::signal<std::shared_ptr<WProcessCounter> const&>                 OnProcessCreated;
+	sigslot::signal<WSocketCounter const*>                   OnSocketConnected;
+	sigslot::signal<std::shared_ptr<WTupleCounter> const&>   OnUDPTupleCreated;
+	sigslot::signal<std::shared_ptr<WTupleCounter> const&>   OnUDPTupleRemoved;
+	sigslot::signal<std::shared_ptr<WSocketCounter> const&>  OnSocketRemoved;
+	sigslot::signal<std::shared_ptr<WProcessCounter> const&> OnProcessRemoved;
+	sigslot::signal<std::shared_ptr<WProcessCounter> const&> OnProcessCreated;
 };
