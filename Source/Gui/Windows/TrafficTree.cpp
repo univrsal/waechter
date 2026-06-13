@@ -572,7 +572,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 	ImGui::TableSetupScrollFreeze(0, 1);
 	ImGui::TableHeadersRow();
 
-	if (auto* Sort = ImGui::TableGetSortSpecs())
+	if (auto* Sort = ImGui::TableGetSortSpecs(); Sort && !ImGui::GetIO().KeyCtrl)
 	{
 		if (Sort->SpecsDirty || bRequireTreeSorting)
 		{
