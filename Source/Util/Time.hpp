@@ -49,6 +49,22 @@ namespace WTime
 	}
 } // namespace WTime
 
+class WStopwatch
+{
+	std::chrono::steady_clock::time_point StartTime;
+
+public:
+	WStopwatch() : StartTime(std::chrono::steady_clock::now()) {}
+
+	void Reset() { StartTime = std::chrono::steady_clock::now(); }
+
+	[[nodiscard]] WMsec ElapsedMs() const
+	{
+		return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - StartTime)
+			.count();
+	}
+};
+
 class WTimer
 {
 	double                Interval{};
