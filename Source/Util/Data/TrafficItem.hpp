@@ -34,4 +34,6 @@ struct ITrafficItem
 	virtual bool RemoveChild(WTrafficItemId) { return false; }
 
 	virtual bool HasChildren() { return true; }
+
+	[[nodiscard]] virtual std::string ToString() const { return std::to_string(ItemId); }
 };

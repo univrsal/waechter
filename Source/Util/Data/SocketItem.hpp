@@ -44,6 +44,7 @@ struct WTupleItem : ITrafficItem
 	{
 		archive(ItemId, DownloadSpeed, UploadSpeed, TotalDownloadBytes, TotalUploadBytes);
 	}
+	[[nodiscard]] std::string ToString() const override { return Endpoint.ToString(); }
 };
 
 struct WSocketItem : ITrafficItem

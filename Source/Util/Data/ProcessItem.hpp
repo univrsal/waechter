@@ -38,4 +38,6 @@ struct WProcessItem : ITrafficItem
 		}
 		return false;
 	}
+
+	[[nodiscard]] std::string ToString() const override { return std::to_string(ProcessId); }
 };
