@@ -34,6 +34,7 @@ namespace ESocketType
 
 struct WTupleItem : ITrafficItem
 {
+	WEndpoint Endpoint;
 	WTupleItem() = default;
 	// This is essentially just a traffic item
 
@@ -42,14 +43,15 @@ struct WTupleItem : ITrafficItem
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(ItemId, DownloadSpeed, UploadSpeed, TotalDownloadBytes, TotalUploadBytes);
+		archive(ItemId, DownloadSpeed, UploadSpeed, TotalDownloadBytes, TotalUploadBytes, Endpoint);
 	}
+	[[nodiscard]] std::string ToString() const override { return Endpoint.ToString(); }
 };
 
 struct WSocketItem : ITrafficItem
 {
 	WSocketTuple SocketTuple{};
-	std::unordered_map<WEndpoint, std::shared_ptr<WTupleItem>>
+	std::vector<std::shared_ptr<WTupleItem>>
 		UDPPerConnectionTraffic; // Only for UDP sockets, since they can send/receive no many addresses
 
 	WSocketCookie          Cookie{};
@@ -70,4 +72,36 @@ struct WSocketItem : ITrafficItem
 		return SocketTuple == Other.SocketTuple && SocketType == Other.SocketType
 			&& ConnectionState == Other.ConnectionState && Cookie == Other.Cookie;
 	}
+
+	bool HaveUDPTuple(WEndpoint const& Endpoint) const
+	{
+		for (auto const& Tuple : UDPPerConnectionTraffic)
+		{
+			if (Tuple->Endpoint == Endpoint)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	std::shared_ptr<WTupleItem> FindTuple(WEndpoint const& Endpoint) const
+	{
+		for (auto const& Tuple : UDPPerConnectionTraffic)
+		{
+			if (Tuple->Endpoint == Endpoint)
+			{
+				return Tuple;
+			}
+		}
+		return nullptr;
+	}
+
+	void EraseTuple(WEndpoint const& Endpoint)
+	{
+		std::erase_if(UDPPerConnectionTraffic,
+			[&Endpoint](std::shared_ptr<WTupleItem> const& Tuple) { return Tuple->Endpoint == Endpoint; });
+	}
+
+	[[nodiscard]] std::string ToString() const override { return SocketTuple.ToString(); }
 };

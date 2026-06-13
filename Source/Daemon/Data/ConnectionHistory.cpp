@@ -149,8 +149,7 @@ void WConnectionHistory::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& 
 	}
 }
 
-void WConnectionHistory::OnUDPTupleCreated(
-	std::shared_ptr<WTupleCounter> const& TupleCounter, WEndpoint const& Endpoint)
+void WConnectionHistory::OnUDPTupleCreated(std::shared_ptr<WTupleCounter> const& TupleCounter)
 {
 	auto const App = TupleCounter->ParentSocket->ParentProcess->ParentApp;
 	if (!App)
@@ -161,7 +160,7 @@ void WConnectionHistory::OnUDPTupleCreated(
 	auto AppName = App->TrafficItem->ApplicationName;
 	std::scoped_lock Lock(Mutex);
 
-	auto const Key = std::make_pair(AppName, Endpoint);
+	auto const Key = std::make_pair(AppName, TupleCounter->TrafficItem->Endpoint);
 	auto const bHaveConnection = ActiveConnections.contains(Key);
 
 	if (bHaveConnection && ActiveConnections[Key]->Connections.contains(TupleCounter->TrafficItem))
@@ -176,15 +175,14 @@ void WConnectionHistory::OnUDPTupleCreated(
 		auto const NewSet = std::make_shared<WConnectionSet>();
 		NewSet->Connections.insert(TupleCounter->TrafficItem);
 		ActiveConnections[Key] = NewSet;
-		Push(App, NewSet, Endpoint);
+		Push(App, NewSet, TupleCounter->TrafficItem->Endpoint);
 		return;
 	}
 	// add a new tuple to the existing connection set
 	ActiveConnections[Key]->Connections.insert(TupleCounter->TrafficItem);
 }
 
-void WConnectionHistory::OnUDPTupleRemoved(
-	std::shared_ptr<WTupleCounter> const& TupleCounter, WEndpoint const& Endpoint)
+void WConnectionHistory::OnUDPTupleRemoved(std::shared_ptr<WTupleCounter> const& TupleCounter)
 {
 	auto const App = TupleCounter->ParentSocket->ParentProcess->ParentApp;
 	if (!App)
@@ -194,7 +192,7 @@ void WConnectionHistory::OnUDPTupleRemoved(
 	auto             AppName = App->TrafficItem->ApplicationName;
 	std::scoped_lock Lock(Mutex);
 
-	auto const Key = std::make_pair(AppName, Endpoint);
+	auto const Key = std::make_pair(AppName, TupleCounter->TrafficItem->Endpoint);
 	if (!ActiveConnections.contains(Key))
 	{
 		return;
@@ -241,14 +239,10 @@ void WConnectionHistory::Push(std::shared_ptr<WAppCounter> const& App, std::shar
 void WConnectionHistory::RegisterSignalHandlers()
 {
 	WNetworkEvents::GetInstance().OnUDPTupleCreated.connect(
-		[this](std::shared_ptr<WTupleCounter> const& TupleCounter, WEndpoint const& Endpoint) {
-			OnUDPTupleCreated(TupleCounter, Endpoint);
-		});
+		[this](std::shared_ptr<WTupleCounter> const& TupleCounter) { OnUDPTupleCreated(TupleCounter); });
 
 	WNetworkEvents::GetInstance().OnUDPTupleRemoved.connect(
-		[this](std::shared_ptr<WTupleCounter> const& TupleCounter, WEndpoint const& Endpoint) {
-			OnUDPTupleRemoved(TupleCounter, Endpoint);
-		});
+		[this](std::shared_ptr<WTupleCounter> const& TupleCounter) { OnUDPTupleRemoved(TupleCounter); });
 
 	WNetworkEvents::GetInstance().OnSocketConnected.connect(
 		[this](WSocketCounter const* SocketCounter) { OnSocketConnected(SocketCounter); });

@@ -23,6 +23,13 @@ struct WRenderItemArgs
 	std::shared_ptr<ITrafficItem> ParentApp{};
 };
 
+struct WTreeNode
+{
+	std::shared_ptr<ITrafficItem>           Item{};
+	std::vector<std::shared_ptr<WTreeNode>> Children{};
+	WEndpoint                               TupleEndpoint{};
+};
+
 class WTrafficTree
 {
 	WRuleWidget                  RuleWidget{};
@@ -30,6 +37,10 @@ class WTrafficTree
 
 	std::unordered_map<WTrafficItemId, std::shared_ptr<ITrafficItem>> TrafficItems;
 	std::unordered_set<WTrafficItemId>                                MarkedForRemovalItems;
+
+	// Used for display, uses vectors instead of maps so we can display things sorted,
+	// has to be rebuilt whenever the tree changes (item removed/added, column sorted)
+	std::shared_ptr<WTreeNode> TreeRoot{};
 
 	std::unordered_map<WIPAddress, std::string> ResolvedAddresses{};
 
@@ -39,12 +50,15 @@ class WTrafficTree
 	std::weak_ptr<ITrafficItem> SelectedItem{};
 
 	char SearchBuffer[256] = "";
+	bool bRequireTreeSorting{};
 
 	void RemoveTrafficItem(WTrafficItemId TrafficItemId);
 
 	bool RenderItem(WRenderItemArgs const& Args);
 
 	std::mutex DataMutex;
+
+	void SortTree(ImGuiTableSortSpecs const* Specs);
 
 public:
 	WTrafficTree() = default;

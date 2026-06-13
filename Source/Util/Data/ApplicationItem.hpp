@@ -46,4 +46,6 @@ public:
 		}
 		return false;
 	}
+
+	[[nodiscard]] std::string ToString() const override { return ApplicationName; }
 };

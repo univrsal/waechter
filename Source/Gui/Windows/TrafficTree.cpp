@@ -218,6 +218,85 @@ bool WTrafficTree::RenderItem(WRenderItemArgs const& Args)
 	return bNodeOpen;
 }
 
+void SortNode(std::shared_ptr<WTreeNode> const& Node, ImS16 const Column, ImGuiSortDirection const Direction)
+{
+	auto Less = [&](std::shared_ptr<WTreeNode> const& A, std::shared_ptr<WTreeNode> const& B) {
+		switch (Column)
+		{
+			case 0: // Name
+				return WStringFormat::ToLower(A->Item->ToString()) < WStringFormat::ToLower(B->Item->ToString());
+			case 1: // Download
+				return A->Item->DownloadSpeed < B->Item->DownloadSpeed;
+			case 2: // Upload
+				return A->Item->UploadSpeed < B->Item->UploadSpeed;
+			default:
+				return false;
+		}
+	};
+
+	std::ranges::sort(Node->Children, [&](std::shared_ptr<WTreeNode> const& A, std::shared_ptr<WTreeNode> const& B) {
+		if (Direction == ImGuiSortDirection_Ascending)
+		{
+			return Less(A, B);
+		}
+		return Less(B, A);
+	});
+
+	for (auto& Child : Node->Children)
+		SortNode(Child, Column, Direction);
+}
+
+void WTrafficTree::SortTree(ImGuiTableSortSpecs const* Specs)
+{
+#if WDEBUG
+	WStopwatch SortTimer;
+#endif
+	if (Specs->SpecsCount == 0)
+	{
+		return;
+	}
+	TreeRoot = std::make_shared<WTreeNode>();
+	// Fill up root
+	// for (auto const& Filter : Root->Filters)
+	// {
+	// 	auto Item = std::make_shared<WTreeNode>();
+	// 	Item->Item = Filter;
+	// 	TreeRoot->Children.push_back(Item);
+	// }
+	for (auto const& App : Root->Applications | std::views::values)
+	{
+		auto AppNode = std::make_shared<WTreeNode>();
+		AppNode->Item = App;
+		TreeRoot->Children.push_back(AppNode);
+
+		for (auto const& Process : App->Processes | std::views::values)
+		{
+			auto ProcNode = std::make_shared<WTreeNode>();
+			ProcNode->Item = Process;
+			AppNode->Children.push_back(ProcNode);
+
+			for (auto const& Socket : Process->Sockets | std::views::values)
+			{
+				auto SocketNode = std::make_shared<WTreeNode>();
+				SocketNode->Item = Socket;
+				ProcNode->Children.push_back(SocketNode);
+				for (auto const& Tuple : Socket->UDPPerConnectionTraffic)
+				{
+					auto UDPNode = std::make_shared<WTreeNode>();
+					UDPNode->Item = Tuple;
+					SocketNode->Children.push_back(UDPNode);
+				}
+			}
+		}
+	}
+
+	auto const& ColSpec = Specs->Specs[0];
+	SortNode(TreeRoot, ColSpec.ColumnIndex, ColSpec.SortDirection);
+#if WDEBUG
+	spdlog::info("Sorting took {} ms", SortTimer.ElapsedMs());
+#endif
+}
+
 void WTrafficTree::LoadFromBuffer(WBuffer const& Buffer)
 {
 	std::lock_guard Lock(DataMutex);
@@ -251,7 +330,7 @@ void WTrafficTree::LoadFromBuffer(WBuffer const& Buffer)
 			for (auto const& Sock : Proc->Sockets | std::views::values)
 			{
 				TrafficItems[Sock->ItemId] = Sock;
-				for (auto const& UDPTuple : Sock->UDPPerConnectionTraffic | std::views::values)
+				for (auto const& UDPTuple : Sock->UDPPerConnectionTraffic)
 				{
 					TrafficItems[UDPTuple->ItemId] = UDPTuple;
 				}
@@ -265,6 +344,10 @@ void WTrafficTree::LoadFromBuffer(WBuffer const& Buffer)
 	}
 
 	TrafficItems[0] = Root;
+	if (auto const* Sort = ImGui::TableGetSortSpecs())
+	{
+		SortTree(Sort);
+	}
 }
 
 void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
@@ -348,6 +431,7 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 		NewSocket->SocketTuple = Addition.SocketTuple;
 		NewSocket->ConnectionState = Addition.ConnectionState;
 		NewSocket->SocketType = Addition.SocketType;
+		NewSocket->Cookie = Addition.SocketCookie;
 		Proc->Sockets[Addition.ItemId] = NewSocket;
 		TrafficItems[Addition.ItemId] = NewSocket;
 	}
@@ -372,7 +456,7 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 		{
 			auto NewTuple = std::make_shared<WTupleItem>();
 			NewTuple->ItemId = Addition.ItemId;
-			SocketItem->UDPPerConnectionTraffic[Addition.Endpoint] = NewTuple;
+			SocketItem->UDPPerConnectionTraffic.emplace_back(NewTuple);
 			TrafficItems[Addition.ItemId] = NewTuple;
 		}
 	}
@@ -410,6 +494,7 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 			}
 		}
 	}
+	bRequireTreeSorting = true;
 }
 
 static std::string GetSocketName(WSocketItem* Socket)
@@ -469,8 +554,8 @@ void WTrafficTree::Draw(ImGuiID MainID)
 
 	// 5 columns: Name | upload | download | rule widget
 	if (!ImGui::BeginTable("TrafficTable", 4,
-			ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV
-				| ImGuiTableFlags_ScrollY))
+			ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY
+				| ImGuiTableFlags_Sortable))
 	{
 		ImGui::EndChild();
 		ImGui::End();
@@ -486,6 +571,16 @@ void WTrafficTree::Draw(ImGuiID MainID)
 
 	ImGui::TableSetupScrollFreeze(0, 1);
 	ImGui::TableHeadersRow();
+
+	if (auto* Sort = ImGui::TableGetSortSpecs(); Sort && !ImGui::GetIO().KeyCtrl)
+	{
+		if (Sort->SpecsDirty || bRequireTreeSorting)
+		{
+			SortTree(Sort);
+			Sort->SpecsDirty = false;
+			bRequireTreeSorting = false;
+		}
+	}
 
 	// start first data row for the root item
 	ImGui::TableNextRow();
@@ -514,22 +609,23 @@ void WTrafficTree::Draw(ImGuiID MainID)
 		ImGui::TreePop();
 	}
 
-	for (auto const& [Name, Child] : Root->Applications)
+	for (auto const& AppNode : TreeRoot->Children)
 	{
-		if (!Child)
+		if (!AppNode->Item || AppNode->Item->GetType() != TI_Application)
 		{
-			spdlog::warn("Invalid app {} in traffic tree", Name);
+			spdlog::warn("Invalid app in traffic tree");
 			continue;
 		}
 
-		if (!Child->HasChildren() && !WSettings::GetInstance().bShowOfflineProcesses)
+		if (!AppNode->Item->HasChildren() && !WSettings::GetInstance().bShowOfflineProcesses)
 		{
 			continue;
 		}
+		auto AppItem = std::static_pointer_cast<WApplicationItem>(AppNode->Item);
 
 		if (SearchBuffer[0] != '\0')
 		{
-			std::string AppNameLower = Child->ApplicationName;
+			std::string AppNameLower = AppItem->ApplicationName;
 			std::string SearchLower = SearchBuffer;
 
 			std::ranges::transform(AppNameLower, AppNameLower.begin(), ::tolower);
@@ -543,13 +639,13 @@ void WTrafficTree::Draw(ImGuiID MainID)
 
 		ImGui::TableNextRow();
 		// Stable ID: application name within root
-		ImGui::PushID(Name.c_str());
+		ImGui::PushID(AppItem->ApplicationName.c_str());
 
 		WRenderItemArgs Args{};
-		Args.Name = Child->ApplicationName;
-		Args.Item = Child;
+		Args.Name = AppItem->ApplicationName;
+		Args.Item = AppItem;
 		Args.NodeFlags = ImGuiTreeNodeFlags_DefaultOpen;
-		Args.ParentApp = Child;
+		Args.ParentApp = AppItem;
 		bOpened = RenderItem(Args);
 
 		if (!bOpened)
@@ -558,21 +654,22 @@ void WTrafficTree::Draw(ImGuiID MainID)
 			continue;
 		}
 
-		for (auto const& [PID, Process] : Child->Processes)
+		for (auto const& ProcNode : AppNode->Children)
 		{
-			if (Process->Sockets.empty() && !WSettings::GetInstance().bShowOfflineProcesses)
+			auto ProcItem = std::static_pointer_cast<WProcessItem>(ProcNode->Item);
+			if (ProcItem->Sockets.empty() && !WSettings::GetInstance().bShowOfflineProcesses)
 			{
 				continue;
 			}
 
 			ImGui::TableNextRow();
-			ImGui::PushID(PID);
+			ImGui::PushID(ProcItem->ProcessId);
 			Args = {};
-			Args.Name = std::format("{} {}", TR("__process"), PID);
-			Args.Item = Process;
-			Args.bMarkedForRemoval = MarkedForRemovalItems.contains(Process->ItemId);
-			Args.ParentApp = Child;
-			if (!Process->HasChildren())
+			Args.Name = std::format("{} {}", TR("__process"), ProcItem->ProcessId);
+			Args.Item = ProcItem;
+			Args.bMarkedForRemoval = MarkedForRemovalItems.contains(ProcItem->ItemId);
+			Args.ParentApp = AppItem;
+			if (!ProcItem->HasChildren())
 			{
 				Args.NodeFlags |= ImGuiTreeNodeFlags_Leaf;
 			}
@@ -584,31 +681,33 @@ void WTrafficTree::Draw(ImGuiID MainID)
 				continue;
 			}
 
-			for (auto const& [SocketCookie, Socket] : Process->Sockets)
+			for (auto const& SocketNode : ProcNode->Children)
 			{
-				if (Socket->SocketType == ESocketType::Unknown && !WSettings::GetInstance().bShowUninitalizedSockets)
+				auto SocketItem = std::static_pointer_cast<WSocketItem>(SocketNode->Item);
+				if (SocketItem->SocketType == ESocketType::Unknown
+					&& !WSettings::GetInstance().bShowUninitalizedSockets)
 				{
 					continue;
 				}
 
 				ImGui::TableNextRow();
-				std::string SockId = std::string("sock:") + std::to_string(SocketCookie);
+				std::string SockId = std::string("sock:") + std::to_string(SocketItem->Cookie);
 				ImGui::PushID(SockId.c_str());
 				ImGuiTreeNodeFlags SocketFlags = 0;
-				auto               SocketName = GetSocketName(Socket.get());
+				auto               SocketName = GetSocketName(SocketItem.get());
 
-				if (Socket->UDPPerConnectionTraffic.empty())
+				if (SocketItem->UDPPerConnectionTraffic.empty())
 				{
 					SocketFlags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 				}
 
-				auto const bPendingRemoval = MarkedForRemovalItems.contains(Socket->ItemId);
+				auto const bPendingRemoval = MarkedForRemovalItems.contains(SocketItem->ItemId);
 				Args = {};
 				Args.Name = SocketName;
-				Args.Item = Socket;
+				Args.Item = SocketItem;
 				Args.NodeFlags = SocketFlags;
 				Args.bMarkedForRemoval = bPendingRemoval;
-				Args.ParentApp = Child;
+				Args.ParentApp = AppItem;
 				bOpened = RenderItem(Args);
 				if (!bOpened)
 				{
@@ -616,24 +715,25 @@ void WTrafficTree::Draw(ImGuiID MainID)
 					continue;
 				}
 
-				for (auto const& [TupleKey, Tuple] : Socket->UDPPerConnectionTraffic)
+				for (auto const& UDPNode : SocketNode->Children)
 				{
+					auto UDPItem = std::static_pointer_cast<WTupleItem>(UDPNode->Item);
 					ImGui::TableNextRow();
-					std::string tupleId = std::string("tuple:") + TupleKey.ToString();
+					std::string tupleId = std::string("tuple:") + std::to_string(UDPItem->ItemId);
 					ImGui::PushID(tupleId.c_str());
 					Args = {};
-					Args.Name = std::format("↔ {}", TupleKey.ToString());
-					Args.Item = Tuple;
+					Args.Name = std::format("↔ {}", UDPNode->TupleEndpoint.ToString());
+					Args.Item = UDPItem;
 					Args.NodeFlags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 					Args.bMarkedForRemoval = bPendingRemoval;
-					Args.TupleEndpoint = &TupleKey;
+					Args.TupleEndpoint = &UDPNode->TupleEndpoint;
 					RenderItem(Args);
 
 					ImGui::PopID();
 				}
 				ImGui::PopID();
 
-				if (!Socket->UDPPerConnectionTraffic.empty())
+				if (!SocketItem->UDPPerConnectionTraffic.empty())
 				{
 					ImGui::TreePop();
 				}
