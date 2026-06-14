@@ -875,12 +875,14 @@ void WSystemMap::RefreshAllTrafficCounters()
 	std::lock_guard Lock(DataMutex);
 	TrafficCounter.Refresh();
 
+	WStatsManager::GetInstance().GetDataMutex().lock();
 	for (auto const& Filter : FilterCounters)
 	{
 		WStatsManager::GetInstance().UpdateFilterStats(
 			Filter->TrafficItem->Name, Filter->GetRecentDownload(), Filter->GetRecentUpload());
 		Filter->Refresh();
 	}
+	WStatsManager::GetInstance().GetDataMutex().unlock();
 
 	for (auto const& App : Applications | std::views::values)
 	{

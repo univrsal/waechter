@@ -44,7 +44,6 @@ void WStatsManager::UpdateFilterStats(std::string const& FilterName, WBytes In, 
 	{
 		return;
 	}
-	std::scoped_lock Lock(DataMutex);
 
 	if (CurrentSnapshot.Filters.contains(FilterName))
 	{
@@ -71,7 +70,6 @@ void WStatsManager::UpdateAppStats(
 		spdlog::debug("WStatsManager::UpdateAppStats(): Empty", AppId);
 		return;
 	}
-	std::scoped_lock Lock(DataMutex);
 
 	if (CurrentSnapshot.Apps.contains(AppId))
 	{
