@@ -40,17 +40,13 @@ class WStatsManager final : public TSingleton<WStatsManager>, public IMemoryTrac
 		WBytes BytesIn;
 		WBytes BytesOut;
 	};
-	struct WAppStats
+	struct WItemStats
 	{
 		std::string                                  ApplicationPath;
 		std::unordered_map<WIPAddress, WTrafficStats> Traffic;
 	};
-	struct WTrafficSnapshot
-	{
-		std::unordered_map<WTrafficItemId, WAppStats> Apps;
-	};
 
-	WTrafficSnapshot CurrentSnapshot{};
+	std::unordered_map<WTrafficItemId, WItemStats> CurrentSnapshot{};
 
 	static void ProcessStatsRequest(WStatsRequest const& Request, WStatsResponse& Response);
 

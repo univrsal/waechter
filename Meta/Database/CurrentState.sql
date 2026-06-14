@@ -1,8 +1,4 @@
-CREATE TABLE IF NOT EXISTS "Application" (
-	"ID"	INTEGER,
-	"BinaryPath"	TEXT NOT NULL,
-	PRIMARY KEY("ID")
-);
+BEGIN TRANSACTION;
 CREATE TABLE IF NOT EXISTS "Host" (
 	"ID"	INTEGER,
 	"IPAddress"	TEXT NOT NULL,
@@ -13,11 +9,11 @@ CREATE TABLE IF NOT EXISTS "Migration" (
 	"AppliedAt"	INTEGER NOT NULL DEFAULT (unixepoch()),
 	PRIMARY KEY("Version")
 );
-CREATE TABLE "TrafficEvent" (
+CREATE TABLE IF NOT EXISTS "TrafficEvent" (
 	"ID"	INTEGER,
 	"SnapshotID"	INTEGER NOT NULL,
 	"ItemID"	INTEGER NOT NULL,
-	"HostID"	INTEGER NOT NULL,
+	"HostID"	INTEGER,
 	"BytesIn"	INTEGER NOT NULL,
 	"BytesOut"	INTEGER NOT NULL,
 	PRIMARY KEY("ID"),
@@ -25,8 +21,14 @@ CREATE TABLE "TrafficEvent" (
 	FOREIGN KEY("ItemID") REFERENCES "TrafficItem"("ID"),
 	FOREIGN KEY("SnapshotID") REFERENCES "TrafficSnapshot"("ID")
 );
+CREATE TABLE IF NOT EXISTS "TrafficItem" (
+	"ID"	INTEGER,
+	"Name"	TEXT NOT NULL,
+	PRIMARY KEY("ID")
+);
 CREATE TABLE IF NOT EXISTS "TrafficSnapshot" (
 	"ID"	INTEGER,
 	"Start"	INTEGER DEFAULT (unixepoch()),
 	PRIMARY KEY("ID")
 );
+COMMIT;

@@ -27,11 +27,10 @@ WMemoryStat WStatsManager::GetMemoryUsage()
 	WMemoryStat      Stats{};
 	Stats.Name = "WStatsManager";
 
-	WMemoryStatEntry SnapshotMemory{ "TrafficSnapshot",
-		sizeof(WTrafficSnapshot) + CALC_MAP_USAGE(CurrentSnapshot.Apps, WTrafficItemId, WAppStats) };
-	for (auto const& AppTraffic : CurrentSnapshot.Apps | std::views::values)
+	WMemoryStatEntry SnapshotMemory{ "TrafficSnapshot", CALC_MAP_USAGE(CurrentSnapshot, WTrafficItemId, WItemStats) };
+	for (auto const& [ItemName, Traffic] : CurrentSnapshot | std::views::values)
 	{
-		SnapshotMemory.Usage += CALC_MAP_USAGE(AppTraffic.Traffic, WIPAddress, WTrafficStats);
+		SnapshotMemory.Usage += CALC_MAP_USAGE(Traffic, WIPAddress, WTrafficStats);
 	}
 	Stats.ChildEntries.emplace_back(SnapshotMemory);
 	return Stats;
@@ -48,15 +47,15 @@ void WStatsManager::UpdateAppStats(
 		return;
 	}
 
-	if (CurrentSnapshot.Apps.contains(AppId))
+	if (CurrentSnapshot.contains(AppId))
 	{
-		auto& AppStats = CurrentSnapshot.Apps[AppId];
-		if (AppStats.ApplicationPath.empty())
+		auto& [ItemName, Traffic] = CurrentSnapshot[AppId];
+		if (ItemName.empty())
 		{
-			AppStats.ApplicationPath = ApplicationPath;
+			ItemName = ApplicationPath;
 		}
 
-		if (auto& AppTraffic = AppStats.Traffic; AppTraffic.contains(RemoteHost))
+		if (auto& AppTraffic = Traffic; AppTraffic.contains(RemoteHost))
 		{
 			AppTraffic[RemoteHost].BytesIn += In;
 			AppTraffic[RemoteHost].BytesOut += Out;
@@ -68,10 +67,10 @@ void WStatsManager::UpdateAppStats(
 	}
 	else
 	{
-		WAppStats NewAppStats{};
+		WItemStats NewAppStats{};
 		NewAppStats.ApplicationPath = ApplicationPath;
 		NewAppStats.Traffic[RemoteHost] = WTrafficStats{ In, Out };
-		CurrentSnapshot.Apps[AppId] = NewAppStats;
+		CurrentSnapshot[AppId] = NewAppStats;
 	}
 	spdlog::debug("WStatsManager::UpdateAppStats(): AppId={}, ApplicationPath={}, RemoteHost={}, In={}, Out={}", AppId,
 		ApplicationPath, RemoteHost.ToString(), In, Out);
@@ -81,26 +80,26 @@ void WStatsManager::MakeSnapshot()
 {
 	spdlog::debug("Making traffic snapshot");
 	// Grab current snapshot data and clear it under the lock
-	WTrafficSnapshot LocalSnapshot{};
+	std::unordered_map<WTrafficItemId, WItemStats> LocalSnapshot{};
 	{
 		ZoneScopedN("MakeSnapshot - Swap snapshot");
 		std::scoped_lock Lock(DataMutex);
 		LocalSnapshot = std::move(CurrentSnapshot);
 		CurrentSnapshot = {};
-		spdlog::debug("Making snapshot of local snapshot: {} apps", LocalSnapshot.Apps.size());
+		spdlog::debug("Making snapshot of local snapshot: {} apps", LocalSnapshot.size());
 	}
 
 	WDbManager::GetInstance().Run([&](auto& DbConn) {
 		ZoneScopedN("MakeSnapshot - DB write");
 		constexpr Db::Schema::TrafficSnapshot TS;
 		constexpr Db::Schema::TrafficEvent    TE;
-		constexpr Db::Schema::Application     App;
+		constexpr Db::Schema::TrafficItem     TrafficItem;
 		constexpr Db::Schema::Host            Host;
 
 		int64_t const SnapshotID =
 			static_cast<int64_t>(DbConn(sqlpp::insert_into(TS).set(TS.Start = WTime::GetEpochSeconds())));
 
-		for (auto const& [AppId, AppStats] : LocalSnapshot.Apps)
+		for (auto const& [AppId, AppStats] : LocalSnapshot)
 		{
 			if (AppStats.ApplicationPath.empty())
 			{
@@ -108,9 +107,11 @@ void WStatsManager::MakeSnapshot()
 				continue;
 			}
 
-			auto AppResult = DbConn(sqlpp::select(App.ID).from(App).where(App.BinaryPath == AppStats.ApplicationPath));
+			auto AppResult = DbConn(
+				sqlpp::select(TrafficItem.ID).from(TrafficItem).where(TrafficItem.Name == AppStats.ApplicationPath));
 			int64_t const AppID = AppResult.empty()
-				? static_cast<int64_t>(DbConn(sqlpp::insert_into(App).set(App.BinaryPath = AppStats.ApplicationPath)))
+				? static_cast<int64_t>(
+					  DbConn(sqlpp::insert_into(TrafficItem).set(TrafficItem.Name = AppStats.ApplicationPath)))
 				: AppResult.front().ID.value();
 
 			for (auto const& [IP, Traffic] : AppStats.Traffic)
@@ -177,7 +178,7 @@ void WStatsManager::ProcessStatsRequest(WStatsRequest const& Request, WStatsResp
 
 	WSec const Duration = Request.EndTime - Request.StartTime;
 	bool const BucketByMonth = Duration > 31LL * OneDay;
-	WSec const BucketSecs = BucketByMonth ? 0LL : (Duration <= 24LL * OneHour ? OneHour : OneDay);
+	WSec const BucketSecs = BucketByMonth ? 0LL : Duration <= 24LL * OneHour ? OneHour : OneDay;
 
 	// Floor a timestamp to the start of its bucket
 	auto GetBucketStart = [&](WSec const T) -> WSec {
@@ -191,7 +192,7 @@ void WStatsManager::ProcessStatsRequest(WStatsRequest const& Request, WStatsResp
 			Tm.tm_isdst = -1;
 			return timegm(&Tm);
 		}
-		return (T / BucketSecs) * BucketSecs;
+		return T / BucketSecs * BucketSecs;
 	};
 
 	// Advance to the next bucket boundary
@@ -270,11 +271,11 @@ void WStatsManager::ProcessStatsRequest(WStatsRequest const& Request, WStatsResp
 		}
 		else if (TargetType == ETargetType::Binary)
 		{
-			constexpr Db::Schema::Application App;
+			constexpr Db::Schema::TrafficItem TrafficItem;
 			auto                              Rows = DbConn(sqlpp::select(TS.Start, TE.BytesIn, TE.BytesOut)
-												 .from(TE.join(TS).on(TE.SnapshotID == TS.ID).join(App).on(TE.AppID == App.ID))
-											 .where(TS.Start > Request.StartTime && TS.Start <= Request.EndTime
-													 && App.BinaryPath == Request.Target));
+												 .from(TE.join(TS).on(TE.SnapshotID == TS.ID).join(TrafficItem).on(TE.AppID == TrafficItem.ID))
+												 .where(TS.Start > Request.StartTime && TS.Start <= Request.EndTime
+													 && TrafficItem.Name == Request.Target));
 			for (auto const& Row : Rows)
 			{
 				Accumulate(Row.Start.value(), static_cast<uint64_t>(Row.BytesIn), static_cast<uint64_t>(Row.BytesOut));
@@ -388,11 +389,11 @@ void WStatsManager::PushDebugSnapshots()
 
 		// Get-or-insert helper for Application
 		auto GetOrInsertApp = [&](std::string_view Path) -> int64_t {
-			constexpr Db::Schema::Application App;
-			auto Result = DbConn(sqlpp::select(App.ID).from(App).where(App.BinaryPath == Path));
+			constexpr Db::Schema::TrafficItem TrafficItem;
+			auto Result = DbConn(sqlpp::select(TrafficItem.ID).from(TrafficItem).where(TrafficItem.Name == Path));
 			if (!Result.empty())
 				return Result.front().ID.value();
-			return static_cast<int64_t>(DbConn(sqlpp::insert_into(App).set(App.BinaryPath = Path)));
+			return static_cast<int64_t>(DbConn(sqlpp::insert_into(TrafficItem).set(TrafficItem.Name = Path)));
 		};
 
 		// Get-or-insert helper for Host
@@ -415,7 +416,7 @@ void WStatsManager::PushDebugSnapshots()
 		// One snapshot per hour for 7 days (168 snapshots total)
 		for (WSec HourStart = WeekStart; HourStart < NowHour; HourStart += 3600LL)
 		{
-			std::time_t const TimeT = static_cast<std::time_t>(HourStart);
+			std::time_t const TimeT = HourStart;
 			std::tm           Tm{};
 			gmtime_r(&TimeT, &Tm);
 			int const    HourOfDay = Tm.tm_hour;
@@ -434,7 +435,7 @@ void WStatsManager::PushDebugSnapshots()
 					double const J = Jitter(DayIdx, HourOfDay, static_cast<int>(AppIdx), static_cast<int>(HostIdx));
 
 					auto const BytesIn = static_cast<int64_t>(AppPeakIn[AppIdx] * HW * J);
-					auto const BytesOut = static_cast<int64_t>(AppPeakOut[AppIdx] * HW * J);
+					auto const BytesOut = static_cast<int64_t>(AppPeakOut[AppIdx]) * HW * J;
 
 					DbConn(sqlpp::insert_into(TE).set(TE.SnapshotID = SnapshotID, TE.AppID = AppIDs[AppIdx],
 						TE.HostID = HostIDs[HostIdx], TE.BytesIn = BytesIn, TE.BytesOut = BytesOut));
