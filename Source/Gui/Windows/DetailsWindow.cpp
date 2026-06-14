@@ -92,6 +92,14 @@ void WDetailsWindow::DrawFilterDetails() const
 	ImGui::Separator();
 	ImGui::Text("%s: %s", TR("__total_download"), WStorageFormat::AutoFormat(Filter->TotalDownloadBytes).c_str());
 	ImGui::Text("%s: %s", TR("__total_upload"), WStorageFormat::AutoFormat(Filter->TotalUploadBytes).c_str());
+	if (ImGui::Button(TR("__show_system_stats")))
+	{
+		WStatsRequest Request{};
+		Request.Target = Filter->Name;
+		Request.StartTime = WTime::GetEpochHours() - 60 * 60 * 24;
+		Request.EndTime = WTime::GetEpochHours();
+		WSdlWindow::GetInstance().GetMainWindow()->OpenStatsWindow(Request);
+	}
 }
 
 void WDetailsWindow::DrawSystemDetails() const

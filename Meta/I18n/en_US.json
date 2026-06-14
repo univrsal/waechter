@@ -47,6 +47,7 @@
   "__show_system_stats": "Show system stats",
   "__show_app_stats": "Show application stats",
   "__show_host_stats": "Show host stats",
+  "__show_filter_stats": "Show filter stats",
   "==== Log window": "",
   "window.log": "Log",
   "log.clear": "Clear log",

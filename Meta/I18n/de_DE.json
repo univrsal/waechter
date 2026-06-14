@@ -47,6 +47,7 @@
   "__show_system_stats": "Systemstatistiken anzeigen",
   "__show_app_stats": "Anwendungsstatistiken anzeigen",
   "__show_host_stats": "Hoststatistiken anzeigen",
+  "__show_filter_stats": "Filterstatistiken anzeigen",
   "==== Log window": "",
   "window.log": "Protokoll",
   "log.clear": "Protokoll löschen",
