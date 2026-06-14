@@ -71,7 +71,7 @@ install(FILES Meta/Package/waechterd.ini
         DESTINATION etc/waechter)
 
 install(DIRECTORY Meta/Database/Migrations/
-        DESTINATION usr/share/waechter/migrations
+        DESTINATION share/waechter/migrations
         FILES_MATCHING PATTERN "*.sql")
 
 # CPack configuration for .deb packages
