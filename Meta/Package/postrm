@@ -19,6 +19,10 @@ if [ "$1" = "purge" ]; then
     if [ -d /etc/waechter ]; then
         rm -rf /etc/waechter || true
     fi
+
+    if [ -d /usr/share/waechter ]; then
+        rm -rf /usr/share/waechter || true
+    fi
 fi
 
 exit 0
