@@ -27,13 +27,38 @@ WMemoryStat WStatsManager::GetMemoryUsage()
 	WMemoryStat      Stats{};
 	Stats.Name = "WStatsManager";
 
-	WMemoryStatEntry SnapshotMemory{ "TrafficSnapshot", CALC_MAP_USAGE(CurrentSnapshot, WTrafficItemId, WItemStats) };
-	for (auto const& [ItemName, Traffic] : CurrentSnapshot | std::views::values)
+	WMemoryStatEntry SnapshotMemory{ "TrafficSnapshot",
+		CALC_MAP_USAGE(CurrentSnapshot.Apps, WTrafficItemId, WItemStats)
+			+ CALC_MAP_USAGE(CurrentSnapshot.Filters, WTrafficItemId, WTrafficStats) };
+	for (auto const& [ItemName, Traffic] : CurrentSnapshot.Apps | std::views::values)
 	{
 		SnapshotMemory.Usage += CALC_MAP_USAGE(Traffic, WIPAddress, WTrafficStats);
 	}
 	Stats.ChildEntries.emplace_back(SnapshotMemory);
 	return Stats;
+}
+
+void WStatsManager::UpdateFilterStats(std::string const& FilterName, WBytes In, WBytes Out)
+{
+	if (In == 0 && Out == 0)
+	{
+		return;
+	}
+	std::scoped_lock Lock(DataMutex);
+
+	if (CurrentSnapshot.Filters.contains(FilterName))
+	{
+		auto& [BytesIn, BytesOut] = CurrentSnapshot.Filters[FilterName];
+		BytesIn += In;
+		BytesOut += Out;
+	}
+	else
+	{
+		WTrafficStats Stats{};
+		Stats.BytesIn = In;
+		Stats.BytesOut = Out;
+		CurrentSnapshot.Filters[FilterName] = Stats;
+	}
 }
 
 void WStatsManager::UpdateAppStats(
@@ -46,10 +71,11 @@ void WStatsManager::UpdateAppStats(
 		spdlog::debug("WStatsManager::UpdateAppStats(): Empty", AppId);
 		return;
 	}
+	std::scoped_lock Lock(DataMutex);
 
-	if (CurrentSnapshot.contains(AppId))
+	if (CurrentSnapshot.Apps.contains(AppId))
 	{
-		auto& [ItemName, Traffic] = CurrentSnapshot[AppId];
+		auto& [ItemName, Traffic] = CurrentSnapshot.Apps[AppId];
 		if (ItemName.empty())
 		{
 			ItemName = ApplicationPath;
@@ -70,7 +96,7 @@ void WStatsManager::UpdateAppStats(
 		WItemStats NewAppStats{};
 		NewAppStats.ApplicationPath = ApplicationPath;
 		NewAppStats.Traffic[RemoteHost] = WTrafficStats{ In, Out };
-		CurrentSnapshot[AppId] = NewAppStats;
+		CurrentSnapshot.Apps[AppId] = NewAppStats;
 	}
 	spdlog::debug("WStatsManager::UpdateAppStats(): AppId={}, ApplicationPath={}, RemoteHost={}, In={}, Out={}", AppId,
 		ApplicationPath, RemoteHost.ToString(), In, Out);
@@ -80,13 +106,13 @@ void WStatsManager::MakeSnapshot()
 {
 	spdlog::debug("Making traffic snapshot");
 	// Grab current snapshot data and clear it under the lock
-	std::unordered_map<WTrafficItemId, WItemStats> LocalSnapshot{};
+	WSnapshot LocalSnapshot{};
 	{
 		ZoneScopedN("MakeSnapshot - Swap snapshot");
 		std::scoped_lock Lock(DataMutex);
 		LocalSnapshot = std::move(CurrentSnapshot);
 		CurrentSnapshot = {};
-		spdlog::debug("Making snapshot of local snapshot: {} apps", LocalSnapshot.size());
+		spdlog::debug("Making snapshot of local snapshot: {} apps", LocalSnapshot.Apps.size());
 	}
 
 	WDbManager::GetInstance().Run([&](auto& DbConn) {
@@ -99,7 +125,7 @@ void WStatsManager::MakeSnapshot()
 		int64_t const SnapshotID =
 			static_cast<int64_t>(DbConn(sqlpp::insert_into(TS).set(TS.Start = WTime::GetEpochSeconds())));
 
-		for (auto const& [AppId, AppStats] : LocalSnapshot)
+		for (auto const& [AppId, AppStats] : LocalSnapshot.Apps)
 		{
 			if (AppStats.ApplicationPath.empty())
 			{
@@ -124,10 +150,22 @@ void WStatsManager::MakeSnapshot()
 					? static_cast<int64_t>(DbConn(sqlpp::insert_into(Host).set(Host.IPAddress = IPStr)))
 					: HostResult.front().ID.value();
 
-				DbConn(sqlpp::insert_into(TE).set(TE.SnapshotID = SnapshotID, TE.AppID = AppID, TE.HostID = HostID,
+				DbConn(sqlpp::insert_into(TE).set(TE.SnapshotID = SnapshotID, TE.ItemID = AppID, TE.HostID = HostID,
 					TE.BytesIn = static_cast<int64_t>(Traffic.BytesIn),
 					TE.BytesOut = static_cast<int64_t>(Traffic.BytesOut)));
 			}
+		}
+
+		for (auto const& [FilterName, Traffic] : LocalSnapshot.Filters)
+		{
+			auto FilterResult =
+				DbConn(sqlpp::select(TrafficItem.ID).from(TrafficItem).where(TrafficItem.Name == FilterName));
+			int64_t const FilterID = FilterResult.empty()
+				? static_cast<int64_t>(DbConn(sqlpp::insert_into(TrafficItem).set(TrafficItem.Name = FilterName)))
+				: FilterResult.front().ID.value();
+			DbConn(sqlpp::insert_into(TE).set(TE.SnapshotID = SnapshotID, TE.ItemID = FilterID,
+				TE.BytesIn = static_cast<int64_t>(Traffic.BytesIn),
+				TE.BytesOut = static_cast<int64_t>(Traffic.BytesOut)));
 		}
 	});
 }
@@ -273,7 +311,7 @@ void WStatsManager::ProcessStatsRequest(WStatsRequest const& Request, WStatsResp
 		{
 			constexpr Db::Schema::TrafficItem TrafficItem;
 			auto                              Rows = DbConn(sqlpp::select(TS.Start, TE.BytesIn, TE.BytesOut)
-												 .from(TE.join(TS).on(TE.SnapshotID == TS.ID).join(TrafficItem).on(TE.AppID == TrafficItem.ID))
+												 .from(TE.join(TS).on(TE.SnapshotID == TS.ID).join(TrafficItem).on(TE.ItemID == TrafficItem.ID))
 												 .where(TS.Start > Request.StartTime && TS.Start <= Request.EndTime
 													 && TrafficItem.Name == Request.Target));
 			for (auto const& Row : Rows)
@@ -437,7 +475,7 @@ void WStatsManager::PushDebugSnapshots()
 					auto const BytesIn = static_cast<int64_t>(AppPeakIn[AppIdx] * HW * J);
 					auto const BytesOut = static_cast<int64_t>(AppPeakOut[AppIdx]) * HW * J;
 
-					DbConn(sqlpp::insert_into(TE).set(TE.SnapshotID = SnapshotID, TE.AppID = AppIDs[AppIdx],
+					DbConn(sqlpp::insert_into(TE).set(TE.SnapshotID = SnapshotID, TE.ItemID = AppIDs[AppIdx],
 						TE.HostID = HostIDs[HostIdx], TE.BytesIn = BytesIn, TE.BytesOut = BytesOut));
 				}
 			}

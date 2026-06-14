@@ -877,6 +877,8 @@ void WSystemMap::RefreshAllTrafficCounters()
 
 	for (auto const& Filter : FilterCounters)
 	{
+		WStatsManager::GetInstance().UpdateFilterStats(
+			Filter->TrafficItem->Name, Filter->GetRecentDownload(), Filter->GetRecentUpload());
 		Filter->Refresh();
 	}
 

@@ -45,8 +45,13 @@ class WStatsManager final : public TSingleton<WStatsManager>, public IMemoryTrac
 		std::string                                  ApplicationPath;
 		std::unordered_map<WIPAddress, WTrafficStats> Traffic;
 	};
+	struct WSnapshot
+	{
+		std::unordered_map<WTrafficItemId, WItemStats> Apps{};
+		std::unordered_map<std::string, WTrafficStats> Filters{};
+	};
 
-	std::unordered_map<WTrafficItemId, WItemStats> CurrentSnapshot{};
+	WSnapshot CurrentSnapshot{};
 
 	static void ProcessStatsRequest(WStatsRequest const& Request, WStatsResponse& Response);
 
@@ -59,6 +64,8 @@ public:
 	std::mutex& GetDataMutex() { return DataMutex; }
 
 	WMemoryStat GetMemoryUsage() override;
+
+	void UpdateFilterStats(std::string const& FilterName, WBytes In, WBytes Out);
 
 	void UpdateAppStats(
 		WTrafficItemId AppId, std::string const& ApplicationPath, WIPAddress const& RemoteHost, WBytes In, WBytes Out);
