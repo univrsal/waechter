@@ -273,7 +273,7 @@ void WStatsManager::ProcessStatsRequest(WStatsRequest const& Request, WStatsResp
 	enum class ETargetType
 	{
 		System,
-		Binary,
+		Binary_Or_Filter,
 		Host
 	};
 
@@ -284,7 +284,12 @@ void WStatsManager::ProcessStatsRequest(WStatsRequest const& Request, WStatsResp
 	}
 	else if (!Request.Target.empty() && Request.Target.front() == '/')
 	{
-		TargetType = ETargetType::Binary;
+		TargetType = ETargetType::Binary_Or_Filter;
+	}
+	else if (!Request.Target.empty()
+		&& (Request.Target == "LAN" || Request.Target == "Internet" || Request.Target == "Localhost"))
+	{
+		TargetType = ETargetType::Binary_Or_Filter;
 	}
 	else
 	{
@@ -305,7 +310,7 @@ void WStatsManager::ProcessStatsRequest(WStatsRequest const& Request, WStatsResp
 				Accumulate(Row.Start.value(), static_cast<uint64_t>(Row.BytesIn), static_cast<uint64_t>(Row.BytesOut));
 			}
 		}
-		else if (TargetType == ETargetType::Binary)
+		else if (TargetType == ETargetType::Binary_Or_Filter)
 		{
 			constexpr Db::Schema::TrafficItem TrafficItem;
 			auto                              Rows = DbConn(sqlpp::select(TS.Start, TE.BytesIn, TE.BytesOut)
