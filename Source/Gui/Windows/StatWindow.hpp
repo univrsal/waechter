@@ -31,7 +31,7 @@ class WStatWindow
 	std::vector<double>      Values;
 	std::vector<double>      FilteredPositions;
 	std::vector<char const*> FilteredLabelPtrs;
-	double                   YAxisMax;
+	double                   YAxisMax{};
 
 	void ApplyTimeFrame(ETimeFrame TimeFrame);
 	void UpdateTitle();
@@ -39,7 +39,7 @@ class WStatWindow
 	void BuildGraphData();
 
 public:
-	explicit WStatWindow(WStatsRequest const& InRequest);
+	explicit WStatWindow(WStatsRequest InRequest);
 	void Draw();
 
 	void SetResponse(WStatsResponse const& InResponse)
@@ -51,5 +51,5 @@ public:
 
 	[[nodiscard]] uint32_t GetRequestId() const { return Request.RequestId; }
 
-	bool IsOpen() const { return bOpen; }
+	[[nodiscard]] bool IsOpen() const { return bOpen; }
 };
