@@ -7,6 +7,7 @@
 
 #include <limits>
 #include <ctime>
+#include <utility>
 
 #include "Client.hpp"
 #include "imgui.h"
@@ -99,7 +100,7 @@ void WStatWindow::BuildGraphData()
 	YAxisMax = MaxTraffic > 0.0 ? MaxTraffic * 1.10 : 1.0;
 }
 
-WStatWindow::WStatWindow(WStatsRequest const& InRequest) : Request(InRequest)
+WStatWindow::WStatWindow(WStatsRequest InRequest) : Request(std::move(InRequest))
 {
 	UpdateTitle();
 	WClient::GetInstance().SendMessage(MT_StatsRequest, Request);
