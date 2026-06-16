@@ -10,6 +10,144 @@ namespace Db
 {
 namespace Schema
 {
+  namespace ConnectionHistoryEntry_
+  {
+    struct ID
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "ID";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T ID;
+            T& operator()() { return ID; }
+            const T& operator()() const { return ID; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::can_be_null>;
+    };
+    struct ItemID
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "ItemID";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T ItemID;
+            T& operator()() { return ItemID; }
+            const T& operator()() const { return ItemID; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::require_insert>;
+    };
+    struct RemoteHostID
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "RemoteHostID";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T RemoteHostID;
+            T& operator()() { return RemoteHostID; }
+            const T& operator()() const { return RemoteHostID; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::require_insert>;
+    };
+    struct StartTime
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "StartTime";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T StartTime;
+            T& operator()() { return StartTime; }
+            const T& operator()() const { return StartTime; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::require_insert>;
+    };
+    struct EndTime
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "EndTime";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T EndTime;
+            T& operator()() { return EndTime; }
+            const T& operator()() const { return EndTime; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::require_insert>;
+    };
+    struct DataIn
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "DataIn";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T DataIn;
+            T& operator()() { return DataIn; }
+            const T& operator()() const { return DataIn; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::integer>;
+    };
+    struct DataOut
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "DataOut";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T DataOut;
+            T& operator()() { return DataOut; }
+            const T& operator()() const { return DataOut; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::integer>;
+    };
+  } // namespace ConnectionHistoryEntry_
+
+  struct ConnectionHistoryEntry: sqlpp::table_t<ConnectionHistoryEntry,
+               ConnectionHistoryEntry_::ID,
+               ConnectionHistoryEntry_::ItemID,
+               ConnectionHistoryEntry_::RemoteHostID,
+               ConnectionHistoryEntry_::StartTime,
+               ConnectionHistoryEntry_::EndTime,
+               ConnectionHistoryEntry_::DataIn,
+               ConnectionHistoryEntry_::DataOut>
+  {
+    struct _alias_t
+    {
+      static constexpr const char _literal[] =  "ConnectionHistoryEntry";
+      using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+      template<typename T>
+      struct _member_t
+      {
+        T ConnectionHistoryEntry;
+        T& operator()() { return ConnectionHistoryEntry; }
+        const T& operator()() const { return ConnectionHistoryEntry; }
+      };
+    };
+  };
   namespace Host_
   {
     struct ID

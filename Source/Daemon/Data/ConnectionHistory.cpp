@@ -6,11 +6,15 @@
 #include "ConnectionHistory.hpp"
 
 #include "spdlog/spdlog.h"
+#include "sqlpp11/sqlpp11.h"
 
 #include "Counters.hpp"
 #include "DaemonConfig.hpp"
 #include "NetworkEvents.hpp"
 #include "SystemMap.hpp"
+
+#include "Db/DbManager.hpp"
+#include "Db/Schema.hpp"
 
 bool WConnectionHistoryEntry::Update()
 {
@@ -220,7 +224,8 @@ void WConnectionHistory::Push(std::shared_ptr<WAppCounter> const& App, std::shar
 
 	// no lock here, it's already acquired by the caller
 	WConnectionHistoryEntry Entry{ App, Set, RemoteEndpoint };
-	// todo: (maybe) the rest should be pushed into the database
+	// also push to database
+	WriteToDatabase(Entry);
 	History.push_back(Entry);
 	spdlog::debug("New connection for app {}", App->TrafficItem->ApplicationName);
 	++NewItemCounter;
@@ -234,6 +239,35 @@ void WConnectionHistory::Push(std::shared_ptr<WAppCounter> const& App, std::shar
 			--NewItemCounter;
 		}
 	}
+}
+
+void WConnectionHistory::WriteToDatabase(WConnectionHistoryEntry const& Entry)
+{
+	WDbManager::GetInstance().Run([&](auto& DbConn) {
+		constexpr Db::Schema::TrafficItem            TrafficItem;
+		constexpr Db::Schema::Host                   Host;
+		constexpr Db::Schema::ConnectionHistoryEntry CHE;
+
+		auto AppResult = DbConn(sqlpp::select(TrafficItem.ID)
+				.from(TrafficItem)
+				.where(TrafficItem.Name == Entry.App->TrafficItem->ApplicationPath));
+
+		int64_t const AppID = AppResult.empty()
+			? static_cast<int64_t>(DbConn(
+				  sqlpp::insert_into(TrafficItem).set(TrafficItem.Name = Entry.App->TrafficItem->ApplicationName)))
+			: AppResult.front().ID.value();
+
+		auto const HostResult =
+			DbConn(sqlpp::select(Host.ID).from(Host).where(Host.IPAddress == Entry.RemoteEndpoint.ToString()));
+		int64_t const HostID = HostResult.empty()
+			? static_cast<int64_t>(
+				  DbConn(sqlpp::insert_into(Host).set(Host.IPAddress = Entry.RemoteEndpoint.ToString())))
+			: HostResult.front().ID.value();
+
+		DbConn(
+			sqlpp::insert_into(CHE).set(CHE.ItemID = AppID, CHE.RemoteHostID = HostID, CHE.StartTime = Entry.StartTime,
+				CHE.EndTime = Entry.EndTime, CHE.DataIn = Entry.DataIn, CHE.DataOut = Entry.DataOut));
+	});
 }
 
 void WConnectionHistory::RegisterSignalHandlers()

@@ -42,7 +42,7 @@ struct WConnectionSet
 
 struct WConnectionHistoryEntry
 {
-	std::shared_ptr<WAppCounter> App{};
+	std::shared_ptr<WAppCounter>    App{};
 	std::shared_ptr<WConnectionSet> Set{};
 	WTrafficItemId                  ConnectionId{};
 
@@ -73,7 +73,7 @@ class WConnectionHistory : public TSingleton<WConnectionHistory>, public IMemory
 	std::mutex Mutex;
 
 	uint32_t                            NewItemCounter{ 0 };
-	std::deque<WConnectionHistoryEntry> History;
+	std::deque<WConnectionHistoryEntry> History; // ephemeral history, entries are also written to database
 
 	std::unordered_map<std::pair<std::string, WEndpoint>, std::shared_ptr<WConnectionSet>, WConnectionKeyHash>
 		ActiveConnections;
@@ -85,6 +85,8 @@ class WConnectionHistory : public TSingleton<WConnectionHistory>, public IMemory
 	void OnUDPTupleRemoved(std::shared_ptr<WTupleCounter> const& TupleCounter);
 	void Push(std::shared_ptr<WAppCounter> const& App, std::shared_ptr<WConnectionSet> const& Set,
 		WEndpoint const& RemoteEndpoint);
+
+	static void WriteToDatabase(WConnectionHistoryEntry const& Entry);
 
 public:
 	void RegisterSignalHandlers();
