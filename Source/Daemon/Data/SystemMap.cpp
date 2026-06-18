@@ -1081,17 +1081,8 @@ void WSystemMap::Cleanup()
 			//  - Reparent any leftover sockets in case this process forked
 			for (auto const& [SocketCookie, Socket] : Process->TrafficItem->Sockets)
 			{
-				if (auto It = Sockets.find(SocketCookie); It != Sockets.end() && It->second)
-				{
-					WNetworkEvents::GetInstance().OnSocketRemoved(It->second);
-				}
 				TrafficItems.erase(Socket->ItemId);
 				MapUpdate.AddItemRemoval(Socket->ItemId);
-				for (auto const& TupleCounter : Socket->UDPPerConnectionTraffic)
-				{
-					TrafficItems.erase(TupleCounter->ItemId);
-					MapUpdate.AddItemRemoval(TupleCounter->ItemId);
-				}
 				if (auto SocketCounter = Sockets.find(SocketCookie); SocketCounter != Sockets.end())
 				{
 					if (Socket->ConnectionState != ESocketConnectionState::Closed)
@@ -1103,7 +1094,14 @@ void WSystemMap::Cleanup()
 						OrphanedSockets[Socket->SocketTuple.LocalEndpoint] = SocketCounter->second;
 						LookupMsg.Endpoints.emplace_back(Socket->SocketTuple.LocalEndpoint);
 					}
+					for (auto const& Tuple : SocketCounter->second->UDPPerConnectionCounters | std::views::values)
+					{
+						TrafficItems.erase(Tuple->TrafficItem->ItemId);
+						MapUpdate.AddItemRemoval(Tuple->TrafficItem->ItemId);
+						WNetworkEvents::GetInstance().OnUDPTupleRemoved(Tuple);
+					}
 					SocketCounter->second->UDPPerConnectionCounters.clear();
+					WNetworkEvents::GetInstance().OnSocketRemoved(SocketCounter->second);
 				}
 				Socket->UDPPerConnectionTraffic.clear();
 				Sockets.erase(SocketCookie);
@@ -1166,6 +1164,10 @@ void WSystemMap::Cleanup()
 			//  - Remove it from its parent process's Sockets map
 			//  - Remove it from the Sockets map
 			WNetworkEvents::GetInstance().OnSocketRemoved(Socket);
+			for (auto const& Tuple : Socket->UDPPerConnectionCounters | std::views::values)
+			{
+				WNetworkEvents::GetInstance().OnUDPTupleRemoved(Tuple);
+			}
 			Socket->ParentProcess->TrafficItem->Sockets.erase(SocketIt->first);
 			TrafficItems.erase(Socket->TrafficItem->ItemId);
 			MapUpdate.AddItemRemoval(Socket->TrafficItem->ItemId);
