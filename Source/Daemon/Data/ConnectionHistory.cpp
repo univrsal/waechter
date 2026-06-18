@@ -128,19 +128,7 @@ void WConnectionHistory::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& 
 		if (ConnectionSet->Connections.empty())
 		{
 			ActiveConnections.erase(Key);
-			if (auto const Parent = ConnectionSet->ParentEntry.lock())
-			{
-				// technically we should set this when the socket actually closes, but this is close enough
-				Parent->EndTime = WTime::GetEpochSeconds();
-				WriteToDatabase(Parent);
-				spdlog::info("ConnectionHistory: Connection to {} ended at {} ({} in, {} out)", Endpoint.ToString(),
-					Parent->EndTime, ConnectionSet->BaseDataIn, ConnectionSet->BaseDataOut);
-			}
-			else
-			{
-				spdlog::error(
-					"ConnectionHistory: Connection set for {}:{} has no parent entry", AppName, Endpoint.ToString());
-			}
+			HandleEmptySet(ConnectionSet);
 		}
 	}
 
@@ -161,6 +149,7 @@ void WConnectionHistory::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& 
 		if (ConnectionSet->Connections.empty())
 		{
 			ActiveConnections.erase(TupleKey);
+			HandleEmptySet(ConnectionSet);
 		}
 	}
 }
@@ -222,6 +211,7 @@ void WConnectionHistory::OnUDPTupleRemoved(std::shared_ptr<WTupleCounter> const&
 	if (ConnectionSet->Connections.empty())
 	{
 		ActiveConnections.erase(Key);
+		HandleEmptySet(ConnectionSet);
 	}
 }
 
@@ -250,6 +240,29 @@ std::shared_ptr<WConnectionHistoryEntry> WConnectionHistory::Push(std::shared_pt
 		}
 	}
 	return Entry;
+}
+
+void WConnectionHistory::HandleEmptySet(std::shared_ptr<WConnectionSet> const& ConnectionSet)
+{
+
+	if (auto const Parent = ConnectionSet->ParentEntry.lock())
+	{
+		if (Parent->State >= WConnectionHistoryEntry::EState::Pending_Close)
+		{
+			spdlog::warn("Handle empty set called on an already closed set");
+			return;
+		}
+		Parent->State = WConnectionHistoryEntry::EState::Pending_Close;
+		// technically we should set this when the socket actually closes, but this is close enough
+		Parent->EndTime = WTime::GetEpochSeconds();
+		WriteToDatabase(Parent);
+		spdlog::debug("ConnectionHistory: Connection to {} ended at {} ({} in, {} out)",
+			Parent->RemoteEndpoint.ToString(), Parent->EndTime, ConnectionSet->BaseDataIn, ConnectionSet->BaseDataOut);
+	}
+	else
+	{
+		spdlog::error("ConnectionHistory: Empty connection set has no valid parent");
+	}
 }
 
 void WConnectionHistory::WriteToDatabase(std::shared_ptr<WConnectionHistoryEntry> const& Entry)

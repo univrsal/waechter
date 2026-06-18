@@ -95,6 +95,8 @@ class WConnectionHistory : public TSingleton<WConnectionHistory>, public IMemory
 	std::shared_ptr<WConnectionHistoryEntry> Push(std::shared_ptr<WAppCounter> const& App,
 		std::shared_ptr<WConnectionSet> const& Set, WEndpoint const& RemoteEndpoint);
 
+	static void HandleEmptySet(std::shared_ptr<WConnectionSet> const& EmptySet);
+
 public:
 	static void WriteToDatabase(std::shared_ptr<WConnectionHistoryEntry> const& Entry);
 	void RegisterSignalHandlers();
