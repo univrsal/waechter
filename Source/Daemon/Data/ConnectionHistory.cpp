@@ -75,7 +75,7 @@ void WConnectionHistory::OnSocketConnected(WSocketCounter const* SocketCounter)
 	}
 
 	auto const App = SocketCounter->ParentProcess->ParentApp;
-	auto AppName = App->TrafficItem->ApplicationName;
+	auto       AppName = App->TrafficItem->ApplicationPath;
 	auto       Endpoint = SocketCounter->TrafficItem->SocketTuple.RemoteEndpoint;
 
 	std::scoped_lock Lock(Mutex);
@@ -112,7 +112,7 @@ void WConnectionHistory::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& 
 		spdlog::error("No app for socket {}", SocketCounter->TrafficItem->ItemId);
 		return;
 	}
-	auto             AppName = App->TrafficItem->ApplicationName;
+	auto             AppName = App->TrafficItem->ApplicationPath;
 	auto             Endpoint = SocketCounter->TrafficItem->SocketTuple.RemoteEndpoint;
 	auto const       Key = std::make_pair(AppName, Endpoint);
 
@@ -162,7 +162,7 @@ void WConnectionHistory::OnUDPTupleCreated(std::shared_ptr<WTupleCounter> const&
 		spdlog::info("No app for tuple {}", TupleCounter->TrafficItem->ItemId);
 		return;
 	}
-	auto AppName = App->TrafficItem->ApplicationName;
+	auto             AppName = App->TrafficItem->ApplicationPath;
 	std::scoped_lock Lock(Mutex);
 
 	auto const Key = std::make_pair(AppName, TupleCounter->TrafficItem->Endpoint);
@@ -194,7 +194,7 @@ void WConnectionHistory::OnUDPTupleRemoved(std::shared_ptr<WTupleCounter> const&
 	{
 		return;
 	}
-	auto             AppName = App->TrafficItem->ApplicationName;
+	auto             AppName = App->TrafficItem->ApplicationPath;
 	std::scoped_lock Lock(Mutex);
 
 	auto const Key = std::make_pair(AppName, TupleCounter->TrafficItem->Endpoint);
@@ -278,16 +278,15 @@ void WConnectionHistory::WriteToDatabase(std::shared_ptr<WConnectionHistoryEntry
 
 		int64_t const AppID = AppResult.empty()
 			? static_cast<int64_t>(DbConn(
-				  sqlpp::insert_into(TrafficItem).set(TrafficItem.Name = Entry->App->TrafficItem->ApplicationName)))
+				  sqlpp::insert_into(TrafficItem).set(TrafficItem.Name = Entry->App->TrafficItem->ApplicationPath)))
 			: AppResult.front().ID.value();
 
 		auto const HostResult =
-			DbConn(sqlpp::select(Host.ID).from(Host).where(Host.IPAddress == Entry->RemoteEndpoint.ToString()));
+			DbConn(sqlpp::select(Host.ID).from(Host).where(Host.IPAddress == Entry->RemoteEndpoint.Address.ToString()));
 		int64_t const HostID = HostResult.empty()
 			? static_cast<int64_t>(
-				  DbConn(sqlpp::insert_into(Host).set(Host.IPAddress = Entry->RemoteEndpoint.ToString())))
+				  DbConn(sqlpp::insert_into(Host).set(Host.IPAddress = Entry->RemoteEndpoint.Address.ToString())))
 			: HostResult.front().ID.value();
-		spdlog::info("Port: {}", Entry->RemoteEndpoint.ToString());
 		DbConn(sqlpp::insert_into(CHE).set(CHE.ItemID = AppID, CHE.RemoteHostID = HostID,
 			CHE.Port = Entry->RemoteEndpoint.Port, CHE.StartTime = Entry->StartTime, CHE.EndTime = Entry->EndTime,
 			CHE.DataIn = Entry->Set->BaseDataIn, CHE.DataOut = Entry->Set->BaseDataOut));
