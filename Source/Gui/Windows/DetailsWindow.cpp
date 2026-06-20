@@ -95,10 +95,11 @@ void WDetailsWindow::DrawFilterDetails() const
 	if (ImGui::Button(TR("__show_system_stats")))
 	{
 		WStatsRequest Request{};
+		WConnectionHistoryRequest HistoryRequest{};
 		Request.Target = Filter->Name;
 		Request.StartTime = WTime::GetEpochHours() - 60 * 60 * 24;
 		Request.EndTime = WTime::GetEpochHours();
-		WSdlWindow::GetInstance().GetMainWindow()->OpenStatsWindow(Request);
+		WSdlWindow::GetInstance().GetMainWindow()->OpenStatsWindow(Request, HistoryRequest);
 	}
 }
 
@@ -124,10 +125,12 @@ void WDetailsWindow::DrawSystemDetails() const
 	if (ImGui::Button(TR("__show_system_stats")))
 	{
 		WStatsRequest Request{};
+		WConnectionHistoryRequest HistoryRequest{};
 		Request.Target = "system";
 		Request.StartTime = WTime::GetEpochHours() - 60 * 60 * 24;
 		Request.EndTime = WTime::GetEpochHours();
-		WSdlWindow::GetInstance().GetMainWindow()->OpenStatsWindow(Request);
+		HistoryRequest.AppTarget = "system";
+		WSdlWindow::GetInstance().GetMainWindow()->OpenStatsWindow(Request, HistoryRequest);
 	}
 }
 
@@ -161,10 +164,12 @@ void WDetailsWindow::DrawApplicationDetails() const
 	if (ImGui::Button(TR("__show_app_stats")))
 	{
 		WStatsRequest Request{};
+		WConnectionHistoryRequest HistoryRequest{};
 		Request.Target = App->ApplicationPath;
 		Request.StartTime = WTime::GetEpochHours() - 60 * 60 * 24;
 		Request.EndTime = WTime::GetEpochHours();
-		WSdlWindow::GetInstance().GetMainWindow()->OpenStatsWindow(Request);
+		HistoryRequest.AppTarget = App->ApplicationPath;
+		WSdlWindow::GetInstance().GetMainWindow()->OpenStatsWindow(Request, HistoryRequest);
 	}
 }
 
@@ -250,10 +255,12 @@ void WDetailsWindow::DrawSocketDetails() const
 		if (ImGui::Button(TR("__show_host_stats")))
 		{
 			WStatsRequest Request{};
+			WConnectionHistoryRequest HistoryRequest{};
 			Request.Target = Sock->SocketTuple.RemoteEndpoint.Address.ToString();
 			Request.StartTime = WTime::GetEpochHours() - 60 * 60 * 24;
 			Request.EndTime = WTime::GetEpochHours();
-			WSdlWindow::GetInstance().GetMainWindow()->OpenStatsWindow(Request);
+			HistoryRequest.HostTarget = std::make_shared<WIPAddress>(Sock->SocketTuple.RemoteEndpoint.Address);
+			WSdlWindow::GetInstance().GetMainWindow()->OpenStatsWindow(Request, HistoryRequest);
 		}
 	}
 }

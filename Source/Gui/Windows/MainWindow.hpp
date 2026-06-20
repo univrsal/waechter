@@ -48,6 +48,7 @@ public:
 
 	~WMainWindow() = default;
 
-	void OpenStatsWindow(WStatsRequest Request);
+	void OpenStatsWindow(WStatsRequest Request, WConnectionHistoryRequest HistoryRequest);
 	void HandleStatsResponse(WBuffer const& Buf) const;
+	void HandleHistoryResponse(WBuffer const& Buf) const;
 };

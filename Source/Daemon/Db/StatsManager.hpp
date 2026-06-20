@@ -16,24 +16,26 @@
 #include "MemoryStats.hpp"
 #include "Singleton.hpp"
 #include "IPAddress.hpp"
+#include "Messages.hpp"
+#include "Buffer.hpp"
 #include "Promise.hpp"
 #include "Data/TrafficItem.hpp"
 #include "Data/Stats.hpp"
 
 class WStatsManager final : public TSingleton<WStatsManager>, public IMemoryTrackable
 {
-	struct WQueuedRequest
+	struct WRequestData
 	{
-		WStatsRequest                   Request;
-		TPromise<WStatsResponse const&> Promise;
+		EMessageType          Type;
+		WBuffer               Request;
+		TPromise<std::string> Response;
 	};
-
 	std::mutex DataMutex;
-	std::thread                RequestThread;
-	std::atomic<bool>          bRunning{ false };
-	std::mutex                 QueueMutex;
-	std::condition_variable    QueueCondition;
-	std::queue<WQueuedRequest> PendingRequests;
+	std::thread              RequestThread;
+	std::atomic<bool>        bRunning{ false };
+	std::mutex               QueueMutex;
+	std::condition_variable  QueueCondition;
+	std::queue<WRequestData> PendingRequests;
 
 	struct WTrafficStats
 	{
@@ -53,7 +55,8 @@ class WStatsManager final : public TSingleton<WStatsManager>, public IMemoryTrac
 
 	WSnapshot CurrentSnapshot{};
 
-	static void ProcessStatsRequest(WStatsRequest const& Request, WStatsResponse& Response);
+	static void ProcessHistoryRequest(WConnectionHistoryRequest const& Request, TPromise<std::string> const& Promise);
+	static void ProcessStatsRequest(WStatsRequest const& Request, TPromise<std::string> const& Promise);
 
 	void RequestThreadFunction();
 
@@ -75,7 +78,7 @@ public:
 	void StartRequestProcessThread();
 	void StopRequestProcessThread();
 
-	TPromise<WStatsResponse const&> RequestStats(WStatsRequest const& Request);
+	TPromise<std::string> RequestStats(WBuffer const& Request, EMessageType Type);
 
 #if WDEBUG
 	void PushDebugSnapshots();

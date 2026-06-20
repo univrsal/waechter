@@ -6,7 +6,6 @@
 #include "StatsManager.hpp"
 
 #include <array>
-#include <ctime>
 #include <ranges>
 #include <map>
 
@@ -15,6 +14,8 @@
 #include "DbManager.hpp"
 #include "Schema.hpp"
 #include "IPAddress.hpp"
+#include "Buffer.hpp"
+#include "Messages.hpp"
 #include "Time.hpp"
 #include "Data/SystemMap.hpp"
 #include "Data/Stats.hpp"
@@ -191,22 +192,119 @@ void WStatsManager::StopRequestProcessThread()
 	}
 }
 
-TPromise<WStatsResponse const&> WStatsManager::RequestStats(WStatsRequest const& Request)
+TPromise<std::string> WStatsManager::RequestStats(WBuffer const& Request, EMessageType Type)
 {
-	WQueuedRequest                  NewRequest{ Request, {} };
-	TPromise<WStatsResponse const&> Promise = NewRequest.Promise;
-	{
-		std::scoped_lock Lock(QueueMutex);
-		PendingRequests.push(std::move(NewRequest));
-	}
+	WRequestData Data;
+	Data.Request = Request;
+	Data.Type = Type;
+	std::scoped_lock Lock(QueueMutex);
+	PendingRequests.push(Data);
 	QueueCondition.notify_one();
-	return Promise;
+	return Data.Response;
 }
 
-void WStatsManager::ProcessStatsRequest(WStatsRequest const& Request, WStatsResponse& Response)
+void WStatsManager::ProcessHistoryRequest(
+	WConnectionHistoryRequest const& Request, TPromise<std::string> const& Promise)
+{
+	ZoneScopedN("WStatsManager::ProcessHistoryRequest");
+	WConnectionHistoryResponse Response{};
+	Response.RequestId = Request.RequestId;
+	spdlog::info("Received stats request for {}", Request.AppTarget);
+
+	WDbManager::GetInstance().Run([&](auto& DbConn) {
+		constexpr Db::Schema::ConnectionHistoryEntry CE;
+		if (Request.HostTarget)
+		{
+			constexpr Db::Schema::TrafficItem TrafficItem;
+			constexpr Db::Schema::Host        Host;
+			uint64_t                          HostID{};
+			auto                              Result =
+				DbConn(sqlpp::select(Host.ID).from(Host).where(Host.IPAddress == Request.HostTarget->ToString()));
+			if (Result.empty())
+			{
+				spdlog::error("Invalid history request for app {}", Request.AppTarget);
+				Promise.Finish("");
+				return;
+			}
+			HostID = static_cast<uint64_t>(Result.front().ID.value());
+			auto Count = DbConn(sqlpp::select(sqlpp::count(CE.ID))
+					.from(CE.join(TrafficItem).on(CE.ItemID == TrafficItem.ID))
+					.where(CE.RemoteHostID == HostID));
+			Response.NumTotalEntries = static_cast<uint64_t>(Count.front().count.value());
+			spdlog::info("Found {}", Response.NumTotalEntries);
+			auto Rows = DbConn(
+				sqlpp::select(CE.ItemID, TrafficItem.Name, CE.Port, CE.StartTime, CE.EndTime, CE.DataIn, CE.DataOut)
+					.from(CE.join(TrafficItem).on(CE.ItemID == TrafficItem.ID))
+					.where(CE.RemoteHostID == HostID)
+					.limit(100u)
+					.offset(Request.Offset));
+			for (auto const& Row : Rows)
+			{
+				Response.Entries.emplace_back(WConnectionHistoryResponseEntry{
+					.AppName = Row.Name.value(),
+					.Endpoint = {}, // endpoint request, so not filling this
+					.DataIn = static_cast<WBytes>(Row.DataIn.value()),
+					.DataOut = static_cast<WBytes>(Row.DataOut.value()),
+					.StartTime = Row.StartTime.value(),
+					.EndTime = Row.EndTime.value(),
+				});
+			}
+		}
+		else
+		{
+			constexpr Db::Schema::TrafficItem TrafficItem;
+			constexpr Db::Schema::Host        Host;
+			uint64_t                          ItemID{};
+			auto                              Result =
+				DbConn(sqlpp::select(TrafficItem.ID).from(TrafficItem).where(TrafficItem.Name == Request.AppTarget));
+			if (Result.empty())
+			{
+				spdlog::error("Invalid history request for app {}", Request.AppTarget);
+				Promise.Finish("");
+				return;
+			}
+			ItemID = static_cast<uint64_t>(Result.front().ID.value());
+			auto Count = DbConn(sqlpp::select(sqlpp::count(CE.ID))
+					.from(CE.join(Host).on(CE.RemoteHostID == Host.ID))
+					.where(CE.ItemID == ItemID));
+			Response.NumTotalEntries = static_cast<uint64_t>(Count.front().count.value());
+			auto Rows = DbConn(
+				sqlpp::select(CE.ItemID, Host.IPAddress, CE.Port, CE.StartTime, CE.EndTime, CE.DataIn, CE.DataOut)
+					.from(CE.join(Host).on(CE.RemoteHostID == Host.ID))
+					.where(CE.ItemID == ItemID)
+					.limit(100u)
+					.offset(Request.Offset));
+			spdlog::info("Found {}", Response.NumTotalEntries);
+			for (auto const& Row : Rows)
+			{
+				WEndpoint P;
+				P.Port = Row.Port;
+				auto IP = WIPAddress::FromString(Row.IPAddress.value());
+				if (!IP.has_value())
+				{
+					spdlog::warn("Invalid IP address in history entry row: {}", Row.IPAddress.value());
+					continue;
+				}
+				P.Address = IP.value();
+				Response.Entries.emplace_back(WConnectionHistoryResponseEntry{
+					.AppName = "", // this is a request for one specific app so no point in filling this
+					.Endpoint = P,
+					.DataIn = static_cast<WBytes>(Row.DataIn.value()),
+					.DataOut = static_cast<WBytes>(Row.DataOut.value()),
+					.StartTime = Row.StartTime.value(),
+					.EndTime = Row.EndTime.value(),
+				});
+			}
+		}
+		spdlog::info("Sendan response with {} items", Response.Entries.size());
+		Promise.Finish(SerializeMessage(MT_HistoryResponse, Response));
+	});
+}
+
+void WStatsManager::ProcessStatsRequest(WStatsRequest const& Request, TPromise<std::string> const& Promise)
 {
 	ZoneScopedN("WStatsManager::ProcessStatsRequest");
-
+	WStatsResponse Response{};
 	Response.RequestId = Request.RequestId;
 
 	constexpr WSec OneHour = 3600LL;
@@ -342,6 +440,8 @@ void WStatsManager::ProcessStatsRequest(WStatsRequest const& Request, WStatsResp
 	{
 		Response.DataPoints.push_back(Data);
 	}
+
+	Promise.Finish(SerializeMessage(MT_StatsResponse, Response));
 }
 
 void WStatsManager::RequestThreadFunction()
@@ -358,13 +458,37 @@ void WStatsManager::RequestThreadFunction()
 			break;
 		}
 		spdlog::debug("Processing stats request, queue size: {}", PendingRequests.size());
-		auto [Request, Promise] = PendingRequests.front();
+		auto RequestData = std::move(PendingRequests.front());
 		PendingRequests.pop();
 		Lock.unlock();
 
-		WStatsResponse Response{};
-		ProcessStatsRequest(Request, Response);
-		Promise.Finish(Response);
+		switch (RequestData.Type)
+		{
+			case MT_HistoryRequest:
+			{
+				WConnectionHistoryRequest Request;
+				if (!DeserializeMessage(RequestData.Request, Request))
+				{
+					spdlog::error("Failed to deserialize stats request");
+					return;
+				}
+				ProcessHistoryRequest(Request, RequestData.Response);
+			}
+			break;
+			case MT_StatsRequest:
+			{
+				WStatsRequest Request;
+				if (!DeserializeMessage(RequestData.Request, Request))
+				{
+					spdlog::error("Failed to deserialize stats request");
+					return;
+				}
+				ProcessStatsRequest(Request, RequestData.Response);
+			}
+			break;
+			default:
+				assert(false && "Invalid stats request");
+		}
 	}
 }
 

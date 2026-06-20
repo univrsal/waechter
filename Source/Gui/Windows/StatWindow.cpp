@@ -9,11 +9,13 @@
 #include <ctime>
 #include <utility>
 
-#include "Client.hpp"
 #include "imgui.h"
 #include "implot.h"
 
+#include "Client.hpp"
 #include "Format.hpp"
+#include "Util/I18n.hpp"
+#include "Util/ProtocolDB.hpp"
 #include "Windows/SdlWindow.hpp"
 
 static constexpr WSec SecondsPerDay = 86400LL;
@@ -100,12 +102,6 @@ void WStatWindow::BuildGraphData()
 	YAxisMax = MaxTraffic > 0.0 ? MaxTraffic * 1.10 : 1.0;
 }
 
-WStatWindow::WStatWindow(WStatsRequest InRequest) : Request(std::move(InRequest))
-{
-	UpdateTitle();
-	WClient::GetInstance().SendMessage(MT_StatsRequest, Request);
-}
-
 static constexpr char const* TimeFrameLabels[] = {
 	"Last 24 hours",
 	"Last 7 days",
@@ -113,75 +109,197 @@ static constexpr char const* TimeFrameLabels[] = {
 	"Last year",
 };
 
+void WStatWindow::DrawGraphTab()
+{
+	// Time frame selector
+	int Selection = static_cast<int>(CurrentTimeFrame);
+	ImGui::SetNextItemWidth(160.0f);
+	if (ImGui::Combo("##TimeFrame", &Selection, TimeFrameLabels, 4))
+	{
+		std::scoped_lock Lock(DataMutex);
+		ApplyTimeFrame(static_cast<ETimeFrame>(Selection));
+	}
+	ImGui::Separator();
+
+	std::scoped_lock Lock(DataMutex);
+	if (Response.DataPoints.empty())
+	{
+		ImGui::Text("Loading...");
+	}
+	else
+	{
+
+		static auto ByteFormatter = [](double Value, char* Buf, int Size, void*) -> int {
+			auto Str = WStorageFormat::AutoFormat(static_cast<WBytes>(Value < 0.0 ? 0.0 : Value));
+			return snprintf(Buf, static_cast<std::size_t>(Size), "%s", Str.c_str());
+		};
+
+		char const* SeriesLabels[] = { "Download", "Upload" };
+		auto const  N = Response.DataPoints.size();
+
+		if (ImPlot::BeginPlot("##TrafficChart", ImVec2(-1, -1)))
+		{
+			// Thin tick labels so they don't overlap on the X axis.
+			WSec const        Duration = Request.EndTime - Request.StartTime;
+			constexpr WSec    OneDay = 86400LL;
+			float const       PlotWidth = ImGui::GetContentRegionAvail().x;
+			float const       EstLabelWidth = Duration <= OneDay ? 55.0f : 90.0f; // "HH:MM" vs "MM-DD" / "YYYY-MM"
+			std::size_t const SkipN = std::max<std::size_t>(
+				1, static_cast<std::size_t>(std::ceil((EstLabelWidth * static_cast<float>(N)) / PlotWidth)));
+
+			FilteredPositions.clear();
+			FilteredLabelPtrs.clear();
+			for (std::size_t i = 0; i < N; ++i)
+			{
+				if (i % SkipN == 0)
+				{
+					FilteredPositions.push_back(Positions[i]);
+					FilteredLabelPtrs.push_back(LabelPtrs[i]);
+				}
+			}
+
+			ImPlot::SetupAxes("Time", "Traffic");
+			ImPlot::SetupAxisTicks(ImAxis_X1, FilteredPositions.data(), static_cast<int>(FilteredPositions.size()),
+				FilteredLabelPtrs.data());
+			ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, -0.5, static_cast<double>(N) - 0.5);
+			ImPlot::SetupAxisFormat(ImAxis_Y1, ByteFormatter, nullptr);
+			ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, YAxisMax, ImGuiCond_Always);
+			ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, 0.0, std::numeric_limits<double>::infinity());
+			ImPlot::PlotBarGroups(SeriesLabels, Values.data(), 2, N, 0.7);
+			ImPlot::EndPlot();
+		}
+	}
+}
+
+void WStatWindow::DrawHistoryData()
+{
+	std::scoped_lock Lock(DataMutex);
+	if (ImGui::BeginTable(
+			"##ConnectionHistoryTable", 7, ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY))
+	{
+		auto const bIsAppTable = !HistoryDataCache.Protocol.empty();
+		if (bIsAppTable)
+		{
+			ImGui::TableSetupColumn(TR("app_name"), ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableSetupColumn(TR("protocol"), ImGuiTableColumnFlags_WidthFixed, 80.0f);
+		}
+		else
+		{
+			ImGui::TableSetupColumn(TR("ip"), ImGuiTableColumnFlags_WidthStretch);
+		}
+
+		ImGui::TableSetupColumn(TR("data_in"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
+		ImGui::TableSetupColumn(TR("data_out"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
+		ImGui::TableSetupColumn(TR("start_time"), ImGuiTableColumnFlags_WidthFixed, 150.0f);
+		ImGui::TableSetupColumn(TR("end_time"), ImGuiTableColumnFlags_WidthFixed, 150.0f);
+		ImGui::TableSetupScrollFreeze(0, 1);
+		ImGui::TableHeadersRow();
+
+		if (bIsAppTable)
+		{
+			for (size_t i = 0; i < HistoryDataCache.AppOrRemoteEndpoint.size(); ++i)
+			{
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+				ImGui::Text("%s", HistoryDataCache.AppOrRemoteEndpoint[i].c_str());
+				if (bIsAppTable)
+				{
+					ImGui::TableNextColumn();
+					ImGui::Text("%s", HistoryDataCache.Protocol[i].c_str());
+				}
+
+				ImGui::TableNextColumn();
+				ImGui::Text("%s", HistoryDataCache.BytesIn[i].c_str());
+				ImGui::TableNextColumn();
+				ImGui::Text("%s", HistoryDataCache.BytesOut[i].c_str());
+				ImGui::TableNextColumn();
+				ImGui::Text("%s", HistoryDataCache.StartTime[i].c_str());
+				ImGui::TableNextColumn();
+				ImGui::Text("%s", HistoryDataCache.EndTime[i].c_str());
+			}
+		}
+		ImGui::EndTable();
+	}
+}
+void WStatWindow::BuildHistoryDataCache()
+{
+	HistoryDataCache.Clear();
+
+	if (HistoryResponse.Entries.empty())
+	{
+		return;
+	}
+
+	if (HistoryResponse.Entries[0].AppName != "") // this is the history of an endpoint
+	{
+		HistoryDataCache.Reserve(HistoryResponse.Entries.size());
+		for (auto const& Entry : HistoryResponse.Entries)
+		{
+			HistoryDataCache.AppOrRemoteEndpoint.push_back(Entry.AppName);
+			HistoryDataCache.BytesIn.push_back(WStorageFormat::AutoFormat(Entry.DataIn));
+			HistoryDataCache.BytesOut.push_back(WStorageFormat::AutoFormat(Entry.DataOut));
+			HistoryDataCache.StartTime.push_back(WTimeFormat::FormatUnixTime(Entry.StartTime));
+			HistoryDataCache.EndTime.push_back(WTimeFormat::FormatUnixTime(Entry.EndTime));
+		}
+	}
+	else
+	{
+		HistoryDataCache.Reserve(HistoryResponse.Entries.size(), /* bWithProtocol */ true);
+		for (auto const& Entry : HistoryResponse.Entries)
+		{
+			HistoryDataCache.AppOrRemoteEndpoint.push_back(Entry.Endpoint.ToString());
+			auto TCPProto = WProtocolDB::GetInstance().GetServiceName(EProtocol::UDP, Entry.Endpoint.Port);
+			auto UDPProto = WProtocolDB::GetInstance().GetServiceName(EProtocol::UDP, Entry.Endpoint.Port);
+			if (UDPProto != "" && TCPProto != "")
+				HistoryDataCache.Protocol.push_back(TCPProto);
+			else if (UDPProto != "")
+				HistoryDataCache.Protocol.push_back(UDPProto);
+			else if (TCPProto != "")
+				HistoryDataCache.Protocol.push_back(TCPProto);
+			else
+				HistoryDataCache.Protocol.push_back("n/a");
+			HistoryDataCache.BytesIn.push_back(WStorageFormat::AutoFormat(Entry.DataIn));
+			HistoryDataCache.BytesOut.push_back(WStorageFormat::AutoFormat(Entry.DataOut));
+			HistoryDataCache.StartTime.push_back(WTimeFormat::FormatUnixTime(Entry.StartTime));
+			HistoryDataCache.EndTime.push_back(WTimeFormat::FormatUnixTime(Entry.EndTime));
+		}
+	}
+}
+
+WStatWindow::WStatWindow(WStatsRequest InRequest, WConnectionHistoryRequest InHistoryRequest)
+	: Request(std::move(InRequest)), HistoryRequest(std::move(InHistoryRequest))
+{
+	UpdateTitle();
+	WClient::GetInstance().SendMessage(MT_StatsRequest, Request);
+	WClient::GetInstance().SendMessage(MT_HistoryRequest, HistoryRequest);
+}
+
 void WStatWindow::Draw()
 {
 	if (!bOpen)
 	{
 		return;
 	}
-	ImVec2 const DefaultWindowSize = WSdlWindow::ScaleSize(ImVec2(800, 450));
+	ImVec2 const   DefaultWindowSize = WSdlWindow::ScaleSize(ImVec2(800, 450));
 	ImGuiIO const& Io = ImGui::GetIO();
 	ImGui::SetNextWindowSize(DefaultWindowSize, ImGuiCond_FirstUseEver);
-	ImGui::SetNextWindowPos(ImVec2(Io.DisplaySize.x * 0.5f, Io.DisplaySize.y * 0.5f), ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
+	ImGui::SetNextWindowPos(
+		ImVec2(Io.DisplaySize.x * 0.5f, Io.DisplaySize.y * 0.5f), ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
 	if (ImGui::Begin(Title.c_str(), &bOpen, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking))
 	{
-		// Time frame selector
-		int Selection = static_cast<int>(CurrentTimeFrame);
-		ImGui::SetNextItemWidth(160.0f);
-		if (ImGui::Combo("##TimeFrame", &Selection, TimeFrameLabels, 4))
+		if (ImGui::BeginTabBar("##Statswindow"))
 		{
-			std::scoped_lock Lock(DataMutex);
-			ApplyTimeFrame(static_cast<ETimeFrame>(Selection));
-		}
-		ImGui::Separator();
-
-		std::scoped_lock Lock(DataMutex);
-		if (Response.DataPoints.empty())
-		{
-			ImGui::Text("Loading...");
-		}
-		else
-		{
-
-			static auto ByteFormatter = [](double Value, char* Buf, int Size, void*) -> int {
-				auto Str = WStorageFormat::AutoFormat(static_cast<WBytes>(Value < 0.0 ? 0.0 : Value));
-				return snprintf(Buf, static_cast<std::size_t>(Size), "%s", Str.c_str());
-			};
-
-			char const* SeriesLabels[] = { "Download", "Upload" };
-			auto const  N = Response.DataPoints.size();
-
-			if (ImPlot::BeginPlot("##TrafficChart", ImVec2(-1, -1)))
+			if (ImGui::BeginTabItem("Graph"))
 			{
-				// Thin tick labels so they don't overlap on the X axis.
-				WSec const        Duration = Request.EndTime - Request.StartTime;
-				constexpr WSec    OneDay = 86400LL;
-				float const       PlotWidth = ImGui::GetContentRegionAvail().x;
-				float const       EstLabelWidth = Duration <= OneDay ? 55.0f : 90.0f; // "HH:MM" vs "MM-DD" / "YYYY-MM"
-				std::size_t const SkipN = std::max<std::size_t>(
-					1, static_cast<std::size_t>(std::ceil((EstLabelWidth * static_cast<float>(N)) / PlotWidth)));
-
-				FilteredPositions.clear();
-				FilteredLabelPtrs.clear();
-				for (std::size_t i = 0; i < N; ++i)
-				{
-					if (i % SkipN == 0)
-					{
-						FilteredPositions.push_back(Positions[i]);
-						FilteredLabelPtrs.push_back(LabelPtrs[i]);
-					}
-				}
-
-				ImPlot::SetupAxes("Time", "Traffic");
-				ImPlot::SetupAxisTicks(ImAxis_X1, FilteredPositions.data(), static_cast<int>(FilteredPositions.size()),
-					FilteredLabelPtrs.data());
-				ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, -0.5, static_cast<double>(N) - 0.5);
-				ImPlot::SetupAxisFormat(ImAxis_Y1, ByteFormatter, nullptr);
-				ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, YAxisMax, ImGuiCond_Always);
-				ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, 0.0, std::numeric_limits<double>::infinity());
-				ImPlot::PlotBarGroups(SeriesLabels, Values.data(), 2, N, 0.7);
-				ImPlot::EndPlot();
+				DrawGraphTab();
+				ImGui::EndTabItem();
 			}
+			if (ImGui::BeginTabItem("History"))
+			{
+				DrawHistoryData();
+				ImGui::EndTabItem();
+			}
+			ImGui::EndTabBar();
 		}
 	}
 	ImGui::End();
