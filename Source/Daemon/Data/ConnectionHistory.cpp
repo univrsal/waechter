@@ -287,10 +287,10 @@ void WConnectionHistory::WriteToDatabase(std::shared_ptr<WConnectionHistoryEntry
 			? static_cast<int64_t>(
 				  DbConn(sqlpp::insert_into(Host).set(Host.IPAddress = Entry->RemoteEndpoint.ToString())))
 			: HostResult.front().ID.value();
-
+		spdlog::info("Port: {}", Entry->RemoteEndpoint.ToString());
 		DbConn(sqlpp::insert_into(CHE).set(CHE.ItemID = AppID, CHE.RemoteHostID = HostID,
-			CHE.StartTime = Entry->StartTime, CHE.EndTime = Entry->EndTime, CHE.DataIn = Entry->Set->BaseDataIn,
-			CHE.DataOut = Entry->Set->BaseDataOut));
+			CHE.Port = Entry->RemoteEndpoint.Port, CHE.StartTime = Entry->StartTime, CHE.EndTime = Entry->EndTime,
+			CHE.DataIn = Entry->Set->BaseDataIn, CHE.DataOut = Entry->Set->BaseDataOut));
 	});
 }
 
