@@ -220,9 +220,10 @@ void WStatsManager::ProcessHistoryRequest(
 			uint64_t                          HostID{};
 			auto                              Result =
 				DbConn(sqlpp::select(Host.ID).from(Host).where(Host.IPAddress == Request.HostTarget->ToString()));
+			spdlog::info("History request for host {}", Request.HostTarget->ToString());
 			if (Result.empty())
 			{
-				spdlog::error("Invalid history request for app {}", Request.AppTarget);
+				spdlog::info("No connection history data for {}", Request.HostTarget->ToString());
 				Promise.Finish("");
 				return;
 			}
@@ -231,7 +232,7 @@ void WStatsManager::ProcessHistoryRequest(
 					.from(CE.join(TrafficItem).on(CE.ItemID == TrafficItem.ID))
 					.where(CE.RemoteHostID == HostID));
 			Response.NumTotalEntries = static_cast<uint64_t>(Count.front().count.value());
-			spdlog::info("Found {}", Response.NumTotalEntries);
+			spdlog::info("Found {} entries for {}", Response.NumTotalEntries, Request.HostTarget->ToString());
 			auto Rows = DbConn(
 				sqlpp::select(CE.ItemID, TrafficItem.Name, CE.Port, CE.StartTime, CE.EndTime, CE.DataIn, CE.DataOut)
 					.from(CE.join(TrafficItem).on(CE.ItemID == TrafficItem.ID))
@@ -259,7 +260,7 @@ void WStatsManager::ProcessHistoryRequest(
 				DbConn(sqlpp::select(TrafficItem.ID).from(TrafficItem).where(TrafficItem.Name == Request.AppTarget));
 			if (Result.empty())
 			{
-				spdlog::error("Invalid history request for app {}", Request.AppTarget);
+				spdlog::info("No connection history data for {}", Request.AppTarget);
 				Promise.Finish("");
 				return;
 			}
@@ -274,7 +275,7 @@ void WStatsManager::ProcessHistoryRequest(
 					.where(CE.ItemID == ItemID)
 					.limit(100u)
 					.offset(Request.Offset));
-			spdlog::info("Found {}", Response.NumTotalEntries);
+			spdlog::info("Found {} entries for {}", Response.NumTotalEntries, Request.AppTarget);
 			for (auto const& Row : Rows)
 			{
 				WEndpoint P;
@@ -296,7 +297,6 @@ void WStatsManager::ProcessHistoryRequest(
 				});
 			}
 		}
-		spdlog::info("Sendan response with {} items", Response.Entries.size());
 		Promise.Finish(SerializeMessage(MT_HistoryResponse, Response));
 	});
 }

@@ -213,29 +213,27 @@ void WStatWindow::DrawHistoryData()
 				}
 			}
 
-			if (bIsAppTable)
+			for (size_t i = 0; i < HistoryDataCache.AppOrRemoteEndpoint.size(); ++i)
 			{
-				for (size_t i = 0; i < HistoryDataCache.AppOrRemoteEndpoint.size(); ++i)
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+				ImGui::Text("%s", HistoryDataCache.AppOrRemoteEndpoint[i].c_str());
+				if (bIsAppTable)
 				{
-					ImGui::TableNextRow();
 					ImGui::TableNextColumn();
-					ImGui::Text("%s", HistoryDataCache.AppOrRemoteEndpoint[i].c_str());
-					if (bIsAppTable)
-					{
-						ImGui::TableNextColumn();
-						ImGui::Text("%s", HistoryDataCache.Protocol[i].c_str());
-					}
-
-					ImGui::TableNextColumn();
-					ImGui::Text("%s", HistoryDataCache.BytesIn[i].c_str());
-					ImGui::TableNextColumn();
-					ImGui::Text("%s", HistoryDataCache.BytesOut[i].c_str());
-					ImGui::TableNextColumn();
-					ImGui::Text("%s", HistoryDataCache.StartTime[i].c_str());
-					ImGui::TableNextColumn();
-					ImGui::Text("%s", HistoryDataCache.EndTime[i].c_str());
+					ImGui::Text("%s", HistoryDataCache.Protocol[i].c_str());
 				}
+
+				ImGui::TableNextColumn();
+				ImGui::Text("%s", HistoryDataCache.BytesIn[i].c_str());
+				ImGui::TableNextColumn();
+				ImGui::Text("%s", HistoryDataCache.BytesOut[i].c_str());
+				ImGui::TableNextColumn();
+				ImGui::Text("%s", HistoryDataCache.StartTime[i].c_str());
+				ImGui::TableNextColumn();
+				ImGui::Text("%s", HistoryDataCache.EndTime[i].c_str());
 			}
+
 			ImGui::EndTable();
 		}
 	}
