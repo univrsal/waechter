@@ -8,6 +8,8 @@
 
 #include "Data/Stats.hpp"
 
+struct ImGuiTableSortSpecs;
+
 enum class ETimeFrame : int
 {
 	Last24Hours = 0,
@@ -21,18 +23,26 @@ struct WHistoryDataCache
 	std::vector<std::string> AppOrRemoteEndpoint;
 	std::vector<std::string> Protocol;
 	std::vector<std::string> StartTime;
+	std::vector<uint64_t>    StartTimeNumeric;
 	std::vector<std::string> EndTime;
+	std::vector<uint64_t>    EndTimeNumeric;
 	std::vector<std::string> BytesIn;
+	std::vector<uint64_t>    BytesInNumeric;
 	std::vector<std::string> BytesOut;
+	std::vector<uint64_t>    BytesOutNumeric;
 
 	void Clear()
 	{
 		AppOrRemoteEndpoint.clear();
 		Protocol.clear();
 		StartTime.clear();
+		StartTimeNumeric.clear();
 		EndTime.clear();
+		EndTimeNumeric.clear();
 		BytesIn.clear();
+		BytesInNumeric.clear();
 		BytesOut.clear();
+		BytesOutNumeric.clear();
 	}
 
 	void Reserve(size_t Size, bool bWithProtocol = false)
@@ -41,9 +51,13 @@ struct WHistoryDataCache
 		if (bWithProtocol)
 			Protocol.reserve(Size);
 		StartTime.reserve(Size);
+		StartTimeNumeric.reserve(Size);
 		EndTime.reserve(Size);
+		EndTimeNumeric.reserve(Size);
 		BytesIn.reserve(Size);
+		BytesInNumeric.reserve(Size);
 		BytesOut.reserve(Size);
+		BytesOutNumeric.reserve(Size);
 	}
 };
 
@@ -76,6 +90,8 @@ class WStatWindow
 	void DrawHistoryData();
 
 	void BuildHistoryDataCache();
+
+	void SortTable(ImGuiTableSortSpecs const* Specs, bool bIsAppTable);
 
 public:
 	WStatWindow(WStatsRequest InRequest, WConnectionHistoryRequest InHistoryRequest);

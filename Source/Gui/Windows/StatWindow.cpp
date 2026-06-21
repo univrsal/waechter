@@ -7,6 +7,7 @@
 
 #include <limits>
 #include <ctime>
+#include <numeric>
 #include <utility>
 
 #include "imgui.h"
@@ -174,8 +175,8 @@ void WStatWindow::DrawGraphTab()
 void WStatWindow::DrawHistoryData()
 {
 	std::scoped_lock Lock(DataMutex);
-	if (ImGui::BeginTable(
-			"##ConnectionHistoryTable", 7, ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY))
+	if (ImGui::BeginTable("##ConnectionHistoryTable", 7,
+			ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Sortable))
 	{
 		auto const bIsAppTable = !HistoryDataCache.Protocol.empty();
 		if (bIsAppTable)
@@ -194,6 +195,15 @@ void WStatWindow::DrawHistoryData()
 		ImGui::TableSetupColumn(TR("end_time"), ImGuiTableColumnFlags_WidthFixed, 150.0f);
 		ImGui::TableSetupScrollFreeze(0, 1);
 		ImGui::TableHeadersRow();
+
+		if (auto* Sort = ImGui::TableGetSortSpecs(); Sort && !ImGui::GetIO().KeyCtrl)
+		{
+			if (Sort->SpecsDirty)
+			{
+				SortTable(Sort, bIsAppTable);
+				Sort->SpecsDirty = false;
+			}
+		}
 
 		if (bIsAppTable)
 		{
@@ -240,6 +250,10 @@ void WStatWindow::BuildHistoryDataCache()
 			HistoryDataCache.BytesOut.push_back(WStorageFormat::AutoFormat(Entry.DataOut));
 			HistoryDataCache.StartTime.push_back(WTimeFormat::FormatUnixTime(Entry.StartTime));
 			HistoryDataCache.EndTime.push_back(WTimeFormat::FormatUnixTime(Entry.EndTime));
+			HistoryDataCache.BytesInNumeric.push_back(Entry.DataIn);
+			HistoryDataCache.BytesOutNumeric.push_back(Entry.DataOut);
+			HistoryDataCache.StartTimeNumeric.push_back(static_cast<uint64_t>(Entry.StartTime));
+			HistoryDataCache.EndTimeNumeric.push_back(static_cast<uint64_t>(Entry.EndTime));
 		}
 	}
 	else
@@ -262,8 +276,101 @@ void WStatWindow::BuildHistoryDataCache()
 			HistoryDataCache.BytesOut.push_back(WStorageFormat::AutoFormat(Entry.DataOut));
 			HistoryDataCache.StartTime.push_back(WTimeFormat::FormatUnixTime(Entry.StartTime));
 			HistoryDataCache.EndTime.push_back(WTimeFormat::FormatUnixTime(Entry.EndTime));
+			HistoryDataCache.BytesInNumeric.push_back(Entry.DataIn);
+			HistoryDataCache.BytesOutNumeric.push_back(Entry.DataOut);
+			HistoryDataCache.StartTimeNumeric.push_back(static_cast<uint64_t>(Entry.StartTime));
+			HistoryDataCache.EndTimeNumeric.push_back(static_cast<uint64_t>(Entry.EndTime));
 		}
 	}
+}
+
+void WStatWindow::SortTable(ImGuiTableSortSpecs const* Specs, bool bIsAppTable)
+{
+	if (Specs->SpecsCount == 0)
+	{
+		return;
+	}
+
+	auto const& ColSpec = Specs->Specs[0];
+	auto const  N = HistoryDataCache.AppOrRemoteEndpoint.size();
+	if (N == 0)
+	{
+		return;
+	}
+
+	int        NumCols;
+	bool const Ascending = ColSpec.SortDirection == ImGuiSortDirection_Ascending;
+
+	// Build LUT: column index -> numeric sort vector (nullptr for string columns)
+	std::vector<uint64_t>* NumLut[6] = {};
+	if (bIsAppTable)
+	{
+		// [0]=AppName(S), [1]=Protocol(S), [2]=BytesIn, [3]=BytesOut, [4]=StartTime, [5]=EndTime
+		NumLut[2] = &HistoryDataCache.BytesInNumeric;
+		NumLut[3] = &HistoryDataCache.BytesOutNumeric;
+		NumLut[4] = &HistoryDataCache.StartTimeNumeric;
+		NumLut[5] = &HistoryDataCache.EndTimeNumeric;
+		NumCols = 6;
+	}
+	else
+	{
+		// [0]=IP(S), [1]=BytesIn, [2]=BytesOut, [3]=StartTime, [4]=EndTime
+		NumLut[1] = &HistoryDataCache.BytesInNumeric;
+		NumLut[2] = &HistoryDataCache.BytesOutNumeric;
+		NumLut[3] = &HistoryDataCache.StartTimeNumeric;
+		NumLut[4] = &HistoryDataCache.EndTimeNumeric;
+		NumCols = 5;
+	}
+
+	if (ColSpec.ColumnIndex >= NumCols)
+	{
+		return;
+	}
+
+	// Create index array and sort by the target column
+	std::vector<size_t> Indices(N);
+	std::iota(Indices.begin(), Indices.end(), 0);
+
+	if (auto* NumVec = NumLut[ColSpec.ColumnIndex])
+	{
+		// Numeric column — compare uint64_t directly
+		auto const& SortCol = *NumVec;
+		std::ranges::sort(
+			Indices, [&](size_t A, size_t B) { return Ascending ? SortCol[A] < SortCol[B] : SortCol[A] > SortCol[B]; });
+	}
+	else
+	{
+		// String column (AppOrRemoteEndpoint or Protocol)
+		std::vector<std::string> const& SortCol =
+			ColSpec.ColumnIndex == 0 ? HistoryDataCache.AppOrRemoteEndpoint : HistoryDataCache.Protocol;
+		std::ranges::sort(Indices, [&](size_t A, size_t B) {
+			int Cmp = SortCol[A].compare(SortCol[B]);
+			return Ascending ? Cmp < 0 : Cmp > 0;
+		});
+	}
+
+	// Reorder all columns according to sorted indices
+	auto Reorder = [&]<typename T>(std::vector<T>& Vec) {
+		auto Sorted = Vec;
+		for (size_t i = 0; i < N; ++i)
+		{
+			Vec[i] = std::move(Sorted[Indices[i]]);
+		}
+	};
+
+	Reorder(HistoryDataCache.AppOrRemoteEndpoint);
+	if (bIsAppTable)
+	{
+		Reorder(HistoryDataCache.Protocol);
+	}
+	Reorder(HistoryDataCache.BytesIn);
+	Reorder(HistoryDataCache.BytesOut);
+	Reorder(HistoryDataCache.StartTime);
+	Reorder(HistoryDataCache.EndTime);
+	Reorder(HistoryDataCache.BytesInNumeric);
+	Reorder(HistoryDataCache.BytesOutNumeric);
+	Reorder(HistoryDataCache.StartTimeNumeric);
+	Reorder(HistoryDataCache.EndTimeNumeric);
 }
 
 WStatWindow::WStatWindow(WStatsRequest InRequest, WConnectionHistoryRequest InHistoryRequest)
@@ -289,12 +396,12 @@ void WStatWindow::Draw()
 	{
 		if (ImGui::BeginTabBar("##Statswindow"))
 		{
-			if (ImGui::BeginTabItem("Graph"))
+			if (ImGui::BeginTabItem(TR("graph")))
 			{
 				DrawGraphTab();
 				ImGui::EndTabItem();
 			}
-			if (ImGui::BeginTabItem("History"))
+			if (ImGui::BeginTabItem(TR("window.connection_history")))
 			{
 				DrawHistoryData();
 				ImGui::EndTabItem();
