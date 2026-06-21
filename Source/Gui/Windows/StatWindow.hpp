@@ -69,6 +69,8 @@ class WStatWindow
 	WStatsResponse             Response{};
 	WConnectionHistoryResponse HistoryResponse{};
 	WConnectionHistoryRequest  HistoryRequest{};
+	uint                       HistoryMaxPages{ 1 };
+	uint                       HistoryPage{ 1 };
 	std::string    Title;
 	bool           bOpen{ true };
 	ETimeFrame     CurrentTimeFrame{ ETimeFrame::Last24Hours };
@@ -80,6 +82,7 @@ class WStatWindow
 	std::vector<double>      FilteredPositions;
 	std::vector<char const*> FilteredLabelPtrs;
 	double                   YAxisMax{};
+	bool                     bRequireSorting{};
 
 	void ApplyTimeFrame(ETimeFrame TimeFrame);
 	void UpdateTitle();
@@ -109,6 +112,8 @@ public:
 		std::scoped_lock Lock(DataMutex);
 		HistoryResponse = InResponse;
 		BuildHistoryDataCache();
+		bRequireSorting = true;
+		HistoryMaxPages = static_cast<uint>(InResponse.NumTotalEntries / 100);
 	}
 
 	[[nodiscard]] uint32_t GetRequestId() const { return Request.RequestId; }

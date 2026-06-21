@@ -56,6 +56,7 @@
   "==== Connection history window": "",
   "window.connection_history": "Verbindungsverlauf",
   "app_name": "App-Name",
+  "protocol": "Protokoll",
   "ip": "IP",
   "port": "Port",
   "data_in": "Daten rein",
