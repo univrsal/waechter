@@ -75,8 +75,8 @@ class WStatWindow
 		State_DataReceived
 	} HistoryState{};
 
-	uint           HistoryMaxPages{ 1 };
-	uint           HistoryPage{ 1 };
+	uint32_t       HistoryMaxPages{ 1 };
+	uint32_t       HistoryPage{ 1 };
 	std::string    Title;
 	bool           bOpen{ true };
 	ETimeFrame     CurrentTimeFrame{ ETimeFrame::Last24Hours };
@@ -120,7 +120,7 @@ public:
 		BuildHistoryDataCache();
 		bRequireSorting = true;
 		HistoryState = State_DataReceived;
-		HistoryMaxPages = std::max<uint>(static_cast<uint>(InResponse.NumTotalEntries / 100), 1);
+		HistoryMaxPages = std::max<uint32_t>(static_cast<uint32_t>(InResponse.NumTotalEntries / 100), 1);
 	}
 
 	[[nodiscard]] uint32_t GetRequestId() const { return Request.RequestId; }
