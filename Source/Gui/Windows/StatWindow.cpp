@@ -146,7 +146,7 @@ void WStatWindow::DrawGraphTab()
 			float const       PlotWidth = ImGui::GetContentRegionAvail().x;
 			float const       EstLabelWidth = Duration <= OneDay ? 55.0f : 90.0f; // "HH:MM" vs "MM-DD" / "YYYY-MM"
 			std::size_t const SkipN =
-				std::max<std::size_t>(1, std::ceil(EstLabelWidth * static_cast<float>(N) / PlotWidth));
+				std::max<std::size_t>(1, std::ceil<std::size_t>(EstLabelWidth * static_cast<float>(N) / PlotWidth));
 
 			FilteredPositions.clear();
 			FilteredLabelPtrs.clear();
