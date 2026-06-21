@@ -85,7 +85,7 @@ void WDetailsWindow::DrawFilterDetails() const
 	{
 		return;
 	}
-	WIconAtlas::GetInstance().DrawIcon("filter", ImVec2(16, 16));
+	WIconAtlas::GetInstance().DrawIcon("filter", WSdlWindow::ScaleSize(ImVec2(16, 16)));
 
 	ImGui::SameLine();
 	ImGui::Text("%s", Filter->Name.c_str());
@@ -112,7 +112,7 @@ void WDetailsWindow::DrawSystemDetails() const
 		return;
 	}
 
-	WIconAtlas::GetInstance().DrawIcon("computer", ImVec2(16, 16));
+	WIconAtlas::GetInstance().DrawIcon("computer", WSdlWindow::ScaleSize(ImVec2(16, 16)));
 
 	ImGui::SameLine();
 
@@ -144,7 +144,7 @@ void WDetailsWindow::DrawApplicationDetails() const
 	// Draw app icon
 	auto&           A = WAppIconAtlas::GetInstance();
 	std::lock_guard Lock(A.GetMutex());
-	A.DrawIconForApplication(App->ApplicationName, ImVec2(16, 16));
+	A.DrawIconForApplication(App->ApplicationName, WSdlWindow::ScaleSize(ImVec2(16, 16)));
 
 	ImGui::SameLine();
 
@@ -181,7 +181,7 @@ void WDetailsWindow::DrawProcessDetails() const
 		return;
 	}
 
-	WIconAtlas::GetInstance().DrawIcon("process", ImVec2(16, 16));
+	WIconAtlas::GetInstance().DrawIcon("process", WSdlWindow::ScaleSize(ImVec2(16, 16)));
 	ImGui::SameLine();
 
 	ImGui::Text("Process ID : %d", Proc->ProcessId);
