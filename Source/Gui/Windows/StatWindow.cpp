@@ -183,67 +183,83 @@ void WStatWindow::DrawHistoryData()
 	if (ImGui::BeginChild(
 			"##HistoryTableScroll", ImVec2(0, TableHeight), ImGuiChildFlags_None, ImGuiWindowFlags_NoMove))
 	{
-		if (ImGui::BeginTable("##ConnectionHistoryTable", 7,
-				ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_Sortable))
+		if (HistoryDataCache.AppOrRemoteEndpoint.empty())
 		{
-			auto const bIsAppTable = !HistoryDataCache.Protocol.empty();
-			if (bIsAppTable)
+			if (HistoryState == State_RequestPending)
 			{
-				ImGui::TableSetupColumn(TR("ip"), ImGuiTableColumnFlags_WidthStretch);
-				ImGui::TableSetupColumn(TR("protocol"), ImGuiTableColumnFlags_WidthFixed, 80.0f);
+				ImGui::Text("Loading...");
 			}
 			else
 			{
-				ImGui::TableSetupColumn(TR("app_name"), ImGuiTableColumnFlags_WidthStretch);
+				ImGui::Text("No data.");
 			}
-
-			ImGui::TableSetupColumn(TR("data_in"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
-			ImGui::TableSetupColumn(TR("data_out"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
-			ImGui::TableSetupColumn(TR("start_time"), ImGuiTableColumnFlags_WidthFixed, 150.0f);
-			ImGui::TableSetupColumn(TR("end_time"), ImGuiTableColumnFlags_WidthFixed, 150.0f);
-			ImGui::TableSetupScrollFreeze(0, 1);
-			ImGui::TableHeadersRow();
-
-			if (auto* Sort = ImGui::TableGetSortSpecs(); Sort && !ImGui::GetIO().KeyCtrl)
+		}
+		else
+		{
+			if (ImGui::BeginTable("##ConnectionHistoryTable", 7,
+					ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY
+						| ImGuiTableFlags_Sortable))
 			{
-				if (Sort->SpecsDirty)
-				{
-					SortTable(Sort, bIsAppTable);
-					Sort->SpecsDirty = false;
-				}
-			}
-
-			for (size_t i = 0; i < HistoryDataCache.AppOrRemoteEndpoint.size(); ++i)
-			{
-				ImGui::TableNextRow();
-				ImGui::TableNextColumn();
-				ImGui::Text("%s", HistoryDataCache.AppOrRemoteEndpoint[i].c_str());
+				auto const bIsAppTable = !HistoryDataCache.Protocol.empty();
 				if (bIsAppTable)
 				{
-					ImGui::TableNextColumn();
-					ImGui::Text("%s", HistoryDataCache.Protocol[i].c_str());
+					ImGui::TableSetupColumn(TR("ip"), ImGuiTableColumnFlags_WidthStretch);
+					ImGui::TableSetupColumn(TR("protocol"), ImGuiTableColumnFlags_WidthFixed, 80.0f);
+				}
+				else
+				{
+					ImGui::TableSetupColumn(TR("app_name"), ImGuiTableColumnFlags_WidthStretch);
 				}
 
-				ImGui::TableNextColumn();
-				ImGui::Text("%s", HistoryDataCache.BytesIn[i].c_str());
-				ImGui::TableNextColumn();
-				ImGui::Text("%s", HistoryDataCache.BytesOut[i].c_str());
-				ImGui::TableNextColumn();
-				ImGui::Text("%s", HistoryDataCache.StartTime[i].c_str());
-				ImGui::TableNextColumn();
-				ImGui::Text("%s", HistoryDataCache.EndTime[i].c_str());
-			}
+				ImGui::TableSetupColumn(TR("data_in"), ImGuiTableColumnFlags_WidthFixed, 120.0f);
+				ImGui::TableSetupColumn(TR("data_out"), ImGuiTableColumnFlags_WidthFixed, 120.0f);
+				ImGui::TableSetupColumn(TR("start_time"), ImGuiTableColumnFlags_WidthFixed, 180.0f);
+				ImGui::TableSetupColumn(TR("end_time"), ImGuiTableColumnFlags_WidthFixed, 180.0f);
+				ImGui::TableSetupScrollFreeze(0, 1);
+				ImGui::TableHeadersRow();
 
-			ImGui::EndTable();
+				if (auto* Sort = ImGui::TableGetSortSpecs(); Sort && !ImGui::GetIO().KeyCtrl)
+				{
+					if (Sort->SpecsDirty)
+					{
+						SortTable(Sort, bIsAppTable);
+						Sort->SpecsDirty = false;
+					}
+				}
+
+				for (size_t i = 0; i < HistoryDataCache.AppOrRemoteEndpoint.size(); ++i)
+				{
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::Text("%s", HistoryDataCache.AppOrRemoteEndpoint[i].c_str());
+					if (bIsAppTable)
+					{
+						ImGui::TableNextColumn();
+						ImGui::Text("%s", HistoryDataCache.Protocol[i].c_str());
+					}
+
+					ImGui::TableNextColumn();
+					ImGui::Text("%s", HistoryDataCache.BytesIn[i].c_str());
+					ImGui::TableNextColumn();
+					ImGui::Text("%s", HistoryDataCache.BytesOut[i].c_str());
+					ImGui::TableNextColumn();
+					ImGui::Text("%s", HistoryDataCache.StartTime[i].c_str());
+					ImGui::TableNextColumn();
+					ImGui::Text("%s", HistoryDataCache.EndTime[i].c_str());
+				}
+
+				ImGui::EndTable();
+			}
 		}
 	}
 	ImGui::EndChild();
 
 	if (ImGui::Button(TR("<")))
 	{
-		HistoryPage = std::max<uint>(0, HistoryPage - 1);
+		HistoryPage = HistoryPage > 1 ? HistoryPage - 1 : 1;
 		HistoryRequest.Offset = std::max<uint64_t>(0, HistoryPage * 100);
 		WClient::GetInstance().SendMessage(MT_HistoryRequest, HistoryRequest);
+		HistoryState = State_RequestPending;
 	}
 	ImGui::SameLine();
 	ImGui::Text("Page %i of %i", HistoryPage, HistoryMaxPages);
@@ -253,6 +269,7 @@ void WStatWindow::DrawHistoryData()
 		HistoryPage = std::min<uint64_t>(HistoryMaxPages, HistoryPage + 1);
 		HistoryRequest.Offset = std::min<uint64_t>(HistoryPage * 100, HistoryResponse.NumTotalEntries - 100);
 		WClient::GetInstance().SendMessage(MT_HistoryRequest, HistoryRequest);
+		HistoryState = State_RequestPending;
 	}
 }
 void WStatWindow::BuildHistoryDataCache()
@@ -403,6 +420,7 @@ WStatWindow::WStatWindow(WStatsRequest InRequest, WConnectionHistoryRequest InHi
 	UpdateTitle();
 	WClient::GetInstance().SendMessage(MT_StatsRequest, Request);
 	WClient::GetInstance().SendMessage(MT_HistoryRequest, HistoryRequest);
+	HistoryState = State_RequestPending;
 }
 
 void WStatWindow::Draw()

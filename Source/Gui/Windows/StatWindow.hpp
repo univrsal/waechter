@@ -69,6 +69,11 @@ class WStatWindow
 	WStatsResponse             Response{};
 	WConnectionHistoryResponse HistoryResponse{};
 	WConnectionHistoryRequest  HistoryRequest{};
+	enum
+	{
+		State_RequestPending,
+		State_DataReceived
+	} HistoryState{};
 	uint                       HistoryMaxPages{ 1 };
 	uint                       HistoryPage{ 1 };
 	std::string    Title;
@@ -113,7 +118,8 @@ public:
 		HistoryResponse = InResponse;
 		BuildHistoryDataCache();
 		bRequireSorting = true;
-		HistoryMaxPages = static_cast<uint>(InResponse.NumTotalEntries / 100);
+		HistoryState = State_DataReceived;
+		HistoryMaxPages = std::max<uint>(static_cast<uint>(InResponse.NumTotalEntries / 100), 1);
 	}
 
 	[[nodiscard]] uint32_t GetRequestId() const { return Request.RequestId; }
