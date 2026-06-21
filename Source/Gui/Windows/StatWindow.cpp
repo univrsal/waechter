@@ -134,7 +134,7 @@ void WStatWindow::DrawGraphTab()
 			return snprintf(Buf, static_cast<std::size_t>(Size), "%s", Str.c_str());
 		};
 
-		char const* SeriesLabels[] = { "Download", "Upload" };
+		char const* SeriesLabels[] = { TR("download"), TR("upload") };
 		auto const  N = Response.DataPoints.size();
 
 		if (ImPlot::BeginPlot("##TrafficChart", ImVec2(-1, -1)))
@@ -158,7 +158,7 @@ void WStatWindow::DrawGraphTab()
 				}
 			}
 
-			ImPlot::SetupAxes("Time", "Traffic");
+			ImPlot::SetupAxes(TR("time"), TR("traffic"));
 			ImPlot::SetupAxisTicks(ImAxis_X1, FilteredPositions.data(), static_cast<int>(FilteredPositions.size()),
 				FilteredLabelPtrs.data());
 			ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, -0.5, static_cast<double>(N) - 0.5);
