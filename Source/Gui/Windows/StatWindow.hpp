@@ -69,13 +69,14 @@ class WStatWindow
 	WStatsResponse             Response{};
 	WConnectionHistoryResponse HistoryResponse{};
 	WConnectionHistoryRequest  HistoryRequest{};
-	enum
+	enum EHistoryState
 	{
 		State_RequestPending,
 		State_DataReceived
 	} HistoryState{};
-	uint                       HistoryMaxPages{ 1 };
-	uint                       HistoryPage{ 1 };
+
+	uint           HistoryMaxPages{ 1 };
+	uint           HistoryPage{ 1 };
 	std::string    Title;
 	bool           bOpen{ true };
 	ETimeFrame     CurrentTimeFrame{ ETimeFrame::Last24Hours };
