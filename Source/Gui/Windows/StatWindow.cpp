@@ -26,20 +26,20 @@ static constexpr WSec SecondsPerYear = 365LL * SecondsPerDay;
 static WSec ApproximateMonthSeconds()
 {
 	// Use current month length for a more accurate "last month" range
-	std::time_t Now = std::time(nullptr);
-	std::tm*    Tm = std::localtime(&Now);
-	int         Month = Tm->tm_mon; // 0-11
-	int         Year = Tm->tm_year + 1900;
+	std::time_t const Now = std::time(nullptr);
+	std::tm const*    Tm = std::localtime(&Now);
+	int const         Month = Tm->tm_mon; // 0-11
+	int const         Year = Tm->tm_year + 1900;
 	// Days in the previous calendar month
-	int const  PrevMonth = (Month == 0) ? 12 : Month;
-	int const  PrevYear = (Month == 0) ? Year - 1 : Year;
+	int const  PrevMonth = Month == 0 ? 12 : Month;
+	int const  PrevYear = Month == 0 ? Year - 1 : Year;
 	int const  Days[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-	bool const Leap = (PrevYear % 4 == 0 && (PrevYear % 100 != 0 || PrevYear % 400 == 0));
-	int const  DaysInMonth = (PrevMonth == 2 && Leap) ? 29 : Days[PrevMonth - 1];
+	bool const Leap = PrevYear % 4 == 0 && (PrevYear % 100 != 0 || PrevYear % 400 == 0);
+	int const  DaysInMonth = PrevMonth == 2 && Leap ? 29 : Days[PrevMonth - 1];
 	return static_cast<WSec>(DaysInMonth) * SecondsPerDay;
 }
 
-void WStatWindow::ApplyTimeFrame(ETimeFrame TimeFrame)
+void WStatWindow::ApplyTimeFrame(ETimeFrame const TimeFrame)
 {
 	CurrentTimeFrame = TimeFrame;
 	WSec const Now = WTime::GetEpochHours();
@@ -80,7 +80,7 @@ void WStatWindow::BuildGraphData()
 	// Choose a compact timestamp format based on the request duration
 	WSec const     Duration = Request.EndTime - Request.StartTime;
 	constexpr WSec OneDay = 86400LL;
-	char const*    TimeFmt = Duration <= OneDay ? "%H:%M" : (Duration <= 31LL * OneDay ? "%m-%d" : "%Y-%m");
+	char const*    TimeFmt = Duration <= OneDay ? "%H:%M" : Duration <= 31LL * OneDay ? "%m-%d" : "%Y-%m";
 
 	// Build per-group labels and value arrays
 	LabelStrings.resize(N);
@@ -130,8 +130,8 @@ void WStatWindow::DrawGraphTab()
 	else
 	{
 
-		static auto ByteFormatter = [](double Value, char* Buf, int Size, void*) -> int {
-			auto Str = WStorageFormat::AutoFormat(static_cast<WBytes>(Value < 0.0 ? 0.0 : Value));
+		static auto ByteFormatter = [](double const Value, char* Buf, int const Size, void*) -> int {
+			auto const Str = WStorageFormat::AutoFormat(static_cast<WBytes>(Value < 0.0 ? 0.0 : Value));
 			return snprintf(Buf, static_cast<std::size_t>(Size), "%s", Str.c_str());
 		};
 
@@ -145,8 +145,8 @@ void WStatWindow::DrawGraphTab()
 			constexpr WSec    OneDay = 86400LL;
 			float const       PlotWidth = ImGui::GetContentRegionAvail().x;
 			float const       EstLabelWidth = Duration <= OneDay ? 55.0f : 90.0f; // "HH:MM" vs "MM-DD" / "YYYY-MM"
-			std::size_t const SkipN = std::max<std::size_t>(
-				1, static_cast<std::size_t>(std::ceil((EstLabelWidth * static_cast<float>(N)) / PlotWidth)));
+			std::size_t const SkipN =
+				std::max<std::size_t>(1, std::ceil(EstLabelWidth * static_cast<float>(N) / PlotWidth));
 
 			FilteredPositions.clear();
 			FilteredLabelPtrs.clear();
@@ -325,7 +325,7 @@ void WStatWindow::BuildHistoryDataCache()
 	}
 }
 
-void WStatWindow::SortTable(ImGuiTableSortSpecs const* Specs, bool bIsAppTable)
+void WStatWindow::SortTable(ImGuiTableSortSpecs const* Specs, bool const bIsAppTable)
 {
 	if (Specs->SpecsCount == 0)
 	{
@@ -372,20 +372,21 @@ void WStatWindow::SortTable(ImGuiTableSortSpecs const* Specs, bool bIsAppTable)
 	std::vector<size_t> Indices(N);
 	std::iota(Indices.begin(), Indices.end(), 0);
 
-	if (auto* NumVec = NumLut[ColSpec.ColumnIndex])
+	if (auto const* NumVec = NumLut[ColSpec.ColumnIndex])
 	{
 		// Numeric column — compare uint64_t directly
 		auto const& SortCol = *NumVec;
-		std::ranges::sort(
-			Indices, [&](size_t A, size_t B) { return Ascending ? SortCol[A] < SortCol[B] : SortCol[A] > SortCol[B]; });
+		std::ranges::sort(Indices, [&](size_t const A, size_t const B) {
+			return Ascending ? SortCol[A] < SortCol[B] : SortCol[A] > SortCol[B];
+		});
 	}
 	else
 	{
 		// String column (AppOrRemoteEndpoint or Protocol)
 		std::vector<std::string> const& SortCol =
 			ColSpec.ColumnIndex == 0 ? HistoryDataCache.AppOrRemoteEndpoint : HistoryDataCache.Protocol;
-		std::ranges::sort(Indices, [&](size_t A, size_t B) {
-			int Cmp = SortCol[A].compare(SortCol[B]);
+		std::ranges::sort(Indices, [&](size_t const A, size_t const B) {
+			int const Cmp = SortCol[A].compare(SortCol[B]);
 			return Ascending ? Cmp < 0 : Cmp > 0;
 		});
 	}
