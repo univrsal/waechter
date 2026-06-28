@@ -40,7 +40,7 @@ namespace WTime
 			* 3600;
 	}
 
-	static std::string FormatTime(long Time)
+	static std::string FormatTime(WSec const Time)
 	{
 		long Hours = Time / 3600;
 		long Minutes = (Time % 3600) / 60;
