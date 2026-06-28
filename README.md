@@ -31,7 +31,7 @@ Build requirements:
 If you have questions, you can use [discussions](https://github.com/univrsal/waechter/discussions), the IRC
 channel [#waechter](https://rizon.net/chat) on irc.rizon.net or the [discord server](https://discord.gg/kZsHuncu3q).
 
-### Roadmap
+### Current project status
 
 Wächter is still in development, currently implemented features are:
 
@@ -40,11 +40,12 @@ Wächter is still in development, currently implemented features are:
 - Block upload/download per connection
 - Throttle upload/download per connection
 - Connection history to log what connections are made by which application
+- Long-term traffic statistics and graphs
 
-Planned features:
+Things on the todo list:
 
 - Persistent rules that are saved and loaded on startup
-- Long-term traffic statistics and graphs
+- Reliability testing of traffic limiting and blocking
 
 Potential future features:
 
