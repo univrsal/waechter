@@ -5,8 +5,6 @@
 
 #include "Client.hpp"
 
-#include <cstdint>
-
 #include "spdlog/spdlog.h"
 
 #include "AppIconAtlas.hpp"
@@ -65,6 +63,9 @@ void WClient::OnDataReceived(WBuffer& Buf)
 			break;
 		case MT_StatsResponse:
 			WMainWindow::Get().HandleStatsResponse(Buf);
+			break;
+		case MT_HistoryResponse:
+			WMainWindow::Get().HandleHistoryResponse(Buf);
 			break;
 		default:
 			spdlog::warn("Received unknown message type from server: {}", static_cast<int>(Type));

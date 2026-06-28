@@ -8,6 +8,8 @@
 
 #include "Data/Stats.hpp"
 
+struct ImGuiTableSortSpecs;
+
 enum class ETimeFrame : int
 {
 	Last24Hours = 0,
@@ -16,11 +18,65 @@ enum class ETimeFrame : int
 	LastYear    = 3,
 };
 
+struct WHistoryDataCache
+{
+	std::vector<std::string> AppOrRemoteEndpoint;
+	std::vector<std::string> Protocol;
+	std::vector<std::string> StartTime;
+	std::vector<uint64_t>    StartTimeNumeric;
+	std::vector<std::string> EndTime;
+	std::vector<uint64_t>    EndTimeNumeric;
+	std::vector<std::string> BytesIn;
+	std::vector<uint64_t>    BytesInNumeric;
+	std::vector<std::string> BytesOut;
+	std::vector<uint64_t>    BytesOutNumeric;
+
+	void Clear()
+	{
+		AppOrRemoteEndpoint.clear();
+		Protocol.clear();
+		StartTime.clear();
+		StartTimeNumeric.clear();
+		EndTime.clear();
+		EndTimeNumeric.clear();
+		BytesIn.clear();
+		BytesInNumeric.clear();
+		BytesOut.clear();
+		BytesOutNumeric.clear();
+	}
+
+	void Reserve(size_t Size, bool bWithProtocol = false)
+	{
+		AppOrRemoteEndpoint.reserve(Size);
+		if (bWithProtocol)
+			Protocol.reserve(Size);
+		StartTime.reserve(Size);
+		StartTimeNumeric.reserve(Size);
+		EndTime.reserve(Size);
+		EndTimeNumeric.reserve(Size);
+		BytesIn.reserve(Size);
+		BytesInNumeric.reserve(Size);
+		BytesOut.reserve(Size);
+		BytesOutNumeric.reserve(Size);
+	}
+};
+
 class WStatWindow
 {
-	std::mutex     DataMutex;
-	WStatsRequest  Request{};
-	WStatsResponse Response{};
+	std::mutex                 DataMutex;
+	WHistoryDataCache          HistoryDataCache;
+	WStatsRequest              Request{};
+	WStatsResponse             Response{};
+	WConnectionHistoryResponse HistoryResponse{};
+	WConnectionHistoryRequest  HistoryRequest{};
+	enum EHistoryState
+	{
+		State_RequestPending,
+		State_DataReceived
+	} HistoryState{};
+
+	uint32_t       HistoryMaxPages{ 1 };
+	uint32_t       HistoryPage{ 1 };
 	std::string    Title;
 	bool           bOpen{ true };
 	ETimeFrame     CurrentTimeFrame{ ETimeFrame::Last24Hours };
@@ -32,14 +88,22 @@ class WStatWindow
 	std::vector<double>      FilteredPositions;
 	std::vector<char const*> FilteredLabelPtrs;
 	double                   YAxisMax{};
+	bool                     bRequireSorting{};
 
 	void ApplyTimeFrame(ETimeFrame TimeFrame);
 	void UpdateTitle();
 
 	void BuildGraphData();
 
+	void DrawGraphTab();
+	void DrawHistoryData();
+
+	void BuildHistoryDataCache();
+
+	void SortTable(ImGuiTableSortSpecs const* Specs, bool bIsAppTable);
+
 public:
-	explicit WStatWindow(WStatsRequest InRequest);
+	WStatWindow(WStatsRequest InRequest, WConnectionHistoryRequest InHistoryRequest);
 	void Draw();
 
 	void SetResponse(WStatsResponse const& InResponse)
@@ -49,7 +113,18 @@ public:
 		BuildGraphData();
 	}
 
+	void SetHistoryResponse(WConnectionHistoryResponse const& InResponse)
+	{
+		std::scoped_lock Lock(DataMutex);
+		HistoryResponse = InResponse;
+		BuildHistoryDataCache();
+		bRequireSorting = true;
+		HistoryState = State_DataReceived;
+		HistoryMaxPages = std::max<uint32_t>(static_cast<uint32_t>(InResponse.NumTotalEntries / 100), 1);
+	}
+
 	[[nodiscard]] uint32_t GetRequestId() const { return Request.RequestId; }
+	[[nodiscard]] uint32_t GetHistoryRequestId() const { return HistoryRequest.RequestId; }
 
 	[[nodiscard]] bool IsOpen() const { return bOpen; }
 };

@@ -6,11 +6,15 @@
 #include "ConnectionHistory.hpp"
 
 #include "spdlog/spdlog.h"
+#include "sqlpp11/sqlpp11.h"
 
 #include "Counters.hpp"
 #include "DaemonConfig.hpp"
 #include "NetworkEvents.hpp"
 #include "SystemMap.hpp"
+
+#include "Db/DbManager.hpp"
+#include "Db/Schema.hpp"
 
 bool WConnectionHistoryEntry::Update()
 {
@@ -21,10 +25,9 @@ bool WConnectionHistoryEntry::Update()
 
 	if (Set->Connections.empty())
 	{
-		if (EndTime == 0)
+		if (State == EState::Pending_Close)
 		{
-			// technically we should set this when the socket actually closes, but this is close enough
-			EndTime = WTime::GetEpochSeconds();
+			State = EState::Closed;
 			return true;
 		}
 		return false;
@@ -72,7 +75,7 @@ void WConnectionHistory::OnSocketConnected(WSocketCounter const* SocketCounter)
 	}
 
 	auto const App = SocketCounter->ParentProcess->ParentApp;
-	auto AppName = App->TrafficItem->ApplicationName;
+	auto       AppName = App->TrafficItem->ApplicationPath;
 	auto       Endpoint = SocketCounter->TrafficItem->SocketTuple.RemoteEndpoint;
 
 	std::scoped_lock Lock(Mutex);
@@ -93,7 +96,7 @@ void WConnectionHistory::OnSocketConnected(WSocketCounter const* SocketCounter)
 		auto const NewSet = std::make_shared<WConnectionSet>();
 		NewSet->Connections.insert(SocketCounter->TrafficItem);
 		ActiveConnections[Key] = NewSet;
-		Push(App, NewSet, Endpoint);
+		NewSet->ParentEntry = Push(App, NewSet, Endpoint);
 		return;
 	}
 	// add the new tuple to the existing connection set
@@ -109,7 +112,7 @@ void WConnectionHistory::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& 
 		spdlog::error("No app for socket {}", SocketCounter->TrafficItem->ItemId);
 		return;
 	}
-	auto             AppName = App->TrafficItem->ApplicationName;
+	auto             AppName = App->TrafficItem->ApplicationPath;
 	auto             Endpoint = SocketCounter->TrafficItem->SocketTuple.RemoteEndpoint;
 	auto const       Key = std::make_pair(AppName, Endpoint);
 
@@ -125,6 +128,7 @@ void WConnectionHistory::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& 
 		if (ConnectionSet->Connections.empty())
 		{
 			ActiveConnections.erase(Key);
+			HandleEmptySet(ConnectionSet);
 		}
 	}
 
@@ -145,6 +149,7 @@ void WConnectionHistory::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& 
 		if (ConnectionSet->Connections.empty())
 		{
 			ActiveConnections.erase(TupleKey);
+			HandleEmptySet(ConnectionSet);
 		}
 	}
 }
@@ -157,7 +162,7 @@ void WConnectionHistory::OnUDPTupleCreated(std::shared_ptr<WTupleCounter> const&
 		spdlog::info("No app for tuple {}", TupleCounter->TrafficItem->ItemId);
 		return;
 	}
-	auto AppName = App->TrafficItem->ApplicationName;
+	auto             AppName = App->TrafficItem->ApplicationPath;
 	std::scoped_lock Lock(Mutex);
 
 	auto const Key = std::make_pair(AppName, TupleCounter->TrafficItem->Endpoint);
@@ -175,7 +180,7 @@ void WConnectionHistory::OnUDPTupleCreated(std::shared_ptr<WTupleCounter> const&
 		auto const NewSet = std::make_shared<WConnectionSet>();
 		NewSet->Connections.insert(TupleCounter->TrafficItem);
 		ActiveConnections[Key] = NewSet;
-		Push(App, NewSet, TupleCounter->TrafficItem->Endpoint);
+		NewSet->ParentEntry = Push(App, NewSet, TupleCounter->TrafficItem->Endpoint);
 		return;
 	}
 	// add a new tuple to the existing connection set
@@ -189,7 +194,7 @@ void WConnectionHistory::OnUDPTupleRemoved(std::shared_ptr<WTupleCounter> const&
 	{
 		return;
 	}
-	auto             AppName = App->TrafficItem->ApplicationName;
+	auto             AppName = App->TrafficItem->ApplicationPath;
 	std::scoped_lock Lock(Mutex);
 
 	auto const Key = std::make_pair(AppName, TupleCounter->TrafficItem->Endpoint);
@@ -206,21 +211,21 @@ void WConnectionHistory::OnUDPTupleRemoved(std::shared_ptr<WTupleCounter> const&
 	if (ConnectionSet->Connections.empty())
 	{
 		ActiveConnections.erase(Key);
+		HandleEmptySet(ConnectionSet);
 	}
 }
 
-void WConnectionHistory::Push(std::shared_ptr<WAppCounter> const& App, std::shared_ptr<WConnectionSet> const& Set,
-	WEndpoint const& RemoteEndpoint)
+std::shared_ptr<WConnectionHistoryEntry> WConnectionHistory::Push(std::shared_ptr<WAppCounter> const& App,
+	std::shared_ptr<WConnectionSet> const& Set, WEndpoint const& RemoteEndpoint)
 {
 	if (WDaemonConfig::GetInstance().IsIgnoredConnectionHistoryApp(App->TrafficItem->ApplicationName)
 		|| WDaemonConfig::GetInstance().IsIgnoredConnectionHistoryPort(RemoteEndpoint.Port))
 	{
-		return;
+		return {};
 	}
 
 	// no lock here, it's already acquired by the caller
-	WConnectionHistoryEntry Entry{ App, Set, RemoteEndpoint };
-	// todo: (maybe) the rest should be pushed into the database
+	auto Entry = std::make_shared<WConnectionHistoryEntry>(App, Set, RemoteEndpoint);
 	History.push_back(Entry);
 	spdlog::debug("New connection for app {}", App->TrafficItem->ApplicationName);
 	++NewItemCounter;
@@ -234,6 +239,58 @@ void WConnectionHistory::Push(std::shared_ptr<WAppCounter> const& App, std::shar
 			--NewItemCounter;
 		}
 	}
+	return Entry;
+}
+
+void WConnectionHistory::HandleEmptySet(std::shared_ptr<WConnectionSet> const& ConnectionSet)
+{
+
+	if (auto const Parent = ConnectionSet->ParentEntry.lock())
+	{
+		if (Parent->State >= WConnectionHistoryEntry::EState::Pending_Close)
+		{
+			spdlog::warn("Handle empty set called on an already closed set");
+			return;
+		}
+		Parent->State = WConnectionHistoryEntry::EState::Pending_Close;
+		// technically we should set this when the socket actually closes, but this is close enough
+		Parent->EndTime = WTime::GetEpochSeconds();
+		WriteToDatabase(Parent);
+		spdlog::debug("ConnectionHistory: Connection to {} ended at {} ({} in, {} out)",
+			Parent->RemoteEndpoint.ToString(), Parent->EndTime, ConnectionSet->BaseDataIn, ConnectionSet->BaseDataOut);
+	}
+	else
+	{
+		spdlog::error("ConnectionHistory: Empty connection set has no valid parent");
+	}
+}
+
+void WConnectionHistory::WriteToDatabase(std::shared_ptr<WConnectionHistoryEntry> const& Entry)
+{
+	WDbManager::GetInstance().Run([&](auto& DbConn) {
+		constexpr Db::Schema::TrafficItem            TrafficItem;
+		constexpr Db::Schema::Host                   Host;
+		constexpr Db::Schema::ConnectionHistoryEntry CHE;
+
+		auto AppResult = DbConn(sqlpp::select(TrafficItem.ID)
+				.from(TrafficItem)
+				.where(TrafficItem.Name == Entry->App->TrafficItem->ApplicationPath));
+
+		int64_t const AppID = AppResult.empty()
+			? static_cast<int64_t>(DbConn(
+				  sqlpp::insert_into(TrafficItem).set(TrafficItem.Name = Entry->App->TrafficItem->ApplicationPath)))
+			: AppResult.front().ID.value();
+
+		auto const HostResult =
+			DbConn(sqlpp::select(Host.ID).from(Host).where(Host.IPAddress == Entry->RemoteEndpoint.Address.ToString()));
+		int64_t const HostID = HostResult.empty()
+			? static_cast<int64_t>(
+				  DbConn(sqlpp::insert_into(Host).set(Host.IPAddress = Entry->RemoteEndpoint.Address.ToString())))
+			: HostResult.front().ID.value();
+		DbConn(sqlpp::insert_into(CHE).set(CHE.ItemID = AppID, CHE.RemoteHostID = HostID,
+			CHE.Port = Entry->RemoteEndpoint.Port, CHE.StartTime = Entry->StartTime, CHE.EndTime = Entry->EndTime,
+			CHE.DataIn = Entry->Set->BaseDataIn, CHE.DataOut = Entry->Set->BaseDataOut));
+	});
 }
 
 void WConnectionHistory::RegisterSignalHandlers()
@@ -257,12 +314,12 @@ WConnectionHistoryUpdate WConnectionHistory::Update()
 	std::scoped_lock         Lock(Mutex);
 	for (auto& Entry : History)
 	{
-		if (Entry.Update())
+		if (Entry->Update())
 		{
-			Update.Changes[Entry.ConnectionId] = WConnectionHistoryChange{
-				.NewDataIn = Entry.DataIn,
-				.NewDataOut = Entry.DataOut,
-				.NewEndTime = Entry.EndTime,
+			Update.Changes[Entry->ConnectionId] = WConnectionHistoryChange{
+				.NewDataIn = Entry->DataIn,
+				.NewDataOut = Entry->DataOut,
+				.NewEndTime = Entry->EndTime,
 			};
 		}
 	}
@@ -282,21 +339,21 @@ WConnectionHistoryUpdate WConnectionHistory::Update()
 		{
 			auto const&                Entry = *It;
 			spdlog::debug("New connection: app='{}', remote='{}', start={}, id={}",
-				Entry.App->TrafficItem->ApplicationName, Entry.RemoteEndpoint.ToString(), Entry.StartTime,
-				Entry.ConnectionId);
-			assert(Entry.App && Entry.Set);
-			if (!Entry.App || !Entry.Set)
+				Entry->App->TrafficItem->ApplicationName, Entry->RemoteEndpoint.ToString(), Entry->StartTime,
+				Entry->ConnectionId);
+			assert(Entry->App && Entry->Set);
+			if (!Entry->App || !Entry->Set)
 			{
 				continue;
 			}
 			WNewConnectionHistoryEntry NewEntry{};
-			NewEntry.AppId = Entry.App->TrafficItem->ItemId;
-			NewEntry.RemoteEndpoint = Entry.RemoteEndpoint;
-			NewEntry.StartTime = Entry.StartTime;
-			NewEntry.EndTime = Entry.EndTime;
-			NewEntry.DataIn = Entry.DataIn;
-			NewEntry.DataOut = Entry.DataOut;
-			NewEntry.ConnectionId = Entry.ConnectionId;
+			NewEntry.AppId = Entry->App->TrafficItem->ItemId;
+			NewEntry.RemoteEndpoint = Entry->RemoteEndpoint;
+			NewEntry.StartTime = Entry->StartTime;
+			NewEntry.EndTime = Entry->EndTime;
+			NewEntry.DataIn = Entry->DataIn;
+			NewEntry.DataOut = Entry->DataOut;
+			NewEntry.ConnectionId = Entry->ConnectionId;
 			Update.NewEntries.push_back(NewEntry);
 		}
 		NewItemCounter = 0;
@@ -310,19 +367,19 @@ WConnectionHistoryUpdate WConnectionHistory::Serialize()
 	std::scoped_lock         Lock(Mutex);
 	for (auto const& Entry : History)
 	{
-		assert(Entry.App && Entry.Set);
-		if (!Entry.App || !Entry.Set)
+		assert(Entry->App && Entry->Set);
+		if (!Entry->App || !Entry->Set)
 		{
 			continue;
 		}
 		WNewConnectionHistoryEntry NewEntry{};
-		NewEntry.AppId = Entry.App->TrafficItem->ItemId;
-		NewEntry.RemoteEndpoint = Entry.RemoteEndpoint;
-		NewEntry.StartTime = Entry.StartTime;
-		NewEntry.EndTime = Entry.EndTime;
-		NewEntry.DataIn = Entry.DataIn;
-		NewEntry.DataOut = Entry.DataOut;
-		NewEntry.ConnectionId = Entry.ConnectionId;
+		NewEntry.AppId = Entry->App->TrafficItem->ItemId;
+		NewEntry.RemoteEndpoint = Entry->RemoteEndpoint;
+		NewEntry.StartTime = Entry->StartTime;
+		NewEntry.EndTime = Entry->EndTime;
+		NewEntry.DataIn = Entry->DataIn;
+		NewEntry.DataOut = Entry->DataOut;
+		NewEntry.ConnectionId = Entry->ConnectionId;
 		Update.NewEntries.push_back(NewEntry);
 	}
 
@@ -339,14 +396,14 @@ WMemoryStat WConnectionHistory::GetMemoryUsage()
 	HistoryEntry.Name = "History";
 	for (auto const& E : History)
 	{
-		assert(E.App && E.Set);
-		if (!E.App || !E.Set)
+		assert(E->App && E->Set);
+		if (!E->App || !E->Set)
 		{
 			continue;
 		}
 		HistoryEntry.Usage += sizeof(WConnectionHistoryEntry);
 		HistoryEntry.Usage += sizeof(WConnectionSet);
-		HistoryEntry.Usage += sizeof(std::shared_ptr<ITrafficItem>) * E.Set->Connections.size();
+		HistoryEntry.Usage += sizeof(std::shared_ptr<ITrafficItem>) * E->Set->Connections.size();
 	}
 
 	WMemoryStatEntry ActiveConnectionsEntry{};

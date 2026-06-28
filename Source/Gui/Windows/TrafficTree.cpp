@@ -293,7 +293,7 @@ void WTrafficTree::SortTree(ImGuiTableSortSpecs const* Specs)
 	auto const& ColSpec = Specs->Specs[0];
 	SortNode(TreeRoot, ColSpec.ColumnIndex, ColSpec.SortDirection);
 #if WDEBUG
-	spdlog::info("Sorting took {} ms", SortTimer.ElapsedMs());
+	spdlog::debug("Sorting took {} ms", SortTimer.ElapsedMs());
 #endif
 }
 

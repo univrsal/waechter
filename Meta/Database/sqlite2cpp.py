@@ -48,7 +48,7 @@ types = {
 def main():
     parser = argparse.ArgumentParser(description='sqlpp11 cpp schema generator')
     parser.add_argument('ddl', help='path to ddl')
-    parser.add_argument('target', help='path to target')
+    # parser.add_argument('target', help='path to target')
     parser.add_argument('namespace', help='namespace')
     parser.add_argument('-identity-naming',
                         help='Use table and column names from the ddl '
@@ -57,7 +57,7 @@ def main():
                         action='store_true')
     args = parser.parse_args()
 
-    pathToHeader = args.target + '.hpp'
+    pathToHeader = '../../Source/Daemon/Db/Schema.hpp'
 
     # execute schema scripts
     conn = sqlite3.connect(':memory:')

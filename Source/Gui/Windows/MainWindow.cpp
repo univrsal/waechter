@@ -209,10 +209,11 @@ void WMainWindow::Draw()
 	RegisterDialog.Draw();
 }
 
-void WMainWindow::OpenStatsWindow(WStatsRequest Request)
+void WMainWindow::OpenStatsWindow(WStatsRequest Request, WConnectionHistoryRequest HistoryRequest)
 {
 	Request.RequestId = WRandom::RandomInteger();
-	StatWindows.emplace_back(std::make_unique<WStatWindow>(Request));
+	HistoryRequest.RequestId = WRandom::RandomInteger();
+	StatWindows.emplace_back(std::make_unique<WStatWindow>(Request, HistoryRequest));
 }
 
 void WMainWindow::HandleStatsResponse(WBuffer const& Buf) const
@@ -234,4 +235,24 @@ void WMainWindow::HandleStatsResponse(WBuffer const& Buf) const
 		}
 	}
 	spdlog::warn("Received stats response with unknown request ID: {}", Response.RequestId);
+}
+
+void WMainWindow::HandleHistoryResponse(WBuffer const& Buf) const
+{
+	WConnectionHistoryResponse Response{};
+
+	if (!DeserializeMessage(Buf, Response))
+	{
+		spdlog::error("Failed to deserialize stats response");
+		return;
+	}
+	for (auto const& StatWindow : StatWindows)
+	{
+		if (StatWindow->GetHistoryRequestId() == Response.RequestId)
+		{
+			StatWindow->SetHistoryResponse(Response);
+			return;
+		}
+	}
+	spdlog::warn("Received history response with unknown request ID: {}", Response.RequestId);
 }

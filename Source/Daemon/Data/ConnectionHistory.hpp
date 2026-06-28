@@ -25,6 +25,7 @@ struct WSocketItem;
 struct WSocketCounter;
 struct WTupleCounter;
 struct WTupleItem;
+struct WConnectionHistoryEntry;
 
 struct WConnectionSet
 {
@@ -36,13 +37,13 @@ struct WConnectionSet
 	// to keep the totals correct
 	WBytes BaseDataIn{ 0 };
 	WBytes BaseDataOut{ 0 };
-
+	std::weak_ptr<WConnectionHistoryEntry> ParentEntry{};
 	WConnectionSet() = default;
 };
 
 struct WConnectionHistoryEntry
 {
-	std::shared_ptr<WAppCounter> App{};
+	std::shared_ptr<WAppCounter>    App{};
 	std::shared_ptr<WConnectionSet> Set{};
 	WTrafficItemId                  ConnectionId{};
 
@@ -51,6 +52,13 @@ struct WConnectionHistoryEntry
 	WSec      EndTime{ 0 };
 	WBytes    DataIn{ 0 };
 	WBytes    DataOut{ 0 };
+
+	enum class EState
+	{
+		Open,
+		Pending_Close,
+		Closed
+	} State{};
 
 	bool Update(); // return true if anything changed
 
@@ -73,7 +81,8 @@ class WConnectionHistory : public TSingleton<WConnectionHistory>, public IMemory
 	std::mutex Mutex;
 
 	uint32_t                            NewItemCounter{ 0 };
-	std::deque<WConnectionHistoryEntry> History;
+	std::deque<std::shared_ptr<WConnectionHistoryEntry>>
+		History; // ephemeral history, entries are also written to database
 
 	std::unordered_map<std::pair<std::string, WEndpoint>, std::shared_ptr<WConnectionSet>, WConnectionKeyHash>
 		ActiveConnections;
@@ -83,10 +92,13 @@ class WConnectionHistory : public TSingleton<WConnectionHistory>, public IMemory
 
 	void OnUDPTupleCreated(std::shared_ptr<WTupleCounter> const& TupleCounter);
 	void OnUDPTupleRemoved(std::shared_ptr<WTupleCounter> const& TupleCounter);
-	void Push(std::shared_ptr<WAppCounter> const& App, std::shared_ptr<WConnectionSet> const& Set,
-		WEndpoint const& RemoteEndpoint);
+	std::shared_ptr<WConnectionHistoryEntry> Push(std::shared_ptr<WAppCounter> const& App,
+		std::shared_ptr<WConnectionSet> const& Set, WEndpoint const& RemoteEndpoint);
+
+	static void HandleEmptySet(std::shared_ptr<WConnectionSet> const& EmptySet);
 
 public:
+	static void WriteToDatabase(std::shared_ptr<WConnectionHistoryEntry> const& Entry);
 	void RegisterSignalHandlers();
 
 	WConnectionHistoryUpdate Update();

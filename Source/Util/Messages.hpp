@@ -8,6 +8,7 @@
 
 // ReSharper disable CppUnusedIncludeDirective
 #include "cereal/archives/binary.hpp"
+#include "cereal/types/array.hpp"
 // ReSharper restore CppUnusedIncludeDirective
 
 #include "Buffer.hpp"
@@ -27,6 +28,8 @@ enum EMessageType : int8_t
 	MT_ResolveResponse,
 	MT_StatsRequest,
 	MT_StatsResponse,
+	MT_HistoryRequest,
+	MT_HistoryResponse,
 
 	MT_Count
 };
