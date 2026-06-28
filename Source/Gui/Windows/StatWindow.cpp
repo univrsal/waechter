@@ -159,7 +159,7 @@ void WStatWindow::DrawGraphTab()
 				}
 			}
 
-			ImPlot::SetupAxes(TR("time"), TR("traffic"));
+			ImPlot::SetupAxes(TR("__time"), TR("__traffic"));
 			ImPlot::SetupAxisTicks(ImAxis_X1, FilteredPositions.data(), static_cast<int>(FilteredPositions.size()),
 				FilteredLabelPtrs.data());
 			ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, -0.5, static_cast<double>(N) - 0.5);
