@@ -292,14 +292,11 @@ void WDetailsWindow::DrawTupleDetails() const
 
 WDetailsWindow::WDetailsWindow()
 {
-// TODO: this should come from the daemon
-
 	Tree = WClient::GetInstance().GetTrafficTree();
-/*	WTimerManager::GetInstance().AddTimer(1.0, [this] {
-		long UptimeSeconds = GetUptimeSeconds();
+	WTimerManager::GetInstance().AddTimer(1.0, [this] {
+		WSec const UptimeSeconds = WClient::GetInstance().GetSystemUptime();
 		FormattedUptime = WTime::FormatTime(UptimeSeconds);
 	});
-*/
 }
 
 void WDetailsWindow::Draw() const

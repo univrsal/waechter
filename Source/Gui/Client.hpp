@@ -40,11 +40,15 @@ class WClient : public TSingleton<WClient>
 
 	void OnDataReceived(WBuffer& Buffer);
 
-	static void HandleHandshake(WBuffer const& Buf);
+	void HandleHandshake(WBuffer const& Buf);
+
+	WSec SystemBootTime{};
 
 public:
 	std::atomic<WBytesPerSecond> DaemonToClientTrafficRate{ 0 };
 	std::atomic<WBytesPerSecond> ClientToDaemonTrafficRate{ 0 };
+
+	WSec GetSystemUptime() const { return WTime::GetEpochSeconds() - SystemBootTime; }
 
 	void Start();
 	void Stop() const

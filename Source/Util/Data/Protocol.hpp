@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, Alex <uni@vrsal.cc>
+ * Copyright (c) 2025-2026, Alex <uni@vrsal.cc>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -12,11 +12,12 @@
 struct WProtocolHandshake
 {
 	uint8_t     ProtocolVersion{ WAECHTER_PROTOCOL_VERSION };
+	WSec        SystemBootTime;
 	std::string CommitHash{};
 
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(ProtocolVersion, CommitHash);
+		archive(ProtocolVersion, CommitHash, SystemBootTime);
 	}
 };

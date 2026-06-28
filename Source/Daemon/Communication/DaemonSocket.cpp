@@ -7,6 +7,7 @@
 
 #include <filesystem>
 #include <cstdint>
+#include <sys/sysinfo.h>
 
 #include "spdlog/spdlog.h"
 #include "tracy/Tracy.hpp"
@@ -29,17 +30,27 @@
 #include "Filesystem.hpp"
 #include "MemoryUsage.hpp"
 #include "Messages.hpp"
+#include "Time.hpp"
 #include "Data/AppIconAtlasBuilder.hpp"
 #include "Data/ConnectionHistory.hpp"
 #include "Data/Protocol.hpp"
 #include "Data/SystemMap.hpp"
 #include "Net/Resolver.hpp"
 
+static WSec GetSystemBootTime()
+{
+	struct sysinfo Info{};
+	if (sysinfo(&Info) != 0)
+		return 0;
+	return WTime::GetEpochSeconds() - Info.uptime;
+}
+
 // ReSharper disable once CppDFAUnreachableFunctionCall
 static void SendInitialDataToClient(std::shared_ptr<WDaemonClient> const& Client)
 {
 	auto& SystemMap = WSystemMap::GetInstance();
-	Client->SendMessage(MT_Handshake, WProtocolHandshake{ WAECHTER_PROTOCOL_VERSION, GIT_COMMIT_HASH });
+	Client->SendMessage(
+		MT_Handshake, WProtocolHandshake{ WAECHTER_PROTOCOL_VERSION, GetSystemBootTime(), GIT_COMMIT_HASH });
 	{
 		std::lock_guard Lock(SystemMap.DataMutex);
 		Client->SendMessage(MT_TrafficTree, *SystemMap.GetSystemItem());

@@ -99,6 +99,7 @@ void WClient::HandleHandshake(WBuffer const& Buf)
 	{
 		spdlog::info(
 			"Connected to daemon (protocol version {}, commit {})", Handshake.ProtocolVersion, Handshake.CommitHash);
+		SystemBootTime = Handshake.SystemBootTime;
 	}
 }
 
