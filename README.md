@@ -23,7 +23,7 @@ Build requirements:
 - [libbpf](https://github.com/libbpf/libbpf)
 - [CMake](https://cmake.org/)
 - A C++20 compatible compiler
-- `sqlite3`, `sdl2` and optionally `libwebsockets`
+- `sqlite3`, `sdl2`, `zlib` and optionally `libwebsockets` and `curl`
 - A recent Linux kernel with eBPF support
 - `bpftool` to create vmlinux.h
 - `clang` and `llvm` to compile eBPF programs
