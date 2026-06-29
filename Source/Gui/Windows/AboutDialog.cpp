@@ -71,7 +71,7 @@ void WAboutDialog::Draw()
 	ImGui::SetNextWindowPos(ImVec2(display_size.x * 0.5f, display_size.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 	ImGui::SetNextWindowSize({ WSdlWindow::ScaleValue(700), display_size.y - WSdlWindow::ScaleValue(100) });
 
-	if (ImGui::Begin(TR("window.about"), &bVisible,
+	if (ImGui::Begin(TR("about.title"), &bVisible,
 			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
 	{
 		auto Style = ImGui::GetStyle();

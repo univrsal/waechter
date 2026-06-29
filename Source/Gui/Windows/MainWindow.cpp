@@ -55,12 +55,12 @@ void WMainWindow::DrawConnectionIndicator()
 			Tooltip = std::format("{}\n"
 								  "▼ {}\n"
 								  "▲ {}",
-				TR("__connected"), WTrafficFormat::AutoFormat(WClient::GetInstance().DaemonToClientTrafficRate.load()),
+				TR("connected"), WTrafficFormat::AutoFormat(WClient::GetInstance().DaemonToClientTrafficRate.load()),
 				WTrafficFormat::AutoFormat(WClient::GetInstance().ClientToDaemonTrafficRate.load()));
 		}
 		else
 		{
-			Tooltip = TR("__not_connected");
+			Tooltip = TR("not_connected");
 		}
 		ImGui::SetTooltip("%s", Tooltip.c_str());
 	}
@@ -87,11 +87,11 @@ void WMainWindow::Init(ImGuiID Main)
 		ImGuiID DockIdMain = Main;
 		ImGuiID DockIdDown = ImGui::DockBuilderSplitNode(DockIdMain, ImGuiDir_Down, 0.25f, nullptr, &DockIdMain);
 		ImGuiID DockIdRight = ImGui::DockBuilderSplitNode(DockIdMain, ImGuiDir_Right, 0.20f, nullptr, &DockIdMain);
-		ImGui::DockBuilderDockWindow(TR("window.traffic_tree"), DockIdMain);
-		ImGui::DockBuilderDockWindow(TR("window.connection_history"), DockIdMain);
-		ImGui::DockBuilderDockWindow(TR("window.log"), DockIdDown);
-		ImGui::DockBuilderDockWindow(TR("window.network_activity"), DockIdDown);
-		ImGui::DockBuilderDockWindow(TR("window.details"), DockIdRight);
+		ImGui::DockBuilderDockWindow(TR("traffic_tree.title"), DockIdMain);
+		ImGui::DockBuilderDockWindow(TR("connection_history.title"), DockIdMain);
+		ImGui::DockBuilderDockWindow(TR("log.title"), DockIdDown);
+		ImGui::DockBuilderDockWindow(TR("network_activity.title"), DockIdDown);
+		ImGui::DockBuilderDockWindow(TR("details.title"), DockIdRight);
 		ImGui::DockBuilderFinish(Main);
 	}
 	FlagAtlas.Load();
@@ -153,11 +153,11 @@ void WMainWindow::Draw()
 				WIP2Asn::GetInstance().UpdateDatabase();
 			}
 #endif
-			if (ImGui::MenuItem(TR("window.settings"), nullptr, false))
+			if (ImGui::MenuItem(TR("settings.title"), nullptr, false))
 			{
 				SettingsWindow.Show();
 			}
-			if (ImGui::MenuItem(TR("window.memory_usage"), nullptr, false))
+			if (ImGui::MenuItem(TR("memory_usage.title"), nullptr, false))
 			{
 				MemoryUsageWindow.Show();
 			}
@@ -166,11 +166,11 @@ void WMainWindow::Draw()
 
 		if (ImGui::BeginMenu(TR("menu.help")))
 		{
-			if (ImGui::MenuItem(TR("window.register")))
+			if (ImGui::MenuItem(TR("register.title")))
 			{
 				RegisterDialog.Show();
 			}
-			if (ImGui::MenuItem(TR("window.about")))
+			if (ImGui::MenuItem(TR("about.title")))
 			{
 				AboutDialog.Show();
 			}

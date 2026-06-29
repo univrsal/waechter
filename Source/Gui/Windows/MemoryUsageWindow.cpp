@@ -16,7 +16,7 @@ void WMemoryUsageWindow::Draw()
 	{
 		return;
 	}
-	if (ImGui::Begin(TR("window.memory_usage"), &bVisible, ImGuiWindowFlags_NoDocking))
+	if (ImGui::Begin(TR("memory_usage.title"), &bVisible, ImGuiWindowFlags_NoDocking))
 	{
 		if (Stats.Stats.empty())
 		{

@@ -11,13 +11,39 @@
 #include "Json.hpp"
 #include "Settings.hpp"
 
-#define INCLUDE_LANG(id) INCBIN(id, LANGUAGES_DIR #id ".json")
 #define LOAD_LANG(id)                                                                    \
 	else if (Code == #id)                                                                \
 	{                                                                                    \
 		JsonData = std::string(reinterpret_cast<char const*>(G##id##Data), G##id##Size); \
 	}
 
+static void AddObject(
+	WTranslation& Translation, std::string const& BreadCrumb, WJson const& Obj, bool const bForImGui = false)
+{
+	for (auto const& [Key, Value] : Obj.object_items())
+	{
+		if (Value.is_object())
+		{
+			AddObject(Translation, BreadCrumb + Key + ".", Value.object_items(), bForImGui);
+		}
+		else
+		{
+			std::string TranslatedValue = Value.string_value();
+			if (bForImGui)
+			{
+				if (Key == "title")
+				{
+					TranslatedValue += "###" + (BreadCrumb + Key);
+				}
+				else
+				{
+					TranslatedValue += "##" + (BreadCrumb + Key);
+				}
+			}
+			Translation[BreadCrumb + Key] = TranslatedValue;
+		}
+	}
+}
 
 WTranslation WI18n::LoadTranslationFile(std::string const& Code)
 {
@@ -43,24 +69,21 @@ WTranslation WI18n::LoadTranslationFile(std::string const& Code)
 		return {};
 	}
 	WTranslation Translation{};
+
 	for (auto const& [Key, Value] : JsonObj.object_items())
 	{
-		if (Value.is_string())
+		if (Key == "static")
 		{
-			if (Key.starts_with("__"))
-			{
-				// non imgui text
-				Translation[Key] = Value.string_value();
-			}
-			else if (Key.find("window.") != std::string::npos)
-			{
-				Translation[Key] = Value.string_value() + "###" + Key;
-			}
-			else
-			{
-				Translation[Key] = Value.string_value() + "##" + Key;
-			}
+			AddObject(Translation, "", Value.object_items(), false);
 		}
+		else
+		{
+			AddObject(Translation, Key + ".", Value.object_items(), true);
+		}
+	}
+	for (auto const& [Key, Value] : Translation)
+	{
+		spdlog::info("Loaded translation: {} -> {}", Key, Value);
 	}
 	return Translation;
 }

@@ -24,12 +24,12 @@ void WSettingsWindow::Draw()
 	auto     DisplaySize = Io.DisplaySize;
 	ImGui::SetNextWindowPos(ImVec2(DisplaySize.x * 0.5f, DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 	ImGui::SetNextWindowSize(WSdlWindow::ScaleSize({ 580, 400 }));
-	if (ImGui::Begin(TR("window.settings"), &bVisible,
+	if (ImGui::Begin(TR("settings.title"), &bVisible,
 			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
 	{
-		ImGui::SeparatorText(TR("socket.settings"));
+		ImGui::SeparatorText(TR("settings.socket.header"));
 
-		if (ImGui::BeginCombo(TR("socket.history"), WSettings::GetInstance().SocketPath.c_str()))
+		if (ImGui::BeginCombo(TR("settings.socket.history"), WSettings::GetInstance().SocketPath.c_str()))
 		{
 			// Show current path if it's not in history
 			bool bFoundInHistory = false;
@@ -63,15 +63,17 @@ void WSettingsWindow::Draw()
 
 			ImGui::EndCombo();
 		}
-		ImGui::InputText(TR("socket.path"), &WSettings::GetInstance().SocketPath);
+		ImGui::InputText(TR("settings.socket.path"), &WSettings::GetInstance().SocketPath);
 
-		ImGui::InputText(
-			TR("ws.auth_token"), &WSettings::GetInstance().WebSocketAuthToken, ImGuiInputTextFlags_Password);
+		ImGui::InputText(TR("settings.socket.ws_auth_token"), &WSettings::GetInstance().WebSocketAuthToken,
+			ImGuiInputTextFlags_Password);
 #ifndef __EMSCRIPTEN__
-		ImGui::Checkbox(TR("ws.allow_self_sign"), &WSettings::GetInstance().bAllowSelfSignedCertificates);
-		ImGui::Checkbox(TR("ws.skip_cert_check"), &WSettings::GetInstance().bSkipCertificateHostnameCheck);
+		ImGui::Checkbox(
+			TR("settings.socket.ws_allow_self_sign"), &WSettings::GetInstance().bAllowSelfSignedCertificates);
+		ImGui::Checkbox(
+			TR("settings.socket.ws_skip_cert_check"), &WSettings::GetInstance().bSkipCertificateHostnameCheck);
 #endif
-		if (ImGui::Button(TR("button.connect")))
+		if (ImGui::Button(TR("settings.socket.connect")))
 		{
 			if (!WSettings::GetInstance().SocketPath.empty())
 			{
@@ -82,8 +84,8 @@ void WSettingsWindow::Draw()
 
 		ImGui::Spacing();
 
-		ImGui::SeparatorText(TR("ui"));
-		if (ImGui::Checkbox(TR("ui.use_dark_theme"), &WSettings::GetInstance().bUseDarkTheme))
+		ImGui::SeparatorText(TR("settings.ui.header"));
+		if (ImGui::Checkbox(TR("settings.ui.use_dark_theme"), &WSettings::GetInstance().bUseDarkTheme))
 		{
 			if (WSettings::GetInstance().bUseDarkTheme)
 			{
@@ -95,7 +97,8 @@ void WSettingsWindow::Draw()
 			}
 		}
 
-		if (ImGui::Checkbox(TR("ui.reduce_fps_inactive"), &WSettings::GetInstance().bReduceFrameRateWhenInactive))
+		if (ImGui::Checkbox(
+				TR("settings.ui.reduce_fps_inactive"), &WSettings::GetInstance().bReduceFrameRateWhenInactive))
 		{
 			if (WSettings::GetInstance().bUseDarkTheme)
 			{
@@ -108,7 +111,7 @@ void WSettingsWindow::Draw()
 		}
 
 #ifndef __EMSCRIPTEN__
-		if (ImGui::Checkbox(TR("ui.enable_tray_icon"), &WSettings::GetInstance().bEnableTrayIcon))
+		if (ImGui::Checkbox(TR("settings.ui.enable_tray_icon"), &WSettings::GetInstance().bEnableTrayIcon))
 		{
 			WSettings::GetInstance().Save();
 			if (WSettings::GetInstance().bEnableTrayIcon)
@@ -124,7 +127,8 @@ void WSettingsWindow::Draw()
 		if (WSettings::GetInstance().bEnableTrayIcon)
 		{
 			ImGui::Indent();
-			if (ImGui::Checkbox(TR("ui.minimize_to_tray_on_close"), &WSettings::GetInstance().bMinimizeToTrayOnClose))
+			if (ImGui::Checkbox(
+					TR("settings.ui.minimize_to_tray_on_close"), &WSettings::GetInstance().bMinimizeToTrayOnClose))
 			{
 				WSettings::GetInstance().Save();
 			}
@@ -135,7 +139,7 @@ void WSettingsWindow::Draw()
 		// drop down for language selection
 		static std::vector<std::pair<std::string, std::string>> const Languages = { { "en_US", "English (US)" },
 			{ "de_DE", "Deutsch (DE)" } };
-		if (ImGui::BeginCombo(TR("language"), WSettings::GetInstance().SelectedLanguage.c_str()))
+		if (ImGui::BeginCombo(TR("settings.ui.language"), WSettings::GetInstance().SelectedLanguage.c_str()))
 		{
 			for (auto const& [Code, Name] : Languages)
 			{
@@ -154,7 +158,7 @@ void WSettingsWindow::Draw()
 		}
 
 #if __EMSCRIPTEN__
-		if (ImGui::Button("Save"))
+		if (ImGui::Button(TR("generic.save")))
 		{
 			WSettings::GetInstance().Save();
 		}
