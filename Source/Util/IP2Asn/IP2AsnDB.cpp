@@ -22,6 +22,8 @@
 #endif
 #include "spdlog/spdlog.h"
 
+#include "IPAddress.hpp"
+
 namespace
 {
 	constexpr uint32_t kIndexMagic = 0x41503249; // "IP2A" little endian
@@ -76,8 +78,8 @@ std::optional<WIP2AsnLookupResult> WIP2AsnDB::ReadEntryAtOffset(uint64_t Offset)
 		return std::nullopt;
 	}
 
-	auto ParseResult = std::from_chars(AsnStr.data(), AsnStr.data() + AsnStr.size(), Result.ASN);
-	if (ParseResult.ec != std::errc())
+	auto [Ptr, Ec] = std::from_chars(AsnStr.data(), AsnStr.data() + AsnStr.size(), Result.ASN);
+	if (Ec != std::errc())
 	{
 		Result.ASN = 0;
 	}
@@ -139,6 +141,7 @@ bool WIP2AsnDB::BuildIndex() const
 	std::string Line;
 	while (File)
 	{
+		// ReSharper disable once CppRedundantCastExpression
 		uint64_t Offset = static_cast<uint64_t>(File.tellg());
 		if (!std::getline(File, Line))
 		{
@@ -271,7 +274,7 @@ bool WIP2AsnDB::MapIndex()
 	}
 
 #else
-	IndexFd = ::open(IndexPath.c_str(), O_RDONLY);
+	IndexFd = open(IndexPath.c_str(), O_RDONLY);
 	if (IndexFd < 0)
 	{
 		spdlog::error("Failed to open IP2ASN index at {}", IndexPath.string());
@@ -282,7 +285,7 @@ bool WIP2AsnDB::MapIndex()
 	if (fstat(IndexFd, &st) != 0)
 	{
 		spdlog::error("Failed to stat IP2ASN index at {}", IndexPath.string());
-		::close(IndexFd);
+		close(IndexFd);
 		IndexFd = -1;
 		return false;
 	}
@@ -293,7 +296,7 @@ bool WIP2AsnDB::MapIndex()
 	{
 		spdlog::error("Failed to mmap IP2ASN index at {}", IndexPath.string());
 		IndexMapping = nullptr;
-		::close(IndexFd);
+		close(IndexFd);
 		IndexFd = -1;
 		IndexMappingSize = 0;
 		return false;
@@ -353,14 +356,14 @@ void WIP2AsnDB::UnmapIndex()
 	}
 	if (IndexFd >= 0)
 	{
-		::close(IndexFd);
+		close(IndexFd);
 		IndexFd = -1;
 	}
 #endif
 	IndexView = {};
 }
 
-std::optional<WIP2AsnLookupResult> WIP2AsnDB::LookupIPv4(uint32_t IP) const
+std::optional<WIP2AsnLookupResult> WIP2AsnDB::LookupIPv4(uint32_t const IP) const
 {
 	if (!IndexView.Header || !IndexView.V4Entries)
 	{
@@ -369,8 +372,8 @@ std::optional<WIP2AsnLookupResult> WIP2AsnDB::LookupIPv4(uint32_t IP) const
 
 	auto const Begin = IndexView.V4Entries;
 	auto const End = Begin + IndexView.Header->CountV4;
-	auto       It =
-		std::upper_bound(Begin, End, IP, [](uint32_t value, WIP2AsnIndexEntryV4 const& e) { return value < e.Start; });
+	auto       It = std::upper_bound(
+        Begin, End, IP, [](uint32_t const value, WIP2AsnIndexEntryV4 const& e) { return value < e.Start; });
 
 	if (It == Begin)
 	{
@@ -406,19 +409,13 @@ std::optional<WIP2AsnLookupResult> WIP2AsnDB::LookupIPv6(std::array<uint8_t, 16>
 	return std::nullopt;
 }
 
-std::optional<WIP2AsnLookupResult> WIP2AsnDB::Lookup(std::string const& IPStr) const
+std::optional<WIP2AsnLookupResult> WIP2AsnDB::Lookup(WIPAddress const& IP) const
 {
-	auto const IP = WIPAddress::FromString(IPStr);
-	if (!IP)
+	if (IP.Family == EIPFamily::IPv4)
 	{
-		return std::nullopt;
+		return LookupIPv4(IP.ToInt());
 	}
-
-	if (IP->Family == EIPFamily::IPv4)
-	{
-		return LookupIPv4(IP->ToInt());
-	}
-	return LookupIPv6(IP->Bytes);
+	return LookupIPv6(IP.Bytes);
 }
 
 std::size_t WIP2AsnDB::GetSize() const

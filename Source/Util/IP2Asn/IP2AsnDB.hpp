@@ -14,9 +14,34 @@
 
 struct WIP2AsnLookupResult
 {
+	WIPAddress  Address;
 	uint32_t    ASN;
 	std::string Country;
 	std::string Organization;
+
+	template <class Archive>
+	void serialize(Archive& archive)
+	{
+		archive(Address, ASN, Country, Organization);
+	}
+};
+
+struct WIP2AsnUpdateRequest
+{
+	template <class Archive>
+	static void serialize(Archive&)
+	{
+	}
+};
+
+struct WIPLookupRequest
+{
+	WIPAddress AddressToLookup;
+	template <class Archive>
+	void serialize(Archive& archive)
+	{
+		archive(AddressToLookup);
+	}
 };
 
 #pragma pack(push, 1)
@@ -84,7 +109,7 @@ public:
 
 	bool Init();
 
-	[[nodiscard]] std::optional<WIP2AsnLookupResult> Lookup(std::string const& IPStr) const;
+	[[nodiscard]] std::optional<WIP2AsnLookupResult> Lookup(WIPAddress const& IP) const;
 
 	[[nodiscard]] std::size_t GetSize() const;
 
