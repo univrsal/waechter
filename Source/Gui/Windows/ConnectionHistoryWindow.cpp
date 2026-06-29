@@ -61,20 +61,20 @@ void WConnectionHistoryWindow::PushNewItem(WNewConnectionHistoryEntry const& New
 
 void WConnectionHistoryWindow::Draw()
 {
-	if (ImGui::Begin(TR("window.connection_history"), nullptr, ImGuiWindowFlags_NoCollapse))
+	if (ImGui::Begin(TR("connection_history.title"), nullptr, ImGuiWindowFlags_NoCollapse))
 	{
 		std::scoped_lock Lock(Mutex);
 
 		if (ImGui::BeginTable("ConnectionHistoryTable", 7,
 				ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY))
 		{
-			ImGui::TableSetupColumn(TR("app_name"), ImGuiTableColumnFlags_WidthStretch);
-			ImGui::TableSetupColumn(TR("ip"), ImGuiTableColumnFlags_WidthStretch);
-			ImGui::TableSetupColumn(TR("port"), ImGuiTableColumnFlags_WidthFixed, 80.0f);
-			ImGui::TableSetupColumn(TR("data_in"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
-			ImGui::TableSetupColumn(TR("data_out"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
-			ImGui::TableSetupColumn(TR("start_time"), ImGuiTableColumnFlags_WidthFixed, 150.0f);
-			ImGui::TableSetupColumn(TR("end_time"), ImGuiTableColumnFlags_WidthFixed, 150.0f);
+			ImGui::TableSetupColumn(TR("connection_history.app_name"), ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableSetupColumn(TR("connection_history.ip"), ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableSetupColumn(TR("connection_history.port"), ImGuiTableColumnFlags_WidthFixed, 80.0f);
+			ImGui::TableSetupColumn(TR("connection_history.data_in"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
+			ImGui::TableSetupColumn(TR("connection_history.data_out"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
+			ImGui::TableSetupColumn(TR("connection_history.start_time"), ImGuiTableColumnFlags_WidthFixed, 150.0f);
+			ImGui::TableSetupColumn(TR("connection_history.end_time"), ImGuiTableColumnFlags_WidthFixed, 150.0f);
 			ImGui::TableSetupScrollFreeze(0, 1);
 			ImGui::TableHeadersRow();
 

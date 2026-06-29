@@ -547,7 +547,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 	DrawUnitCombo(WSettings::GetInstance().TrafficTreeUnitSetting);
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(200.0f);
-	ImGui::InputTextWithHint("##search", TR("__search.apps"), SearchBuffer, sizeof(SearchBuffer));
+	ImGui::InputTextWithHint("##search", TR("search.apps"), SearchBuffer, sizeof(SearchBuffer));
 
 	ImGui::Separator();
 	ImGui::BeginChild("TreeRegion", ImVec2(0, 0), false);
@@ -562,10 +562,10 @@ void WTrafficTree::Draw(ImGuiID MainID)
 		return;
 	}
 
-	ImGui::TableSetupColumn(TR("name"), ImGuiTableColumnFlags_WidthStretch);
+	ImGui::TableSetupColumn(TR("generic.name"), ImGuiTableColumnFlags_WidthStretch);
 	ImGui::TableSetupColumn("▼", ImGuiTableColumnFlags_WidthFixed, 100.0f);
 	ImGui::TableSetupColumn("▲", ImGuiTableColumnFlags_WidthFixed, 100.0f);
-	ImGui::TableSetupColumn(TR("rules"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
+	ImGui::TableSetupColumn(TR("generic.rules"), ImGuiTableColumnFlags_WidthFixed, 100.0f);
 
 	bool bOpened{};
 
@@ -665,7 +665,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 			ImGui::TableNextRow();
 			ImGui::PushID(ProcItem->ProcessId);
 			Args = {};
-			Args.Name = std::format("{} {}", TR("__process"), ProcItem->ProcessId);
+			Args.Name = std::format("{} {}", TR("process"), ProcItem->ProcessId);
 			Args.Item = ProcItem;
 			Args.bMarkedForRemoval = MarkedForRemovalItems.contains(ProcItem->ItemId);
 			Args.ParentApp = AppItem;

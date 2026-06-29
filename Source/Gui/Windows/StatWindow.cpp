@@ -135,7 +135,7 @@ void WStatWindow::DrawGraphTab()
 			return snprintf(Buf, static_cast<std::size_t>(Size), "%s", Str.c_str());
 		};
 
-		char const* SeriesLabels[] = { TR("download"), TR("upload") };
+		char const* SeriesLabels[] = { TR("generic.download"), TR("generic.upload") };
 		auto const  N = Response.DataPoints.size();
 
 		if (ImPlot::BeginPlot("##TrafficChart", ImVec2(-1, -1)))
@@ -159,7 +159,7 @@ void WStatWindow::DrawGraphTab()
 				}
 			}
 
-			ImPlot::SetupAxes(TR("__time"), TR("__traffic"));
+			ImPlot::SetupAxes(TR("time"), TR("traffic"));
 			ImPlot::SetupAxisTicks(ImAxis_X1, FilteredPositions.data(), static_cast<int>(FilteredPositions.size()),
 				FilteredLabelPtrs.data());
 			ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, -0.5, static_cast<double>(N) - 0.5);
@@ -203,18 +203,18 @@ void WStatWindow::DrawHistoryData()
 				auto const bIsAppTable = !HistoryDataCache.Protocol.empty();
 				if (bIsAppTable)
 				{
-					ImGui::TableSetupColumn(TR("ip"), ImGuiTableColumnFlags_WidthStretch);
-					ImGui::TableSetupColumn(TR("protocol"), ImGuiTableColumnFlags_WidthFixed, 80.0f);
+					ImGui::TableSetupColumn(TR("connection_history.ip"), ImGuiTableColumnFlags_WidthStretch);
+					ImGui::TableSetupColumn(TR("connection_history.protocol"), ImGuiTableColumnFlags_WidthFixed, 80.0f);
 				}
 				else
 				{
-					ImGui::TableSetupColumn(TR("app_name"), ImGuiTableColumnFlags_WidthStretch);
+					ImGui::TableSetupColumn(TR("connection_history.app_name"), ImGuiTableColumnFlags_WidthStretch);
 				}
 
-				ImGui::TableSetupColumn(TR("data_in"), ImGuiTableColumnFlags_WidthFixed, 120.0f);
-				ImGui::TableSetupColumn(TR("data_out"), ImGuiTableColumnFlags_WidthFixed, 120.0f);
-				ImGui::TableSetupColumn(TR("start_time"), ImGuiTableColumnFlags_WidthFixed, 180.0f);
-				ImGui::TableSetupColumn(TR("end_time"), ImGuiTableColumnFlags_WidthFixed, 180.0f);
+				ImGui::TableSetupColumn(TR("connection_history.data_in"), ImGuiTableColumnFlags_WidthFixed, 120.0f);
+				ImGui::TableSetupColumn(TR("connection_history.data_out"), ImGuiTableColumnFlags_WidthFixed, 120.0f);
+				ImGui::TableSetupColumn(TR("connection_history.start_time"), ImGuiTableColumnFlags_WidthFixed, 180.0f);
+				ImGui::TableSetupColumn(TR("connection_history.end_time"), ImGuiTableColumnFlags_WidthFixed, 180.0f);
 				ImGui::TableSetupScrollFreeze(0, 1);
 				ImGui::TableHeadersRow();
 
@@ -262,7 +262,7 @@ void WStatWindow::DrawHistoryData()
 		HistoryState = State_RequestPending;
 	}
 	ImGui::SameLine();
-	ImGui::Text("Page %i of %i", HistoryPage, HistoryMaxPages);
+	ImGui::Text("%i/%i", HistoryPage, HistoryMaxPages);
 	ImGui::SameLine();
 	if (ImGui::Button(">"))
 	{
@@ -439,12 +439,12 @@ void WStatWindow::Draw()
 	{
 		if (ImGui::BeginTabBar("##Statswindow"))
 		{
-			if (ImGui::BeginTabItem(TR("graph")))
+			if (ImGui::BeginTabItem(TR("generic.graph")))
 			{
 				DrawGraphTab();
 				ImGui::EndTabItem();
 			}
-			if (ImGui::BeginTabItem(TR("window.connection_history")))
+			if (ImGui::BeginTabItem(TR("connection_history.title")))
 			{
 				DrawHistoryData();
 				ImGui::EndTabItem();

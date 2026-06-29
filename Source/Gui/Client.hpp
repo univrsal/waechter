@@ -48,7 +48,14 @@ public:
 	std::atomic<WBytesPerSecond> DaemonToClientTrafficRate{ 0 };
 	std::atomic<WBytesPerSecond> ClientToDaemonTrafficRate{ 0 };
 
-	WSec GetSystemUptime() const { return WTime::GetEpochSeconds() - SystemBootTime; }
+	WSec GetSystemUptime() const
+	{
+		if (!DaemonSocket || !DaemonSocket->IsConnected())
+		{
+			return 0;
+		}
+		return WTime::GetEpochSeconds() - SystemBootTime;
+	}
 
 	void Start();
 	void Stop() const

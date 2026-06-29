@@ -63,7 +63,7 @@ void WRegisterDialog::Draw()
 	ImGui::SetNextWindowPos(ImVec2(DisplaySize.x * 0.5f, DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 	ImGui::SetNextWindowSize(WSdlWindow::ScaleSize(ImVec2(300, 155)));
 
-	if (ImGui::Begin(TR("window.register"), &bVisible,
+	if (ImGui::Begin(TR("register.title"), &bVisible,
 			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
 	{
 		int TextBoxFlags = ImGuiInputTextFlags_CharsNoBlank;
@@ -74,7 +74,7 @@ void WRegisterDialog::Draw()
 
 		if (bValid)
 		{
-			if (ImGui::Button(TR("button.unregister")))
+			if (ImGui::Button(TR("register.unregister")))
 			{
 				WSettings::GetInstance().RegisteredUsername.clear();
 				WSettings::GetInstance().RegistrationSerialKey.clear();
@@ -86,8 +86,8 @@ void WRegisterDialog::Draw()
 		}
 		else
 		{
-			ImGui::TextLinkOpenURL(TR("about.registration"), "https://waechter.st/register");
-			if (ImGui::Button(TR("button.register")))
+			ImGui::TextLinkOpenURL(TR("register.about_registration"), "https://waechter.st/register");
+			if (ImGui::Button(TR("register.register")))
 			{
 				Validate();
 				bFailedActivation = true;
@@ -96,11 +96,11 @@ void WRegisterDialog::Draw()
 
 		if (bValid)
 		{
-			ImGui::TextColored(ImVec4(0.1f, 0.7f, 0.1f, 1.0f), "%s", TR("__activated"));
+			ImGui::TextColored(ImVec4(0.1f, 0.7f, 0.1f, 1.0f), "%s", TR("activated"));
 		}
 		else if (bFailedActivation)
 		{
-			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "%s", TR("__invalid_key"));
+			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "%s", TR("invalid_key"));
 		}
 	}
 	ImGui::End();

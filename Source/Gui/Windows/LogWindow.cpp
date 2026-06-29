@@ -76,7 +76,7 @@ void WLogWindow::DoScrollToBottom()
 
 void WLogWindow::Draw()
 {
-	if (ImGui::Begin(TR("window.log"), nullptr, ImGuiWindowFlags_NoCollapse))
+	if (ImGui::Begin(TR("log.title"), nullptr, ImGuiWindowFlags_NoCollapse))
 	{
 		ImGui::Checkbox(TR("log.auto_scroll"), &AutoScroll);
 		ImGui::SameLine();

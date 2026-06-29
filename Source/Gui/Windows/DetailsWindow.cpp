@@ -27,17 +27,17 @@ static char const* SocketConnectionStateToString(ESocketConnectionState State)
 	switch (State)
 	{
 		case ESocketConnectionState::Unknown:
-			return TR("__state.unknown");
+			return TR("state.unknown");
 		case ESocketConnectionState::Created:
-			return TR("__state.created");
+			return TR("state.created");
 		case ESocketConnectionState::Connecting:
-			return TR("__state.connecting");
+			return TR("state.connecting");
 		case ESocketConnectionState::Connected:
-			return TR("__state.connected");
+			return TR("state.connected");
 		case ESocketConnectionState::Closed:
-			return TR("__state.closed");
+			return TR("state.closed");
 		default:
-			return TR("__state.invalid");
+			return TR("state.invalid");
 	}
 }
 
@@ -46,17 +46,17 @@ static char const* SocketTypeToString(uint8_t Type)
 	switch (Type)
 	{
 		case ESocketType::Unknown:
-			return TR("__socket.unknown");
+			return TR("socket.unknown");
 		case ESocketType::Connect:
-			return TR("__socket.connect");
+			return TR("socket.connect");
 		case ESocketType::Listen:
-			return TR("__socket.listen");
+			return TR("socket.listen");
 		case ESocketType::Listen | ESocketType::Connect:
-			return TR("__socket.listen_connect");
+			return TR("socket.listen_connect");
 		case ESocketType::Accept:
-			return TR("__socket.accept");
+			return TR("socket.accept");
 		default:
-			return TR("__socket.invalid");
+			return TR("socket.invalid");
 	}
 }
 
@@ -73,7 +73,7 @@ static char const* ProtocolToString(EProtocol::Type Protocol)
 		case EProtocol::ICMPv6:
 			return "ICMPv6";
 		default:
-			return TR("__proto.unknown");
+			return TR("proto.unknown");
 	}
 }
 
@@ -90,9 +90,9 @@ void WDetailsWindow::DrawFilterDetails() const
 	ImGui::SameLine();
 	ImGui::Text("%s", Filter->Name.c_str());
 	ImGui::Separator();
-	ImGui::Text("%s: %s", TR("__total_download"), WStorageFormat::AutoFormat(Filter->TotalDownloadBytes).c_str());
-	ImGui::Text("%s: %s", TR("__total_upload"), WStorageFormat::AutoFormat(Filter->TotalUploadBytes).c_str());
-	if (ImGui::Button(TR("__show_system_stats")))
+	ImGui::Text("%s: %s", TR("total_download"), WStorageFormat::AutoFormat(Filter->TotalDownloadBytes).c_str());
+	ImGui::Text("%s: %s", TR("total_upload"), WStorageFormat::AutoFormat(Filter->TotalUploadBytes).c_str());
+	if (ImGui::Button(TR("show_system_stats")))
 	{
 		WStatsRequest Request{};
 		WConnectionHistoryRequest HistoryRequest{};
@@ -116,13 +116,13 @@ void WDetailsWindow::DrawSystemDetails() const
 
 	ImGui::SameLine();
 
-	ImGui::Text("%s: %s", TR("__hostname"), System->HostName.c_str());
+	ImGui::Text("%s: %s", TR("hostname"), System->HostName.c_str());
 	ImGui::Separator();
-	ImGui::Text("%s: %s", TR("__uptime"), FormattedUptime.c_str());
-	ImGui::Text("%s: %s", TR("__total_download"), WStorageFormat::AutoFormat(System->TotalDownloadBytes).c_str());
-	ImGui::Text("%s: %s", TR("__total_upload"), WStorageFormat::AutoFormat(System->TotalUploadBytes).c_str());
+	ImGui::Text("%s: %s", TR("uptime"), FormattedUptime.c_str());
+	ImGui::Text("%s: %s", TR("total_download"), WStorageFormat::AutoFormat(System->TotalDownloadBytes).c_str());
+	ImGui::Text("%s: %s", TR("total_upload"), WStorageFormat::AutoFormat(System->TotalUploadBytes).c_str());
 
-	if (ImGui::Button(TR("__show_system_stats")))
+	if (ImGui::Button(TR("show_system_stats")))
 	{
 		WStatsRequest Request{};
 		WConnectionHistoryRequest HistoryRequest{};
@@ -158,10 +158,10 @@ void WDetailsWindow::DrawApplicationDetails() const
 		ImGui::TextWrapped("%s", App->ApplicationPath.c_str());
 		ImGui::PopTextWrapPos();
 	}
-	ImGui::Text("%s: %s", TR("__total_download"), WStorageFormat::AutoFormat(App->TotalDownloadBytes).c_str());
-	ImGui::Text("%s: %s", TR("__total_upload"), WStorageFormat::AutoFormat(App->TotalUploadBytes).c_str());
+	ImGui::Text("%s: %s", TR("total_download"), WStorageFormat::AutoFormat(App->TotalDownloadBytes).c_str());
+	ImGui::Text("%s: %s", TR("total_upload"), WStorageFormat::AutoFormat(App->TotalUploadBytes).c_str());
 
-	if (ImGui::Button(TR("__show_app_stats")))
+	if (ImGui::Button(TR("show_app_stats")))
 	{
 		WStatsRequest Request{};
 		WConnectionHistoryRequest HistoryRequest{};
@@ -184,10 +184,10 @@ void WDetailsWindow::DrawProcessDetails() const
 	WIconAtlas::GetInstance().DrawIcon("process", WSdlWindow::ScaleSize(ImVec2(16, 16)));
 	ImGui::SameLine();
 
-	ImGui::Text("Process ID : %d", Proc->ProcessId);
+	ImGui::Text("Process ID: %d", Proc->ProcessId);
 	ImGui::Separator();
-	ImGui::Text("%s: %s", TR("__total_download"), WStorageFormat::AutoFormat(Proc->TotalDownloadBytes).c_str());
-	ImGui::Text("%s: %s", TR("__total_upload"), WStorageFormat::AutoFormat(Proc->TotalUploadBytes).c_str());
+	ImGui::Text("%s: %s", TR("total_download"), WStorageFormat::AutoFormat(Proc->TotalDownloadBytes).c_str());
+	ImGui::Text("%s: %s", TR("total_upload"), WStorageFormat::AutoFormat(Proc->TotalUploadBytes).c_str());
 }
 
 void WDetailsWindow::DrawSocketDetails() const
@@ -198,7 +198,7 @@ void WDetailsWindow::DrawSocketDetails() const
 		return;
 	}
 
-	ImGui::Text("%s: %s", TR("__socket_state"), SocketConnectionStateToString(Sock->ConnectionState));
+	ImGui::Text("%s: %s", TR("socket_state"), SocketConnectionStateToString(Sock->ConnectionState));
 
 	if (Sock->SocketType == ESocketType::Unknown)
 	{
@@ -208,51 +208,52 @@ void WDetailsWindow::DrawSocketDetails() const
 	else
 #endif
 	{
-		ImGui::Text("%s: %s (%i)", TR("__socket_type"), SocketTypeToString(Sock->SocketType), Sock->SocketType);
+		ImGui::Text("%s: %s (%i)", TR("socket_type"), SocketTypeToString(Sock->SocketType), Sock->SocketType);
 	}
 
 	if (Sock->SocketType & ESocketType::Listen && Sock->SocketTuple.Protocol == EProtocol::TCP)
 	{
-		ImGui::InputText(TR("local_endpoint"), const_cast<char*>(Sock->SocketTuple.LocalEndpoint.ToString().c_str()),
-			64, ImGuiInputTextFlags_ReadOnly);
+		ImGui::InputText(TR("details.local_endpoint"),
+			const_cast<char*>(Sock->SocketTuple.LocalEndpoint.ToString().c_str()), 64, ImGuiInputTextFlags_ReadOnly);
 
-		ImGui::Text("%s: %s", TR("__protocol"), ProtocolToString(Sock->SocketTuple.Protocol));
+		ImGui::Text("%s: %s", TR("protocol"), ProtocolToString(Sock->SocketTuple.Protocol));
 	}
 	else if (Sock->SocketType != ESocketType::Unknown)
 	{
 
 		ImGui::Separator();
-		ImGui::InputText(TR("local_endpoint"), const_cast<char*>(Sock->SocketTuple.LocalEndpoint.ToString().c_str()),
-			64, ImGuiInputTextFlags_ReadOnly);
+		ImGui::InputText(TR("details.local_endpoint"),
+			const_cast<char*>(Sock->SocketTuple.LocalEndpoint.ToString().c_str()), 64, ImGuiInputTextFlags_ReadOnly);
 
 		bool const bIsZero = Sock->SocketTuple.RemoteEndpoint.Address.IsZero();
 		if (!bIsZero)
 		{
-			ImGui::InputText(TR("remote_endpoint"),
+			ImGui::InputText(TR("details.remote_endpoint"),
 				const_cast<char*>(Sock->SocketTuple.RemoteEndpoint.ToString().c_str()), 64,
 				ImGuiInputTextFlags_ReadOnly);
 		}
 		if (auto Addr = Tree->ResolveAddress(Sock->SocketTuple.RemoteEndpoint.Address); !Addr.empty())
 		{
-			ImGui::InputText(TR("hostname"), const_cast<char*>(Addr.c_str()), 128, ImGuiInputTextFlags_ReadOnly);
+			ImGui::InputText(
+				TR("details.hostname"), const_cast<char*>(Addr.c_str()), 128, ImGuiInputTextFlags_ReadOnly);
 		}
-		ImGui::Text("%s: %s", TR("__protocol"), ProtocolToString(Sock->SocketTuple.Protocol));
+		ImGui::Text("%s: %s", TR("protocol"), ProtocolToString(Sock->SocketTuple.Protocol));
 #if !defined(__EMSCRIPTEN__)
 		auto ProtocolName = WProtocolDB::GetInstance().GetServiceName(
 			Sock->SocketTuple.Protocol, Sock->SocketTuple.RemoteEndpoint.Port);
 		if (ProtocolName != "unknown")
 		{
-			ImGui::Text("%s: %s", TR("__service"), ProtocolName.c_str());
+			ImGui::Text("%s: %s", TR("service"), ProtocolName.c_str());
 		}
 #endif
 		ImGui::Separator();
-		ImGui::Text("%s: %s", TR("__total_download"), WStorageFormat::AutoFormat(Sock->TotalDownloadBytes).c_str());
-		ImGui::Text("%s: %s", TR("__total_upload"), WStorageFormat::AutoFormat(Sock->TotalUploadBytes).c_str());
+		ImGui::Text("%s: %s", TR("total_download"), WStorageFormat::AutoFormat(Sock->TotalDownloadBytes).c_str());
+		ImGui::Text("%s: %s", TR("total_upload"), WStorageFormat::AutoFormat(Sock->TotalUploadBytes).c_str());
 	}
 
 	if (!Sock->SocketTuple.RemoteEndpoint.Address.IsZero())
 	{
-		if (ImGui::Button(TR("__show_host_stats")))
+		if (ImGui::Button(TR("show_host_stats")))
 		{
 			WStatsRequest Request{};
 			WConnectionHistoryRequest HistoryRequest{};
@@ -286,8 +287,8 @@ void WDetailsWindow::DrawTupleDetails() const
 	}
 
 	ImGui::Separator();
-	ImGui::Text("%s: %s", TR("__total_download"), WStorageFormat::AutoFormat(Tuple->TotalDownloadBytes).c_str());
-	ImGui::Text("%s: %s", TR("__total_upload"), WStorageFormat::AutoFormat(Tuple->TotalUploadBytes).c_str());
+	ImGui::Text("%s: %s", TR("total_download"), WStorageFormat::AutoFormat(Tuple->TotalDownloadBytes).c_str());
+	ImGui::Text("%s: %s", TR("total_upload"), WStorageFormat::AutoFormat(Tuple->TotalUploadBytes).c_str());
 }
 
 WDetailsWindow::WDetailsWindow()
@@ -301,7 +302,7 @@ WDetailsWindow::WDetailsWindow()
 
 void WDetailsWindow::Draw() const
 {
-	if (ImGui::Begin(TR("window.details"), nullptr, ImGuiWindowFlags_NoCollapse))
+	if (ImGui::Begin(TR("details.title"), nullptr, ImGuiWindowFlags_NoCollapse))
 	{
 		switch (Tree->GetSelectedItemType())
 		{
@@ -338,11 +339,11 @@ void WDetailsWindow::Draw() const
 				WMainWindow::Get().GetFlagAtlas().DrawFlag(LookupResult->Country, ImVec2(32, 24));
 				ImGui::SameLine();
 				ImGui::Separator();
-				ImGui::InputText(TR("__asn"), const_cast<char*>(std::format("AS{}", LookupResult->ASN).c_str()), 64,
+				ImGui::InputText(TR("asn"), const_cast<char*>(std::format("AS{}", LookupResult->ASN).c_str()), 64,
 					ImGuiInputTextFlags_ReadOnly);
-				ImGui::InputText(TR("__country"), const_cast<char*>(LookupResult->Country.c_str()), 64,
-					ImGuiInputTextFlags_ReadOnly);
-				ImGui::InputText(TR("__organization"), const_cast<char*>(LookupResult->Organization.c_str()), 128,
+				ImGui::InputText(
+					TR("country"), const_cast<char*>(LookupResult->Country.c_str()), 64, ImGuiInputTextFlags_ReadOnly);
+				ImGui::InputText(TR("organization"), const_cast<char*>(LookupResult->Organization.c_str()), 128,
 					ImGuiInputTextFlags_ReadOnly);
 			}
 		}

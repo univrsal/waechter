@@ -73,9 +73,9 @@ void WTrayIcon::Init()
 		return;
 	}
 	traycon_menu_item MenuItems[] = {
-		{ TR("__tray.menu.toggle_window"), MI_ToggleWindow, 0 },
+		{ TR("tray_menu.toggle_window"), MI_ToggleWindow, 0 },
 		{ NULL, 0, 0 }, /* separator */
-		{ TR("__tray.menu.exit"), MI_Exit, 0 },
+		{ TR("tray_menu.exit"), MI_Exit, 0 },
 	};
 	traycon_set_menu(Traycon, MenuItems, 3, OnMenuClick, this);
 }
