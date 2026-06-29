@@ -86,14 +86,12 @@ static __always_inline int EmitIfBound(struct sock* Sk, __u64 Cookie)
 
 	if (Family == AF_INET)
 	{
-		// Note: for unconnected sockets, inet_saddr can remain 0 (INADDR_ANY)
-		__u32 SAddr = BPF_CORE_READ((struct inet_sock*)Sk, inet_saddr);
-		if (SAddr == 0)
-		{
-			// Set it to localhost
-			SAddr = __bpf_htonl(0x7F000001);
-		}
-		Event->Data.SocketBindEventData.Addr4 = SAddr;
+		// Note: for unconnected sockets, inet_saddr can remain 0 (INADDR_ANY).
+		// We keep it as 0 - the daemon already has the correct address from
+		// /proc/net/ for pre-existing sockets and from the LSM bind hook for
+		// explicit binds. Substituting 127.0.0.1 would overwrite the correct
+		// address (e.g. a multicast socket on 224.0.0.251).
+		Event->Data.SocketBindEventData.Addr4 = BPF_CORE_READ((struct inet_sock*)Sk, inet_saddr);
 	}
 	else if (Family == AF_INET6)
 	{

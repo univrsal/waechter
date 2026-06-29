@@ -84,6 +84,8 @@ public:
 
 	void ReparentOrphanedSocket(WEndpoint const& Endpoint, WProcessId NewParentProcess);
 
+	void MergeSyntheticSocket(std::shared_ptr<WSocketCounter> const& Socket);
+
 	// After an accept event, re-check /proc to find the worker that actually owns the
 	// accepted socket's fd, and move the socket to that process if it differs from the
 	// master PID that was stored in port_to_pid at bind() time.
