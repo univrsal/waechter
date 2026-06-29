@@ -17,16 +17,6 @@ target_sources(waechter
         TrayIcon.hpp
 )
 
-if (NOT EMSCRIPTEN)
-    target_sources(waechter
-            PRIVATE
-            LibCurl.cpp
-            LibCurl.hpp
-            IP2Asn.cpp
-            IP2Asn.hpp
-    )
-endif ()
-
 add_subdirectory(Keylogic)
 
 
