@@ -284,6 +284,7 @@ void WTrafficTree::SortTree(ImGuiTableSortSpecs const* Specs)
 				{
 					auto UDPNode = std::make_shared<WTreeNode>();
 					UDPNode->Item = Tuple;
+					UDPNode->TupleEndpoint = Tuple->Endpoint;
 					SocketNode->Children.push_back(UDPNode);
 				}
 			}
