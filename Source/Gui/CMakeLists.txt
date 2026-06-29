@@ -89,10 +89,8 @@ if (EMSCRIPTEN)
             SUFFIX ".html"
     )
 else ()
-    find_package(ZLIB REQUIRED)
-    find_package(CURL REQUIRED)
     find_package(SDL2 REQUIRED)
-    target_link_libraries(waechter PRIVATE CURL::libcurl ZLIB::ZLIB
+    target_link_libraries(waechter PRIVATE
             SDL2::SDL2
             thirdparty::glad
             thirdparty::tracy
