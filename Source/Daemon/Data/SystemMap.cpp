@@ -1246,7 +1246,7 @@ void WSystemMap::Cleanup()
 		auto DiffProcessCount = OldProcessCount - Processes.size();
 		auto DiffTrafficItemCount = OldTrafficItemCount - TrafficItems.size();
 
-		spdlog::info("Cleanup removed {} sockets({} -> {}), {} processes ({} -> {}), and {} traffic items ({} -> {}).",
+		spdlog::debug("Cleanup removed {} sockets({} -> {}), {} processes ({} -> {}), and {} traffic items ({} -> {}).",
 			DiffSocketCount, OldSocketCount, Sockets.size(), DiffProcessCount, OldProcessCount, Processes.size(),
 			DiffTrafficItemCount, OldTrafficItemCount, TrafficItems.size());
 	}
