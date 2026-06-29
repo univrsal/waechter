@@ -8,6 +8,7 @@
 #include "spdlog/spdlog.h"
 
 #include "Messages.hpp"
+#include "Data/IP2Asn.hpp"
 #include "Data/ResolveData.hpp"
 #include "Data/Stats.hpp"
 #include "Db/StatsManager.hpp"
@@ -50,6 +51,12 @@ void WDaemonClient::OnDataReceived(WBuffer& RecvBuf)
 					}
 				});
 			break;
+		case MT_IPLookupRequest:
+			HandleIPLookupRequest(RecvBuf);
+			break;
+		case MT_UpdateIP2AsnDb:
+			WIP2Asn::GetInstance().UpdateDatabase();
+			break;
 		default:
 			break;
 	}
@@ -78,5 +85,35 @@ void WDaemonClient::HandleResolveRequest(WBuffer const& Buf)
 			Response.AddressToResolve = Request.AddressToResolve;
 			Response.ResolveResult = Hostname;
 			Socket->SendFramed(MakeMessage(MT_ResolveResponse, Response));
+		});
+}
+
+void WDaemonClient::HandleIPLookupRequest(WBuffer const& Buf)
+{
+	WIPLookupRequest Request{};
+	if (!DeserializeMessage(Buf, Request))
+	{
+		spdlog::error("Failed to deserialize IP lookup request");
+		return;
+	}
+	spdlog::debug("Received lookup request for {}", Request.AddressToLookup.ToString());
+
+	WIP2Asn::GetInstance()
+		.Lookup(Request.AddressToLookup)
+		.Then([Request, Socket = ClientSocket](std::optional<WIP2AsnLookupResult> const& Result) {
+			if (!Socket->IsConnected())
+			{
+				spdlog::warn("Client disconnected before IP lookup response could be sent for {}",
+					Request.AddressToLookup.ToString());
+				return;
+			}
+			if (!Result.has_value())
+			{
+				spdlog::warn("IP lookup failed for address: {}", Request.AddressToLookup.ToString());
+				return;
+			}
+			spdlog::debug("Finished IP lookup request for address: {} -> ASN: {}, Country: {}, Organization: {}",
+				Request.AddressToLookup.ToString(), Result->ASN, Result->Country, Result->Organization);
+			Socket->SendFramed(MakeMessage(MT_IPLookupResponse, Result.value()));
 		});
 }

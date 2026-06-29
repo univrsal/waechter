@@ -12,4 +12,8 @@ target_sources(waechterd
         Counters.cpp
         ConnectionHistory.cpp
         ConnectionHistory.hpp
+        LibCurl.cpp
+        LibCurl.hpp
+        IP2Asn.cpp
+        IP2Asn.hpp
 )

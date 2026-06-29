@@ -4,13 +4,17 @@
  */
 
 #pragma once
+#include "IPAddress.hpp"
+
 #include <memory>
 #include <atomic>
 #include <mutex>
 #include <thread>
 #include <unordered_map>
+#include <queue>
 
 #include "Singleton.hpp"
+#include "Promise.hpp"
 #include "IP2Asn/IP2AsnDB.hpp"
 
 class WIP2Asn : public TSingleton<WIP2Asn>
@@ -25,7 +29,21 @@ class WIP2Asn : public TSingleton<WIP2Asn>
 
 	static bool ExtractDatabase(std::filesystem::path const& GzPath, std::filesystem::path const& OutPath);
 
-	std::unordered_map<std::string, std::optional<WIP2AsnLookupResult>> Cache{};
+	std::unordered_map<WIPAddress, std::optional<WIP2AsnLookupResult>> Cache{};
+
+	struct WQueuedRequest
+	{
+		WIPAddress                                          AddressToResolve;
+		TPromise<std::optional<WIP2AsnLookupResult> const&> Promise;
+	};
+	std::thread                LookupThread;
+	std::atomic<bool>          bRunning{ false };
+	std::mutex                 QueueMutex;
+	std::condition_variable    QueueCondition;
+	std::queue<WQueuedRequest> PendingAddresses;
+	void                       LookupAddress(WQueuedRequest const& Request);
+
+	void LookupThreadFunc();
 
 public:
 	WIP2Asn() = default;
@@ -37,13 +55,12 @@ public:
 		}
 	}
 	void Init();
+	void Stop();
 
 	void UpdateDatabase();
-
-	void DrawDownloadProgressWindow() const;
 
 	bool IsUpdateInProgress() const noexcept { return bUpdateInProgress.load(); }
 	bool HasDatabase() const noexcept { return Database != nullptr; }
 
-	std::optional<WIP2AsnLookupResult> Lookup(std::string const& IpAddress);
+	TPromise<std::optional<WIP2AsnLookupResult> const&> Lookup(WIPAddress const& IpAddress);
 };

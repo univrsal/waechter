@@ -38,6 +38,8 @@ class WDaemonClient
 
 	void HandleResolveRequest(WBuffer const& Buf);
 
+	void HandleIPLookupRequest(WBuffer const& Buf);
+
 public:
 	explicit WDaemonClient(std::shared_ptr<IClientSocket> CS) : ClientSocket(std::move(CS))
 	{

@@ -24,7 +24,7 @@
 #include "Client.hpp"
 #include "Icons/IconAtlas.hpp"
 #include "Util/I18n.hpp"
-#include "Util/LibCurl.hpp"
+#include "../../Daemon/Data/LibCurl.hpp"
 #include "Util/Settings.hpp"
 #include "Util/SysUtil.hpp"
 #include "Util/TrayIcon.hpp"
@@ -154,8 +154,6 @@ bool WSdlWindow::Init()
 	double DevicePixelRatio = emscripten_get_device_pixel_ratio();
 	double CanvasWidth, CanvasHeight;
 	emscripten_get_element_css_size("#canvas", &CanvasWidth, &CanvasHeight);
-#else
-	WLibCurl::Init();
 #endif
 
 	MainWindow = std::make_unique<WMainWindow>();
@@ -380,7 +378,6 @@ void WSdlWindow::Destroy()
 	SDL_Quit();
 	WSysUtil::SyncFilesystemToIndexedDB();
 #ifndef __EMSCRIPTEN__
-	WLibCurl::Deinit();
 #endif
 }
 

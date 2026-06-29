@@ -18,7 +18,7 @@
 #include "Util/I18n.hpp"
 
 #if !defined(__EMSCRIPTEN__)
-	#include "Util/IP2Asn.hpp"
+	#include "../../Daemon/Data/IP2Asn.hpp"
 	#include "Util/ProtocolDB.hpp"
 #endif
 
@@ -300,7 +300,7 @@ WDetailsWindow::WDetailsWindow()
 	});
 }
 
-void WDetailsWindow::Draw() const
+void WDetailsWindow::Draw()
 {
 	if (ImGui::Begin(TR("details.title"), nullptr, ImGuiWindowFlags_NoCollapse))
 	{
@@ -327,27 +327,48 @@ void WDetailsWindow::Draw() const
 		}
 	}
 
-#if !defined(__EMSCRIPTEN__)
-	if (WIP2Asn::GetInstance().HasDatabase())
+	auto const Sock = Tree->GetSeletedTrafficItem<WSocketItem>();
+	if (Sock)
 	{
-		auto const Sock = Tree->GetSeletedTrafficItem<WSocketItem>();
-		if (Sock)
+		if (LookupCache.contains(Sock->SocketTuple.RemoteEndpoint.Address))
 		{
-			auto LookupResult = WIP2Asn::GetInstance().Lookup(Sock->SocketTuple.RemoteEndpoint.Address.ToString());
-			if (LookupResult.has_value() && LookupResult->ASN != 0)
+			std::scoped_lock Lock(DataMutex);
+			auto const&      Result = LookupCache.at(Sock->SocketTuple.RemoteEndpoint.Address);
+			if (Result.ASN != 0)
 			{
-				WMainWindow::Get().GetFlagAtlas().DrawFlag(LookupResult->Country, ImVec2(32, 24));
+				WMainWindow::Get().GetFlagAtlas().DrawFlag(Result.Country, ImVec2(32, 24));
 				ImGui::SameLine();
 				ImGui::Separator();
-				ImGui::InputText(TR("asn"), const_cast<char*>(std::format("AS{}", LookupResult->ASN).c_str()), 64,
+				ImGui::InputText(TR("asn"), const_cast<char*>(std::format("AS{}", Result.ASN).c_str()), 64,
 					ImGuiInputTextFlags_ReadOnly);
 				ImGui::InputText(
-					TR("country"), const_cast<char*>(LookupResult->Country.c_str()), 64, ImGuiInputTextFlags_ReadOnly);
-				ImGui::InputText(TR("organization"), const_cast<char*>(LookupResult->Organization.c_str()), 128,
+					TR("country"), const_cast<char*>(Result.Country.c_str()), 64, ImGuiInputTextFlags_ReadOnly);
+				ImGui::InputText(TR("organization"), const_cast<char*>(Result.Organization.c_str()), 128,
 					ImGuiInputTextFlags_ReadOnly);
 			}
 		}
+		else
+		{
+			std::scoped_lock Lock(DataMutex);
+			// Send lookup request
+			WIPLookupRequest Request;
+			Request.AddressToLookup = Sock->SocketTuple.RemoteEndpoint.Address;
+			WClient::GetInstance().SendMessage(MT_IPLookupRequest, Request);
+			LookupCache[Sock->SocketTuple.RemoteEndpoint.Address] =
+				WIP2AsnLookupResult{}; // placeholder to avoid sending multiple requests
+		}
 	}
-#endif
 	ImGui::End();
+}
+
+void WDetailsWindow::HandleLookupResult(WBuffer const& Buffer)
+{
+	WIP2AsnLookupResult Data{};
+	if (!DeserializeMessage(Buffer, Data))
+	{
+		spdlog::error("Failed to deserialize lookup result");
+		return;
+	}
+	std::scoped_lock Lock(DataMutex);
+	LookupCache[Data.Address] = Data;
 }

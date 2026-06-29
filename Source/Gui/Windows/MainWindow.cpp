@@ -14,8 +14,8 @@
 #include "Random.hpp"
 #include "Util/I18n.hpp"
 #include "Windows/SdlWindow.hpp"
-#include "Util/IP2Asn.hpp"
-#include "Util/LibCurl.hpp"
+#include "../../Daemon/Data/IP2Asn.hpp"
+#include "../../Daemon/Data/LibCurl.hpp"
 #include "Util/ProtocolDB.hpp"
 #include "Util/Settings.hpp"
 
@@ -96,11 +96,6 @@ void WMainWindow::Init(ImGuiID Main)
 	}
 	FlagAtlas.Load();
 	WProtocolDB::GetInstance().Init();
-
-#ifndef __EMSCRIPTEN__
-	WIP2Asn::GetInstance().Init();
-	spdlog::info("libcurl version: {}", WLibCurl::GetLoadedVersion());
-#endif
 	RegisterDialog.Init();
 	bInit = true;
 }
@@ -150,7 +145,10 @@ void WMainWindow::Draw()
 #ifndef __EMSCRIPTEN__
 			if (ImGui::MenuItem(TR("menu.update_ip2asn"), nullptr, false, bEnabled))
 			{
-				WIP2Asn::GetInstance().UpdateDatabase();
+				// todo: send request to server
+				// WIP2Asn::GetInstance().UpdateDatabase();
+				WIP2AsnUpdateRequest const Request{};
+				WClient::GetInstance().SendMessage(MT_UpdateIP2AsnDb, Request);
 			}
 #endif
 			if (ImGui::MenuItem(TR("settings.title"), nullptr, false))
@@ -201,9 +199,6 @@ void WMainWindow::Draw()
 	}
 	std::erase_if(StatWindows, [](auto const& StatWindow) { return !StatWindow->IsOpen(); });
 
-#ifndef __EMSCRIPTEN__
-	WIP2Asn::GetInstance().DrawDownloadProgressWindow();
-#endif
 	WClient::GetInstance().GetTrafficTree()->Draw(Main);
 	// draw last for the watermark
 	RegisterDialog.Draw();
