@@ -22,7 +22,7 @@
 
 static constexpr WSocketCookie kSyntheticCookieBase = static_cast<WSocketCookie>(1) << 63;
 /**
- * Both the client and the daemon need a tree of applications, processes, and sockets
+ * Both the client and the daemon need a tree of applications, processes, and sockets,
  * but the daemon also needs to maintain global traffic counters and mappings.
  * We split this into two trees. SystemItem is the root for the tree
  * that gets serialized and sent to the client. The structure of this tree is
@@ -70,7 +70,6 @@ class WSystemMap : public TSingleton<WSystemMap>, public IMemoryTrackable
 	void RegisterDefaultFilters();
 
 public:
-
 	WSystemMap();
 	~WSystemMap() override = default;
 
@@ -99,14 +98,13 @@ public:
 
 	void MarkSocketForRemoval(WSocketEvent const& Event)
 	{
-
 		if (auto const It = Sockets.find(Event.Cookie); It != Sockets.end())
 		{
 			if (Event.Data.SocketCloseEventData.LocalPort > 0)
 			{
 				// todo: iterating over all sockets is a bit dumb since this really
-				// only affects listen sockets that were opened before the daemon started
-				// but it's probably not too much of an issue
+				//       only affects listen sockets that were opened before the daemon started
+				//       but it's probably not too much of an issue
 				for (auto const& Sock : Sockets | std::views::values)
 				{
 					if (Sock->TrafficItem->SocketTuple.LocalEndpoint.Port == Event.Data.SocketCloseEventData.LocalPort)
@@ -144,9 +142,9 @@ public:
 
 	WMapUpdate& GetMapUpdate() { return MapUpdate; }
 
-	std::shared_ptr<ITrafficItem> GetTrafficItemById(WTrafficItemId ItemId)
+	std::shared_ptr<ITrafficItem> GetTrafficItemById(WTrafficItemId const ItemId)
 	{
-		auto It = TrafficItems.find(ItemId);
+		auto const It = TrafficItems.find(ItemId);
 		if (It != TrafficItems.end())
 		{
 			return It->second;
