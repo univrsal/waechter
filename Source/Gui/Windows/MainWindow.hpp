@@ -29,16 +29,16 @@ class WMainWindow
 
 	std::vector<std::unique_ptr<WStatWindow>> StatWindows{};
 
-	bool bInit{ false };
+	bool        bInit{ false };
 	static void DrawConnectionIndicator();
-	void Init(ImGuiID Main);
+	void        Init(ImGuiID Main);
 
 public:
 	static WMainWindow& Get();
-	void Draw();
+	void                Draw();
 
-	WNetworkGraphWindow& GetNetworkGraphWindow() { return NetworkGraphWindow; }
-
+	WNetworkGraphWindow&      GetNetworkGraphWindow() { return NetworkGraphWindow; }
+	WDetailsWindow&           GetDailyDetailsWindow() { return DetailsWindow; }
 	WConnectionHistoryWindow& GetConnectionHistoryWindow() { return ConnectionHistoryWindow; }
 	WMemoryUsageWindow&       GetMemoryUsageWindow() { return MemoryUsageWindow; }
 

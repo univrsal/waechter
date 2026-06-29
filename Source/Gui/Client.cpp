@@ -67,6 +67,9 @@ void WClient::OnDataReceived(WBuffer& Buf)
 		case MT_HistoryResponse:
 			WMainWindow::Get().HandleHistoryResponse(Buf);
 			break;
+		case MT_IPLookupResponse:
+			WMainWindow::Get().GetDailyDetailsWindow().HandleLookupResult(Buf);
+			break;
 		default:
 			spdlog::warn("Received unknown message type from server: {}", static_cast<int>(Type));
 			break;

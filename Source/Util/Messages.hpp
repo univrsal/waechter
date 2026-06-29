@@ -24,12 +24,15 @@ enum EMessageType : int8_t
 	MT_ConnectionHistory,
 	MT_ConnectionHistoryUpdate,
 	MT_MemoryStats,
+	MT_UpdateIP2AsnDb,
 	MT_ResolveRequest,
 	MT_ResolveResponse,
 	MT_StatsRequest,
 	MT_StatsResponse,
 	MT_HistoryRequest,
 	MT_HistoryResponse,
+	MT_IPLookupRequest,
+	MT_IPLookupResponse,
 
 	MT_Count
 };

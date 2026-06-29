@@ -10,6 +10,8 @@
 #include "Daemon.hpp"
 #include "DaemonConfig.hpp"
 #include "Data/ConnectionHistory.hpp"
+#include "Data/IP2Asn.hpp"
+#include "Data/LibCurl.hpp"
 #include "Data/SystemMap.hpp"
 #include "Db/DbManager.hpp"
 #include "Db/StatsManager.hpp"
@@ -58,7 +60,8 @@ int main()
 	WDbManager::GetInstance().Initialize(EDbBackend::SQLite);
 	WStatsManager::GetInstance().StartRequestProcessThread();
 	WResolver::GetInstance().Start();
-
+	WLibCurl::Init();
+	WIP2Asn::GetInstance().Init();
 	WDaemon::RegisterSignalHandlers();
 	WConnectionHistory::GetInstance().RegisterSignalHandlers();
 
@@ -67,6 +70,8 @@ int main()
 	spdlog::info("Waechter daemon stopped");
 	WIPLink::GetInstance().Deinit();
 	WResolver::GetInstance().Stop();
+	WIP2Asn::GetInstance().Stop();
+	WLibCurl::Deinit();
 	WStatsManager::GetInstance().StopRequestProcessThread();
 	return 0;
 }
