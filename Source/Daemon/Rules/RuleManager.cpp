@@ -6,15 +6,18 @@
 #include "RuleManager.hpp"
 
 #include "spdlog/spdlog.h"
-#include "Messages.hpp"
+#include "sqlpp11/sqlpp11.h"
 
 #include "Daemon.hpp"
+#include "Messages.hpp"
 #include "EBPF/EbpfData.hpp"
 #include "Data/RuleUpdate.hpp"
 #include "Data/SystemMap.hpp"
 #include "Data/NetworkEvents.hpp"
 #include "Data/ApplicationItem.hpp"
 #include "Data/ProcessItem.hpp"
+#include "Db/DbManager.hpp"
+#include "Db/Schema.hpp"
 #include "Net/IPLink.hpp"
 
 inline ESwitchState GetEffectiveSwitchState(
@@ -261,6 +264,40 @@ void WRuleManager::RemoveEmptyRules()
 	}
 }
 
+void WRuleManager::WriteAppRuleToDb(WRuleUpdate const& Update, std::shared_ptr<WApplicationItem> const& App)
+{
+	WDbManager::GetInstance().Run([&](auto& DbConn) {
+		constexpr Db::Schema::Rule Rule;
+		auto RuleResult = DbConn(sqlpp::select(Rule.ID).from(Rule).where(Rule.Target == App->ApplicationPath));
+
+		if (RuleResult.empty() && !Update.Rules.IsDefault()) // insert the rule if it's not empty
+		{
+			DbConn(sqlpp::insert_into(Rule).set(Rule.Target = App->ApplicationPath,
+				Rule.DownloadLimit = Update.Rules.DownloadLimit, Rule.UploadLimit = Update.Rules.UploadLimit,
+				Rule.DownloadSwitchState = static_cast<int>(Update.Rules.DownloadSwitch),
+				Rule.UploadSwitchState = static_cast<int>(Update.Rules.UploadSwitch)));
+		}
+		else
+		{
+			int64_t const RuleID = RuleResult.front().ID.value();
+
+			if (Update.Rules.IsDefault())
+			{
+				DbConn(sqlpp::remove_from(Rule).where(Rule.ID == RuleID));
+			}
+			else
+			{
+				DbConn(sqlpp::update(Rule)
+						.set(Rule.DownloadLimit = Update.Rules.DownloadLimit,
+							Rule.UploadLimit = Update.Rules.UploadLimit,
+							Rule.DownloadSwitchState = static_cast<int>(Update.Rules.DownloadSwitch),
+							Rule.UploadSwitchState = static_cast<int>(Update.Rules.UploadSwitch))
+						.where(Rule.ID == RuleID));
+			}
+		}
+	});
+}
+
 void WRuleManager::RegisterSignalHandlers()
 {
 	WNetworkEvents::GetInstance().OnSocketConnected.connect(
@@ -343,6 +380,7 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 					WIPLink::RemovePidDownloadMark(static_cast<uint32_t>(Pid));
 				}
 			}
+			WriteAppRuleToDb(Update, AppItemCast);
 			break;
 		}
 		case TI_Process:
