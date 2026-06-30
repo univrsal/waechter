@@ -17,7 +17,8 @@
 #include "Data/ProcessItem.hpp"
 #include "Net/IPLink.hpp"
 
-inline ESwitchState GetEffectiveSwitchState(ESwitchState ParentState, ESwitchState ItemState, ERuleType ItemRuleType)
+inline ESwitchState GetEffectiveSwitchState(
+	ESwitchState const ParentState, ESwitchState const ItemState, ERuleType const ItemRuleType)
 {
 	if (ItemRuleType == ERuleType::Implicit)
 	{
@@ -31,7 +32,7 @@ inline ESwitchState GetEffectiveSwitchState(ESwitchState ParentState, ESwitchSta
 	return ItemState;
 }
 
-inline uint32_t GetEffectiveMark(uint32_t ParentMark, uint32_t ItemMark, ERuleType ItemRuleType)
+inline uint32_t GetEffectiveMark(uint32_t const ParentMark, uint32_t const ItemMark, ERuleType const ItemRuleType)
 {
 	if (ItemRuleType == ERuleType::Implicit)
 	{
@@ -44,7 +45,8 @@ inline uint32_t GetEffectiveMark(uint32_t ParentMark, uint32_t ItemMark, ERuleTy
 	return ItemMark;
 }
 
-inline WBytesPerSecond GetEffectiveLimit(WBytesPerSecond ParentLimit, WBytesPerSecond ItemLimit, ERuleType ItemRuleType)
+inline WBytesPerSecond GetEffectiveLimit(
+	WBytesPerSecond const ParentLimit, WBytesPerSecond const ItemLimit, ERuleType const ItemRuleType)
 {
 	if (ItemRuleType == ERuleType::Implicit)
 	{
@@ -82,27 +84,27 @@ inline bool operator==(WTrafficItemRulesBase const& A, WTrafficItemRules const& 
 void WRuleManager::OnSocketConnected(WSocketCounter const* Socket)
 {
 	std::lock_guard Lock(Mutex);
-	auto            ProcessItemId = Socket->ParentProcess->TrafficItem->ItemId;
-	auto            AppItem = Socket->ParentProcess->ParentApp->TrafficItem->ItemId;
-	auto            ProcessPid = Socket->ParentProcess->TrafficItem->ProcessId;
+	auto const      ProcessItemId = Socket->ParentProcess->TrafficItem->ItemId;
+	auto const      AppItem = Socket->ParentProcess->ParentApp->TrafficItem->ItemId;
+	auto const      ProcessPid = Socket->ParentProcess->TrafficItem->ProcessId;
 
-	auto App = Socket->ParentProcess->ParentApp;
+	auto const App = Socket->ParentProcess->ParentApp;
 
-	auto AppRules = ApplicationRules.contains(AppItem) ? ApplicationRules[AppItem] : WTrafficItemRules{};
-	auto ProcRules = ProcessRules.contains(ProcessItemId) ? ProcessRules[ProcessItemId] : WTrafficItemRules{};
-	WTrafficItemRules EffectiveProcRules = GetEffectiveRules(AppRules, ProcRules);
+	auto const AppRules = ApplicationRules.contains(AppItem) ? ApplicationRules[AppItem] : WTrafficItemRules{};
+	auto const ProcRules = ProcessRules.contains(ProcessItemId) ? ProcessRules[ProcessItemId] : WTrafficItemRules{};
+	WTrafficItemRules const EffectiveProcRules = GetEffectiveRules(AppRules, ProcRules);
 
 	if (!EffectiveProcRules.IsDefault())
 	{
 		// todo: As of now sockets will always prefer the limits higher up in the hierarchy
 		//       i.e. a socket will never use its own limit if the process or application has one set
-		//       this ensures that the higher ranked limit is always enforced but it could technically mean
+		//       this ensures that the higher-ranked limit is always enforced but it could technically mean
 		//       that a lower ranked limit is exceeded. Ideally we'd set up a hierarchy of the different HTB limits
 		//       so that both limits are enforced properly.
 		UpdateRuleCache(App->TrafficItem);
 		SyncRules();
 
-		// Ensure PID mark is set for this process if there's a download limit
+		// Ensure the PID mark is set for this process if there's a download limit.
 		// This enables immediate rate limiting for new sockets from this process
 		if (EffectiveProcRules.DownloadMark != 0)
 		{
@@ -142,24 +144,24 @@ void WRuleManager::OnProcessRemoved(std::shared_ptr<WProcessCounter> const& Proc
 
 void WRuleManager::UpdateRuleCache(std::shared_ptr<ITrafficItem> const& AppItem)
 {
-	auto App = std::dynamic_pointer_cast<WApplicationItem>(AppItem);
+	auto const App = std::dynamic_pointer_cast<WApplicationItem>(AppItem);
 	if (!App)
 	{
 		return;
 	}
 
-	WTrafficItemRules AppRules =
+	WTrafficItemRules const AppRules =
 		ApplicationRules.contains(App->ItemId) ? ApplicationRules[App->ItemId] : WTrafficItemRules{};
 
 	for (auto const& Proc : App->Processes | std::views::values)
 	{
-		auto ProcRules = ProcessRules.contains(Proc->ItemId) ? ProcessRules[Proc->ItemId] : WTrafficItemRules{};
-		WTrafficItemRules EffectiveProcRules = GetEffectiveRules(AppRules, ProcRules);
+		auto const ProcRules = ProcessRules.contains(Proc->ItemId) ? ProcessRules[Proc->ItemId] : WTrafficItemRules{};
+		WTrafficItemRules const EffectiveProcRules = GetEffectiveRules(AppRules, ProcRules);
 
 		for (auto const& [Cookie, Sock] : Proc->Sockets)
 		{
-			auto SockRules = SocketRules.contains(Sock->ItemId) ? SocketRules[Sock->ItemId] : WTrafficItemRules{};
-			WTrafficItemRules EffectiveSockRules = GetEffectiveRules(EffectiveProcRules, SockRules);
+			auto const SockRules = SocketRules.contains(Sock->ItemId) ? SocketRules[Sock->ItemId] : WTrafficItemRules{};
+			WTrafficItemRules const EffectiveSockRules = GetEffectiveRules(EffectiveProcRules, SockRules);
 			SocketRules[Sock->ItemId] = SockRules;
 
 			if (auto SocketCookieRule = SocketCookieRules.find(Cookie); SocketCookieRule != SocketCookieRules.end())
@@ -185,7 +187,7 @@ void WRuleManager::UpdateRuleCache(std::shared_ptr<ITrafficItem> const& AppItem)
 
 void WRuleManager::SyncRules()
 {
-	auto EbpfData = WDaemon::GetInstance().GetEbpfObj().GetData();
+	auto const EbpfData = WDaemon::GetInstance().GetEbpfObj().GetData();
 	if (!EbpfData)
 	{
 		return;
@@ -282,8 +284,8 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 
 	std::lock_guard Lock(Mutex);
 
-	auto Item = WSystemMap::GetInstance().GetTrafficItemById(Update.TrafficItemId);
-	auto AppItem = WSystemMap::GetInstance().GetTrafficItemById(Update.ParentAppId);
+	auto const Item = WSystemMap::GetInstance().GetTrafficItemById(Update.TrafficItemId);
+	auto const AppItem = WSystemMap::GetInstance().GetTrafficItemById(Update.ParentAppId);
 
 	if (!Item || !AppItem)
 	{
@@ -347,7 +349,7 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 		{
 			ProcessRules[Update.TrafficItemId] = Update.Rules;
 			// Set PID download mark for this specific process
-			auto ProcessItem = std::dynamic_pointer_cast<WProcessItem>(Item);
+			auto const ProcessItem = std::dynamic_pointer_cast<WProcessItem>(Item);
 			if (ProcessItem && Update.Rules.DownloadMark != 0)
 			{
 				WIPLink::SetPidDownloadMark(static_cast<uint32_t>(ProcessItem->ProcessId), Update.Rules.DownloadMark);
