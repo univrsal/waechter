@@ -988,15 +988,7 @@ void WSystemMap::PushIncomingTraffic(WSocketEvent const& Event)
 	}
 	else
 	{
-		// We don't know about this socket yet, so we have to create it
-		// Lock.unlock();
-		// Socket = MapSocketFromTrafficEvent(Event);
-		// Lock.lock();
-
-		if (!Socket)
-		{
-			return;
-		}
+		return;
 	}
 
 	PushTrafficForSocket(Event, Socket);
