@@ -60,6 +60,22 @@ namespace Schema
       };
       using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::require_insert>;
     };
+    struct Port
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "Port";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T Port;
+            T& operator()() { return Port; }
+            const T& operator()() const { return Port; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::integer>;
+    };
     struct StartTime
     {
       struct _alias_t
@@ -130,6 +146,7 @@ namespace Schema
                ConnectionHistoryEntry_::ID,
                ConnectionHistoryEntry_::ItemID,
                ConnectionHistoryEntry_::RemoteHostID,
+               ConnectionHistoryEntry_::Port,
                ConnectionHistoryEntry_::StartTime,
                ConnectionHistoryEntry_::EndTime,
                ConnectionHistoryEntry_::DataIn,
