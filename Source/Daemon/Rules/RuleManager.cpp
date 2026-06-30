@@ -145,6 +145,47 @@ void WRuleManager::OnProcessRemoved(std::shared_ptr<WProcessCounter> const& Proc
 	WIPLink::RemovePidDownloadMark(static_cast<uint32_t>(ProcessItem->TrafficItem->ProcessId));
 }
 
+void WRuleManager::OnAppFirstTimeConnected(std::shared_ptr<WAppCounter> const& App)
+{
+	WDbManager::GetInstance().Run([&](auto& DbConn) {
+		constexpr Db::Schema::Rule Rule;
+		auto                       RuleResult =
+			DbConn(sqlpp::select(Rule.DownloadLimit, Rule.UploadLimit, Rule.DownloadSwitchState, Rule.UploadSwitchState)
+					.from(Rule)
+					.where(Rule.Target == App->TrafficItem->ApplicationPath));
+
+		if (!RuleResult.empty())
+		{
+			WTrafficItemRules Rules;
+			Rules.DownloadSwitch = static_cast<ESwitchState>(static_cast<int>(RuleResult.front().DownloadSwitchState));
+			Rules.UploadSwitch = static_cast<ESwitchState>(static_cast<int>(RuleResult.front().UploadSwitchState));
+			Rules.RuleType = ERuleType::Explicit;
+			Rules.DownloadLimit = RuleResult.front().DownloadLimit;
+			Rules.UploadLimit = RuleResult.front().UploadLimit;
+
+			if (Rules.DownloadLimit > 0)
+			{
+				auto const Limit =
+					WIPLink::GetInstance().GetDownloadLimit(App->TrafficItem->ItemId, Rules.DownloadLimit);
+				Rules.DownloadMark = Limit->Mark;
+			}
+			if (Rules.UploadLimit > 0)
+			{
+				auto const Limit = WIPLink::GetInstance().GetUploadLimit(App->TrafficItem->ItemId, Rules.UploadLimit);
+				Rules.UploadMark = Limit->Mark;
+			}
+
+			if (!Rules.IsDefault())
+			{
+				std::lock_guard Lock(Mutex);
+				ApplicationRules[App->TrafficItem->ItemId] = Rules;
+				UpdateRuleCache(App->TrafficItem);
+				SyncRules();
+			}
+		}
+	});
+}
+
 void WRuleManager::UpdateRuleCache(std::shared_ptr<ITrafficItem> const& AppItem)
 {
 	auto const App = std::dynamic_pointer_cast<WApplicationItem>(AppItem);
@@ -306,6 +347,8 @@ void WRuleManager::RegisterSignalHandlers()
 		[this](std::shared_ptr<WSocketCounter> const& Socket) { OnSocketRemoved(Socket); });
 	WNetworkEvents::GetInstance().OnProcessRemoved.connect(
 		[this](std::shared_ptr<WProcessCounter> const& Process) { OnProcessRemoved(Process); });
+	WNetworkEvents::GetInstance().OnAppFirstTimeConnected.connect(
+		[this](std::shared_ptr<WAppCounter> const& App) { OnAppFirstTimeConnected(App); });
 }
 
 void WRuleManager::HandleRuleChange(WBuffer const& Buf)

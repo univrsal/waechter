@@ -17,6 +17,7 @@
 struct WSocketCounter;
 struct WProcessCounter;
 struct WRuleUpdate;
+struct WAppCounter;
 class WApplicationItem;
 
 struct WSocketRules
@@ -40,6 +41,7 @@ class WRuleManager : public TSingleton<WRuleManager>, public IMemoryTrackable
 	void OnSocketConnected(WSocketCounter const* Socket);
 	void OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket);
 	void OnProcessRemoved(std::shared_ptr<WProcessCounter> const& ProcessItem);
+	void OnAppFirstTimeConnected(std::shared_ptr<WAppCounter> const& App);
 
 	void UpdateRuleCache(std::shared_ptr<ITrafficItem> const& AppItem);
 	void SyncRules();

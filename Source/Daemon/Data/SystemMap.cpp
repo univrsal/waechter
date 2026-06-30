@@ -922,6 +922,7 @@ std::shared_ptr<WAppCounter> WSystemMap::FindOrMapApplication(
 	SystemItem->Applications[Key] = AppItem;
 	Applications[Key] = App;
 	TrafficItems[AppItem->ItemId] = AppItem;
+	WNetworkEvents::GetInstance().OnAppFirstTimeConnected(App);
 	return App;
 }
 
