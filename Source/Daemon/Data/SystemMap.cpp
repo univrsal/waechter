@@ -773,8 +773,6 @@ void WSystemMap::MergeSyntheticSocket(std::shared_ptr<WSocketCounter> const& Soc
 		{
 			Socket->TrafficItem->SocketTuple.Protocol = CorrectProto;
 		}
-		Socket->TrafficItem->SocketType |= ExistingSocket->TrafficItem->SocketType;
-
 		// Remove the now-redundant synthetic entry
 		WNetworkEvents::GetInstance().OnSocketRemoved(ExistingSocket);
 		ParentProcess->TrafficItem->Sockets.erase(ExistingCookie);
