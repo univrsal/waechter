@@ -33,8 +33,8 @@
 #include "Util/Settings.hpp"
 
 // This isn't exactly efficient, we should probably have something
-// along the lines of ITrafficItem->Parent->RemoveChild or similar.
-void WTrafficTree::RemoveTrafficItem(WTrafficItemId TrafficItemId)
+// similar to ITrafficItem->Parent->RemoveChild or similar.
+void WTrafficTree::RemoveTrafficItem(WTrafficItemId const TrafficItemId)
 {
 	MarkedForRemovalItems.erase(TrafficItemId);
 	WClientRuleManager::GetInstance().RemoveRules(TrafficItemId);
@@ -44,7 +44,7 @@ void WTrafficTree::RemoveTrafficItem(WTrafficItemId TrafficItemId)
 		return;
 	}
 
-	for (auto& App : Root->Applications | std::views::values)
+	for (auto const& App : Root->Applications | std::views::values)
 	{
 		assert(App);
 		if (!App)
@@ -57,7 +57,7 @@ void WTrafficTree::RemoveTrafficItem(WTrafficItemId TrafficItemId)
 			return;
 		}
 
-		for (auto& Proc : App->Processes | std::views::values)
+		for (auto const& Proc : App->Processes | std::views::values)
 		{
 			if (Proc->RemoveChild(TrafficItemId))
 			{
@@ -67,15 +67,15 @@ void WTrafficTree::RemoveTrafficItem(WTrafficItemId TrafficItemId)
 	}
 }
 
-inline bool DrawIcon(
-	bool& bNodeOpen, std::string const& Name, std::shared_ptr<ITrafficItem> const& Item, ImGuiTreeNodeFlags NodeFlags)
+inline bool DrawIcon(bool& bNodeOpen, std::string const& Name, std::shared_ptr<ITrafficItem> const& Item,
+	ImGuiTreeNodeFlags const NodeFlags)
 {
 	// For applications with icons: use TreeNodeEx with pointer ID and empty label,
 	// then draw icon and text inline. This puts icon after the arrow.
 	bNodeOpen = ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<intptr_t>(Item->ItemId)), NodeFlags, "%s", "");
 
 	// Store the clicked state immediately after TreeNodeEx, before drawing icon/text
-	bool bClicked = ImGui::IsItemClicked();
+	bool const bClicked = ImGui::IsItemClicked();
 
 	// Reduce spacing between arrow and icon
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, ImGui::GetStyle().ItemSpacing.y));
@@ -109,16 +109,16 @@ inline bool DrawIcon(
 
 bool WTrafficTree::RenderItem(WRenderItemArgs const& Args)
 {
-	auto Type = Args.Item->GetType();
+	auto const Type = Args.Item->GetType();
 	auto NodeFlags = Args.NodeFlags;
 	NodeFlags |= ImGuiTreeNodeFlags_SpanFullWidth;
 	NodeFlags |= ImGuiTreeNodeFlags_OpenOnArrow;
 	ImGui::TableSetColumnIndex(0);
 
-	bool bRowSelected = SelectedItemId == Args.Item->ItemId;
+	bool const bRowSelected = SelectedItemId == Args.Item->ItemId;
 	if (bRowSelected)
 	{
-		ImU32 RowColor = ImGui::GetColorU32(ImGuiCol_Header);
+		ImU32 const RowColor = ImGui::GetColorU32(ImGuiCol_Header);
 		ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, RowColor);
 		ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, RowColor);
 	}
@@ -249,7 +249,7 @@ void SortNode(std::shared_ptr<WTreeNode> const& Node, ImS16 const Column, ImGuiS
 void WTrafficTree::SortTree(ImGuiTableSortSpecs const* Specs)
 {
 #if WDEBUG
-	WStopwatch SortTimer;
+	WStopwatch const SortTimer;
 #endif
 	if (Specs->SpecsCount == 0)
 	{
@@ -284,6 +284,7 @@ void WTrafficTree::SortTree(ImGuiTableSortSpecs const* Specs)
 				{
 					auto UDPNode = std::make_shared<WTreeNode>();
 					UDPNode->Item = Tuple;
+					UDPNode->TupleEndpoint = Tuple->Endpoint;
 					SocketNode->Children.push_back(UDPNode);
 				}
 			}
@@ -373,7 +374,7 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 
 			if (Item->GetType() == TI_Socket)
 			{
-				if (auto SocketItem = std::dynamic_pointer_cast<WSocketItem>(Item))
+				if (auto const SocketItem = std::dynamic_pointer_cast<WSocketItem>(Item))
 				{
 					SocketItem->ConnectionState = ESocketConnectionState::Closed;
 				}
@@ -416,7 +417,7 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 		auto ProcIt = App->Processes.find(Addition.ProcessId);
 		if (ProcIt == App->Processes.end())
 		{
-			auto NewProc = std::make_shared<WProcessItem>();
+			auto const NewProc = std::make_shared<WProcessItem>();
 			NewProc->ProcessId = Addition.ProcessId;
 			NewProc->ItemId = Addition.ProcessItemId;
 			App->Processes[Addition.ProcessId] = NewProc;
@@ -426,7 +427,7 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 
 		auto const& Proc = ProcIt->second;
 
-		auto NewSocket = std::make_shared<WSocketItem>();
+		auto const NewSocket = std::make_shared<WSocketItem>();
 		NewSocket->ItemId = Addition.ItemId;
 		NewSocket->SocketTuple = Addition.SocketTuple;
 		NewSocket->ConnectionState = Addition.ConnectionState;
@@ -452,7 +453,7 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 			continue;
 		}
 
-		if (auto SocketItem = std::dynamic_pointer_cast<WSocketItem>(SockIt->second))
+		if (auto const SocketItem = std::dynamic_pointer_cast<WSocketItem>(SockIt->second))
 		{
 			auto NewTuple = std::make_shared<WTupleItem>();
 			NewTuple->ItemId = Addition.ItemId;
@@ -461,18 +462,18 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 		}
 	}
 
-	for (auto const& StateChange : Updates.SocketStateChange)
+	for (auto const& [ItemId, NewState, SocketType, SocketTuple] : Updates.SocketStateChange)
 	{
-		auto It = TrafficItems.find(StateChange.ItemId);
+		auto It = TrafficItems.find(ItemId);
 		if (It != TrafficItems.end() && It->second->GetType() == TI_Socket)
 		{
-			if (auto SocketItem = std::dynamic_pointer_cast<WSocketItem>(It->second))
+			if (auto const SocketItem = std::dynamic_pointer_cast<WSocketItem>(It->second))
 			{
-				SocketItem->ConnectionState = StateChange.NewState;
-				SocketItem->SocketType = StateChange.SocketType;
-				if (StateChange.SocketTuple)
+				SocketItem->ConnectionState = NewState;
+				SocketItem->SocketType = SocketType;
+				if (SocketTuple)
 				{
-					SocketItem->SocketTuple = *StateChange.SocketTuple.get();
+					SocketItem->SocketTuple = *SocketTuple.get();
 				}
 			}
 		}
@@ -599,7 +600,7 @@ void WTrafficTree::Draw(ImGuiID MainID)
 	for (auto const& Filter : Root->Filters)
 	{
 		ImGui::TableNextRow();
-		ImGui::PushID(Filter->ItemId);
+		ImGui::PushID(static_cast<int>(Filter->ItemId));
 		WRenderItemArgs Args;
 		Args.Name = Filter->Name;
 		Args.Item = Filter;
@@ -628,8 +629,8 @@ void WTrafficTree::Draw(ImGuiID MainID)
 			std::string AppNameLower = AppItem->ApplicationName;
 			std::string SearchLower = SearchBuffer;
 
-			std::ranges::transform(AppNameLower, AppNameLower.begin(), ::tolower);
-			std::ranges::transform(SearchLower, SearchLower.begin(), ::tolower);
+			std::ranges::transform(AppNameLower, AppNameLower.begin(), tolower);
+			std::ranges::transform(SearchLower, SearchLower.begin(), tolower);
 
 			if (AppNameLower.find(SearchLower) == std::string::npos)
 			{
@@ -769,7 +770,7 @@ std::string const& WTrafficTree::ResolveAddress(WIPAddress const& Address)
 {
 	static std::string Empty{};
 	std::scoped_lock   Lock(DataMutex);
-	if (auto It = ResolvedAddresses.find(Address); It != ResolvedAddresses.end())
+	if (auto const It = ResolvedAddresses.find(Address); It != ResolvedAddresses.end())
 	{
 		return It->second;
 	}

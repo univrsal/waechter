@@ -203,6 +203,11 @@ void WWaechterEbpf::UpdateData()
 					ZoneScopedN("ProcessSocketEvent");
 					SocketInfo->ProcessSocketEvent(SocketEvent);
 
+					// If a synthetic-cookie socket entry (from AddExistingSockets) already
+					// exists for the same port and process, merge its correct /proc/net/
+					// endpoint into this real-cookie socket and remove the duplicate.
+					WSystemMap::GetInstance().MergeSyntheticSocket(SocketInfo);
+
 					// port_to_pid holds the master PID (from bind()), but the accepted socket
 					// fd is owned by a worker process. Delegate PID resolution to the IPLink
 					// process (which runs as root) via the same orphan-lookup path used for

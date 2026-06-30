@@ -728,6 +728,61 @@ std::shared_ptr<WSocketCounter> WSystemMap::FindOrMapSocket(
 	return Socket;
 }
 
+void WSystemMap::MergeSyntheticSocket(std::shared_ptr<WSocketCounter> const& Socket)
+{
+	auto const& Cookie = Socket->TrafficItem->Cookie;
+	// Only merge real eBPF cookies (skip synthetic and traffic-mapped cookies)
+	if ((Cookie & kSyntheticCookieBase) != 0)
+	{
+		return;
+	}
+	auto const& ParentProcess = Socket->ParentProcess;
+	auto const  Port = Socket->TrafficItem->SocketTuple.LocalEndpoint.Port;
+	if (Port == 0 || !ParentProcess)
+	{
+		return;
+	}
+
+	std::scoped_lock Lock(DataMutex);
+	// Find a synthetic entry (AddExistingSockets) with the same port and parent process
+	for (auto const& [ExistingCookie, ExistingSocket] : Sockets)
+	{
+		if ((ExistingCookie & kSyntheticCookieBase) == 0)
+		{
+			continue;
+		}
+		if (ExistingSocket->ParentProcess != ParentProcess)
+		{
+			continue;
+		}
+		if (ExistingSocket->TrafficItem->SocketTuple.LocalEndpoint.Port != Port)
+		{
+			continue;
+		}
+		// Found a synthetic duplicate - keep the correct endpoint from /proc/net/
+		// and re-key the entry to the real eBPF cookie.
+		auto const CorrectAddr = ExistingSocket->TrafficItem->SocketTuple.LocalEndpoint.Address;
+		auto const CorrectProto = ExistingSocket->TrafficItem->SocketTuple.Protocol;
+
+		spdlog::debug("Merging synthetic socket cookie {:#x} ({}:{}) into real cookie {:#x}", ExistingCookie,
+			CorrectAddr.ToString(), Port, Cookie);
+
+		// Transfer the correct endpoint from the synthetic entry to the real one
+		Socket->TrafficItem->SocketTuple.LocalEndpoint.Address = CorrectAddr;
+		if (Socket->TrafficItem->SocketTuple.Protocol == EProtocol::Unknown)
+		{
+			Socket->TrafficItem->SocketTuple.Protocol = CorrectProto;
+		}
+		// Remove the now-redundant synthetic entry
+		WNetworkEvents::GetInstance().OnSocketRemoved(ExistingSocket);
+		ParentProcess->TrafficItem->Sockets.erase(ExistingCookie);
+		TrafficItems.erase(ExistingSocket->TrafficItem->ItemId);
+		Sockets.erase(ExistingCookie);
+		MapUpdate.MarkItemForRemoval(ExistingSocket->TrafficItem->ItemId);
+		break;
+	}
+}
+
 std::shared_ptr<WProcessCounter> WSystemMap::FindOrMapProcess(
 	WProcessId const PID, std::shared_ptr<WAppCounter> const& ParentApp)
 {
@@ -931,15 +986,7 @@ void WSystemMap::PushIncomingTraffic(WSocketEvent const& Event)
 	}
 	else
 	{
-		// We don't know about this socket yet, so we have to create it
-		// Lock.unlock();
-		// Socket = MapSocketFromTrafficEvent(Event);
-		// Lock.lock();
-
-		if (!Socket)
-		{
-			return;
-		}
+		return;
 	}
 
 	PushTrafficForSocket(Event, Socket);
@@ -1246,7 +1293,7 @@ void WSystemMap::Cleanup()
 		auto DiffProcessCount = OldProcessCount - Processes.size();
 		auto DiffTrafficItemCount = OldTrafficItemCount - TrafficItems.size();
 
-		spdlog::info("Cleanup removed {} sockets({} -> {}), {} processes ({} -> {}), and {} traffic items ({} -> {}).",
+		spdlog::debug("Cleanup removed {} sockets({} -> {}), {} processes ({} -> {}), and {} traffic items ({} -> {}).",
 			DiffSocketCount, OldSocketCount, Sockets.size(), DiffProcessCount, OldProcessCount, Processes.size(),
 			DiffTrafficItemCount, OldTrafficItemCount, TrafficItems.size());
 	}

@@ -79,7 +79,14 @@ void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 	}
 	else if (Event.EventType == NE_SocketBind_4)
 	{
-		TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv4Uint32(Event.Data.SocketBindEventData.Addr4);
+		// Only apply the address if it is non-zero. For implicit binds via
+		// sendmsg/recvmsg, eBPF may report inet_saddr=0 (INADDR_ANY) and we
+		// should not overwrite the correct address already set by
+		// AddExistingSockets (from /proc/net/) or the LSM bind hook.
+		if (Event.Data.SocketBindEventData.Addr4 != 0)
+		{
+			TrafficItem->SocketTuple.LocalEndpoint.Address.FromIPv4Uint32(Event.Data.SocketBindEventData.Addr4);
+		}
 		TrafficItem->SocketTuple.LocalEndpoint.Port = static_cast<uint16_t>(Event.Data.SocketBindEventData.UserPort);
 		TrafficItem->ConnectionState = ESocketConnectionState::Connected;
 		if (Event.Data.SocketBindEventData.bImplicitBind)
