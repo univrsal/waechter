@@ -156,6 +156,7 @@ void WRuleManager::OnAppFirstTimeConnected(std::shared_ptr<WAppCounter> const& A
 
 		if (!RuleResult.empty())
 		{
+			spdlog::debug("Loading rule for {}", App->TrafficItem->ApplicationPath);
 			WTrafficItemRules Rules;
 			Rules.DownloadSwitch = static_cast<ESwitchState>(static_cast<int>(RuleResult.front().DownloadSwitchState));
 			Rules.UploadSwitch = static_cast<ESwitchState>(static_cast<int>(RuleResult.front().UploadSwitchState));
