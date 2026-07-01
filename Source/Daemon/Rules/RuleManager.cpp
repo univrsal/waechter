@@ -339,6 +339,25 @@ void WRuleManager::WriteAppRuleToDb(WRuleUpdate const& Update, std::shared_ptr<W
 	});
 }
 
+void WRuleManager::SendCurrentRulesToClient(std::shared_ptr<WDaemonClient> const& Client)
+{
+	std::scoped_lock Lock(Mutex);
+
+	auto SendMap = [Client](std::unordered_map<WTrafficItemId, WTrafficItemRules> const& Map) {
+		for (auto const& [TrafficItemId, Rules] : Map)
+		{
+			WRuleUpdate Update{};
+			Update.TrafficItemId = TrafficItemId;
+			Update.ParentAppId = 0; // unused
+			Update.Rules = Rules;
+			Client->SendMessage(MT_RuleUpdate, Update);
+		}
+	};
+	SendMap(ApplicationRules);
+	SendMap(ProcessRules);
+	SendMap(SocketRules);
+}
+
 void WRuleManager::RegisterSignalHandlers()
 {
 	WNetworkEvents::GetInstance().OnSocketConnected.connect(
@@ -351,7 +370,7 @@ void WRuleManager::RegisterSignalHandlers()
 		[this](std::shared_ptr<WAppCounter> const& App) { OnAppFirstTimeConnected(App); });
 }
 
-void WRuleManager::HandleRuleChange(WBuffer const& Buf)
+void WRuleManager::HandleRuleChange(WBuffer const& Buf, WDaemonClient const* Sender)
 {
 	WRuleUpdate Update{};
 	if (!DeserializeMessage(Buf, Update))
@@ -453,6 +472,8 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf)
 	spdlog::debug("{} app rules, {} proc rules, {} sock rules, {} sock cookie rules in cache", ApplicationRules.size(),
 		ProcessRules.size(), SocketRules.size(), SocketCookieRules.size());
 	WIPLink::GetInstance().PrintStats();
+
+	WDaemon::GetInstance().GetDaemonSocket()->BroadcastMessage(MT_RuleUpdate, Update, Sender);
 }
 
 WMemoryStat WRuleManager::GetMemoryUsage()

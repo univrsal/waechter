@@ -80,6 +80,7 @@ public:
 	std::shared_ptr<WSocketCounter> MapSocket(WSocketEvent const& Event, WProcessId PID, bool bSilentFail = false);
 
 	void AddExistingSockets();
+	void ProcessInitialApps();
 
 	void ReparentOrphanedSocket(WEndpoint const& Endpoint, WProcessId NewParentProcess);
 

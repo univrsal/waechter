@@ -19,6 +19,7 @@ struct WProcessCounter;
 struct WRuleUpdate;
 struct WAppCounter;
 class WApplicationItem;
+class WDaemonClient;
 
 struct WSocketRules
 {
@@ -49,8 +50,10 @@ class WRuleManager : public TSingleton<WRuleManager>, public IMemoryTrackable
 	static void WriteAppRuleToDb(WRuleUpdate const& Update, std::shared_ptr<WApplicationItem> const& App);
 
 public:
+	void SendCurrentRulesToClient(std::shared_ptr<WDaemonClient> const& Client);
+
 	void RegisterSignalHandlers();
-	void HandleRuleChange(WBuffer const& Buf);
+	void HandleRuleChange(WBuffer const& Buf, WDaemonClient const* Sender);
 
 	WMemoryStat GetMemoryUsage() override;
 };

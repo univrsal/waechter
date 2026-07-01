@@ -8,6 +8,7 @@
 #include "spdlog/spdlog.h"
 
 #include "AppIconAtlas.hpp"
+#include "ClientRuleManager.hpp"
 #include "Messages.hpp"
 #if !_WIN32 && !__EMSCRIPTEN__
 	#include "Communication/UnixSocketSource.hpp"
@@ -69,6 +70,9 @@ void WClient::OnDataReceived(WBuffer& Buf)
 			break;
 		case MT_IPLookupResponse:
 			WMainWindow::Get().GetDailyDetailsWindow().HandleLookupResult(Buf);
+			break;
+		case MT_RuleUpdate:
+			WClientRuleManager::GetInstance().HandleRuleUpdate(Buf);
 			break;
 		default:
 			spdlog::warn("Received unknown message type from server: {}", static_cast<int>(Type));

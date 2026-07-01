@@ -28,8 +28,10 @@ public:
 	bool HasRules(WTrafficItemId TrafficItemId)
 	{
 		std::lock_guard lock(Mutex);
-		return Rules.find(TrafficItemId) != Rules.end();
+		return Rules.contains(TrafficItemId);
 	}
+
+	void HandleRuleUpdate(WBuffer const& Buf);
 
 	static void SendRuleStateUpdate(
 		WTrafficItemId TrafficItemId, WTrafficItemId ParentApp, WTrafficItemRules const& ChangedRule);

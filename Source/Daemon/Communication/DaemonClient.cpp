@@ -27,7 +27,7 @@ void WDaemonClient::OnDataReceived(WBuffer& RecvBuf)
 	switch (Type)
 	{
 		case MT_RuleUpdate:
-			WRuleManager::GetInstance().HandleRuleChange(RecvBuf);
+			WRuleManager::GetInstance().HandleRuleChange(RecvBuf, this);
 			break;
 		case MT_ResolveRequest:
 			HandleResolveRequest(RecvBuf);

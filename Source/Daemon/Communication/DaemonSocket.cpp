@@ -36,6 +36,7 @@
 #include "Data/Protocol.hpp"
 #include "Data/SystemMap.hpp"
 #include "Net/Resolver.hpp"
+#include "Rules/RuleManager.hpp"
 
 static WSec GetSystemBootTime()
 {
@@ -58,6 +59,8 @@ static void SendInitialDataToClient(std::shared_ptr<WDaemonClient> const& Client
 	}
 
 	Client->SendMessage(MT_MemoryStats, WMemoryUsage::GetMemoryStats());
+
+	WRuleManager::GetInstance().SendCurrentRulesToClient(Client);
 
 	// Send app icon atlas
 	auto              ActiveApps = SystemMap.GetActiveApplicationPaths();
