@@ -68,7 +68,7 @@ void WStatsManager::UpdateAppStats(
 	{
 		// We push empty traffic sometimes to update the average to 0, but that is irrelevant for
 		// the stats
-		spdlog::debug("WStatsManager::UpdateAppStats(): Empty", AppId);
+		spdlog::trace("WStatsManager::UpdateAppStats(): Empty", AppId);
 		return;
 	}
 
@@ -97,7 +97,7 @@ void WStatsManager::UpdateAppStats(
 		NewAppStats.Traffic[RemoteHost] = WTrafficStats{ In, Out };
 		CurrentSnapshot.Apps[AppId] = NewAppStats;
 	}
-	spdlog::debug("WStatsManager::UpdateAppStats(): AppId={}, ApplicationPath={}, RemoteHost={}, In={}, Out={}", AppId,
+	spdlog::trace("WStatsManager::UpdateAppStats(): AppId={}, ApplicationPath={}, RemoteHost={}, In={}, Out={}", AppId,
 		ApplicationPath, RemoteHost.ToString(), In, Out);
 }
 

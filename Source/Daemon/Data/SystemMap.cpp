@@ -641,7 +641,7 @@ std::shared_ptr<WSocketCounter> WSystemMap::MapSocketFromTrafficEvent(WSocketEve
 	auto const PID = SocketStateParser.GetEndpointPID(LocalEndpoint);
 	if (PID <= 0)
 	{
-		spdlog::debug("Failed to map unknown socket {} from traffic: no PID found for local endpoint {}", Event.Cookie,
+		spdlog::trace("Failed to map unknown socket {} from traffic: no PID found for local endpoint {}", Event.Cookie,
 			LocalEndpoint.ToString());
 		return {};
 	}
