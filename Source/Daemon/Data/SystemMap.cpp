@@ -491,7 +491,7 @@ void WSystemMap::ReparentOrphanedSocket(WEndpoint const& Endpoint, WProcessId Ne
 		It->second->ParentProcess = NewProcess;
 		NewProcess->TrafficItem->Sockets[It->second->TrafficItem->ItemId] = It->second->TrafficItem;
 		Sockets[It->second->TrafficItem->Cookie] = It->second;
-		spdlog::info("Reparented {} (type {}) to {}", It->second->TrafficItem->SocketTuple.ToString(),
+		spdlog::debug("Reparented {} (type {}) to {}", It->second->TrafficItem->SocketTuple.ToString(),
 			It->second->TrafficItem->SocketType, App->TrafficItem->ApplicationName);
 
 		OrphanedSockets.erase(It);
@@ -865,8 +865,22 @@ std::shared_ptr<WAppCounter> WSystemMap::FindOrMapApplication(
 			auto const ExistingKey = It->first;
 			auto const ExistingApp = It->second;
 			auto const& ExistingPath = ExistingApp->TrafficItem->ApplicationPath;
+			if (ExistingKey == Key)
+			{
+				spdlog::info(
+					"Found existing application key '{}' for new connection, reusing existing app counter", Key);
+				return It->second;
+			}
 			if (!ExistingPath.empty() && ExistingPath.front() == '/')
 			{
+				// If the existing entry already has a resolved path, still try to match by
+				// basename so we don't create duplicate entries for the same application
+				// (e.g. steam spawning multiple subprocesses with different ExePaths).
+				auto const ExistingBasename = GetBasename(ExistingPath);
+				if (!ExistingBasename.empty() && (ExistingBasename == KeyBasename || ExistingBasename == AppAlias))
+				{
+					return ExistingApp;
+				}
 				continue;
 			}
 
