@@ -449,6 +449,19 @@ void WSystemMap::AddExistingSockets()
 	spdlog::info("Added {} existing listen sockets.", ListeningSockets.size());
 }
 
+void WSystemMap::ProcessInitialApps()
+{
+	// When we map existing sockets, we create a bunch of applications,
+	// but at that point in time firing the event makes no sense because
+	// the rule manager and the database aren't ready, yet
+	// so we just fire the event for all existing applications after the rule manager and database are initialized
+	std::scoped_lock Lock(DataMutex);
+	for (auto const& App : Applications | std::views::values)
+	{
+		WNetworkEvents::GetInstance().OnAppFirstTimeConnected(App);
+	}
+}
+
 void WSystemMap::ReparentOrphanedSocket(WEndpoint const& Endpoint, WProcessId NewParentProcess)
 {
 	std::scoped_lock Lock(DataMutex);
@@ -470,6 +483,7 @@ void WSystemMap::ReparentOrphanedSocket(WEndpoint const& Endpoint, WProcessId Ne
 			Applications[AppKey] = App;
 			SystemItem->Applications[AppKey] = App->TrafficItem;
 			TrafficItems[App->TrafficItem->ItemId] = App->TrafficItem;
+			WNetworkEvents::GetInstance().OnAppFirstTimeConnected(App);
 		}
 
 		auto const bExistingProcess = Processes.contains(NewParentProcess);
@@ -477,7 +491,7 @@ void WSystemMap::ReparentOrphanedSocket(WEndpoint const& Endpoint, WProcessId Ne
 		It->second->ParentProcess = NewProcess;
 		NewProcess->TrafficItem->Sockets[It->second->TrafficItem->ItemId] = It->second->TrafficItem;
 		Sockets[It->second->TrafficItem->Cookie] = It->second;
-		spdlog::info("Reparented {} (type {}) to {}", It->second->TrafficItem->SocketTuple.ToString(),
+		spdlog::debug("Reparented {} (type {}) to {}", It->second->TrafficItem->SocketTuple.ToString(),
 			It->second->TrafficItem->SocketType, App->TrafficItem->ApplicationName);
 
 		OrphanedSockets.erase(It);
@@ -641,7 +655,7 @@ std::shared_ptr<WSocketCounter> WSystemMap::MapSocketFromTrafficEvent(WSocketEve
 	auto const PID = SocketStateParser.GetEndpointPID(LocalEndpoint);
 	if (PID <= 0)
 	{
-		spdlog::debug("Failed to map unknown socket {} from traffic: no PID found for local endpoint {}", Event.Cookie,
+		spdlog::trace("Failed to map unknown socket {} from traffic: no PID found for local endpoint {}", Event.Cookie,
 			LocalEndpoint.ToString());
 		return {};
 	}
@@ -851,8 +865,22 @@ std::shared_ptr<WAppCounter> WSystemMap::FindOrMapApplication(
 			auto const ExistingKey = It->first;
 			auto const ExistingApp = It->second;
 			auto const& ExistingPath = ExistingApp->TrafficItem->ApplicationPath;
+			if (ExistingKey == Key)
+			{
+				spdlog::info(
+					"Found existing application key '{}' for new connection, reusing existing app counter", Key);
+				return It->second;
+			}
 			if (!ExistingPath.empty() && ExistingPath.front() == '/')
 			{
+				// If the existing entry already has a resolved path, still try to match by
+				// basename so we don't create duplicate entries for the same application
+				// (e.g. steam spawning multiple subprocesses with different ExePaths).
+				auto const ExistingBasename = GetBasename(ExistingPath);
+				if (!ExistingBasename.empty() && (ExistingBasename == KeyBasename || ExistingBasename == AppAlias))
+				{
+					return ExistingApp;
+				}
 				continue;
 			}
 
@@ -883,6 +911,7 @@ std::shared_ptr<WAppCounter> WSystemMap::FindOrMapApplication(
 			}
 			SystemItem->Applications[Key] = ExistingApp->TrafficItem;
 			Applications[Key] = ExistingApp;
+			WNetworkEvents::GetInstance().OnAppFirstTimeConnected(ExistingApp);
 			return ExistingApp;
 		}
 	}
@@ -922,6 +951,7 @@ std::shared_ptr<WAppCounter> WSystemMap::FindOrMapApplication(
 	SystemItem->Applications[Key] = AppItem;
 	Applications[Key] = App;
 	TrafficItems[AppItem->ItemId] = AppItem;
+	WNetworkEvents::GetInstance().OnAppFirstTimeConnected(App);
 	return App;
 }
 

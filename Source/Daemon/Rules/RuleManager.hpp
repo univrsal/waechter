@@ -16,6 +16,10 @@
 
 struct WSocketCounter;
 struct WProcessCounter;
+struct WRuleUpdate;
+struct WAppCounter;
+class WApplicationItem;
+class WDaemonClient;
 
 struct WSocketRules
 {
@@ -38,16 +42,18 @@ class WRuleManager : public TSingleton<WRuleManager>, public IMemoryTrackable
 	void OnSocketConnected(WSocketCounter const* Socket);
 	void OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket);
 	void OnProcessRemoved(std::shared_ptr<WProcessCounter> const& ProcessItem);
+	void OnAppFirstTimeConnected(std::shared_ptr<WAppCounter> const& App);
 
 	void UpdateRuleCache(std::shared_ptr<ITrafficItem> const& AppItem);
-
 	void SyncRules();
-
 	void RemoveEmptyRules();
+	static void WriteAppRuleToDb(WRuleUpdate const& Update, std::shared_ptr<WApplicationItem> const& App);
 
 public:
+	void SendCurrentRulesToClient(std::shared_ptr<WDaemonClient> const& Client);
+
 	void RegisterSignalHandlers();
-	void HandleRuleChange(WBuffer const& Buf);
+	void HandleRuleChange(WBuffer const& Buf, WDaemonClient const* Sender);
 
 	WMemoryStat GetMemoryUsage() override;
 };

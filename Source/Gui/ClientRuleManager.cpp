@@ -7,6 +7,18 @@
 
 #include "Data/RuleUpdate.hpp"
 
+void WClientRuleManager::HandleRuleUpdate(WBuffer const& Buf)
+{
+	WRuleUpdate Update{};
+	if (WClient::ReadMessage(Buf, Update) == false)
+	{
+		spdlog::error("Failed to read rule update");
+		return;
+	}
+	std::scoped_lock Lock(Mutex);
+	Rules[Update.TrafficItemId] = Update.Rules;
+}
+
 void WClientRuleManager::SendRuleStateUpdate(
 	WTrafficItemId TrafficItemId, WTrafficItemId ParentApp, WTrafficItemRules const& ChangedRule)
 {

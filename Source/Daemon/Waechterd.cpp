@@ -9,7 +9,6 @@
 
 #include "Daemon.hpp"
 #include "DaemonConfig.hpp"
-#include "Data/ConnectionHistory.hpp"
 #include "Data/IP2Asn.hpp"
 #include "Data/LibCurl.hpp"
 #include "Data/SystemMap.hpp"
@@ -19,7 +18,7 @@
 #include "Net/Resolver.hpp"
 #include "Net/IPLink.hpp"
 
-int main()
+int main(int Argc, char* Argv[])
 {
 	if (std::getenv("INVOCATION_ID") != nullptr)
 	{
@@ -31,6 +30,11 @@ int main()
 	{
 		spdlog::critical("Waechter daemon requires root");
 		return -1;
+	}
+
+	if (Argc > 1 && Argv[1] == std::string("--debug"))
+	{
+		spdlog::set_level(spdlog::level::debug);
 	}
 
 	libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
@@ -63,7 +67,7 @@ int main()
 	WLibCurl::Init();
 	WIP2Asn::GetInstance().Init();
 	WDaemon::RegisterSignalHandlers();
-	WConnectionHistory::GetInstance().RegisterSignalHandlers();
+	WSystemMap::GetInstance().ProcessInitialApps();
 
 	spdlog::info("Ebpf programs loaded and attached");
 	WDaemon::GetInstance().RunLoop();

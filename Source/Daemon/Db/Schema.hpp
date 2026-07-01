@@ -271,6 +271,127 @@ namespace Schema
       };
     };
   };
+  namespace Rule_
+  {
+    struct ID
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "ID";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T ID;
+            T& operator()() { return ID; }
+            const T& operator()() const { return ID; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::can_be_null>;
+    };
+    struct Target
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "Target";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T Target;
+            T& operator()() { return Target; }
+            const T& operator()() const { return Target; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::text, sqlpp::tag::require_insert>;
+    };
+    struct UploadLimit
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "UploadLimit";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T UploadLimit;
+            T& operator()() { return UploadLimit; }
+            const T& operator()() const { return UploadLimit; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::integer>;
+    };
+    struct DownloadLimit
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "DownloadLimit";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T DownloadLimit;
+            T& operator()() { return DownloadLimit; }
+            const T& operator()() const { return DownloadLimit; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::integer>;
+    };
+    struct UploadSwitchState
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "UploadSwitchState";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T UploadSwitchState;
+            T& operator()() { return UploadSwitchState; }
+            const T& operator()() const { return UploadSwitchState; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::integer>;
+    };
+    struct DownloadSwitchState
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "DownloadSwitchState";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T DownloadSwitchState;
+            T& operator()() { return DownloadSwitchState; }
+            const T& operator()() const { return DownloadSwitchState; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::integer>;
+    };
+  } // namespace Rule_
+
+  struct Rule: sqlpp::table_t<Rule,
+               Rule_::ID,
+               Rule_::Target,
+               Rule_::UploadLimit,
+               Rule_::DownloadLimit,
+               Rule_::UploadSwitchState,
+               Rule_::DownloadSwitchState>
+  {
+    struct _alias_t
+    {
+      static constexpr const char _literal[] =  "Rule";
+      using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+      template<typename T>
+      struct _member_t
+      {
+        T Rule;
+        T& operator()() { return Rule; }
+        const T& operator()() const { return Rule; }
+      };
+    };
+  };
   namespace TrafficEvent_
   {
     struct ID

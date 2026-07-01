@@ -58,4 +58,23 @@ public:
 	void BroadcastTrafficUpdate();
 	void BroadcastConnectionHistoryUpdate(WConnectionHistoryUpdate const& Update);
 	void BroadcastAtlasUpdate();
+
+	template <typename T>
+	void BroadcastMessage(EMessageType Type, T const& Message, WDaemonClient const* Except = nullptr)
+	{
+		std::string const& Msg = WDaemonClient::MakeMessage(Type, Message);
+		std::lock_guard    Lock(ClientsMutex);
+		for (auto const& Client : Clients)
+		{
+			if (Client.get() == Except)
+			{
+				continue;
+			}
+			if (Client->SendFramedData(Msg) < 0)
+			{
+				spdlog::error("Failed to send message to client: {}", WErrnoUtil::StrError());
+			}
+			Client->GetSocket()->Close();
+		}
+	}
 };
