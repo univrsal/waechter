@@ -449,6 +449,19 @@ void WSystemMap::AddExistingSockets()
 	spdlog::info("Added {} existing listen sockets.", ListeningSockets.size());
 }
 
+void WSystemMap::ProcessInitialApps()
+{
+	// When we map existing sockets, we create a bunch of applications,
+	// but at that point in time firing the event makes no sense because
+	// the rule manager and the database aren't ready, yet
+	// so we just fire the event for all existing applications after the rule manager and database are initialized
+	std::scoped_lock Lock(DataMutex);
+	for (auto const& App : Applications | std::views::values)
+	{
+		WNetworkEvents::GetInstance().OnAppFirstTimeConnected(App);
+	}
+}
+
 void WSystemMap::ReparentOrphanedSocket(WEndpoint const& Endpoint, WProcessId NewParentProcess)
 {
 	std::scoped_lock Lock(DataMutex);
@@ -470,6 +483,7 @@ void WSystemMap::ReparentOrphanedSocket(WEndpoint const& Endpoint, WProcessId Ne
 			Applications[AppKey] = App;
 			SystemItem->Applications[AppKey] = App->TrafficItem;
 			TrafficItems[App->TrafficItem->ItemId] = App->TrafficItem;
+			WNetworkEvents::GetInstance().OnAppFirstTimeConnected(App);
 		}
 
 		auto const bExistingProcess = Processes.contains(NewParentProcess);
@@ -883,6 +897,7 @@ std::shared_ptr<WAppCounter> WSystemMap::FindOrMapApplication(
 			}
 			SystemItem->Applications[Key] = ExistingApp->TrafficItem;
 			Applications[Key] = ExistingApp;
+			WNetworkEvents::GetInstance().OnAppFirstTimeConnected(ExistingApp);
 			return ExistingApp;
 		}
 	}

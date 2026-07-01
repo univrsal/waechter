@@ -9,7 +9,6 @@
 
 #include "Daemon.hpp"
 #include "DaemonConfig.hpp"
-#include "Data/ConnectionHistory.hpp"
 #include "Data/IP2Asn.hpp"
 #include "Data/LibCurl.hpp"
 #include "Data/SystemMap.hpp"
