@@ -19,7 +19,7 @@
 #include "Net/Resolver.hpp"
 #include "Net/IPLink.hpp"
 
-int main()
+int main(int Argc, char* Argv[])
 {
 	if (std::getenv("INVOCATION_ID") != nullptr)
 	{
@@ -31,6 +31,11 @@ int main()
 	{
 		spdlog::critical("Waechter daemon requires root");
 		return -1;
+	}
+
+	if (Argc > 1 && Argv[1] == std::string("--debug"))
+	{
+		spdlog::set_level(spdlog::level::debug);
 	}
 
 	libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
