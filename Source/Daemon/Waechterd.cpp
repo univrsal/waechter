@@ -67,7 +67,7 @@ int main(int Argc, char* Argv[])
 	WLibCurl::Init();
 	WIP2Asn::GetInstance().Init();
 	WDaemon::RegisterSignalHandlers();
-	WConnectionHistory::GetInstance().RegisterSignalHandlers();
+	WSystemMap::GetInstance().ProcessInitialApps();
 
 	spdlog::info("Ebpf programs loaded and attached");
 	WDaemon::GetInstance().RunLoop();
