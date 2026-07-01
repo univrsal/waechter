@@ -12,6 +12,7 @@
 #include "ClientRuleManager.hpp"
 #include "EBPFCommon.h"
 #include "ImGuiUtil.hpp"
+#include "Windows/SdlWindow.hpp"
 
 static constexpr ImVec2 GRuleIconSize{ 16, 16 };
 static constexpr float  GIconSpacing = 4.0f;
@@ -42,8 +43,8 @@ namespace
 		ESwitchState& SwitchState = bIsUpload ? Rule.UploadSwitch : Rule.DownloadSwitch;
 
 		auto DrawOption = [&](char const* IconName, char const* Tooltip, ESwitchState SetState) {
-			if (WIconAtlas::GetInstance().DrawIconButton(
-					std::format("{}_{}", IconName, Item->ItemId).c_str(), IconName, GRuleIconSize))
+			if (WIconAtlas::GetInstance().DrawIconButton(std::format("{}_{}", IconName, Item->ItemId).c_str(), IconName,
+					WSdlWindow::ScaleSize(GRuleIconSize)))
 			{
 				Rule.RuleType = ERuleType::Explicit;
 				WTrafficItemId ParentApp = 0;
@@ -129,10 +130,10 @@ static bool DrawLimitIconButton(WTrafficItemId Id, WBytesPerSecond Limit, char c
 	if (Limit > 0)
 	{
 		return WIconAtlas::GetInstance().DrawIconButton(
-			std::format("{}_{}", Id, IconName).c_str(), IconName, GRuleIconSize, true);
+			std::format("{}_{}", Id, IconName).c_str(), IconName, WSdlWindow::ScaleSize(GRuleIconSize), true);
 	}
-	return WIconAtlas::GetInstance().DrawIconButton(
-		std::format("{}_{}_placeholder", Id, IconName).c_str(), "placeholder", GRuleIconSize, true);
+	return WIconAtlas::GetInstance().DrawIconButton(std::format("{}_{}_placeholder", Id, IconName).c_str(),
+		"placeholder", WSdlWindow::ScaleSize(GRuleIconSize), true);
 }
 
 static bool DrawBlockIconButton(
@@ -141,15 +142,15 @@ static bool DrawBlockIconButton(
 	if (State == SS_Allow)
 	{
 		return WIconAtlas::GetInstance().DrawIconButton(
-			std::format("{}_{}", Id, IconName1).c_str(), IconName1, GRuleIconSize, true);
+			std::format("{}_{}", Id, IconName1).c_str(), IconName1, WSdlWindow::ScaleSize(GRuleIconSize), true);
 	}
 	if (State == SS_Block)
 	{
 		return WIconAtlas::GetInstance().DrawIconButton(
-			std::format("{}_{}", Id, IconName2).c_str(), IconName2, GRuleIconSize, true);
+			std::format("{}_{}", Id, IconName2).c_str(), IconName2, WSdlWindow::ScaleSize(GRuleIconSize), true);
 	}
-	return WIconAtlas::GetInstance().DrawIconButton(
-		std::format("{}_{}_placeholder", Id, IconName1).c_str(), "placeholder", GRuleIconSize, true);
+	return WIconAtlas::GetInstance().DrawIconButton(std::format("{}_{}_placeholder", Id, IconName1).c_str(),
+		"placeholder", WSdlWindow::ScaleSize(GRuleIconSize), true);
 }
 
 void WRuleWidget::Draw(WRenderItemArgs const& Args, bool)
