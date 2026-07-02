@@ -60,12 +60,39 @@ void WSdlWindow::Tick()
 				if (WSettings::GetInstance().bEnableTrayIcon && WSettings::GetInstance().bMinimizeToTrayOnClose)
 				{
 					SDL_HideWindow(Window);
+					WSettings::GetInstance().WindowState = WSettings::IN_TRAY;
+					WSettings::GetInstance().Save();
 				}
 				else
 #endif
 				{
 					bShouldClose = true;
 				}
+			}
+			else if (Event.window.event == SDL_WINDOWEVENT_RESIZED && Event.window.windowID == SDL_GetWindowID(Window))
+			{
+				int NewWidth = Event.window.data1;
+				int NewHeight = Event.window.data2;
+				WSettings::GetInstance().WindowWidth = NewWidth;
+				WSettings::GetInstance().WindowHeight = NewHeight;
+				WSettings::GetInstance().Save();
+			}
+			else if (Event.window.event == SDL_WINDOWEVENT_MAXIMIZED
+				&& Event.window.windowID == SDL_GetWindowID(Window))
+			{
+				WSettings::GetInstance().WindowState = WSettings::MAXIMIZED;
+				WSettings::GetInstance().Save();
+			}
+			else if (Event.window.event == SDL_WINDOWEVENT_MINIMIZED
+				&& Event.window.windowID == SDL_GetWindowID(Window))
+			{
+				WSettings::GetInstance().WindowState = WSettings::MINIMIZED;
+				WSettings::GetInstance().Save();
+			}
+			else if (Event.window.event == SDL_WINDOWEVENT_RESTORED && Event.window.windowID == SDL_GetWindowID(Window))
+			{
+				WSettings::GetInstance().WindowState = WSettings::NORMAL;
+				WSettings::GetInstance().Save();
 			}
 		}
 	}
@@ -184,7 +211,21 @@ bool WSdlWindow::Init()
 #endif
 
 	Uint32 WindowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
-	Window = SDL_CreateWindow("Wächter", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 900, 700, WindowFlags);
+
+	if (WSettings::GetInstance().WindowState == WSettings::MAXIMIZED)
+	{
+		WindowFlags |= SDL_WINDOW_MAXIMIZED;
+	}
+	else if (WSettings::GetInstance().WindowState == WSettings::MINIMIZED)
+	{
+		WindowFlags |= SDL_WINDOW_MINIMIZED;
+	}
+	else if (WSettings::GetInstance().WindowState == WSettings::IN_TRAY && WSettings::GetInstance().bEnableTrayIcon)
+	{
+		WindowFlags |= SDL_WINDOW_HIDDEN;
+	}
+	Window = SDL_CreateWindow("Wächter", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+		WSettings::GetInstance().WindowWidth, WSettings::GetInstance().WindowHeight, WindowFlags);
 	if (!Window)
 	{
 		spdlog::critical("SDL window creation failed: {}", SDL_GetError());
