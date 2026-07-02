@@ -85,6 +85,9 @@ void WAboutDialog::Draw()
 
 		ImGui::Spacing();
 		ImGui::Text("%s", VersionString.c_str());
+		ImGui::TextLinkOpenURL("https://waechter.st", "https://waechter.st");
+		ImGui::SameLine();
+		ImGui::TextLinkOpenURL("https://github.com/univrsal/waechter", "https://github.com/univrsal/waechter");
 		if (WSdlWindow::GetInstance().GetMainWindow()->IsRegistered())
 		{
 			ImGui::Text("Registered to %s", WSettings::GetInstance().RegisteredUsername.c_str());
