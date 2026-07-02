@@ -8,6 +8,8 @@
 #include <utility>
 #include <vector>
 
+#include "Util/ImageUtil.hpp"
+
 class WAboutDialog
 {
 	bool bVisible{};
@@ -29,6 +31,8 @@ class WAboutDialog
 	std::vector<WThirdPartyLibrary> ThirdPartyLibraries;
 
 	std::string VersionString;
+
+	WTexture Logo;
 
 public:
 	WAboutDialog();

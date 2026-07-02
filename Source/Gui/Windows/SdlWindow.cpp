@@ -156,7 +156,6 @@ bool WSdlWindow::Init()
 	emscripten_get_element_css_size("#canvas", &CanvasWidth, &CanvasHeight);
 #endif
 
-	MainWindow = std::make_unique<WMainWindow>();
 
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
 	{
@@ -238,6 +237,8 @@ bool WSdlWindow::Init()
 		return false;
 	}
 #endif
+	// Have to do this once OpenGL is ready
+	MainWindow = std::make_unique<WMainWindow>();
 
 	// Set window icon
 	int            Width, Height, Channels;

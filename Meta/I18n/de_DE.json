@@ -69,7 +69,10 @@
     "title": "Traffic-Baum"
   },
   "about": {
-    "title": "Über"
+    "title": "Über",
+    "license": "Lizenz",
+    "contributors": "Mitwirkende",
+    "thirdparty_libraries": "Drittanbieter-Bibliotheken"
   },
   "memory_usage": {
     "title": "Dämonarbeitsspeichernutzung"
