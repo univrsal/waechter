@@ -1261,7 +1261,7 @@ void WSystemMap::Cleanup()
 		else if (IsStaleSocket(Socket))
 		{
 			// todo: ideally we would never end up here
-			spdlog::warn("Removing unknown socket with id {}, tuple: {}, app: {}", SocketIt->first,
+			spdlog::debug("Removing unknown socket with id {}, tuple: {}, app: {}", SocketIt->first,
 				Socket->TrafficItem->SocketTuple.ToString(),
 				Socket->ParentProcess->ParentApp->TrafficItem->ApplicationName);
 			Socket->MarkForRemoval();
