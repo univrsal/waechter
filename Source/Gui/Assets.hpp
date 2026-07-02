@@ -68,6 +68,9 @@ extern unsigned int const Gde_DESize;
 extern unsigned char const Gen_USData[];
 extern unsigned int const Gen_USSize;
 
+extern unsigned char const GAuthorsData[];
+extern unsigned int const GAuthorsSize;
+
 extern unsigned char const GIconData[];
 extern unsigned int const GIconSize;
 

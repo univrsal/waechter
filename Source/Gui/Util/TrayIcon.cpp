@@ -27,6 +27,11 @@ void WTrayIcon::OnClick(traycon* /*Tray*/, void* Userdata)
 	}
 
 	int const Visible = (SDL_GetWindowFlags(Window) & SDL_WINDOW_SHOWN) ? 1 : 0;
+	if (!Visible)
+	{
+		WSettings::GetInstance().WindowState = WSettings::NORMAL;
+		WSettings::GetInstance().Save();
+	}
 	Self->PendingVisibility.store(Visible ? 0 : 1);
 }
 

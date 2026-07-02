@@ -53,6 +53,7 @@ if __name__ == "__main__":
         ("../../LICENSE", "WaechterLicense"),
         ("../I18n/de_DE.json", "de_DE"),
         ("../I18n/en_US.json", "en_US"),
+        ("../Assets/AUTHORS", "Authors"),
         ("../Assets/Branding/Icon.png", "Icon"),
         ("../Assets/Watermark.png", "WatermarkImage"),
         ("../Assets/IconAtlas.png", "IconAtlas"),

@@ -69,7 +69,10 @@
     "title": "Traffic Tree"
   },
   "about": {
-    "title": "About"
+    "title": "About",
+    "license": "License",
+    "contributors": "Contributors",
+    "thirdparty_libraries": "Third-party libraries"
   },
   "memory_usage": {
     "title": "Daemon memory usage"

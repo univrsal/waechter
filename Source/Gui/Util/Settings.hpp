@@ -44,6 +44,16 @@ public:
 	int          NetworkGraphHistorySetting{ NGH_5Min };
 	ETrafficUnit TrafficTreeUnitSetting{ TU_Auto };
 
+	int WindowWidth{ 800 };
+	int WindowHeight{ 600 };
+	enum
+	{
+		NORMAL,
+		MAXIMIZED,
+		MINIMIZED,
+		IN_TRAY
+	} WindowState{};
+
 	WSettings();
 	~WSettings() override = default;
 
@@ -56,7 +66,8 @@ public:
 			CEREAL_NVP(NetworkGraphHistorySetting), CEREAL_NVP(TrafficTreeUnitSetting), CEREAL_NVP(bUseDarkTheme),
 			CEREAL_NVP(bAllowSelfSignedCertificates), CEREAL_NVP(bSkipCertificateHostnameCheck),
 			CEREAL_NVP(SelectedLanguage), CEREAL_NVP(bReduceFrameRateWhenInactive), CEREAL_NVP(bEnableTrayIcon),
-			CEREAL_NVP(bMinimizeToTrayOnClose));
+			CEREAL_NVP(bMinimizeToTrayOnClose), CEREAL_NVP(WindowWidth), CEREAL_NVP(WindowHeight),
+			CEREAL_NVP(WindowState));
 	}
 
 	void Load();

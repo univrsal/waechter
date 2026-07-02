@@ -14,6 +14,7 @@
 
 WAboutDialog::WAboutDialog()
 {
+	Logo = WImageUtils::LoadImageFromMemoryRGBA8(GIconData, GIconSize);
 	auto MakeString = [](unsigned char const Data[], size_t Size) {
 		if (Data == nullptr || Size == 0)
 		{
@@ -66,23 +67,27 @@ void WAboutDialog::Draw()
 		return;
 	}
 
-	ImGuiIO& io = ImGui::GetIO();
-	auto     display_size = io.DisplaySize; // Current window/swapchain size
-	ImGui::SetNextWindowPos(ImVec2(display_size.x * 0.5f, display_size.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-	ImGui::SetNextWindowSize({ WSdlWindow::ScaleValue(700), display_size.y - WSdlWindow::ScaleValue(100) });
+	ImGuiIO const& Io = ImGui::GetIO();
+	auto const     DisplaySize = Io.DisplaySize; // Current window/swapchain size
+	ImGui::SetNextWindowPos(ImVec2(DisplaySize.x * 0.5f, DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+	ImGui::SetNextWindowSize({ WSdlWindow::ScaleValue(700), DisplaySize.y - WSdlWindow::ScaleValue(100) });
 
 	if (ImGui::Begin(TR("about.title"), &bVisible,
 			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDocking))
 	{
-		auto Style = ImGui::GetStyle();
+		auto const Style = ImGui::GetStyle();
 		ImGui::PushFont(nullptr, Style.FontSizeBase * 1.4f);
+		ImGui::Image(Logo.TextureId, ImVec2(WSdlWindow::ScaleValue(96), WSdlWindow::ScaleValue(96)));
+		ImGui::SameLine();
+		ImGui::BeginGroup();
 		ImGui::Text("Wächter");
 		ImGui::PopFont();
 
-		ImGuiStyle& style = ImGui::GetStyle();
 		ImGui::Spacing();
-		ImGui::PushStyleColor(ImGuiCol_Text, style.Colors[ImGuiCol_TextDisabled]);
 		ImGui::Text("%s", VersionString.c_str());
+		ImGui::TextLinkOpenURL("https://waechter.st", "https://waechter.st");
+		ImGui::SameLine();
+		ImGui::TextLinkOpenURL("https://github.com/univrsal/waechter", "https://github.com/univrsal/waechter");
 		if (WSdlWindow::GetInstance().GetMainWindow()->IsRegistered())
 		{
 			ImGui::Text("Registered to %s", WSettings::GetInstance().RegisteredUsername.c_str());
@@ -91,25 +96,54 @@ void WAboutDialog::Draw()
 		{
 			ImGui::Text("UNREGISTERED VERSION");
 		}
-		ImGui::PopStyleColor();
-
-		ImGui::Spacing();
-		ImGui::TextWrapped("%s", WaechterLicense.c_str());
-
-		ImGui::Spacing();
-		ImGui::Text("Thirdparty libraries:");
-
-		for (auto const& Library : ThirdPartyLibraries)
+		ImGui::EndGroup();
+		if (ImGui::BeginTabBar("##Statswindow"))
 		{
-			ImGui::Separator();
-			ImGui::Spacing();
-			ImGui::PushFont(nullptr, Style.FontSizeBase * 1.2f);
-			ImGui::Text("%s", Library.Name.c_str());
-			ImGui::PopFont();
-			ImGui::Spacing();
-			ImGui::TextLinkOpenURL(Library.Url.c_str(), Library.Url.c_str());
-			ImGui::Spacing();
-			ImGui::TextWrapped("%s", Library.LicenseText.c_str());
+			if (ImGui::BeginTabItem(TR("about.license"), nullptr, ImGuiTabItemFlags_NoReorder))
+			{
+				if (ImGui::BeginChild(
+						"##LicenseScroll", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()), ImGuiChildFlags_None))
+				{
+					ImGui::TextWrapped("%s", WaechterLicense.c_str());
+				}
+				ImGui::EndChild();
+				ImGui::EndTabItem();
+			}
+			if (ImGui::BeginTabItem(TR("about.contributors"), nullptr, ImGuiTabItemFlags_NoReorder))
+			{
+				if (ImGui::BeginChild(
+						"##ContributorsScroll", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()), ImGuiChildFlags_None))
+				{
+					ImGui::TextWrapped("%.*s", static_cast<int>(GAuthorsSize), GAuthorsData);
+				}
+				ImGui::EndChild();
+				ImGui::EndTabItem();
+			}
+			if (ImGui::BeginTabItem(TR("about.thirdparty_libraries"), nullptr, ImGuiTabItemFlags_NoReorder))
+			{
+				if (ImGui::BeginChild(
+						"##ThirdPartyScroll", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()), ImGuiChildFlags_None))
+				{
+					for (auto const& Library : ThirdPartyLibraries)
+					{
+						ImGui::PushFont(nullptr, Style.FontSizeBase * 1.2f);
+						if (ImGui::TreeNodeEx(Library.Name.c_str(), ImGuiTreeNodeFlags_SpanFullWidth))
+						{
+							ImGui::PopFont();
+							ImGui::TextLinkOpenURL(Library.Url.c_str(), Library.Url.c_str());
+							ImGui::TextWrapped("%s", Library.LicenseText.c_str());
+							ImGui::TreePop();
+						}
+						else
+						{
+							ImGui::PopFont();
+						}
+					}
+				}
+				ImGui::EndChild();
+				ImGui::EndTabItem();
+			}
+			ImGui::EndTabBar();
 		}
 	}
 	ImGui::End();
