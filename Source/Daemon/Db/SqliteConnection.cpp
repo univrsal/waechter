@@ -5,29 +5,85 @@
 
 #include "SqliteConnection.hpp"
 
+#include <chrono>
+#include <ctime>
 #include <filesystem>
+#include <iomanip>
+#include <sstream>
 #include <stdexcept>
+
+#include "spdlog/spdlog.h"
+
+#include "Types.hpp"
 
 namespace
 {
+	constexpr uintmax_t kMaxDatabaseSizeBytes = 400ULL WMiB;
+
 	bool IsSpecialSqlitePath(std::string const& path)
 	{
 		return path.empty() || path == ":memory:" || path.rfind("file:", 0) == 0;
 	}
 
-	void EnsureSqlitePathReady(std::string const& dbPath)
+	void EnsureSqlitePathReady(std::string const& DbPath)
 	{
-		if (IsSpecialSqlitePath(dbPath))
+		if (IsSpecialSqlitePath(DbPath))
+		{
 			return;
+		}
 
-		std::filesystem::path const Path(dbPath);
+		std::filesystem::path const Path(DbPath);
 		std::filesystem::path const Parent = Path.parent_path();
 
 		if (!Parent.empty())
+		{
 			std::filesystem::create_directories(Parent);
+		}
 
 		if (std::filesystem::exists(Path) && std::filesystem::is_directory(Path))
-			throw std::runtime_error("SQLite database path points to a directory: '" + dbPath + "'");
+		{
+			throw std::runtime_error("SQLite database path points to a directory: '" + DbPath + "'");
+		}
+	}
+
+	void RotateDatabaseIfNeeded(std::string const& DbPath)
+	{
+		if (IsSpecialSqlitePath(DbPath))
+		{
+			return;
+		}
+
+		std::filesystem::path const Path(DbPath);
+		std::error_code             Ec;
+
+		if (!std::filesystem::is_regular_file(Path, Ec))
+		{
+			return;
+		}
+
+		uintmax_t const FileSize = std::filesystem::file_size(Path, Ec);
+		if (Ec || FileSize < kMaxDatabaseSizeBytes)
+		{
+			return;
+		}
+
+		auto const Now = std::chrono::system_clock::now();
+		auto const Time = std::chrono::system_clock::to_time_t(Now);
+		std::tm    Tm = {};
+		localtime_r(&Time, &Tm);
+
+		std::ostringstream BackupName;
+		BackupName << Path.stem().string() << '.' << std::put_time(&Tm, "%Y-%m-%d") << Path.extension().string();
+
+		std::filesystem::path const BackupPath = Path.parent_path() / BackupName.str();
+
+		spdlog::info("Rotating database: {} ({} bytes) → {}", DbPath, FileSize, BackupPath.string());
+
+		std::filesystem::rename(Path, BackupPath, Ec);
+		if (Ec)
+		{
+			spdlog::error("Failed to rotate database {}: {}", DbPath, Ec.message());
+		}
 	}
 }
 
@@ -46,6 +102,7 @@ SqliteConnection::SqliteConnection(std::string const& ConnectionString) : DbPath
 void SqliteConnection::Connect()
 {
 	EnsureSqlitePathReady(DbPath);
+	RotateDatabaseIfNeeded(DbPath);
 
 	auto Config = std::make_shared<sqlpp::sqlite3::connection_config>();
 	Config->path_to_database = DbPath;
