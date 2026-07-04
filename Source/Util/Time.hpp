@@ -63,6 +63,12 @@ public:
 		return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - StartTime)
 			.count();
 	}
+
+	[[nodiscard]] WUsec ElapsedUs() const
+	{
+		return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - StartTime)
+			.count();
+	}
 };
 
 class WTimer
