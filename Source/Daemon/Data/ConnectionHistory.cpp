@@ -307,17 +307,27 @@ void WConnectionHistory::WriteToDatabase(std::shared_ptr<WConnectionHistoryEntry
 				}
 			}
 
+			int32_t Family = Entry->RemoteEndpoint.Address.Family;
+			if (Family == 0)
+			{
+				if (!Entry->RemoteEndpoint.Address.IsZero())
+				{
+					spdlog::warn("Remote endpoint {} has unknown address family but is not a zero address",
+						Entry->RemoteEndpoint.ToString());
+				}
+				Family = 4;
+			}
+
 			if (AsnID > 0)
 			{
 				HostID = static_cast<int64_t>(
 					DbConn(sqlpp::insert_into(Host).set(Host.IPAddress = Entry->RemoteEndpoint.Address.GetBytesVector(),
-						Host.Family = static_cast<int>(Entry->RemoteEndpoint.Address.Family), Host.AsnID = AsnID)));
+						Host.Family = Family, Host.AsnID = AsnID)));
 			}
 			else
 			{
 				HostID = static_cast<int64_t>(
-					DbConn(sqlpp::insert_into(Host).set(Host.IPAddress = Entry->RemoteEndpoint.Address.GetBytesVector(),
-						Host.Family = static_cast<int>(Entry->RemoteEndpoint.Address.Family))));
+					DbConn(sqlpp::insert_into(Host).set(Host.IPAddress = Entry->RemoteEndpoint.Address.GetBytesVector(), Host.Family = Family)));
 			}
 		}
 		else
