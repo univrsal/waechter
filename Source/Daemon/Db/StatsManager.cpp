@@ -17,7 +17,6 @@
 #include "Buffer.hpp"
 #include "Format.hpp"
 #include "Messages.hpp"
-#include "Time.hpp"
 #include "Data/IP2Asn.hpp"
 #include "Data/SystemMap.hpp"
 #include "Data/Stats.hpp"
@@ -445,7 +444,6 @@ void WStatsManager::ProcessHistoryRequest(
 	spdlog::info("Received stats request for {}", Request.TargetName);
 
 	WDbManager::GetInstance().Run([&](auto& DbConn) {
-		WStopwatch const Stopwatch{};
 		if (Request.HostTarget)
 		{
 			ProcessHostHistoryRequest(Request, Response, Promise, DbConn);
@@ -467,7 +465,6 @@ void WStatsManager::ProcessHistoryRequest(
 			ProcessAppHistoryRequest(Request, Response, Promise, DbConn);
 		}
 		Promise.Finish(SerializeMessage(MT_HistoryResponse, Response));
-		spdlog::info("Processed history request for {} in {} μs", Request.TargetName, Stopwatch.ElapsedUs());
 	});
 }
 
