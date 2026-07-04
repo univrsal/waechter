@@ -339,10 +339,60 @@ void WDetailsWindow::Draw()
 				WMainWindow::Get().GetFlagAtlas().DrawFlag(Result.Country, ImVec2(32, 24));
 				ImGui::SameLine();
 				ImGui::Separator();
+				if (WIconAtlas::GetInstance().DrawIconButton(
+						"asn_stats", "stats", WSdlWindow::ScaleSize(ImVec2(20, 20))))
+				{
+					WStatsRequest             Request{};
+					WConnectionHistoryRequest HistoryRequest{};
+					Request.Target = std::format("asn:{}", Result.ASN);
+					Request.StartTime = WTime::GetEpochHours() - 60 * 60 * 24;
+					Request.EndTime = WTime::GetEpochHours();
+					HistoryRequest.TargetName = std::format("asn:{}", Result.ASN);
+					WSdlWindow::GetInstance().GetMainWindow()->OpenStatsWindow(Request, HistoryRequest);
+				}
+				if (ImGui::IsItemHovered())
+				{
+					ImGui::SetTooltip("%s", TR("show_stats"));
+				}
+				ImGui::SameLine();
 				ImGui::InputText(TR("asn"), const_cast<char*>(std::format("AS{}", Result.ASN).c_str()), 64,
 					ImGuiInputTextFlags_ReadOnly);
+
+				if (WIconAtlas::GetInstance().DrawIconButton(
+						"country_stats", "stats", WSdlWindow::ScaleSize(ImVec2(20, 20))))
+				{
+					WStatsRequest             Request{};
+					WConnectionHistoryRequest HistoryRequest{};
+					Request.Target = std::format("country:{}", Result.Country);
+					Request.StartTime = WTime::GetEpochHours() - 60 * 60 * 24;
+					Request.EndTime = WTime::GetEpochHours();
+					HistoryRequest.TargetName = std::format("country:{}", Result.Country);
+					WSdlWindow::GetInstance().GetMainWindow()->OpenStatsWindow(Request, HistoryRequest);
+				}
+				if (ImGui::IsItemHovered())
+				{
+					ImGui::SetTooltip("%s", TR("show_stats"));
+				}
+				ImGui::SameLine();
 				ImGui::InputText(
 					TR("country"), const_cast<char*>(Result.Country.c_str()), 64, ImGuiInputTextFlags_ReadOnly);
+
+				if (WIconAtlas::GetInstance().DrawIconButton(
+						"org_stats", "stats", WSdlWindow::ScaleSize(ImVec2(20, 20))))
+				{
+					WStatsRequest             Request{};
+					WConnectionHistoryRequest HistoryRequest{};
+					Request.Target = std::format("org:{}", Result.Organization);
+					Request.StartTime = WTime::GetEpochHours() - 60 * 60 * 24;
+					Request.EndTime = WTime::GetEpochHours();
+					HistoryRequest.TargetName = std::format("org:{}", Result.Organization);
+					WSdlWindow::GetInstance().GetMainWindow()->OpenStatsWindow(Request, HistoryRequest);
+				}
+				if (ImGui::IsItemHovered())
+				{
+					ImGui::SetTooltip("%s", TR("show_stats"));
+				}
+				ImGui::SameLine();
 				ImGui::InputText(TR("organization"), const_cast<char*>(Result.Organization.c_str()), 128,
 					ImGuiInputTextFlags_ReadOnly);
 			}
