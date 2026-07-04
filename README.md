@@ -41,10 +41,10 @@ Wächter is still in development, currently implemented features are:
 - Throttle upload/download per connection
 - Connection history to log what connections are made by which application
 - Long-term traffic statistics and graphs
+- Persistent rules that are saved and loaded on startup
 
 Things on the todo list:
 
-- Persistent rules that are saved and loaded on startup
 - Reliability testing of traffic limiting and blocking
 
 Potential future features:
