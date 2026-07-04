@@ -75,6 +75,13 @@ void WIP2Asn::LookupAddress(WQueuedRequest const& Request)
 		return;
 	}
 
+	if (Request.AddressToResolve.IsZero() || Request.AddressToResolve.IsLocalhost()
+		|| Request.AddressToResolve.IsLANAddress())
+	{
+		Request.Promise.Finish(std::nullopt);
+		return;
+	}
+
 	if (auto const It = Cache.find(Request.AddressToResolve); It != Cache.end())
 	{
 		Request.Promise.Finish(It->second);
@@ -235,6 +242,10 @@ TPromise<std::optional<WIP2AsnLookupResult> const&> WIP2Asn::Lookup(WIPAddress c
 
 std::optional<WIP2AsnLookupResult> WIP2Asn::LookupSync(WIPAddress const& IpAddress)
 {
+	if (IpAddress.IsZero() || IpAddress.IsLocalhost() || IpAddress.IsLANAddress())
+	{
+		return std::nullopt;
+	}
 	if (!Database || bUpdateInProgress)
 	{
 		return std::nullopt;
