@@ -33,6 +33,7 @@
     "country": "Country",
     "organization": "Organization",
     "asn": "ASN",
+    "show_stats": "Show stats",
     "show_system_stats": "Show system stats",
     "show_app_stats": "Show application stats",
     "show_host_stats": "Show host stats",
