@@ -80,6 +80,26 @@ public:
 		std::ranges::transform(Result, Result.begin(), [](unsigned char const Char) { return std::tolower(Char); });
 		return Result;
 	}
+
+	static uint32_t ParseInt(std::string const& Str, uint32_t DefaultValue = 0, bool* bOk = nullptr)
+	{
+		try
+		{
+			if (bOk)
+			{
+				*bOk = true;
+			}
+			return std::stoul(Str);
+		}
+		catch (...)
+		{
+			if (bOk)
+			{
+				*bOk = false;
+			}
+			return DefaultValue;
+		}
+	}
 };
 
 class WTimeFormat

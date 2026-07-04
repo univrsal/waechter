@@ -129,7 +129,7 @@ void WDetailsWindow::DrawSystemDetails() const
 		Request.Target = "system";
 		Request.StartTime = WTime::GetEpochHours() - 60 * 60 * 24;
 		Request.EndTime = WTime::GetEpochHours();
-		HistoryRequest.AppTarget = "system";
+		HistoryRequest.TargetName = "system";
 		WSdlWindow::GetInstance().GetMainWindow()->OpenStatsWindow(Request, HistoryRequest);
 	}
 }
@@ -168,7 +168,7 @@ void WDetailsWindow::DrawApplicationDetails() const
 		Request.Target = App->ApplicationPath;
 		Request.StartTime = WTime::GetEpochHours() - 60 * 60 * 24;
 		Request.EndTime = WTime::GetEpochHours();
-		HistoryRequest.AppTarget = App->ApplicationPath;
+		HistoryRequest.TargetName = App->ApplicationPath;
 		WSdlWindow::GetInstance().GetMainWindow()->OpenStatsWindow(Request, HistoryRequest);
 	}
 }

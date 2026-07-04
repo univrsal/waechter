@@ -59,13 +59,13 @@ struct WStatsResponse
 struct WConnectionHistoryRequest
 {
 	uint32_t                    RequestId{};
-	std::string                 AppTarget{}; // either  app or host
-	std::shared_ptr<WIPAddress> HostTarget{};
+	std::string                 TargetName{}; // if we want the history of an app, ASN, country or organization
+	std::shared_ptr<WIPAddress> HostTarget{}; // if we want the history for a specific ip
 	uint64_t                    Offset{};
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(RequestId, AppTarget, HostTarget, Offset);
+		archive(RequestId, TargetName, HostTarget, Offset);
 	}
 };
 
