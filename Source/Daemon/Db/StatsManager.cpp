@@ -17,6 +17,7 @@
 #include "Buffer.hpp"
 #include "Messages.hpp"
 #include "Time.hpp"
+#include "Data/IP2Asn.hpp"
 #include "Data/SystemMap.hpp"
 #include "Data/Stats.hpp"
 
@@ -66,7 +67,7 @@ void WStatsManager::UpdateAppStats(
 {
 	if (In == 0 && Out == 0)
 	{
-		// We push empty traffic sometimes to update the average to 0, but that is irrelevant for
+		// We sometimes push empty traffic to update the average to 0, but that is irrelevant for
 		// the stats
 		spdlog::trace("WStatsManager::UpdateAppStats(): Empty", AppId);
 		return;
@@ -116,6 +117,7 @@ void WStatsManager::MakeSnapshot()
 
 	WDbManager::GetInstance().Run([&](auto& DbConn) {
 		ZoneScopedN("MakeSnapshot - DB write");
+		constexpr Db::Schema::Asn             Asn;
 		constexpr Db::Schema::TrafficSnapshot TS;
 		constexpr Db::Schema::TrafficEvent    TE;
 		constexpr Db::Schema::TrafficItem     TrafficItem;
@@ -143,11 +145,43 @@ void WStatsManager::MakeSnapshot()
 			{
 				spdlog::debug("Recording traffic event: App '{}', Remote '{}', In {}, Out {}", AppStats.ApplicationPath,
 					IP.ToString(), Traffic.BytesIn, Traffic.BytesOut);
-				auto const    IPStr = IP.ToString();
-				auto const    HostResult = DbConn(sqlpp::select(Host.ID).from(Host).where(Host.IPAddress == IPStr));
-				int64_t const HostID = HostResult.empty()
-					? static_cast<int64_t>(DbConn(sqlpp::insert_into(Host).set(Host.IPAddress = IPStr)))
-					: HostResult.front().ID.value();
+				auto const AsnResult = WIP2Asn::GetInstance().LookupSync(IP);
+				auto const HostResult =
+					DbConn(sqlpp::select(Host.ID).from(Host).where(Host.IPAddress == IP.GetBytesVector()));
+				int64_t AsnID = 0;
+				if (AsnResult)
+				{
+					auto AsnIdResult = DbConn(sqlpp::select(Asn.ID).from(Asn).where(Asn.Number == AsnResult->ASN
+						&& Asn.Country == AsnResult->Country && Asn.Organization == AsnResult->Organization));
+					if (AsnIdResult.empty())
+					{
+						AsnID = static_cast<int64_t>(DbConn(sqlpp::insert_into(Asn).set(Asn.Number = AsnResult->ASN,
+							Asn.Country = AsnResult->Country, Asn.Organization = AsnResult->Organization)));
+						spdlog::debug("Inserted new ASN {} into database with ID {}", AsnResult->ASN, AsnID);
+					}
+					else
+					{
+						AsnID = AsnIdResult.front().ID.value();
+					}
+				}
+				int64_t HostID = 0;
+				// the table has a check and expects 4 or 6, but sometimes we get 0 for unknown family, so we default to
+				// 4
+				auto const Family = IP.Family == 0 ? 4 : static_cast<int>(IP.Family);
+
+				if (AsnID > 0)
+				{
+					HostID = HostResult.empty()
+						? static_cast<int64_t>(DbConn(sqlpp::insert_into(Host).set(
+							  Host.IPAddress = IP.GetBytesVector(), Host.Family = Family, Host.AsnID = AsnID)))
+						: HostResult.front().ID.value();
+				}
+				else
+				{
+					HostID = HostResult.empty() ? static_cast<int64_t>(DbConn(sqlpp::insert_into(Host).set(
+													  Host.IPAddress = IP.GetBytesVector(), Host.Family = Family)))
+												: HostResult.front().ID.value();
+				}
 
 				DbConn(sqlpp::insert_into(TE).set(TE.SnapshotID = SnapshotID, TE.ItemID = AppID, TE.HostID = HostID,
 					TE.BytesIn = static_cast<int64_t>(Traffic.BytesIn),
@@ -192,7 +226,7 @@ void WStatsManager::StopRequestProcessThread()
 	}
 }
 
-TPromise<std::string> WStatsManager::RequestStats(WBuffer const& Request, EMessageType Type)
+TPromise<std::string> WStatsManager::RequestStats(WBuffer const& Request, EMessageType const Type)
 {
 	WRequestData Data;
 	Data.Request = Request;
@@ -219,7 +253,7 @@ void WStatsManager::ProcessHistoryRequest(
 			constexpr Db::Schema::Host        Host;
 			uint64_t                          HostID{};
 			auto                              Result =
-				DbConn(sqlpp::select(Host.ID).from(Host).where(Host.IPAddress == Request.HostTarget->ToString()));
+				DbConn(sqlpp::select(Host.ID).from(Host).where(Host.IPAddress == Request.HostTarget->GetBytesVector()));
 			spdlog::info("History request for host {}", Request.HostTarget->ToString());
 			if (Result.empty())
 			{
@@ -269,8 +303,8 @@ void WStatsManager::ProcessHistoryRequest(
 					.from(CE.join(Host).on(CE.RemoteHostID == Host.ID))
 					.where(CE.ItemID == ItemID));
 			Response.NumTotalEntries = static_cast<uint64_t>(Count.front().count.value());
-			auto Rows = DbConn(
-				sqlpp::select(CE.ItemID, Host.IPAddress, CE.Port, CE.StartTime, CE.EndTime, CE.DataIn, CE.DataOut)
+			auto Rows = DbConn(sqlpp::select(
+				CE.ItemID, Host.IPAddress, Host.Family, CE.Port, CE.StartTime, CE.EndTime, CE.DataIn, CE.DataOut)
 					.from(CE.join(Host).on(CE.RemoteHostID == Host.ID))
 					.where(CE.ItemID == ItemID)
 					.limit(100u)
@@ -278,15 +312,32 @@ void WStatsManager::ProcessHistoryRequest(
 			spdlog::info("Found {} entries for {}", Response.NumTotalEntries, Request.AppTarget);
 			for (auto const& Row : Rows)
 			{
-				WEndpoint P;
+				WEndpoint  P{};
+				auto const AddressBytes = Row.IPAddress.value();
+				auto const Family = static_cast<EIPFamily::Type>(Row.Family.value());
+
 				P.Port = Row.Port;
-				auto IP = WIPAddress::FromString(Row.IPAddress.value());
-				if (!IP.has_value())
+				P.Address.Family = Family;
+
+				if (Family == EIPFamily::IPv4)
 				{
-					spdlog::warn("Invalid IP address in history entry row: {}", Row.IPAddress.value());
+					if (AddressBytes.size() == 4)
+					{
+						std::copy(AddressBytes.begin(), AddressBytes.end(), P.Address.Bytes.begin());
+					}
+					// otherwise it's ::/zero ip which defaults to v4
+				}
+				else if (Family == EIPFamily::IPv6)
+				{
+					assert(AddressBytes.size() == 16);
+					std::copy(AddressBytes.begin(), AddressBytes.end(), P.Address.Bytes.begin());
+				}
+				else
+				{
+					spdlog::warn("Invalid IP family in history entry row: {}", Row.Family.value());
 					continue;
 				}
-				P.Address = IP.value();
+
 				Response.Entries.emplace_back(WConnectionHistoryResponseEntry{
 					.AppName = "", // this is a request for one specific app so no point in filling this
 					.Endpoint = P,
@@ -310,6 +361,7 @@ void WStatsManager::ProcessStatsRequest(WStatsRequest const& Request, TPromise<s
 	constexpr WSec OneHour = 3600LL;
 	constexpr WSec OneDay = 86400LL;
 
+	bool       bFailed = false;
 	WSec const Duration = Request.EndTime - Request.StartTime;
 	bool const BucketByMonth = Duration > 31LL * OneDay;
 	WSec const BucketSecs = BucketByMonth ? 0LL : Duration <= 24LL * OneHour ? OneHour : OneDay;
@@ -422,17 +474,30 @@ void WStatsManager::ProcessStatsRequest(WStatsRequest const& Request, TPromise<s
 		}
 		else
 		{
+			auto const ParsedIP = WIPAddress::FromString(Request.Target);
+			if (!ParsedIP)
+			{
+				spdlog::error("Invalid IP address in stats request: {}", Request.Target);
+				bFailed = true;
+				return;
+			}
 			constexpr Db::Schema::Host Host;
 			auto                       Rows = DbConn(sqlpp::select(TS.Start, TE.BytesIn, TE.BytesOut)
 										  .from(TE.join(TS).on(TE.SnapshotID == TS.ID).join(Host).on(TE.HostID == Host.ID))
 									  .where(TS.Start > Request.StartTime && TS.Start <= Request.EndTime
-											  && Host.IPAddress == Request.Target));
+											  && Host.IPAddress == ParsedIP->GetBytesVector()));
 			for (auto const& Row : Rows)
 			{
 				Accumulate(Row.Start.value(), static_cast<uint64_t>(Row.BytesIn), static_cast<uint64_t>(Row.BytesOut));
 			}
 		}
 	});
+
+	if (bFailed)
+	{
+		Promise.Finish("");
+		return;
+	}
 
 	// Flatten the ordered bucket map into the response vector
 	Response.DataPoints.reserve(Buckets.size());
@@ -491,124 +556,3 @@ void WStatsManager::RequestThreadFunction()
 		}
 	}
 }
-
-#if WDEBUG
-void WStatsManager::PushDebugSnapshots()
-{
-	spdlog::debug("WStatsManager::PushDebugSnapshots - inserting debug traffic data for the past 7 days");
-
-	// Fake applications and remote hosts to use for debug traffic
-	static constexpr std::array<std::string_view, 5> DebugApps = {
-		"/usr/bin/firefox",
-		"/usr/bin/curl",
-		"/usr/bin/wget",
-		"/usr/lib/chromium/chromium",
-		"/usr/bin/spotify",
-	};
-	static constexpr std::array<std::string_view, 6> DebugHosts = {
-		"93.184.216.34",   // example.com
-		"142.250.80.46",   // google.com
-		"151.101.1.140",   // fastly CDN
-		"104.21.55.201",   // cloudflare
-		"52.94.236.248",   // amazonaws
-		"185.199.108.153", // github
-	};
-
-	// Traffic scale per app (bytes per hour at peak)
-	static constexpr std::array<uint64_t, 5> AppPeakIn = { 8'000'000, 500'000, 300'000, 6'000'000, 2'000'000 };
-	static constexpr std::array<uint64_t, 5> AppPeakOut = { 1'000'000, 200'000, 100'000, 800'000, 200'000 };
-
-	// Hour-of-day activity curve: higher during waking hours
-	auto HourWeight = [](int Hour) -> double {
-		if (Hour < 6)
-			return 0.05;
-		if (Hour < 9)
-			return 0.4;
-		if (Hour < 12)
-			return 0.85;
-		if (Hour < 14)
-			return 1.0;
-		if (Hour < 18)
-			return 0.9;
-		if (Hour < 22)
-			return 0.75;
-		return 0.2;
-	};
-
-	// Simple deterministic pseudo-random variation in range [0.5, 1.5]
-	auto Jitter = [](int Day, int Hour, int AppIdx, int HostIdx) -> double {
-		uint32_t Hash = static_cast<uint32_t>(Day * 1000 + Hour * 50 + AppIdx * 7 + HostIdx * 3);
-		Hash ^= Hash >> 13;
-		Hash *= 0x9e3779b9u;
-		Hash ^= Hash >> 11;
-		return 0.5 + (Hash & 0xFFFFu) / 65535.0;
-	};
-
-	WSec const Now = WTime::GetEpochSeconds();
-	WSec const NowHour = (Now / 3600LL) * 3600LL; // floor to current hour
-	WSec const WeekStart = NowHour - 7LL * 24LL * 3600LL;
-
-	WDbManager::GetInstance().Run([&](auto& DbConn) {
-		constexpr Db::Schema::TrafficSnapshot TS;
-		constexpr Db::Schema::TrafficEvent    TE;
-
-		// Get-or-insert helper for Application
-		auto GetOrInsertApp = [&](std::string_view Path) -> int64_t {
-			constexpr Db::Schema::TrafficItem TrafficItem;
-			auto Result = DbConn(sqlpp::select(TrafficItem.ID).from(TrafficItem).where(TrafficItem.Name == Path));
-			if (!Result.empty())
-				return Result.front().ID.value();
-			return static_cast<int64_t>(DbConn(sqlpp::insert_into(TrafficItem).set(TrafficItem.Name = Path)));
-		};
-
-		// Get-or-insert helper for Host
-		auto GetOrInsertHost = [&](std::string_view IP) -> int64_t {
-			constexpr Db::Schema::Host Host;
-			auto                       Result = DbConn(sqlpp::select(Host.ID).from(Host).where(Host.IPAddress == IP));
-			if (!Result.empty())
-				return Result.front().ID.value();
-			return static_cast<int64_t>(DbConn(sqlpp::insert_into(Host).set(Host.IPAddress = IP)));
-		};
-
-		// Cache app and host DB ids
-		std::array<int64_t, DebugApps.size()>  AppIDs{};
-		std::array<int64_t, DebugHosts.size()> HostIDs{};
-		for (std::size_t i = 0; i < DebugApps.size(); ++i)
-			AppIDs[i] = GetOrInsertApp(DebugApps[i]);
-		for (std::size_t i = 0; i < DebugHosts.size(); ++i)
-			HostIDs[i] = GetOrInsertHost(DebugHosts[i]);
-
-		// One snapshot per hour for 7 days (168 snapshots total)
-		for (WSec HourStart = WeekStart; HourStart < NowHour; HourStart += 3600LL)
-		{
-			std::time_t const TimeT = HourStart;
-			std::tm           Tm{};
-			gmtime_r(&TimeT, &Tm);
-			int const    HourOfDay = Tm.tm_hour;
-			int const    DayIdx = static_cast<int>((HourStart - WeekStart) / 86400LL);
-			double const HW = HourWeight(HourOfDay);
-
-			int64_t const SnapshotID = static_cast<int64_t>(DbConn(sqlpp::insert_into(TS).set(TS.Start = HourStart)));
-
-			// Each app talks to a deterministic subset of hosts (1-3 per hour)
-			for (std::size_t AppIdx = 0; AppIdx < DebugApps.size(); ++AppIdx)
-			{
-				std::size_t const HostCount = 1 + (AppIdx % DebugHosts.size() % 3);
-				for (std::size_t h = 0; h < HostCount; ++h)
-				{
-					std::size_t const HostIdx = (AppIdx + h) % DebugHosts.size();
-					double const J = Jitter(DayIdx, HourOfDay, static_cast<int>(AppIdx), static_cast<int>(HostIdx));
-
-					auto const BytesIn = static_cast<int64_t>(AppPeakIn[AppIdx] * HW * J);
-					auto const BytesOut = static_cast<int64_t>(AppPeakOut[AppIdx]) * HW * J;
-
-					DbConn(sqlpp::insert_into(TE).set(TE.SnapshotID = SnapshotID, TE.ItemID = AppIDs[AppIdx],
-						TE.HostID = HostIDs[HostIdx], TE.BytesIn = BytesIn, TE.BytesOut = BytesOut));
-				}
-			}
-		}
-	});
-
-	spdlog::debug("WStatsManager::PushDebugSnapshots - done");
-}
-#endif
