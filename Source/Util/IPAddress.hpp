@@ -6,10 +6,11 @@
 #pragma once
 #include <array>
 #include <cassert>
-#include <string>
 #include <cstring>
-#include <optional>
 #include <functional>
+#include <optional>
+#include <span>
+#include <string>
 #ifdef _WIN32
 	#include <Ws2tcpip.h>
 	#pragma comment(lib, "Ws2_32.lib")
@@ -45,19 +46,19 @@ namespace EProtocol
 		ICMPv6 = 58
 	};
 
-	inline std::string ToString(Type Protocol)
+	inline std::string ToString(Type const Protocol)
 	{
 		switch (Protocol)
 		{
-			case EProtocol::TCP:
+			case TCP:
 				return "TCP";
-			case EProtocol::UDP:
+			case UDP:
 				return "UDP";
-			case EProtocol::ICMP:
+			case ICMP:
 				return "ICMP";
-			case EProtocol::ESP:
+			case ESP:
 				return "ESP";
-			case EProtocol::ICMPv6:
+			case ICMPv6:
 				return "ICMPv6";
 			default:
 				return "Unknown";
@@ -151,7 +152,7 @@ struct WIPAddress
 		if (Family == EIPFamily::IPv4)
 		{
 			in_addr Addr4{};
-			Addr4.s_addr = htonl((Bytes[0] << 24) | (Bytes[1] << 16) | (Bytes[2] << 8) | Bytes[3]);
+			Addr4.s_addr = htonl(Bytes[0] << 24 | (Bytes[1] << 16) | (Bytes[2] << 8) | Bytes[3]);
 			char        Buffer[INET_ADDRSTRLEN];
 			char const* Result = inet_ntop(AF_INET, &Addr4, Buffer, INET_ADDRSTRLEN);
 			if (Result)
@@ -179,7 +180,7 @@ struct WIPAddress
 	{
 		if (Family == EIPFamily::IPv4)
 		{
-			return (Bytes[0] == 127);
+			return Bytes[0] == 127;
 		}
 
 		if (Family == EIPFamily::IPv6)
@@ -200,7 +201,7 @@ struct WIPAddress
 	{
 		if (Family == EIPFamily::IPv4)
 		{
-			return (Bytes[0] == 0 && Bytes[1] == 0 && Bytes[2] == 0 && Bytes[3] == 0);
+			return Bytes[0] == 0 && Bytes[1] == 0 && Bytes[2] == 0 && Bytes[3] == 0;
 		}
 
 		if (Family == EIPFamily::IPv6)
@@ -220,7 +221,7 @@ struct WIPAddress
 	{
 		if (Family == EIPFamily::IPv4)
 		{
-			return (Bytes[0] == 255 && Bytes[1] == 255 && Bytes[2] == 255 && Bytes[3] == 255);
+			return Bytes[0] == 255 && Bytes[1] == 255 && Bytes[2] == 255 && Bytes[3] == 255;
 		}
 
 		// IPv6 has no broadcast address
@@ -233,19 +234,19 @@ struct WIPAddress
 		archive(Bytes, Family);
 	}
 
-	uint32_t ToInt() const
+	[[nodiscard]] uint32_t ToInt() const
 	{
 		assert(Family == EIPFamily::IPv4);
-		return (static_cast<uint32_t>(Bytes[0]) << 24) | (static_cast<uint32_t>(Bytes[1]) << 16)
-			| (static_cast<uint32_t>(Bytes[2]) << 8) | static_cast<uint32_t>(Bytes[3]);
+		return static_cast<uint32_t>(Bytes[0]) << 24 | (static_cast<uint32_t>(Bytes[1]) << 16)
+			| static_cast<uint32_t>(Bytes[2]) << 8 | static_cast<uint32_t>(Bytes[3]);
 	}
 
-	void FromIPv4Uint32(uint32_t IPv4Addr_NetworkByteOrder)
+	void FromIPv4Uint32(uint32_t const IPv4Addr_NetworkByteOrder)
 	{
-		auto IPv4Addr_HostByteOrder = ntohl(IPv4Addr_NetworkByteOrder);
-		Bytes[0] = static_cast<uint8_t>((IPv4Addr_HostByteOrder >> 24) & 0xFF);
-		Bytes[1] = static_cast<uint8_t>((IPv4Addr_HostByteOrder >> 16) & 0xFF);
-		Bytes[2] = static_cast<uint8_t>((IPv4Addr_HostByteOrder >> 8) & 0xFF);
+		auto const IPv4Addr_HostByteOrder = ntohl(IPv4Addr_NetworkByteOrder);
+		Bytes[0] = static_cast<uint8_t>(IPv4Addr_HostByteOrder >> 24 & 0xFF);
+		Bytes[1] = static_cast<uint8_t>(IPv4Addr_HostByteOrder >> 16 & 0xFF);
+		Bytes[2] = static_cast<uint8_t>(IPv4Addr_HostByteOrder >> 8 & 0xFF);
 		Bytes[3] = static_cast<uint8_t>(IPv4Addr_HostByteOrder & 0xFF);
 		Family = EIPFamily::IPv4;
 	}
@@ -254,9 +255,9 @@ struct WIPAddress
 	{
 		for (unsigned long i = 0; i < 4; i++)
 		{
-			Bytes[i * 4 + 0] = static_cast<uint8_t>((IPv6Addr_NetworkByteOrder[i] >> 24) & 0xFF);
-			Bytes[i * 4 + 1] = static_cast<uint8_t>((IPv6Addr_NetworkByteOrder[i] >> 16) & 0xFF);
-			Bytes[i * 4 + 2] = static_cast<uint8_t>((IPv6Addr_NetworkByteOrder[i] >> 8) & 0xFF);
+			Bytes[i * 4 + 0] = static_cast<uint8_t>(IPv6Addr_NetworkByteOrder[i] >> 24 & 0xFF);
+			Bytes[i * 4 + 1] = static_cast<uint8_t>(IPv6Addr_NetworkByteOrder[i] >> 16 & 0xFF);
+			Bytes[i * 4 + 2] = static_cast<uint8_t>(IPv6Addr_NetworkByteOrder[i] >> 8 & 0xFF);
 			Bytes[i * 4 + 3] = static_cast<uint8_t>(IPv6Addr_NetworkByteOrder[i] & 0xFF);
 		}
 		Family = EIPFamily::IPv6;
@@ -385,7 +386,8 @@ struct ByteArray16Hash
 		uint64_t P1, P2;
 		std::memcpy(&P1, A.data(), 8);
 		std::memcpy(&P2, A.data() + 8, 8);
-		uint64_t Hash = P1 ^ (P2 + 0x9e3779b97f4a7c15ULL + (P1 << 6) + (P1 >> 2));
+		// ReSharper disable once CppRedundantParentheses
+		uint64_t const Hash = P1 ^ (P2 + 0x9e3779b97f4a7c15ULL + (P1 << 6) + (P1 >> 2));
 		return Hash;
 	}
 };
@@ -394,9 +396,10 @@ struct WIPAddressHash
 {
 	size_t operator()(WIPAddress const& Ip) const noexcept
 	{
-		ByteArray16Hash ByteHash;
-		size_t Hbytes = ByteHash(Ip.Bytes);
-		size_t Hfamily = std::hash<uint8_t>{}(Ip.Family);
+		ByteArray16Hash const ByteHash;
+		size_t const          Hbytes = ByteHash(Ip.Bytes);
+		size_t const          Hfamily = std::hash<uint8_t>{}(Ip.Family);
+		// ReSharper disable once CppRedundantParentheses
 		return (Hbytes ^ (Hfamily + 0x9e3779b97f4a7c15ULL + (Hbytes << 6) + (Hbytes >> 2)));
 	}
 };
@@ -407,9 +410,9 @@ struct WEndpointHash
 	{
 		ByteArray16Hash ByteArrayHash;
 
-		size_t H1 = ByteArrayHash(Endpoint.Address.Bytes);
-		size_t H2 = std::hash<uint8_t>{}(Endpoint.Address.Family);
-		size_t H3 = std::hash<uint16_t>{}(Endpoint.Port);
+		size_t const H1 = ByteArrayHash(Endpoint.Address.Bytes);
+		size_t const H2 = std::hash<uint8_t>{}(Endpoint.Address.Family);
+		size_t const H3 = std::hash<uint16_t>{}(Endpoint.Port);
 		size_t Combined = H1;
 		Combined = Combined * 31 + H2;
 		Combined = Combined * 31 + H3;
@@ -424,7 +427,7 @@ namespace std
 	{
 		size_t operator()(WIPAddress const& Ip) const noexcept
 		{
-			WIPAddressHash Hash;
+			constexpr WIPAddressHash Hash;
 			return Hash(Ip);
 		}
 	};
@@ -432,10 +435,10 @@ namespace std
 	template <>
 	struct hash<WEndpoint>
 	{
-		size_t operator()(WEndpoint const& ep) const noexcept
+		size_t operator()(WEndpoint const& Endpoint) const noexcept
 		{
-			WEndpointHash h;
-			return h(ep);
+			constexpr WEndpointHash Hash;
+			return Hash(Endpoint);
 		}
 	};
 } // namespace std
