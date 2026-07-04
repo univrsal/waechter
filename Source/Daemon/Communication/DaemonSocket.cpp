@@ -6,7 +6,6 @@
 #include "DaemonSocket.hpp"
 
 #include <filesystem>
-#include <cstdint>
 #include <sys/sysinfo.h>
 
 #include "spdlog/spdlog.h"
@@ -35,7 +34,6 @@
 #include "Data/ConnectionHistory.hpp"
 #include "Data/Protocol.hpp"
 #include "Data/SystemMap.hpp"
-#include "Net/Resolver.hpp"
 #include "Rules/RuleManager.hpp"
 
 static WSec GetSystemBootTime()

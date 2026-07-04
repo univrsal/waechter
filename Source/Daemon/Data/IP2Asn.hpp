@@ -28,7 +28,7 @@ class WIP2Asn : public TSingleton<WIP2Asn>
 	std::unique_ptr<WIP2AsnDB> Database{};
 
 	static bool ExtractDatabase(std::filesystem::path const& GzPath, std::filesystem::path const& OutPath);
-
+	std::mutex  CacheMutex;
 	std::unordered_map<WIPAddress, std::optional<WIP2AsnLookupResult>> Cache{};
 
 	struct WQueuedRequest
@@ -63,4 +63,6 @@ public:
 	bool HasDatabase() const noexcept { return Database != nullptr; }
 
 	TPromise<std::optional<WIP2AsnLookupResult> const&> Lookup(WIPAddress const& IpAddress);
+
+	std::optional<WIP2AsnLookupResult> LookupSync(WIPAddress const& IpAddress);
 };

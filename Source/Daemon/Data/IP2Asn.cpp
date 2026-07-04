@@ -75,6 +75,13 @@ void WIP2Asn::LookupAddress(WQueuedRequest const& Request)
 		return;
 	}
 
+	if (Request.AddressToResolve.IsZero() || Request.AddressToResolve.IsLocalhost()
+		|| Request.AddressToResolve.IsLANAddress())
+	{
+		Request.Promise.Finish(std::nullopt);
+		return;
+	}
+
 	if (auto const It = Cache.find(Request.AddressToResolve); It != Cache.end())
 	{
 		Request.Promise.Finish(It->second);
@@ -119,7 +126,7 @@ void WIP2Asn::LookupThreadFunc()
 		{
 			auto Request = PendingAddresses.front(); // copy before pop to keep TPromise's WSharedState alive
 			PendingAddresses.pop();
-
+			std::scoped_lock CacheLock(CacheMutex);
 			if (Request.AddressToResolve.IsZero())
 			{
 				Request.Promise.Finish(std::nullopt);
@@ -231,4 +238,38 @@ TPromise<std::optional<WIP2AsnLookupResult> const&> WIP2Asn::Lookup(WIPAddress c
 	}
 
 	return Promise;
+}
+
+std::optional<WIP2AsnLookupResult> WIP2Asn::LookupSync(WIPAddress const& IpAddress)
+{
+	if (IpAddress.IsZero() || IpAddress.IsLocalhost() || IpAddress.IsLANAddress())
+	{
+		return std::nullopt;
+	}
+	if (!Database || bUpdateInProgress)
+	{
+		return std::nullopt;
+	}
+	std::scoped_lock CacheLock(CacheMutex);
+
+	if (auto const It = Cache.find(IpAddress); It != Cache.end())
+	{
+		return It->second;
+	}
+	spdlog::debug("Looking up ASN for {}", IpAddress.ToString());
+	std::scoped_lock Lock(DownloadMutex);
+	auto             Result = Database->Lookup(IpAddress);
+	if (!Result)
+	{
+		Cache[IpAddress] = std::nullopt;
+		spdlog::warn("IP2ASN lookup failed for address: {}", IpAddress.ToString());
+		return std::nullopt;
+	}
+	Result->Address = IpAddress;
+
+	auto CountryLowerCase = Result->Country;
+	std::ranges::transform(CountryLowerCase, CountryLowerCase.begin(), [](unsigned char c) { return std::tolower(c); });
+	Result->Country = CountryLowerCase;
+	Cache[IpAddress] = Result;
+	return Result;
 }

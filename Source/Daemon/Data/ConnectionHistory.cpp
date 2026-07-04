@@ -10,6 +10,7 @@
 
 #include "Counters.hpp"
 #include "DaemonConfig.hpp"
+#include "IP2Asn.hpp"
 #include "NetworkEvents.hpp"
 #include "SystemMap.hpp"
 
@@ -226,6 +227,7 @@ std::shared_ptr<WConnectionHistoryEntry> WConnectionHistory::Push(std::shared_pt
 
 	// no lock here, it's already acquired by the caller
 	auto Entry = std::make_shared<WConnectionHistoryEntry>(App, Set, RemoteEndpoint);
+	// WriteToDatabase(Entry);
 	History.push_back(Entry);
 	spdlog::debug("New connection for app {}", App->TrafficItem->ApplicationName);
 	++NewItemCounter;
@@ -242,10 +244,9 @@ std::shared_ptr<WConnectionHistoryEntry> WConnectionHistory::Push(std::shared_pt
 	return Entry;
 }
 
-void WConnectionHistory::HandleEmptySet(std::shared_ptr<WConnectionSet> const& ConnectionSet)
+void WConnectionHistory::HandleEmptySet(std::shared_ptr<WConnectionSet> const& EmptySet)
 {
-
-	if (auto const Parent = ConnectionSet->ParentEntry.lock())
+	if (auto const Parent = EmptySet->ParentEntry.lock())
 	{
 		if (Parent->State >= WConnectionHistoryEntry::EState::Pending_Close)
 		{
@@ -257,7 +258,7 @@ void WConnectionHistory::HandleEmptySet(std::shared_ptr<WConnectionSet> const& C
 		Parent->EndTime = WTime::GetEpochSeconds();
 		WriteToDatabase(Parent);
 		spdlog::debug("ConnectionHistory: Connection to {} ended at {} ({} in, {} out)",
-			Parent->RemoteEndpoint.ToString(), Parent->EndTime, ConnectionSet->BaseDataIn, ConnectionSet->BaseDataOut);
+			Parent->RemoteEndpoint.ToString(), Parent->EndTime, EmptySet->BaseDataIn, EmptySet->BaseDataOut);
 	}
 	else
 	{
@@ -271,6 +272,7 @@ void WConnectionHistory::WriteToDatabase(std::shared_ptr<WConnectionHistoryEntry
 		constexpr Db::Schema::TrafficItem            TrafficItem;
 		constexpr Db::Schema::Host                   Host;
 		constexpr Db::Schema::ConnectionHistoryEntry CHE;
+		constexpr Db::Schema::Asn                    Asn;
 
 		auto AppResult = DbConn(sqlpp::select(TrafficItem.ID)
 				.from(TrafficItem)
@@ -281,12 +283,47 @@ void WConnectionHistory::WriteToDatabase(std::shared_ptr<WConnectionHistoryEntry
 				  sqlpp::insert_into(TrafficItem).set(TrafficItem.Name = Entry->App->TrafficItem->ApplicationPath)))
 			: AppResult.front().ID.value();
 
-		auto const HostResult =
-			DbConn(sqlpp::select(Host.ID).from(Host).where(Host.IPAddress == Entry->RemoteEndpoint.Address.ToString()));
-		int64_t const HostID = HostResult.empty()
-			? static_cast<int64_t>(
-				  DbConn(sqlpp::insert_into(Host).set(Host.IPAddress = Entry->RemoteEndpoint.Address.ToString())))
-			: HostResult.front().ID.value();
+		auto const HostResult = DbConn(
+			sqlpp::select(Host.ID).from(Host).where(Host.IPAddress == Entry->RemoteEndpoint.Address.GetBytesVector()));
+		int64_t HostID = 0;
+
+		if (HostResult.empty())
+		{
+			auto const AsnResult = WIP2Asn::GetInstance().LookupSync(Entry->RemoteEndpoint.Address);
+			int64_t    AsnID = 0;
+			if (AsnResult)
+			{
+				auto AsnIdResult = DbConn(sqlpp::select(Asn.ID).from(Asn).where(Asn.Number == AsnResult->ASN
+					&& Asn.Country == AsnResult->Country && Asn.Organization == AsnResult->Organization));
+				if (AsnIdResult.empty())
+				{
+					AsnID = static_cast<int64_t>(DbConn(sqlpp::insert_into(Asn).set(Asn.Number = AsnResult->ASN,
+						Asn.Country = AsnResult->Country, Asn.Organization = AsnResult->Organization)));
+					spdlog::debug("Inserted new ASN {} into database with ID {}", AsnResult->ASN, AsnID);
+				}
+				else
+				{
+					AsnID = AsnIdResult.front().ID.value();
+				}
+			}
+
+			if (AsnID > 0)
+			{
+				HostID = static_cast<int64_t>(
+					DbConn(sqlpp::insert_into(Host).set(Host.IPAddress = Entry->RemoteEndpoint.Address.GetBytesVector(),
+						Host.Family = static_cast<int>(Entry->RemoteEndpoint.Address.Family), Host.AsnID = AsnID)));
+			}
+			else
+			{
+				HostID = static_cast<int64_t>(
+					DbConn(sqlpp::insert_into(Host).set(Host.IPAddress = Entry->RemoteEndpoint.Address.GetBytesVector(),
+						Host.Family = static_cast<int>(Entry->RemoteEndpoint.Address.Family))));
+			}
+		}
+		else
+		{
+			HostID = HostResult.front().ID.value();
+		}
 		DbConn(sqlpp::insert_into(CHE).set(CHE.ItemID = AppID, CHE.RemoteHostID = HostID,
 			CHE.Port = Entry->RemoteEndpoint.Port, CHE.StartTime = Entry->StartTime, CHE.EndTime = Entry->EndTime,
 			CHE.DataIn = Entry->Set->BaseDataIn, CHE.DataOut = Entry->Set->BaseDataOut));

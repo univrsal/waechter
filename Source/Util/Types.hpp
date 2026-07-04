@@ -21,4 +21,4 @@ using WMsec = int64_t;
 using WSec = int64_t;
 using WBytes = uint64_t;
 using WBytesPerSecond = double;
-using WUsec = std::chrono::microseconds;
+using WUsec = int64_t;

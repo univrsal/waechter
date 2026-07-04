@@ -81,10 +81,6 @@ WTranslation WI18n::LoadTranslationFile(std::string const& Code)
 			AddObject(Translation, Key + ".", Value.object_items(), true);
 		}
 	}
-	for (auto const& [Key, Value] : Translation)
-	{
-		spdlog::info("Loaded translation: {} -> {}", Key, Value);
-	}
 	return Translation;
 }
 

@@ -60,7 +60,24 @@ target_compile_definitions(waechterd PRIVATE
 install(TARGETS waechterd
         RUNTIME DESTINATION bin)
 
-add_custom_command(TARGET waechterd POST_BUILD
+set(WAECHTER_MIGRATIONS_SOURCE_DIR ${CMAKE_SOURCE_DIR}/Meta/Database/Migrations)
+set(WAECHTER_MIGRATIONS_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/migrations)
+set(WAECHTER_MIGRATIONS_STAMP ${CMAKE_CURRENT_BINARY_DIR}/migrations.stamp)
+
+file(GLOB CONFIGURE_DEPENDS WAECHTER_MIGRATION_FILES
+        ${WAECHTER_MIGRATIONS_SOURCE_DIR}/*.sql)
+
+add_custom_command(
+        OUTPUT ${WAECHTER_MIGRATIONS_STAMP}
+        COMMAND ${CMAKE_COMMAND} -E remove_directory ${WAECHTER_MIGRATIONS_BINARY_DIR}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${WAECHTER_MIGRATIONS_BINARY_DIR}
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/Meta/Database/Migrations
-        ${CMAKE_CURRENT_BINARY_DIR}/migrations)
+                ${WAECHTER_MIGRATIONS_SOURCE_DIR}
+                ${WAECHTER_MIGRATIONS_BINARY_DIR}
+        COMMAND ${CMAKE_COMMAND} -E touch ${WAECHTER_MIGRATIONS_STAMP}
+        DEPENDS ${WAECHTER_MIGRATION_FILES}
+        COMMENT "Copying database migrations"
+)
+
+add_custom_target(copy_waechterd_migrations DEPENDS ${WAECHTER_MIGRATIONS_STAMP})
+add_dependencies(waechterd copy_waechterd_migrations)

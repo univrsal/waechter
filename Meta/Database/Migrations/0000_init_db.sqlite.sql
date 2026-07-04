@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS "Application" (
 );
 CREATE TABLE IF NOT EXISTS "Host" (
 	"ID"	INTEGER,
-	"IPAddress"	TEXT NOT NULL,
+    "Family"  INTEGER NOT NULL CHECK (Family IN (4,6)),
+	"IPAddress" BLOB NOT NULL,
 	PRIMARY KEY("ID")
 );
 CREATE TABLE IF NOT EXISTS "Migration" (
