@@ -9,6 +9,7 @@
 
 #include "Daemon.hpp"
 #include "DaemonConfig.hpp"
+#include "Data/ConnectionHistory.hpp"
 #include "Data/IP2Asn.hpp"
 #include "Data/LibCurl.hpp"
 #include "Data/SystemMap.hpp"
@@ -67,6 +68,7 @@ int main(int Argc, char* Argv[])
 	WLibCurl::Init();
 	WIP2Asn::GetInstance().Init();
 	WDaemon::RegisterSignalHandlers();
+	WConnectionHistory::GetInstance().RegisterSignalHandlers();
 	WSystemMap::GetInstance().ProcessInitialApps();
 
 	spdlog::info("Ebpf programs loaded and attached");
