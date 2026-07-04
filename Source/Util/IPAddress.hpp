@@ -96,6 +96,21 @@ struct WIPAddress
 		return false;
 	}
 
+	[[nodiscard]] std::span<uint8_t const> GetBytes() const
+	{
+		if (Family == EIPFamily::IPv4)
+		{
+			return { Bytes.data(), 4 };
+		}
+		if (Family == EIPFamily::IPv6)
+		{
+			return { Bytes.data(), 16 };
+		}
+		return {};
+	}
+
+	std::vector<uint8_t> GetBytesVector() const { return std::vector(GetBytes().begin(), GetBytes().end()); }
+
 	[[nodiscard]] bool IsInternetAddress() const
 	{
 		if (Family == EIPFamily::IPv4)
