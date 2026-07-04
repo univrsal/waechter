@@ -347,31 +347,11 @@ static bool ResolveHistoryTargetId(TQuery const& Query, std::string const& Targe
 	return true;
 }
 
-template <typename TWhereFactory>
-static void ProcessFilteredEndpointHistoryRequest(WConnectionHistoryRequest const& Request,
-	WConnectionHistoryResponse& Response, auto& DbConn, TWhereFactory const& MakeWhere)
-{
-	constexpr Db::Schema::Host                   Host;
-	constexpr Db::Schema::ConnectionHistoryEntry CE;
-
-	auto Count = DbConn(sqlpp::select(sqlpp::count(CE.ID))
-			.from(CE.join(Host).on(CE.RemoteHostID == Host.ID))
-			.where(MakeWhere(CE, Host)));
-	Response.NumTotalEntries = static_cast<uint64_t>(Count.front().count.value());
-
-	auto Rows = DbConn(
-		sqlpp::select(CE.ItemID, Host.IPAddress, Host.Family, CE.Port, CE.StartTime, CE.EndTime, CE.DataIn, CE.DataOut)
-			.from(CE.join(Host).on(CE.RemoteHostID == Host.ID))
-			.where(MakeWhere(CE, Host))
-			.limit(100u)
-			.offset(Request.Offset));
-	spdlog::info("Found {} entries for {}", Response.NumTotalEntries, Request.TargetName);
-	AppendEndpointHistoryEntries(Rows, Response);
-}
-
 static void ProcessAppHistoryRequest(WConnectionHistoryRequest const& Request, WConnectionHistoryResponse& Response,
 	TPromise<std::string> const& Promise, auto& DbConn)
 {
+	constexpr Db::Schema::Host                   Host;
+	constexpr Db::Schema::ConnectionHistoryEntry CE;
 	constexpr Db::Schema::TrafficItem TrafficItem;
 	uint64_t                          ItemID{};
 
@@ -382,48 +362,58 @@ static void ProcessAppHistoryRequest(WConnectionHistoryRequest const& Request, W
 		return;
 	}
 
-	ProcessFilteredEndpointHistoryRequest(
-		Request, Response, DbConn, [ItemID](auto const& CE, auto const&) { return CE.ItemID == ItemID; });
+	auto Count = DbConn(sqlpp::select(sqlpp::count(CE.ID))
+			.from(CE.join(Host).on(CE.RemoteHostID == Host.ID))
+			.where(CE.ItemID == ItemID));
+	Response.NumTotalEntries = static_cast<uint64_t>(Count.front().count.value());
+
+	auto Rows = DbConn(
+		sqlpp::select(CE.ItemID, Host.IPAddress, Host.Family, CE.Port, CE.StartTime, CE.EndTime, CE.DataIn, CE.DataOut)
+			.from(CE.join(Host).on(CE.RemoteHostID == Host.ID))
+			.where(CE.ItemID == ItemID)
+			.limit(100u)
+			.offset(Request.Offset));
+	spdlog::info("Found {} entries for {}", Response.NumTotalEntries, Request.TargetName);
+	AppendEndpointHistoryEntries(Rows, Response);
 }
 
-static void ProcessCountryHistoryRequest(WConnectionHistoryRequest const& Request, WConnectionHistoryResponse& Response,
-	TPromise<std::string> const& Promise, auto& DbConn)
+static void ProcessCountryHistoryRequest(
+	WConnectionHistoryRequest const& Request, WConnectionHistoryResponse& Response, auto& DbConn)
 {
 	constexpr Db::Schema::Asn Asn;
-	uint64_t                  AsnID{};
+	constexpr Db::Schema::ConnectionHistoryEntry CE;
+	constexpr Db::Schema::Host                   Host;
 
-	if (!ResolveHistoryTargetId(sqlpp::select(Asn.ID).from(Asn).where(Asn.Country == Request.TargetName),
-			Request.TargetName, Promise, DbConn, AsnID))
-	{
-		return;
-	}
+	auto Rows = DbConn(
+		sqlpp::select(CE.ItemID, Host.IPAddress, Host.Family, CE.Port, CE.StartTime, CE.EndTime, CE.DataIn, CE.DataOut)
+			.from(CE.join(Host).on(CE.RemoteHostID == Host.ID).join(Asn).on(Asn.ID == Host.AsnID))
+			.where(Asn.Country == Request.TargetName.substr(8))
+			.limit(100u)
+			.offset(Request.Offset));
 
-	ProcessFilteredEndpointHistoryRequest(
-		Request, Response, DbConn, [AsnID](auto const&, auto const& Host) { return Host.AsnID == AsnID; });
+	AppendEndpointHistoryEntries(Rows, Response);
 }
 
-static void ProcessOrgHistoryRequest(WConnectionHistoryRequest const& Request, WConnectionHistoryResponse& Response,
-	TPromise<std::string> const& Promise, auto& DbConn)
+static void ProcessOrgHistoryRequest(
+	WConnectionHistoryRequest const& Request, WConnectionHistoryResponse& Response, auto& DbConn)
 {
-	constexpr Db::Schema::Asn Asn;
-	uint64_t                  AsnID{};
+	constexpr Db::Schema::Asn                    Asn;
+	constexpr Db::Schema::Host                   Host;
+	constexpr Db::Schema::ConnectionHistoryEntry CE;
 
-	if (!ResolveHistoryTargetId(sqlpp::select(Asn.ID).from(Asn).where(Asn.Organization == Request.TargetName),
-			Request.TargetName, Promise, DbConn, AsnID))
-	{
-		return;
-	}
+	auto Rows = DbConn(
+		sqlpp::select(CE.ItemID, Host.IPAddress, Host.Family, CE.Port, CE.StartTime, CE.EndTime, CE.DataIn, CE.DataOut)
+			.from(CE.join(Host).on(CE.RemoteHostID == Host.ID).join(Asn).on(Asn.ID == Host.AsnID))
+			.where(Asn.Organization == Request.TargetName.substr(4))
+			.limit(100u)
+			.offset(Request.Offset));
 
-	ProcessFilteredEndpointHistoryRequest(
-		Request, Response, DbConn, [AsnID](auto const&, auto const& Host) { return Host.AsnID == AsnID; });
+	AppendEndpointHistoryEntries(Rows, Response);
 }
 
 static void ProcessAsnHistoryRequest(WConnectionHistoryRequest const& Request, WConnectionHistoryResponse& Response,
 	TPromise<std::string> const& Promise, auto& DbConn)
 {
-	constexpr Db::Schema::Asn Asn;
-	uint64_t                  AsnID{};
-
 	auto AsnInt = WStringFormat::ParseInt(Request.TargetName.substr(4));
 
 	if (AsnInt == 0)
@@ -432,15 +422,18 @@ static void ProcessAsnHistoryRequest(WConnectionHistoryRequest const& Request, W
 		Promise.Finish("");
 		return;
 	}
+	constexpr Db::Schema::Asn                    Asn;
+	constexpr Db::Schema::Host                   Host;
+	constexpr Db::Schema::ConnectionHistoryEntry CE;
 
-	if (!ResolveHistoryTargetId(
-			sqlpp::select(Asn.ID).from(Asn).where(Asn.Number == AsnInt), Request.TargetName, Promise, DbConn, AsnID))
-	{
-		return;
-	}
+	auto Rows = DbConn(
+		sqlpp::select(CE.ItemID, Host.IPAddress, Host.Family, CE.Port, CE.StartTime, CE.EndTime, CE.DataIn, CE.DataOut)
+			.from(CE.join(Host).on(CE.RemoteHostID == Host.ID).join(Asn).on(Asn.ID == Host.AsnID))
+			.where(Asn.Number == AsnInt)
+			.limit(100u)
+			.offset(Request.Offset));
 
-	ProcessFilteredEndpointHistoryRequest(
-		Request, Response, DbConn, [AsnID](auto const&, auto const& Host) { return Host.AsnID == AsnID; });
+	AppendEndpointHistoryEntries(Rows, Response);
 }
 
 void WStatsManager::ProcessHistoryRequest(
@@ -452,6 +445,7 @@ void WStatsManager::ProcessHistoryRequest(
 	spdlog::info("Received stats request for {}", Request.TargetName);
 
 	WDbManager::GetInstance().Run([&](auto& DbConn) {
+		WStopwatch const Stopwatch{};
 		if (Request.HostTarget)
 		{
 			ProcessHostHistoryRequest(Request, Response, Promise, DbConn);
@@ -462,17 +456,18 @@ void WStatsManager::ProcessHistoryRequest(
 		}
 		else if (WStringFormat::StartsWith(Request.TargetName, "org:"))
 		{
-			ProcessOrgHistoryRequest(Request, Response, Promise, DbConn);
+			ProcessOrgHistoryRequest(Request, Response, DbConn);
 		}
 		else if (WStringFormat::StartsWith(Request.TargetName, "country:"))
 		{
-			ProcessCountryHistoryRequest(Request, Response, Promise, DbConn);
+			ProcessCountryHistoryRequest(Request, Response, DbConn);
 		}
 		else
 		{
 			ProcessAppHistoryRequest(Request, Response, Promise, DbConn);
 		}
 		Promise.Finish(SerializeMessage(MT_HistoryResponse, Response));
+		spdlog::info("Processed history request for {} in {} μs", Request.TargetName, Stopwatch.ElapsedUs());
 	});
 }
 
