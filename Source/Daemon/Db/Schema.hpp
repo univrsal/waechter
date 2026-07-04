@@ -10,6 +10,93 @@ namespace Db
 {
 namespace Schema
 {
+  namespace Asn_
+  {
+    struct ID
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "ID";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T ID;
+            T& operator()() { return ID; }
+            const T& operator()() const { return ID; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::can_be_null>;
+    };
+    struct Number
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "Number";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T Number;
+            T& operator()() { return Number; }
+            const T& operator()() const { return Number; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::require_insert>;
+    };
+    struct Organization
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "Organization";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T Organization;
+            T& operator()() { return Organization; }
+            const T& operator()() const { return Organization; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::text, sqlpp::tag::require_insert>;
+    };
+    struct Country
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "Country";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T Country;
+            T& operator()() { return Country; }
+            const T& operator()() const { return Country; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::text, sqlpp::tag::require_insert>;
+    };
+  } // namespace Asn_
+
+  struct Asn: sqlpp::table_t<Asn,
+               Asn_::ID,
+               Asn_::Number,
+               Asn_::Organization,
+               Asn_::Country>
+  {
+    struct _alias_t
+    {
+      static constexpr const char _literal[] =  "Asn";
+      using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+      template<typename T>
+      struct _member_t
+      {
+        T Asn;
+        T& operator()() { return Asn; }
+        const T& operator()() const { return Asn; }
+      };
+    };
+  };
   namespace ConnectionHistoryEntry_
   {
     struct ID
@@ -183,6 +270,22 @@ namespace Schema
       };
       using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::can_be_null>;
     };
+    struct Family
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "Family";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T Family;
+            T& operator()() { return Family; }
+            const T& operator()() const { return Family; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::require_insert>;
+    };
     struct IPAddress
     {
       struct _alias_t
@@ -197,13 +300,31 @@ namespace Schema
             const T& operator()() const { return IPAddress; }
           };
       };
-      using _traits = sqlpp::make_traits<sqlpp::text, sqlpp::tag::require_insert>;
+      using _traits = sqlpp::make_traits<sqlpp::blob, sqlpp::tag::require_insert>;
+    };
+    struct AsnID
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "AsnID";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T AsnID;
+            T& operator()() { return AsnID; }
+            const T& operator()() const { return AsnID; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::can_be_null>;
     };
   } // namespace Host_
 
   struct Host: sqlpp::table_t<Host,
                Host_::ID,
-               Host_::IPAddress>
+               Host_::Family,
+               Host_::IPAddress,
+               Host_::AsnID>
   {
     struct _alias_t
     {
