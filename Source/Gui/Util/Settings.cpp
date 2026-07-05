@@ -28,7 +28,14 @@ WSettings::WSettings()
 	WSysUtil::LoadFilesystemFromIndexedDB();
 	if (WFilesystem::Exists(GetSettingsFilename()))
 	{
-		Load();
+		try
+		{
+			Load();
+		}
+		catch (std::exception const& e)
+		{
+			spdlog::error("Failed to load settings: {}", e.what());
+		}
 	}
 	else if (!WFilesystem::Writable(WSysUtil::GetConfigFolder()))
 	{
