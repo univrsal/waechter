@@ -146,6 +146,10 @@ void WIP2Asn::LookupThreadFunc()
 
 void WIP2Asn::Init()
 {
+	if (bRunning)
+	{
+		Stop();
+	}
 	auto DatabasePath = GetDataFolder() / "ip2asn_db.tsv";
 	Database = nullptr;
 	if (std::filesystem::exists(DatabasePath))
