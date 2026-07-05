@@ -38,7 +38,8 @@ static int ClientWebSocketCallback(
 			break;
 
 		case LWS_CALLBACK_CLIENT_RECEIVE:
-			Source->HandleReceive(static_cast<char*>(In), Len);
+			Source->HandleReceive(
+				static_cast<char*>(In), Len, lws_remaining_packet_payload(Wsi) == 0 && lws_is_final_fragment(Wsi));
 			break;
 
 		case LWS_CALLBACK_CLIENT_WRITEABLE:
@@ -123,35 +124,18 @@ void WWebSocketSource::OnConnectionClosed()
 	OnClosed();
 }
 
-void WWebSocketSource::HandleReceive(char const* Data, size_t Len)
+void WWebSocketSource::HandleReceive(char const* Data, size_t Len, bool const bIsFinalFragment)
 {
-	// Accumulate received data
 	ReceiveBuffer.insert(ReceiveBuffer.end(), Data, Data + Len);
-
-	// Process complete frames (with 4-byte length prefix)
-	while (ReceiveBuffer.size() >= sizeof(uint32_t))
+	if (!bIsFinalFragment)
 	{
-		uint32_t FrameLength = 0;
-		std::memcpy(&FrameLength, ReceiveBuffer.data(), sizeof(uint32_t));
-
-		if (ReceiveBuffer.size() >= sizeof(uint32_t) + FrameLength)
-		{
-			// Create buffer with frame data (skip length prefix)
-			WBuffer FrameBuffer(FrameLength);
-			FrameBuffer.Write(std::span<char const>(ReceiveBuffer.data() + sizeof(uint32_t), FrameLength));
-
-			// Remove processed frame from buffer
-			ReceiveBuffer.erase(ReceiveBuffer.begin(), ReceiveBuffer.begin() + sizeof(uint32_t) + FrameLength);
-
-			// Emit the data signal
-			OnData(FrameBuffer);
-		}
-		else
-		{
-			// Wait for more data
-			break;
-		}
+		return;
 	}
+
+	WBuffer FrameBuffer(ReceiveBuffer.size());
+	FrameBuffer.Write(std::span<char const>(ReceiveBuffer.data(), ReceiveBuffer.size()));
+	ReceiveBuffer.clear();
+	OnData(FrameBuffer);
 }
 
 void WWebSocketSource::HandleWritable()
@@ -190,6 +174,7 @@ void WWebSocketSource::RequestWrite() const
 	if (Wsi && Context)
 	{
 		lws_callback_on_writable(Wsi);
+		lws_cancel_service(Context);
 	}
 }
 
@@ -399,30 +384,20 @@ bool WWebSocketSource::SendFramed(std::string const& Data)
 		return false;
 	}
 
-	if (Data.size() > UINT32_MAX)
-	{
-		spdlog::error("WebSocket send data too large: {} bytes", Data.size());
-		return false;
-	}
-
 	if (Data.empty())
 	{
 		spdlog::error("WebSocket send data is empty");
 		return false;
 	}
 
-	// Prepare framed data with 4-byte length prefix and LWS_PRE padding
-	auto const        Length = static_cast<uint32_t>(Data.size());
-	std::vector<char> FramedData(LWS_PRE + sizeof(uint32_t) + Data.size());
-
-	std::memcpy(FramedData.data() + LWS_PRE, &Length, sizeof(uint32_t));
-	std::memcpy(FramedData.data() + LWS_PRE + sizeof(uint32_t), Data.data(), Data.size());
+	// WebSocket already preserves message boundaries, so send the serialized payload directly.
+	std::vector<char> FramedData(LWS_PRE + Data.size());
+	std::memcpy(FramedData.data() + LWS_PRE, Data.data(), Data.size());
 
 	{
 		std::lock_guard Lock(SendMutex);
 		SendQueue.push(std::move(FramedData));
 	}
-
 	// Request write callback
 	RequestWrite();
 

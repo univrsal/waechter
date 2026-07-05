@@ -23,11 +23,11 @@ class WClientWebSocket final : public IClientSocket
 	sigslot::signal<WBuffer&> OnData;
 	sigslot::signal<>         OnClosed;
 
-	// Outgoing message queue (each message is already framed with length prefix)
+	// Outgoing message queue (one serialized message per WebSocket frame)
 	std::mutex                    SendMutex;
 	std::queue<std::vector<char>> SendQueue;
 
-	// Buffer for receiving fragmented messages
+	// Buffer for a fragmented WebSocket message
 	std::vector<char> ReceiveBuffer;
 
 public:
@@ -45,7 +45,7 @@ public:
 	ssize_t SendFramed(std::string const& Data) override;
 
 	// Called by DaemonWebSocket callback
-	void HandleReceive(char const* Data, size_t Len);
+	void HandleReceive(char const* Data, size_t Len, bool bIsFinalFragment);
 	void HandleWritable();
 	void HandleClose();
 

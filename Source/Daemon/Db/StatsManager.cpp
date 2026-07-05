@@ -10,6 +10,7 @@
 #include <map>
 
 #include "sqlpp11/sqlpp11.h"
+#include "tracy/Tracy.hpp"
 
 #include "DbManager.hpp"
 #include "Schema.hpp"
@@ -20,8 +21,6 @@
 #include "Data/IP2Asn.hpp"
 #include "Data/SystemMap.hpp"
 #include "Data/Stats.hpp"
-
-#include <tracy/Tracy.hpp>
 
 WMemoryStat WStatsManager::GetMemoryUsage()
 {
@@ -383,6 +382,11 @@ static void ProcessCountryHistoryRequest(
 	constexpr Db::Schema::ConnectionHistoryEntry CE;
 	constexpr Db::Schema::Host                   Host;
 
+	auto Count = DbConn(sqlpp::select(sqlpp::count(CE.ItemID))
+			.from(CE.join(Host).on(CE.RemoteHostID == Host.ID).join(Asn).on(Asn.ID == Host.AsnID))
+			.where(Asn.Country == Request.TargetName.substr(8)));
+	Response.NumTotalEntries = static_cast<uint64_t>(Count.front().count.value());
+
 	auto Rows = DbConn(
 		sqlpp::select(CE.ItemID, Host.IPAddress, Host.Family, CE.Port, CE.StartTime, CE.EndTime, CE.DataIn, CE.DataOut)
 			.from(CE.join(Host).on(CE.RemoteHostID == Host.ID).join(Asn).on(Asn.ID == Host.AsnID))
@@ -400,6 +404,11 @@ static void ProcessOrgHistoryRequest(
 	constexpr Db::Schema::Host                   Host;
 	constexpr Db::Schema::ConnectionHistoryEntry CE;
 
+	auto Count = DbConn(sqlpp::select(sqlpp::count(CE.ItemID))
+			.from(CE.join(Host).on(CE.RemoteHostID == Host.ID).join(Asn).on(Asn.ID == Host.AsnID))
+			.where(Asn.Country == Request.TargetName.substr(8)));
+	Response.NumTotalEntries = static_cast<uint64_t>(Count.front().count.value());
+
 	auto Rows = DbConn(
 		sqlpp::select(CE.ItemID, Host.IPAddress, Host.Family, CE.Port, CE.StartTime, CE.EndTime, CE.DataIn, CE.DataOut)
 			.from(CE.join(Host).on(CE.RemoteHostID == Host.ID).join(Asn).on(Asn.ID == Host.AsnID))
@@ -413,7 +422,7 @@ static void ProcessOrgHistoryRequest(
 static void ProcessAsnHistoryRequest(WConnectionHistoryRequest const& Request, WConnectionHistoryResponse& Response,
 	TPromise<std::string> const& Promise, auto& DbConn)
 {
-	auto AsnInt = WStringFormat::ParseInt(Request.TargetName.substr(4));
+	auto const AsnInt = WStringFormat::ParseInt(Request.TargetName.substr(4));
 
 	if (AsnInt == 0)
 	{
@@ -424,6 +433,11 @@ static void ProcessAsnHistoryRequest(WConnectionHistoryRequest const& Request, W
 	constexpr Db::Schema::Asn                    Asn;
 	constexpr Db::Schema::Host                   Host;
 	constexpr Db::Schema::ConnectionHistoryEntry CE;
+
+	auto Count = DbConn(sqlpp::select(sqlpp::count(CE.ItemID))
+			.from(CE.join(Host).on(CE.RemoteHostID == Host.ID).join(Asn).on(Asn.ID == Host.AsnID))
+			.where(Asn.Country == Request.TargetName.substr(8)));
+	Response.NumTotalEntries = static_cast<uint64_t>(Count.front().count.value());
 
 	auto Rows = DbConn(
 		sqlpp::select(CE.ItemID, Host.IPAddress, Host.Family, CE.Port, CE.StartTime, CE.EndTime, CE.DataIn, CE.DataOut)

@@ -218,12 +218,13 @@ void WStatWindow::DrawHistoryData()
 				ImGui::TableSetupScrollFreeze(0, 1);
 				ImGui::TableHeadersRow();
 
-				if (auto* Sort = ImGui::TableGetSortSpecs(); Sort && !ImGui::GetIO().KeyCtrl)
+				if (auto* Sort = ImGui::TableGetSortSpecs(); Sort)
 				{
-					if (Sort->SpecsDirty)
+					if (Sort->SpecsDirty || bRequireSorting)
 					{
 						SortTable(Sort, bIsAppTable);
 						Sort->SpecsDirty = false;
+						bRequireSorting = false;
 					}
 				}
 
