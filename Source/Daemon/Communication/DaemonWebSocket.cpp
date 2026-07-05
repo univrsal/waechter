@@ -137,7 +137,9 @@ int WebSocketCallback(lws* Wsi, lws_callback_reasons Reason, void*, void* In, si
 		{
 			if (auto Client = DaemonWebSocket->GetClient(Wsi))
 			{
-				Client->HandleReceive(static_cast<char*>(In), Len);
+				Client->HandleReceive(
+					static_cast<char*>(In), Len,
+					lws_remaining_packet_payload(Wsi) == 0 && lws_is_final_fragment(Wsi));
 			}
 			break;
 		}

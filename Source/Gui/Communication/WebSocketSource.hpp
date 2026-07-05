@@ -35,7 +35,7 @@ class WWebSocketSource : public IDaemonSocket
 	std::mutex                    SendMutex;
 	std::queue<std::vector<char>> SendQueue;
 
-	// Buffer for receiving fragmented messages
+	// Buffer for a fragmented WebSocket message
 	std::vector<char> ReceiveBuffer;
 
 	void ListenThreadFunction();
@@ -57,7 +57,7 @@ public:
 	void OnConnected();
 	void OnConnectionError();
 	void OnConnectionClosed();
-	void HandleReceive(char const* Data, size_t Len);
+	void HandleReceive(char const* Data, size_t Len, bool bIsFinalFragment);
 	void HandleWritable();
 	void RequestWrite() const;
 

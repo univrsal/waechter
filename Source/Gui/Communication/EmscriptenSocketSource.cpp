@@ -72,28 +72,9 @@ void WEmscriptenSocketSource::OnConnectionClosed()
 
 void WEmscriptenSocketSource::HandleReceive(char const* Data, size_t Len)
 {
-	ReceiveBuffer.insert(ReceiveBuffer.end(), Data, Data + Len);
-
-	// Process complete frames (with 4-byte length prefix)
-	while (ReceiveBuffer.size() >= sizeof(uint32_t))
-	{
-		uint32_t FrameLength = 0;
-		std::memcpy(&FrameLength, ReceiveBuffer.data(), sizeof(uint32_t));
-
-		if (ReceiveBuffer.size() >= sizeof(uint32_t) + FrameLength)
-		{
-			WBuffer FrameBuffer(FrameLength);
-			FrameBuffer.Write(std::span<char const>(ReceiveBuffer.data() + sizeof(uint32_t), FrameLength));
-
-			ReceiveBuffer.erase(ReceiveBuffer.begin(), ReceiveBuffer.begin() + sizeof(uint32_t) + FrameLength);
-			OnData(FrameBuffer);
-		}
-		else
-		{
-			// Wait for more data
-			break;
-		}
-	}
+	WBuffer FrameBuffer(Len);
+	FrameBuffer.Write(std::span<char const>(Data, Len));
+	OnData(FrameBuffer);
 }
 
 void WEmscriptenSocketSource::Start()
@@ -233,12 +214,6 @@ bool WEmscriptenSocketSource::SendFramed(std::string const& Data)
 		return false;
 	}
 
-	if (Data.size() > UINT32_MAX)
-	{
-		spdlog::error("WebSocket send data too large: {} bytes", Data.size());
-		return false;
-	}
-
 	if (Data.empty())
 	{
 		spdlog::error("WebSocket send data is empty");
@@ -247,14 +222,9 @@ bool WEmscriptenSocketSource::SendFramed(std::string const& Data)
 
 	try
 	{
-		auto const           Length = static_cast<uint32_t>(Data.size());
-		std::vector<uint8_t> FramedData(sizeof(uint32_t) + Data.size());
-
-		std::memcpy(FramedData.data(), &Length, sizeof(uint32_t));
-		std::memcpy(FramedData.data() + sizeof(uint32_t), Data.data(), Data.size());
-
 		auto ArrayBuf = emscripten::val::global("Uint8Array")
-							.new_(emscripten::val(emscripten::typed_memory_view(FramedData.size(), FramedData.data())));
+							.new_(emscripten::val(emscripten::typed_memory_view(Data.size(),
+								reinterpret_cast<uint8_t const*>(Data.data()))));
 		WebSocket.call<void>("send", ArrayBuf);
 
 		return true;

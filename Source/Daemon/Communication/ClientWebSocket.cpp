@@ -34,26 +34,15 @@ ssize_t WClientWebSocket::SendFramed(std::string const& Data)
 		return -1;
 	}
 
-	if (Data.size() > UINT32_MAX)
-	{
-		spdlog::error("WebSocket send data too large: {} bytes", Data.size());
-		return -1;
-	}
-
 	if (Data.empty())
 	{
 		spdlog::error("WebSocket send data is empty");
 		return -1;
 	}
 
-	// Prepare framed data with 4-byte length prefix
-	auto const        Length = static_cast<uint32_t>(Data.size());
-	std::vector<char> FramedData(LWS_PRE + sizeof(uint32_t) + Data.size());
-
-	// Copy length prefix after LWS_PRE padding
-	std::memcpy(FramedData.data() + LWS_PRE, &Length, sizeof(uint32_t));
-	// Copy payload
-	std::memcpy(FramedData.data() + LWS_PRE + sizeof(uint32_t), Data.data(), Data.size());
+	// WebSocket already preserves message boundaries, so send the serialized payload directly.
+	std::vector<char> FramedData(LWS_PRE + Data.size());
+	std::memcpy(FramedData.data() + LWS_PRE, Data.data(), Data.size());
 
 	{
 		std::lock_guard Lock(SendMutex);
@@ -62,37 +51,21 @@ ssize_t WClientWebSocket::SendFramed(std::string const& Data)
 
 	RequestWrite();
 
-	return static_cast<ssize_t>(sizeof(uint32_t) + Data.size());
+	return static_cast<ssize_t>(Data.size());
 }
 
-void WClientWebSocket::HandleReceive(char const* Data, size_t Len)
+void WClientWebSocket::HandleReceive(char const* Data, size_t Len, bool const bIsFinalFragment)
 {
-	// Accumulate data (handle fragmented messages)
 	ReceiveBuffer.insert(ReceiveBuffer.end(), Data, Data + Len);
-
-	// Try to extract complete frames
-	while (ReceiveBuffer.size() >= sizeof(uint32_t))
+	if (!bIsFinalFragment)
 	{
-		uint32_t FrameLength = 0;
-		std::memcpy(&FrameLength, ReceiveBuffer.data(), sizeof(uint32_t));
-
-		if (ReceiveBuffer.size() < sizeof(uint32_t) + FrameLength)
-		{
-			// Not enough data for complete frame
-			break;
-		}
-
-		// Extract frame data (skip length prefix)
-		WBuffer FrameBuffer(FrameLength);
-		FrameBuffer.Write(std::span<char const>(ReceiveBuffer.data() + sizeof(uint32_t), FrameLength));
-
-		// Remove processed data from buffer
-		ReceiveBuffer.erase(
-			ReceiveBuffer.begin(), ReceiveBuffer.begin() + static_cast<ptrdiff_t>(sizeof(uint32_t) + FrameLength));
-
-		// Emit the data signal
-		OnData(FrameBuffer);
+		return;
 	}
+
+	WBuffer FrameBuffer(ReceiveBuffer.size());
+	FrameBuffer.Write(std::span<char const>(ReceiveBuffer.data(), ReceiveBuffer.size()));
+	ReceiveBuffer.clear();
+	OnData(FrameBuffer);
 }
 
 void WClientWebSocket::HandleWritable()

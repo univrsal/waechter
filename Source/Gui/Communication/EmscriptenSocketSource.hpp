@@ -26,13 +26,6 @@ class WEmscriptenSocketSource : public IDaemonSocket
 	std::atomic<bool> bConnected{ false };
 	std::atomic<bool> bConnectionFailed{ false };
 
-	std::mutex                    SendMutex;
-	std::queue<std::vector<char>> SendQueue;
-
-	std::vector<char> ReceiveBuffer;
-
-	void ProcessPendingMessages();
-
 public:
 	explicit WEmscriptenSocketSource(std::string WebSocketUrl, std::string AuthToken);
 	~WEmscriptenSocketSource() override;
