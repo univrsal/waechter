@@ -118,9 +118,9 @@ public:
 		std::scoped_lock Lock(DataMutex);
 		HistoryResponse = InResponse;
 		BuildHistoryDataCache();
-		bRequireSorting = true;
 		HistoryState = State_DataReceived;
 		HistoryMaxPages = std::max<uint32_t>(static_cast<uint32_t>(InResponse.NumTotalEntries / 100), 1);
+		bRequireSorting = true;
 	}
 
 	[[nodiscard]] uint32_t GetRequestId() const { return Request.RequestId; }
