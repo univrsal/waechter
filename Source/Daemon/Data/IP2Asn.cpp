@@ -213,14 +213,21 @@ void WIP2Asn::UpdateDatabase()
 	{
 		std::filesystem::remove(OldDatabasePath);
 	}
+	float LastProgress = 0.f;
 
 	bUpdateInProgress = true;
-	DownloadThread = std::thread([this] {
+	DownloadThread = std::thread([this, &LastProgress] {
 		std::scoped_lock lock(DownloadMutex);
 		auto const       DatabasePath = GetDataFolder() / "ip2asn_db.tsv.gz";
 		WLibCurl::DownloadFile(
 			URL, DatabasePath,
-			[&](float const Progress) { spdlog::info("Downloading IP2ASN database: {:.2f}%", Progress * 100); },
+			[&](float Progress) {
+				if (Progress - LastProgress >= 0.1f)
+				{
+					LastProgress = Progress;
+					spdlog::info("Downloading IP2ASN database: {:.2f}%", Progress * 100);
+				}
+			},
 			[](std::string const& Error) { spdlog::error("Failed to download IP2ASN database: {}", Error); });
 		if (ExtractDatabase(DatabasePath, DatabasePath.parent_path() / "ip2asn_db.tsv"))
 		{
