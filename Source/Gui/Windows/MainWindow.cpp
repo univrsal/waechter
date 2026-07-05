@@ -142,7 +142,6 @@ void WMainWindow::Draw()
 		{
 			bool bEnabled = !WIP2Asn::GetInstance().IsUpdateInProgress();
 
-#ifndef __EMSCRIPTEN__
 			if (ImGui::MenuItem(TR("menu.update_ip2asn"), nullptr, false, bEnabled))
 			{
 				// todo: send request to server
@@ -150,7 +149,6 @@ void WMainWindow::Draw()
 				WIP2AsnUpdateRequest const Request{};
 				WClient::GetInstance().SendMessage(MT_UpdateIP2AsnDb, Request);
 			}
-#endif
 			if (ImGui::MenuItem(TR("settings.title"), nullptr, false))
 			{
 				SettingsWindow.Show();
