@@ -12,7 +12,7 @@
 #include "DaemonClient.hpp"
 #include "DaemonConfig.hpp"
 
-void LwsLogCallback(int Level, char const* Line)
+void LwsLogCallback(int const Level, char const* Line)
 {
 	std::string Msg(Line);
 	while (!Msg.empty() && (Msg.back() == '\n' || Msg.back() == '\r'))
@@ -50,13 +50,13 @@ void LwsLogCallback(int Level, char const* Line)
 	}
 }
 
-int WebSocketCallback(lws* Wsi, lws_callback_reasons Reason, void*, void* In, size_t Len)
+int WebSocketCallback(lws* Wsi, lws_callback_reasons const Reason, void*, void* In, size_t const Len)
 {
 	spdlog::debug("WebSocket callback triggered: reason={}", static_cast<int>(Reason));
 
 	// Get the context and retrieve our server pointer
 	lws_context* Context = lws_get_context(Wsi);
-	auto*        DaemonWebSocket = static_cast<WDaemonWebSocket*>(lws_context_user(Context));
+	auto* const  DaemonWebSocket = static_cast<WDaemonWebSocket*>(lws_context_user(Context));
 
 	if (!DaemonWebSocket)
 	{
@@ -73,7 +73,7 @@ int WebSocketCallback(lws* Wsi, lws_callback_reasons Reason, void*, void* In, si
 			bool        Authenticated = false;
 
 			char QueryBuf[512];
-			int  QueryLen = lws_hdr_copy(Wsi, QueryBuf, sizeof(QueryBuf), WSI_TOKEN_HTTP_URI_ARGS);
+			int const QueryLen = lws_hdr_copy(Wsi, QueryBuf, sizeof(QueryBuf), WSI_TOKEN_HTTP_URI_ARGS);
 
 			if (QueryLen > 0)
 			{
@@ -81,12 +81,12 @@ int WebSocketCallback(lws* Wsi, lws_callback_reasons Reason, void*, void* In, si
 				spdlog::debug("WebSocket query string: {}", QueryString);
 
 				// Parse query parameters (format: token=value&other=value)
-				size_t TokenPos = QueryString.find("token=");
+				size_t const TokenPos = QueryString.find("token=");
 				if (TokenPos != std::string::npos)
 				{
-					size_t      TokenStart = TokenPos + 6; // Skip "token="
-					size_t      TokenEnd = QueryString.find('&', TokenStart);
-					std::string Token = (TokenEnd != std::string::npos)
+					size_t const      TokenStart = TokenPos + 6; // Skip "token="
+					size_t const      TokenEnd = QueryString.find('&', TokenStart);
+					std::string const Token = TokenEnd != std::string::npos
 						? QueryString.substr(TokenStart, TokenEnd - TokenStart)
 						: QueryString.substr(TokenStart);
 
@@ -125,7 +125,7 @@ int WebSocketCallback(lws* Wsi, lws_callback_reasons Reason, void*, void* In, si
 		case LWS_CALLBACK_CLOSED:
 		{
 			spdlog::info("WebSocket client disconnected");
-			if (auto Client = DaemonWebSocket->GetClient(Wsi))
+			if (auto const Client = DaemonWebSocket->GetClient(Wsi))
 			{
 				Client->HandleClose();
 			}
@@ -135,7 +135,7 @@ int WebSocketCallback(lws* Wsi, lws_callback_reasons Reason, void*, void* In, si
 
 		case LWS_CALLBACK_RECEIVE:
 		{
-			if (auto Client = DaemonWebSocket->GetClient(Wsi))
+			if (auto const Client = DaemonWebSocket->GetClient(Wsi))
 			{
 				Client->HandleReceive(
 					static_cast<char*>(In), Len,
@@ -146,7 +146,7 @@ int WebSocketCallback(lws* Wsi, lws_callback_reasons Reason, void*, void* In, si
 
 		case LWS_CALLBACK_SERVER_WRITEABLE:
 		{
-			if (auto Client = DaemonWebSocket->GetClient(Wsi))
+			if (auto const Client = DaemonWebSocket->GetClient(Wsi))
 			{
 				Client->HandleWritable();
 			}
@@ -194,7 +194,7 @@ bool WDaemonWebSocket::StartListenThread()
 	// Try to extract port from ws:// URL
 	if (SocketPath.starts_with("ws://"))
 	{
-		auto ColonPos = SocketPath.rfind(':');
+		auto const ColonPos = SocketPath.rfind(':');
 		if (ColonPos != std::string::npos && ColonPos > 5)
 		{
 			try
@@ -276,7 +276,7 @@ void WDaemonWebSocket::UnregisterClient(lws* Wsi)
 std::shared_ptr<WClientWebSocket> WDaemonWebSocket::GetClient(lws* Wsi)
 {
 	std::lock_guard Lock(ClientsMutex);
-	auto            It = Clients.find(Wsi);
+	auto const      It = Clients.find(Wsi);
 	if (It != Clients.end())
 	{
 		return It->second;
