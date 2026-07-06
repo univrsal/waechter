@@ -31,7 +31,7 @@
 
 // Helper: launch a detached process (double-fork). The child is forked while this process
 // still has root privileges, so the launched process will inherit root (UID=0) and keep it
-// independently of this process dropping privileges later.
+// independently of this process, dropping privileges later.
 static bool LaunchDetachedProcess(std::string const& cmd)
 {
 	return system(fmt::format("{} &", cmd).c_str()) == 0;
@@ -39,9 +39,9 @@ static bool LaunchDetachedProcess(std::string const& cmd)
 
 constexpr int kIngressPortFilterPriority = 1;
 
-WBandwidthLimit::WBandwidthLimit(
-	uint32_t Mark_, uint16_t MinorId_, WBytesPerSecond RateLimit_, ELimitDirection Direction_)
-	: Direction(Direction_), Mark(Mark_), MinorId(MinorId_), RateLimit(RateLimit_)
+WBandwidthLimit::WBandwidthLimit(uint32_t const Mark_, uint16_t const MinorId_, WBytesPerSecond const RateLimit_,
+	ELimitDirection const Direction_, bool const bIsRoot_)
+	: Direction(Direction_), Mark(Mark_), MinorId(MinorId_), bIsRoot(bIsRoot_), RateLimit(RateLimit_)
 {
 }
 
@@ -49,8 +49,8 @@ WBandwidthLimit::~WBandwidthLimit()
 {
 	spdlog::debug("HTB limit class being removed: classid=1:{}, rate={} B/s", MinorId, RateLimit);
 	// clean up tc classes and filters
-	std::string IfName =
-		(Direction == ELimitDirection::Upload) ? WDaemonConfig::GetInstance().NetworkInterfaceName : WIPLink::IfbDev;
+	std::string const IfName =
+		Direction == ELimitDirection::Upload ? WDaemonConfig::GetInstance().NetworkInterfaceName : WIPLink::IfbDev;
 
 	WIPLinkMsg Msg{};
 	Msg.Type = EIPLinkMsgType::RemoveHtbClass;
@@ -58,10 +58,12 @@ WBandwidthLimit::~WBandwidthLimit()
 	Msg.RemoveHtbClass->InterfaceName = IfName;
 	Msg.RemoveHtbClass->Mark = Mark;
 	Msg.RemoveHtbClass->MinorId = MinorId;
+	Msg.RemoveHtbClass->bIsRoot = bIsRoot;
 	WIPLink::GetInstance().IpProcSocket->SendMessage(Msg);
 }
 
-void WIPLink::SetupHTBLimitClass(std::shared_ptr<WBandwidthLimit> const& Limit, std::string const& IfName) const
+void WIPLink::SetupHTBLimitClass(
+	std::shared_ptr<WBandwidthLimit> const& Limit, std::string const& IfName, bool const bIsRoot) const
 {
 	spdlog::debug("Setting up HTB class on interface {}: classid=1:{}, mark=0x{:x}, rate={} B/s", IfName,
 		Limit->MinorId, Limit->Mark, Limit->RateLimit);
@@ -73,6 +75,7 @@ void WIPLink::SetupHTBLimitClass(std::shared_ptr<WBandwidthLimit> const& Limit, 
 	Msg.SetupHtbClass->Mark = Limit->Mark;
 	Msg.SetupHtbClass->MinorId = Limit->MinorId;
 	Msg.SetupHtbClass->RateLimit = Limit->RateLimit;
+	Msg.SetupHtbClass->bIsRoot = bIsRoot;
 	IpProcSocket->SendMessage(Msg);
 }
 
@@ -181,7 +184,7 @@ bool WIPLink::Init()
 		return false;
 	}
 
-	IpProcSocket->OnData.connect([](WBuffer& Data) { OnDataReceived(Data); });
+	IpProcSocket->OnData.connect([](WBuffer const& Data) { OnDataReceived(Data); });
 	IpProcSocket->StartListenThread();
 
 	spdlog::debug("IP link process socket connected");
@@ -198,33 +201,33 @@ bool WIPLink::Deinit()
 	return true;
 }
 
-void WIPLink::SetupEgressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit) const
+void WIPLink::SetupEgressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit, bool const bIsRoot) const
 {
-	SetupHTBLimitClass(Limit, WDaemonConfig::GetInstance().NetworkInterfaceName);
+	SetupHTBLimitClass(Limit, WDaemonConfig::GetInstance().NetworkInterfaceName, bIsRoot);
 }
 
-void WIPLink::SetupIngressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit) const
+void WIPLink::SetupIngressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit, bool const bIsRoot) const
 {
-	SetupHTBLimitClass(Limit, IfbDev);
+	SetupHTBLimitClass(Limit, IfbDev, bIsRoot);
 }
 
-void WIPLink::SetupIngressPortRouting(WTrafficItemId, uint32_t DownloadMark, uint16_t Dport)
+void WIPLink::SetupIngressPortRouting(WTrafficItemId, uint32_t const DownloadMark, uint16_t const DestPort)
 {
 	auto const& Data = WDaemon::GetInstance().GetEbpfObj().GetData();
 
-	if (!Data->SocketMarks->Update(Dport, static_cast<uint16_t>(DownloadMark)))
+	if (!Data->SocketMarks->Update(DestPort, static_cast<uint16_t>(DownloadMark)))
 	{
-		spdlog::error("Failed to add socket mark for port {}", Dport);
+		spdlog::error("Failed to add socket mark for port {}", DestPort);
 	}
 }
 
-void WIPLink::RemoveIngressPortRouting(uint16_t Dport)
+void WIPLink::RemoveIngressPortRouting(uint16_t const DestPort)
 {
 	auto const& Data = WDaemon::GetInstance().GetEbpfObj().GetData();
 
-	if (!Data->SocketMarks->Update(Dport, 0))
+	if (!Data->SocketMarks->Update(DestPort, 0))
 	{
-		spdlog::error("Failed to remove socket mark for port {}", Dport);
+		spdlog::error("Failed to remove socket mark for port {}", DestPort);
 	}
 }
 
@@ -305,7 +308,7 @@ std::shared_ptr<WBandwidthLimit> WIPLink::GetUploadLimit(
 		{
 			// Update existing limit
 			ExistingLimit->RateLimit = Limit;
-			SetupEgressHTBClass(ExistingLimit);
+			SetupEgressHTBClass(ExistingLimit, ItemId == 0);
 		}
 		if (bExists)
 		{
@@ -318,11 +321,11 @@ std::shared_ptr<WBandwidthLimit> WIPLink::GetUploadLimit(
 		*bExists = false;
 	}
 	auto NewLimit = std::make_shared<WBandwidthLimit>(
-		NextMark.fetch_add(1), NextMinorId.fetch_add(1), Limit, ELimitDirection::Upload);
+		NextMark.fetch_add(1), NextMinorId.fetch_add(1), Limit, ELimitDirection::Upload, ItemId == 0);
 
 	ActiveUploadLimits[ItemId] = NewLimit;
 
-	SetupEgressHTBClass(NewLimit);
+	SetupEgressHTBClass(NewLimit, ItemId == 0);
 
 	return NewLimit;
 }
@@ -333,12 +336,12 @@ std::shared_ptr<WBandwidthLimit> WIPLink::GetDownloadLimit(
 	std::lock_guard Lock(Mutex);
 	if (ActiveDownloadLimits.contains(ItemId))
 	{
-		auto ExistingLimit = ActiveDownloadLimits[ItemId];
+		auto const ExistingLimit = ActiveDownloadLimits[ItemId];
 		if (ExistingLimit->RateLimit != Limit)
 		{
 			// Update existing limit
 			ExistingLimit->RateLimit = Limit;
-			SetupIngressHTBClass(ExistingLimit);
+			SetupIngressHTBClass(ExistingLimit, ItemId == 0);
 		}
 		if (bExists)
 		{
@@ -352,10 +355,10 @@ std::shared_ptr<WBandwidthLimit> WIPLink::GetDownloadLimit(
 	}
 
 	auto NewLimit = std::make_shared<WBandwidthLimit>(
-		NextMark.fetch_add(1), NextMinorId.fetch_add(1), Limit, ELimitDirection::Download);
+		NextMark.fetch_add(1), NextMinorId.fetch_add(1), Limit, ELimitDirection::Download, ItemId == 0);
 	ActiveDownloadLimits[ItemId] = NewLimit;
 
-	SetupIngressHTBClass(NewLimit);
+	SetupIngressHTBClass(NewLimit, ItemId == 0);
 
 	return NewLimit;
 }

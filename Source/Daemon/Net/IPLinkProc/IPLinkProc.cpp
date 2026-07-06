@@ -124,6 +124,15 @@ static std::string SanitizeInterfaceName(std::string const& IfName)
 static bool SetupHtbClass(std::shared_ptr<WSetupHtbClassMsg> const& SetupHtbClass)
 {
 	auto const IfName = SanitizeInterfaceName(SetupHtbClass->InterfaceName);
+	if (SetupHtbClass->bIsRoot)
+	{
+		spdlog::info("Setting up root HTB class on interface {}: classid=1:{}, mark=0x{:x}, rate={} B/s", IfName,
+			SetupHtbClass->MinorId, SetupHtbClass->Mark, SetupHtbClass->RateLimit);
+		SYSFMT("tc class replace dev {} parent 1:1 classid 1:10 htb rate {} ceil {}", IfName, SetupHtbClass->RateLimit,
+			SetupHtbClass->RateLimit);
+		return true;
+	}
+
 	spdlog::debug("Setting up HTB class on interface {}: classid=1:{}, mark=0x{:x}, rate={} B/s", IfName,
 		SetupHtbClass->MinorId, SetupHtbClass->Mark, SetupHtbClass->RateLimit);
 	SYSFMT("tc class replace dev {} parent 1:1 classid 1:{} htb rate {}bit ceil {}bit", IfName, SetupHtbClass->MinorId,
@@ -141,6 +150,14 @@ static bool SetupHtbClass(std::shared_ptr<WSetupHtbClassMsg> const& SetupHtbClas
 static bool RemoveHtbClass(std::shared_ptr<WRemoveHtbClassMsg> const& RemoveHtbClass)
 {
 	auto const& IfName = SanitizeInterfaceName(RemoveHtbClass->InterfaceName);
+
+	if (RemoveHtbClass->bIsRoot)
+	{
+		spdlog::info("Resetting root HTB class on interface {}: classid=1:{}, mark=0x{:x}", IfName,
+			RemoveHtbClass->MinorId, RemoveHtbClass->Mark);
+		SYSFMT("tc class replace dev {} parent 1:1 classid 1:10 htb rate 1Gbit ceil 1Gbit", IfName);
+		return true;
+	}
 	spdlog::debug("Removing HTB class on interface {}: classid=1:{}, mark=0x{:x}", IfName, RemoveHtbClass->MinorId,
 		RemoveHtbClass->Mark);
 

@@ -23,11 +23,12 @@ struct WRemoveHtbClassMsg
 	std::string InterfaceName{};
 	uint32_t    Mark{};
 	uint16_t    MinorId{};
+	bool        bIsRoot{};
 
 	template <class Archive>
 	void serialize(Archive& Ar)
 	{
-		Ar(Mark, MinorId, InterfaceName);
+		Ar(Mark, MinorId, InterfaceName, bIsRoot);
 	}
 };
 
@@ -36,12 +37,13 @@ struct WSetupHtbClassMsg
 	std::string     InterfaceName{};
 	uint32_t        Mark{};
 	uint16_t        MinorId{};
+	bool            bIsRoot{};
 	WBytesPerSecond RateLimit{};
 
 	template <class Archive>
 	void serialize(Archive& Ar)
 	{
-		Ar(Mark, MinorId, RateLimit, InterfaceName);
+		Ar(Mark, MinorId, RateLimit, InterfaceName, bIsRoot);
 	}
 };
 
