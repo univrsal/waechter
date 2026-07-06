@@ -210,10 +210,13 @@ bool WTrafficTree::RenderItem(WRenderItemArgs const& Args)
 		ImGui::PopStyleColor();
 	}
 
-	ImGui::TableSetColumnIndex(3);
-	ImGui::PushID(static_cast<int>(Args.Item->ItemId));
-	RuleWidget.Draw(Args, bRowSelected);
-	ImGui::PopID();
+	if (Args.Item->GetType() != TI_Filter)
+	{
+		ImGui::TableSetColumnIndex(3);
+		ImGui::PushID(static_cast<int>(Args.Item->ItemId));
+		RuleWidget.Draw(Args, bRowSelected);
+		ImGui::PopID();
+	}
 
 	return bNodeOpen;
 }
