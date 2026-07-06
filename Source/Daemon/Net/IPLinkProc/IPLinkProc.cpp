@@ -15,11 +15,12 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/fmt/fmt.h"
 #include "cereal/types/memory.hpp"
-// ReSharper disable once CppUnusedIncludeDirective
+// ReSharper disable CppUnusedIncludeDirective
 #include "cereal/types/string.hpp"
 #include "cereal/types/array.hpp"
 #include "cereal/types/vector.hpp"
 #include "cereal/types/tuple.hpp"
+// ReSharper enable CppUnusedIncludeDirective
 
 #include "Socket.hpp"
 #include "ErrnoUtil.hpp"
@@ -27,8 +28,10 @@
 #include "SignalHandler.hpp"
 #include "Data/SocketStateParser.hpp"
 
-// The sole purpose of this executable is to run `tc` commands which require root
-// Commands are sent via unix socket from waechterd after it has dropped privileges
+// The sole purpose of this executable is to run `tc` commands which require root.
+// Commands are sent via unix socket from waechterd after it has dropped privileges.
+// At some point we should probably replace the `tc` command with directly using the
+// ip link library.
 
 #define SYSFMT(_fmt, ...)                                                                                             \
 	if (auto RC = SafeSystem(fmt::format(_fmt, __VA_ARGS__).c_str()); RC != 0)                                        \
@@ -50,20 +53,6 @@ struct WMsgQueue;
 static bool RemoveHtbClass(std::shared_ptr<WRemoveHtbClassMsg> const& RemoveHtbClass);
 
 static void ProcessMessage(WMsgQueue& Queue, WIPLinkMsg const& Msg, WSignalHandler& Handler, std::string const& IfbDev);
-
-struct HTBMapEntry
-{
-	uint16_t                            UseCount{};
-	std::shared_ptr<WRemoveHtbClassMsg> PendingRemoveMsg{};
-
-	~HTBMapEntry()
-	{
-		if (PendingRemoveMsg != nullptr)
-		{
-			RemoveHtbClass(PendingRemoveMsg);
-		}
-	}
-};
 
 // A tiny bounded-ish queue to avoid unbounded RAM usage if the sender outruns `tc`.
 // If it grows too large, we log warnings so it's visible in the logs.
@@ -128,9 +117,7 @@ static int SafeSystem(std::string const& Command)
 static std::string SanitizeInterfaceName(std::string const& IfName)
 {
 	std::string Result = IfName;
-	Result.erase(
-		std::remove_if(Result.begin(), Result.end(), [](char c) { return !std::isalnum(c) && c != '_' && c != '-'; }),
-		Result.end());
+	std::erase_if(Result, [](char c) { return !std::isalnum(c) && c != '_' && c != '-'; });
 	return Result;
 }
 
