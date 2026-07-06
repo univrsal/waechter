@@ -6,7 +6,6 @@
 #include "SystemMap.hpp"
 
 #include <array>
-#include <cstdlib>
 #include <ranges>
 #include <regex>
 #include <utility>
@@ -531,6 +530,7 @@ void WSystemMap::ReparentAcceptedSocket(std::shared_ptr<WSocketCounter> const& S
 
 WSystemMap::WSystemMap()
 {
+	TrafficItems[SystemItem->ItemId] = SystemItem;
 	auto const HostName = WFilesystem::ReadProc("/proc/sys/kernel/hostname");
 	if (!HostName.empty())
 	{
