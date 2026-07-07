@@ -35,6 +35,7 @@ class WMainWindow
 
 public:
 	static WMainWindow& Get();
+	static std::shared_ptr<WTrafficTree> const& GetTrafficTree();
 	void                Draw();
 
 	WNetworkGraphWindow&      GetNetworkGraphWindow() { return NetworkGraphWindow; }
