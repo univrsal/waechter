@@ -783,3 +783,37 @@ std::string const& WTrafficTree::ResolveAddress(WIPAddress const& Address)
 	WClient::GetInstance().SendMessage(MT_ResolveRequest, Request);
 	return Empty;
 }
+
+std::shared_ptr<WApplicationItem> WTrafficTree::FindDaemonItem()
+{
+	std::scoped_lock Lock(DataMutex);
+	for (auto const& TrafficItem : TrafficItems | std::views::values)
+	{
+		if (TrafficItem->GetType() == TI_Application)
+		{
+			auto const& App = std::static_pointer_cast<WApplicationItem>(TrafficItem);
+			if (App->ApplicationName == "waechterd")
+			{
+				return App;
+			}
+		}
+	}
+	return {};
+}
+
+std::shared_ptr<WApplicationItem> WTrafficTree::FindClientItem()
+{
+	std::scoped_lock Lock(DataMutex);
+	for (auto const& TrafficItem : TrafficItems | std::views::values)
+	{
+		if (TrafficItem->GetType() == TI_Application)
+		{
+			auto const& App = std::static_pointer_cast<WApplicationItem>(TrafficItem);
+			if (App->ApplicationName == "waechter")
+			{
+				return App;
+			}
+		}
+	}
+	return {};
+}

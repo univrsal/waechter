@@ -45,7 +45,8 @@
     "search.apps": "Anwendungen durchsuchen",
     "connected": "Mit Daemon verbunden",
     "not_connected": "Nicht mit Daemon verbunden",
-    "process": "Prozess"
+    "process": "Prozess",
+    "lockout_warning_text": "Sie sind dabei, die Regeln entweder für das gesamte System, den Daemon oder den Client zu ändern, während Sie über eine WebSocket-Verbindung verbunden sind. Wenn Sie in diesem Fall Verbindungen blockieren oder stark drosseln, werden Sie vom Daemon ausgesperrt."
   },
   "generic": {
     "ok": "OK",
