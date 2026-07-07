@@ -11,11 +11,14 @@
 #include "Icons/IconAtlas.hpp"
 #include "ClientRuleManager.hpp"
 #include "EBPFCommon.h"
+#include "I18n.hpp"
 #include "ImGuiUtil.hpp"
+#include "Settings.hpp"
 #include "Windows/SdlWindow.hpp"
 
 static constexpr ImVec2 GRuleIconSize{ 16, 16 };
 static constexpr float  GIconSpacing = 4.0f;
+static constexpr ImVec2 GWarningPopupSize{ 260, 0 };
 static WBytesPerSecond  CurrentLimit = 0;
 static ETrafficUnit     SelectedUnit = TU_KiBps;
 
@@ -153,10 +156,100 @@ static bool DrawBlockIconButton(
 		"placeholder", WSdlWindow::ScaleSize(GRuleIconSize), true);
 }
 
+void WRuleWidget::DrawWarningPopup(WRenderItemArgs const& Args)
+{
+	auto const Item = Args.Item;
+	auto const PopupLabel = std::format("warning_popup_{}", Item->ItemId);
+
+	ImGui::SetNextWindowSize(WSdlWindow::ScaleSize(GWarningPopupSize), ImGuiCond_Appearing);
+	if (!ImGui::BeginPopup(PopupLabel.c_str(), ImGuiWindowFlags_NoMove))
+	{
+		return;
+	}
+
+	ImGui::PushTextWrapPos(0.0f);
+	ImGui::TextWrapped("%s", TR("lockout_warning_text"));
+	ImGui::PopTextWrapPos();
+	if (ImGui::Button(TR("generic.ok")))
+	{
+		ImGui::CloseCurrentPopup();
+		bOpenPendingPopup = true;
+	}
+	ImGui::EndPopup();
+}
+
 void WRuleWidget::Draw(WRenderItemArgs const& Args, bool)
 {
-	auto               Item = Args.Item;
-	WTrafficItemRules* Rules{};
+	auto const               Item = Args.Item;
+	WTrafficItemRules const* Rules{};
+
+	if (bOpenPendingPopup)
+	{
+		if (PendingPopupItemId == Item->ItemId)
+		{
+			ImGui::OpenPopup(PendingPopupName.c_str());
+			bOpenPendingPopup = false;
+			PendingPopupName.clear();
+			PendingPopupItemId.reset();
+		}
+	}
+
+	auto const OpenPopup = [&](std::string const& Name) {
+		bool const bIsSystemItem = Args.Item->ItemId == 0;
+		bool       bIsDaemonOrClientItem{};
+		if (Args.Item->GetType() == TI_Application)
+		{
+			auto const& App = std::static_pointer_cast<WApplicationItem>(Args.Item);
+			if (App->ApplicationName == "waechterd" || App->ApplicationName == "waechter")
+			{
+				bIsDaemonOrClientItem = true;
+			}
+		}
+		else if (Args.Item->GetType() == TI_Process)
+		{
+			auto const& Process = std::static_pointer_cast<WProcessItem>(Args.Item);
+			if (auto const Client = WMainWindow::GetTrafficTree()->FindClientItem())
+			{
+				bIsDaemonOrClientItem |= Client->Processes.contains(Process->ProcessId);
+			}
+			if (auto const Daemon = WMainWindow::GetTrafficTree()->FindDaemonItem())
+			{
+				bIsDaemonOrClientItem |= Daemon->Processes.contains(Process->ProcessId);
+			}
+		}
+		else if (Args.Item->GetType() == TI_Socket)
+		{
+			auto const& Socket = std::static_pointer_cast<WSocketItem>(Args.Item);
+			auto const  Cookie = Socket->Cookie;
+			if (auto const Client = WMainWindow::GetTrafficTree()->FindClientItem())
+			{
+				for (auto const& Proc : Client->Processes | std::views::values)
+				{
+					bIsDaemonOrClientItem |= Proc->Sockets.contains(Cookie);
+				}
+			}
+			if (auto const Daemon = WMainWindow::GetTrafficTree()->FindDaemonItem())
+			{
+				for (auto const& Proc : Daemon->Processes | std::views::values)
+				{
+					bIsDaemonOrClientItem |= Proc->Sockets.contains(Cookie);
+				}
+			}
+		}
+
+		if ((bIsSystemItem || bIsDaemonOrClientItem) && WSettings::GetInstance().SocketPath.starts_with("ws"))
+		{
+			// we're messing with the system item, and we are connected via a websocket
+			// that means the user is pretty close to locking himself out
+			ImGui::OpenPopup(std::format("warning_popup_{}", Item->ItemId).c_str());
+			PendingPopupName = Name;
+			PendingPopupItemId = Item->ItemId;
+		}
+		else
+		{
+			ImGui::OpenPopup(Name.c_str());
+		}
+	};
 
 	// We do *not* want to create the rule here if it doesn't exist
 	if (WClientRuleManager::GetInstance().HasRules(Item->ItemId))
@@ -170,7 +263,7 @@ void WRuleWidget::Draw(WRenderItemArgs const& Args, bool)
 
 	if (DrawBlockIconButton(Item->ItemId, Rules->DownloadSwitch, "downloadallow", "downloadblock"))
 	{
-		ImGui::OpenPopup(std::format("download_popup_{}", Item->ItemId).c_str());
+		OpenPopup(std::format("download_popup_{}", Item->ItemId));
 	}
 	if (ImGui::IsItemHovered())
 	{
@@ -181,7 +274,7 @@ void WRuleWidget::Draw(WRenderItemArgs const& Args, bool)
 
 	if (DrawBlockIconButton(Item->ItemId, Rules->UploadSwitch, "uploadallow", "uploadblock"))
 	{
-		ImGui::OpenPopup(std::format("upload_popup_{}", Item->ItemId).c_str());
+		OpenPopup(std::format("upload_popup_{}", Item->ItemId));
 	}
 	if (ImGui::IsItemHovered())
 	{
@@ -190,11 +283,11 @@ void WRuleWidget::Draw(WRenderItemArgs const& Args, bool)
 	DrawBlockOptionPopup(Args, true);
 	ImGui::SameLine(0.0f, GIconSpacing);
 
-	auto Rule = WClientRuleManager::GetInstance().GetOrCreateRules(Item->ItemId);
+	auto const Rule = WClientRuleManager::GetInstance().GetOrCreateRules(Item->ItemId);
 	if (DrawLimitIconButton(Item->ItemId, Rule.DownloadLimit, "downloadlimit"))
 	{
 		CurrentLimit = WTrafficFormat::ConvertFromBps(Rule.DownloadLimit, SelectedUnit);
-		ImGui::OpenPopup(std::format("download_limit_popup_{}", Item->ItemId).c_str());
+		OpenPopup(std::format("download_limit_popup_{}", Item->ItemId));
 	}
 	if (ImGui::IsItemHovered())
 	{
@@ -206,11 +299,13 @@ void WRuleWidget::Draw(WRenderItemArgs const& Args, bool)
 	if (DrawLimitIconButton(Item->ItemId, Rule.UploadLimit, "uploadlimit"))
 	{
 		CurrentLimit = WTrafficFormat::ConvertFromBps(Rule.UploadLimit, SelectedUnit);
-		ImGui::OpenPopup(std::format("upload_limit_popup_{}", Item->ItemId).c_str());
+		OpenPopup(std::format("upload_limit_popup_{}", Item->ItemId));
 	}
 	if (ImGui::IsItemHovered())
 	{
 		ImGui::SetTooltip("Limit upload");
 	}
+
 	DrawLimitOptionPopup(Args, true);
+	DrawWarningPopup(Args);
 }

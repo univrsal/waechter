@@ -79,7 +79,7 @@ static char const* ProtocolToString(EProtocol::Type Protocol)
 
 void WDetailsWindow::DrawFilterDetails() const
 {
-	auto const Filter = Tree->GetSeletedTrafficItem<WFilterItem>();
+	auto const Filter = Tree->GetSelectedTrafficItem<WFilterItem>();
 
 	if (Filter == nullptr)
 	{
@@ -105,7 +105,7 @@ void WDetailsWindow::DrawFilterDetails() const
 
 void WDetailsWindow::DrawSystemDetails() const
 {
-	auto const System = Tree->GetSeletedTrafficItem<WSystemItem>();
+	auto const System = Tree->GetSelectedTrafficItem<WSystemItem>();
 
 	if (System == nullptr)
 	{
@@ -136,7 +136,7 @@ void WDetailsWindow::DrawSystemDetails() const
 
 void WDetailsWindow::DrawApplicationDetails() const
 {
-	auto const App = Tree->GetSeletedTrafficItem<WApplicationItem>();
+	auto const App = Tree->GetSelectedTrafficItem<WApplicationItem>();
 	if (App == nullptr)
 	{
 		return;
@@ -175,7 +175,7 @@ void WDetailsWindow::DrawApplicationDetails() const
 
 void WDetailsWindow::DrawProcessDetails() const
 {
-	auto const Proc = Tree->GetSeletedTrafficItem<WProcessItem>();
+	auto const Proc = Tree->GetSelectedTrafficItem<WProcessItem>();
 	if (Proc == nullptr)
 	{
 		return;
@@ -192,7 +192,7 @@ void WDetailsWindow::DrawProcessDetails() const
 
 void WDetailsWindow::DrawSocketDetails() const
 {
-	auto const Sock = Tree->GetSeletedTrafficItem<WSocketItem>();
+	auto const Sock = Tree->GetSelectedTrafficItem<WSocketItem>();
 	if (Sock == nullptr)
 	{
 		return;
@@ -268,7 +268,7 @@ void WDetailsWindow::DrawSocketDetails() const
 
 void WDetailsWindow::DrawTupleDetails() const
 {
-	auto const Tuple = Tree->GetSeletedTrafficItem<WTupleItem>();
+	auto const Tuple = Tree->GetSelectedTrafficItem<WTupleItem>();
 	auto const Endpoint = Tree->GetSelectedTupleEndpoint();
 	if (!Tuple || !Endpoint.has_value())
 	{
@@ -327,7 +327,7 @@ void WDetailsWindow::Draw()
 		}
 	}
 
-	auto const Sock = Tree->GetSeletedTrafficItem<WSocketItem>();
+	auto const Sock = Tree->GetSelectedTrafficItem<WSocketItem>();
 	if (Sock)
 	{
 		if (LookupCache.contains(Sock->SocketTuple.RemoteEndpoint.Address))
