@@ -1,3 +1,6 @@
+import json
+
+
 def bytes_to_cpp_array(data: bytes) -> str:
 
     return ", ".join(f"0x{b:02X}" for b in data)
@@ -26,6 +29,59 @@ def output_to_cpp(arrays: list[str], defs: list[str], output_path: str):
 """ + "\n".join(defs)
     with open("../../Source/Gui/" + output_path + ".hpp", "w") as f:
         f.write(header_code)
+
+
+with open("../I18n/en_US.json") as f:
+    en = json.load(f)
+
+
+def compare_structure(a, b, path=""):
+    # Types must match
+    if type(a) != type(b):
+        return [f"{path}: type mismatch ({type(a).__name__} != {type(b).__name__})"]
+
+    # Dictionaries
+    if isinstance(a, dict):
+        errors = []
+
+        missing = a.keys() - b.keys()
+        extra = b.keys() - a.keys()
+
+        for key in sorted(missing):
+            errors.append(f"{path}/{key}: missing")
+
+        for key in sorted(extra):
+            errors.append(f"{path}/{key}: extra")
+
+        for key in sorted(a.keys() & b.keys()):
+            errors.extend(compare_structure(a[key], b[key], f"{path}/{key}"))
+
+        return errors
+
+    # Lists
+    if isinstance(a, list):
+        errors = []
+
+        if len(a) != len(b):
+            errors.append(f"{path}: list length differs ({len(a)} != {len(b)})")
+            return errors
+
+        for i, (x, y) in enumerate(zip(a, b)):
+            errors.extend(compare_structure(x, y, f"{path}[{i}]"))
+
+        return errors
+
+    return []
+
+
+def check_lang_file(f):
+    with open(f) as lang_file:
+        lang_data = json.load(lang_file)
+        errors = compare_structure(en, lang_data)
+        if errors:
+            print(f"Errors in {f}:")
+            for error in errors:
+                print(f"  {error}")
 
 if __name__ == "__main__":
 
@@ -64,6 +120,9 @@ if __name__ == "__main__":
     em = []
     for i in input_files:
         f, n = i
+
+        if f.endswith(".json") and "I18n" in f and not f.endswith("en_US.json"):
+            check_lang_file(f)
         code, embed = generate_embed(f, n)
         co.append(code)
         em.append(embed)
