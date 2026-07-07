@@ -38,7 +38,7 @@ public:
 	void                Draw();
 
 	WNetworkGraphWindow&      GetNetworkGraphWindow() { return NetworkGraphWindow; }
-	WDetailsWindow&           GetDailyDetailsWindow() { return DetailsWindow; }
+	WDetailsWindow&           GetDetailsWindow() { return DetailsWindow; }
 	WConnectionHistoryWindow& GetConnectionHistoryWindow() { return ConnectionHistoryWindow; }
 	WMemoryUsageWindow&       GetMemoryUsageWindow() { return MemoryUsageWindow; }
 
