@@ -56,7 +56,7 @@ class WTrafficTree
 
 	bool RenderItem(WRenderItemArgs const& Args);
 
-	std::mutex DataMutex;
+	std::recursive_mutex DataMutex;
 
 	void SortTree(ImGuiTableSortSpecs const* Specs);
 
@@ -73,7 +73,7 @@ public:
 	std::string const& ResolveAddress(WIPAddress const& Address);
 
 	template <class T>
-	std::shared_ptr<T> GetSeletedTrafficItem()
+	std::shared_ptr<T> GetSelectedTrafficItem()
 	{
 		if (auto const Ptr = SelectedItem.lock())
 		{
@@ -95,6 +95,9 @@ public:
 		}
 		return {};
 	}
+
+	std::shared_ptr<WApplicationItem> FindDaemonItem();
+	std::shared_ptr<WApplicationItem> FindClientItem();
 
 	void Clear()
 	{

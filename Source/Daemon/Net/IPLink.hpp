@@ -31,9 +31,11 @@ struct WBandwidthLimit
 	ELimitDirection Direction;
 	uint32_t        Mark{ 0 };      // Traffic mark used in tc filters to redirect the packet to the correct class
 	uint16_t        MinorId{ 0 };   // Minor class ID in the HTB qdisc
+	bool            bIsRoot{};
 	WBytesPerSecond RateLimit{ 0 }; // Bandwidth limit in bytes per second
 
-	WBandwidthLimit(uint32_t Mark, uint16_t MinorId, WBytesPerSecond RateLimit, ELimitDirection Direction);
+	WBandwidthLimit(
+		uint32_t Mark_, uint16_t MinorId_, WBytesPerSecond RateLimit_, ELimitDirection Direction_, bool bIsRoot_);
 	~WBandwidthLimit();
 };
 
@@ -43,7 +45,7 @@ class WIPLink : public TSingleton<WIPLink>, public IMemoryTrackable
 {
 	friend struct WBandwidthLimit;
 	std::mutex            Mutex;
-	std::atomic<uint32_t> NextFilterhandle{ 1 };
+	std::atomic<uint32_t> NextFilterHandle{ 1 };
 	std::atomic<uint32_t> NextMark{ 1 };
 	std::atomic<uint16_t> NextMinorId{ 11 }; // 10 is root
 
@@ -52,9 +54,10 @@ class WIPLink : public TSingleton<WIPLink>, public IMemoryTrackable
 
 	std::unique_ptr<WClientSocket> IpProcSocket;
 
-	void SetupHTBLimitClass(std::shared_ptr<WBandwidthLimit> const& Limit, std::string const& IfName) const;
+	void SetupHTBLimitClass(
+		std::shared_ptr<WBandwidthLimit> const& Limit, std::string const& IfName, bool bIsRoot) const;
 	void OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket);
-	static void OnDataReceived(WBuffer const& data);
+	static void OnDataReceived(WBuffer const& Buf);
 
 public:
 	unsigned int             WaechterIngressIfIndex{ 0 };
@@ -63,11 +66,11 @@ public:
 	bool Init();
 	bool Deinit();
 
-	void SetupEgressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit) const;
-	void SetupIngressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit) const;
+	void SetupEgressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit, bool bIsRoot) const;
+	void SetupIngressHTBClass(std::shared_ptr<WBandwidthLimit> const& Limit, bool bIsRoot) const;
 
-	static void SetupIngressPortRouting(WTrafficItemId Item, uint32_t QDiscId, uint16_t Dport);
-	static void RemoveIngressPortRouting(uint16_t Dport);
+	static void SetupIngressPortRouting(WTrafficItemId Item, uint32_t DownloadMark, uint16_t DestPort);
+	static void RemoveIngressPortRouting(uint16_t DestPort);
 
 	void RemoveUploadLimit(WTrafficItemId const& ItemId);
 	void RemoveDownloadLimit(WTrafficItemId const& ItemId);

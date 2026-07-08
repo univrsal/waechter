@@ -23,7 +23,7 @@ class WDaemonClient;
 
 struct WSocketRules
 {
-	WTrafficItemRulesBase Rules;
+	WTrafficItemRulesBase Rules{};
 	WTrafficItemId        SocketId{};
 
 	bool bDirty{ true };
@@ -33,6 +33,7 @@ class WRuleManager : public TSingleton<WRuleManager>, public IMemoryTrackable
 {
 	std::mutex Mutex;
 
+	WTrafficItemRules                                     SystemRules{};
 	std::unordered_map<WTrafficItemId, WTrafficItemRules> ApplicationRules;
 	std::unordered_map<WTrafficItemId, WTrafficItemRules> ProcessRules;
 	std::unordered_map<WTrafficItemId, WTrafficItemRules> SocketRules;
@@ -43,11 +44,13 @@ class WRuleManager : public TSingleton<WRuleManager>, public IMemoryTrackable
 	void OnSocketRemoved(std::shared_ptr<WSocketCounter> const& Socket);
 	void OnProcessRemoved(std::shared_ptr<WProcessCounter> const& ProcessItem);
 	void OnAppFirstTimeConnected(std::shared_ptr<WAppCounter> const& App);
+	void LoadSystemRule();
 
 	void UpdateRuleCache(std::shared_ptr<ITrafficItem> const& AppItem);
 	void SyncRules();
 	void RemoveEmptyRules();
 	static void WriteAppRuleToDb(WRuleUpdate const& Update, std::shared_ptr<WApplicationItem> const& App);
+	static void WriteSystemRuleToDb(WRuleUpdate const& Update);
 
 public:
 	void SendCurrentRulesToClient(std::shared_ptr<WDaemonClient> const& Client);

@@ -94,8 +94,9 @@ void WRuleManager::OnSocketConnected(WSocketCounter const* Socket)
 	auto const App = Socket->ParentProcess->ParentApp;
 
 	auto const AppRules = ApplicationRules.contains(AppItem) ? ApplicationRules[AppItem] : WTrafficItemRules{};
+	auto const EffectiveAppRules = GetEffectiveRules(SystemRules, AppRules);
 	auto const ProcRules = ProcessRules.contains(ProcessItemId) ? ProcessRules[ProcessItemId] : WTrafficItemRules{};
-	WTrafficItemRules const EffectiveProcRules = GetEffectiveRules(AppRules, ProcRules);
+	WTrafficItemRules const EffectiveProcRules = GetEffectiveRules(EffectiveAppRules, ProcRules);
 
 	if (!EffectiveProcRules.IsDefault())
 	{
@@ -187,21 +188,77 @@ void WRuleManager::OnAppFirstTimeConnected(std::shared_ptr<WAppCounter> const& A
 	});
 }
 
+void WRuleManager::LoadSystemRule()
+{
+	WDbManager::GetInstance().Run([this](auto& DbConn) {
+		constexpr Db::Schema::Rule Rule;
+		auto RuleResult =
+			DbConn(sqlpp::select(Rule.DownloadLimit, Rule.UploadLimit, Rule.DownloadSwitchState, Rule.UploadSwitchState)
+					.from(Rule)
+					.where(Rule.Target == "system"));
+
+		if (RuleResult.empty())
+		{
+			return;
+		}
+
+		spdlog::debug("Loading rule for system");
+		WTrafficItemRules Rules;
+		Rules.DownloadSwitch = static_cast<ESwitchState>(static_cast<int>(RuleResult.front().DownloadSwitchState));
+		Rules.UploadSwitch = static_cast<ESwitchState>(static_cast<int>(RuleResult.front().UploadSwitchState));
+		Rules.RuleType = ERuleType::Explicit;
+		Rules.DownloadLimit = RuleResult.front().DownloadLimit;
+		Rules.UploadLimit = RuleResult.front().UploadLimit;
+
+		if (Rules.DownloadLimit > 0)
+		{
+			auto const Limit = WIPLink::GetInstance().GetDownloadLimit(0, Rules.DownloadLimit);
+			Rules.DownloadMark = Limit->Mark;
+		}
+		if (Rules.UploadLimit > 0)
+		{
+			auto const Limit = WIPLink::GetInstance().GetUploadLimit(0, Rules.UploadLimit);
+			Rules.UploadMark = Limit->Mark;
+		}
+
+		if (!Rules.IsDefault())
+		{
+			std::lock_guard Lock(Mutex);
+			SystemRules = Rules;
+			UpdateRuleCache(WSystemMap::GetInstance().GetSystemItem());
+			SyncRules();
+		}
+	});
+}
+
 void WRuleManager::UpdateRuleCache(std::shared_ptr<ITrafficItem> const& AppItem)
 {
+	if (!AppItem)
+	{
+		return;
+	}
+	if (AppItem->GetType() == TI_System)
+	{
+		for (auto const& App : WSystemMap::GetInstance().GetSystemItem()->Applications | std::views::values)
+		{
+			UpdateRuleCache(App);
+		}
+		return;
+	}
+
 	auto const App = std::dynamic_pointer_cast<WApplicationItem>(AppItem);
 	if (!App)
 	{
 		return;
 	}
 
-	WTrafficItemRules const AppRules =
-		ApplicationRules.contains(App->ItemId) ? ApplicationRules[App->ItemId] : WTrafficItemRules{};
+	auto const AppRules = ApplicationRules.contains(App->ItemId) ? ApplicationRules[App->ItemId] : WTrafficItemRules{};
+	WTrafficItemRules const EffectiveAppRules = GetEffectiveRules(SystemRules, AppRules);
 
 	for (auto const& Proc : App->Processes | std::views::values)
 	{
 		auto const ProcRules = ProcessRules.contains(Proc->ItemId) ? ProcessRules[Proc->ItemId] : WTrafficItemRules{};
-		WTrafficItemRules const EffectiveProcRules = GetEffectiveRules(AppRules, ProcRules);
+		WTrafficItemRules const EffectiveProcRules = GetEffectiveRules(EffectiveAppRules, ProcRules);
 
 		for (auto const& [Cookie, Sock] : Proc->Sockets)
 		{
@@ -275,6 +332,10 @@ void WRuleManager::SyncRules()
 
 void WRuleManager::RemoveEmptyRules()
 {
+	if (SystemRules.IsDefault())
+	{
+		SystemRules = {};
+	}
 	auto CleanUp = [](std::unordered_map<WTrafficItemId, WTrafficItemRules>& Map) {
 		for (auto It = Map.begin(); It != Map.end();)
 		{
@@ -340,9 +401,53 @@ void WRuleManager::WriteAppRuleToDb(WRuleUpdate const& Update, std::shared_ptr<W
 	});
 }
 
+void WRuleManager::WriteSystemRuleToDb(WRuleUpdate const& Update)
+{
+	WDbManager::GetInstance().Run([&](auto& DbConn) {
+		constexpr Db::Schema::Rule Rule;
+		auto RuleResult = DbConn(sqlpp::select(Rule.ID).from(Rule).where(Rule.Target == "system"));
+
+		if (RuleResult.empty())
+		{
+			if (!Update.Rules.IsDefault())
+			{
+				DbConn(sqlpp::insert_into(Rule).set(Rule.Target = "system", Rule.DownloadLimit = Update.Rules.DownloadLimit,
+					Rule.UploadLimit = Update.Rules.UploadLimit,
+					Rule.DownloadSwitchState = static_cast<int>(Update.Rules.DownloadSwitch),
+					Rule.UploadSwitchState = static_cast<int>(Update.Rules.UploadSwitch)));
+			}
+			return;
+		}
+
+		int64_t const RuleID = RuleResult.front().ID.value();
+
+		if (Update.Rules.IsDefault())
+		{
+			DbConn(sqlpp::remove_from(Rule).where(Rule.ID == RuleID));
+		}
+		else
+		{
+			DbConn(sqlpp::update(Rule)
+					.set(Rule.DownloadLimit = Update.Rules.DownloadLimit, Rule.UploadLimit = Update.Rules.UploadLimit,
+						Rule.DownloadSwitchState = static_cast<int>(Update.Rules.DownloadSwitch),
+						Rule.UploadSwitchState = static_cast<int>(Update.Rules.UploadSwitch))
+					.where(Rule.ID == RuleID));
+		}
+	});
+}
+
 void WRuleManager::SendCurrentRulesToClient(std::shared_ptr<WDaemonClient> const& Client)
 {
 	std::scoped_lock Lock(Mutex);
+
+	if (!SystemRules.IsDefault())
+	{
+		WRuleUpdate Update{};
+		Update.TrafficItemId = 0;
+		Update.ParentAppId = 0;
+		Update.Rules = SystemRules;
+		Client->SendMessage(MT_RuleUpdate, Update);
+	}
 
 	auto SendMap = [Client](std::unordered_map<WTrafficItemId, WTrafficItemRules> const& Map) {
 		for (auto const& [TrafficItemId, Rules] : Map)
@@ -369,6 +474,7 @@ void WRuleManager::RegisterSignalHandlers()
 		[this](std::shared_ptr<WProcessCounter> const& Process) { OnProcessRemoved(Process); });
 	WNetworkEvents::GetInstance().OnAppFirstTimeConnected.connect(
 		[this](std::shared_ptr<WAppCounter> const& App) { OnAppFirstTimeConnected(App); });
+	LoadSystemRule();
 }
 
 void WRuleManager::HandleRuleChange(WBuffer const& Buf, WDaemonClient const* Sender)
@@ -386,11 +492,23 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf, WDaemonClient const* Sen
 
 	auto const Item = WSystemMap::GetInstance().GetTrafficItemById(Update.TrafficItemId);
 	auto const AppItem = WSystemMap::GetInstance().GetTrafficItemById(Update.ParentAppId);
+	auto const CacheRoot = Item && Item->GetType() == TI_System ? Item : AppItem;
 
-	if (!Item || !AppItem)
+	if (!Item || !CacheRoot)
 	{
 		spdlog::warn("Received rule update for unknown traffic item ID {}", Update.TrafficItemId);
 		return;
+	}
+
+	if (Item->GetType() == TI_System)
+	{
+		// We also store the system rule with cookie 0 in ebpf.
+		// That way we can immediately determine if all traffic should be blocked
+		auto const EbpfData = WDaemon::GetInstance().GetEbpfObj().GetData();
+		if (!EbpfData->SocketRules->Update(0, Update.Rules.AsBase()))
+		{
+			spdlog::error("Failed to update eBPF rules for system rule");
+		}
 	}
 
 	if (Update.Rules.DownloadLimit == 0)
@@ -423,6 +541,10 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf, WDaemonClient const* Sen
 
 	switch (Item->GetType())
 	{
+		case TI_System:
+			SystemRules = Update.Rules;
+			WriteSystemRuleToDb(Update);
+			break;
 		case TI_Application:
 		{
 			ApplicationRules[Update.TrafficItemId] = Update.Rules;
@@ -467,7 +589,7 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf, WDaemonClient const* Sen
 		default:;
 	}
 
-	UpdateRuleCache(AppItem);
+	UpdateRuleCache(CacheRoot);
 	SyncRules();
 	RemoveEmptyRules();
 	spdlog::debug("{} app rules, {} proc rules, {} sock rules, {} sock cookie rules in cache", ApplicationRules.size(),

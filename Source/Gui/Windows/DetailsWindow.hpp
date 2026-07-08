@@ -37,4 +37,6 @@ public:
 	void Draw();
 
 	void HandleLookupResult(WBuffer const& Buffer);
+
+	std::shared_ptr<WTrafficTree> const& GetTrafficTree() const { return Tree; }
 };

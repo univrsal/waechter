@@ -16,6 +16,7 @@ enum class ERuleType : uint8_t
 
 struct WTrafficItemRules : WTrafficItemRulesBase
 {
+	WTrafficItemRules() : WTrafficItemRulesBase() {}
 	WBytesPerSecond UploadLimit{ 0 };
 	WBytesPerSecond DownloadLimit{ 0 };
 
@@ -29,7 +30,7 @@ struct WTrafficItemRules : WTrafficItemRulesBase
 
 	[[nodiscard]] WTrafficItemRulesBase AsBase() const
 	{
-		WTrafficItemRulesBase Base;
+		WTrafficItemRulesBase Base{};
 		Base.UploadSwitch = UploadSwitch;
 		Base.DownloadSwitch = DownloadSwitch;
 		Base.UploadMark = UploadMark;
@@ -38,7 +39,7 @@ struct WTrafficItemRules : WTrafficItemRulesBase
 		return Base;
 	}
 
-	std::string ToString() const
+	[[nodiscard]] std::string ToString() const
 	{
 		return std::format(
 			"UploadSwitch={}, DownloadSwitch={}, UploadLimit={}, DownloadLimit={}, UploadMark={}, DownloadMark={}",
@@ -46,8 +47,9 @@ struct WTrafficItemRules : WTrafficItemRulesBase
 			DownloadMark);
 	}
 
-	bool IsDefault() const
+	[[nodiscard]] bool IsDefault() const
 	{
-		return UploadSwitch == SS_None && DownloadSwitch == SS_None && UploadMark == 0 && DownloadMark == 0;
+		return UploadSwitch == SS_None && DownloadSwitch == SS_None && UploadMark == 0 && DownloadMark == 0
+			&& UploadLimit == 0 && DownloadLimit == 0;
 	}
 };

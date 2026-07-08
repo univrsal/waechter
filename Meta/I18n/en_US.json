@@ -21,6 +21,7 @@
       "accept": "Accept",
       "invalid": "Invalid"
     },
+    "lockout_warning_text": "You are about to change the rules for either the entire system, the daemon or the client while being connected via a WebSocket. If you block or severely throttle connections in this case you will be locked out from the daemon.",
     "proto.unknown": "Unknown",
     "hostname": "Hostname",
     "uptime": "Uptime",

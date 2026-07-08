@@ -15,11 +15,12 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/fmt/fmt.h"
 #include "cereal/types/memory.hpp"
-// ReSharper disable once CppUnusedIncludeDirective
+// ReSharper disable CppUnusedIncludeDirective
 #include "cereal/types/string.hpp"
 #include "cereal/types/array.hpp"
 #include "cereal/types/vector.hpp"
 #include "cereal/types/tuple.hpp"
+// ReSharper enable CppUnusedIncludeDirective
 
 #include "Socket.hpp"
 #include "ErrnoUtil.hpp"
@@ -27,8 +28,10 @@
 #include "SignalHandler.hpp"
 #include "Data/SocketStateParser.hpp"
 
-// The sole purpose of this executable is to run `tc` commands which require root
-// Commands are sent via unix socket from waechterd after it has dropped privileges
+// The sole purpose of this executable is to run `tc` commands which require root.
+// Commands are sent via unix socket from waechterd after it has dropped privileges.
+// At some point we should probably replace the `tc` command with directly using the
+// ip link library.
 
 #define SYSFMT(_fmt, ...)                                                                                             \
 	if (auto RC = SafeSystem(fmt::format(_fmt, __VA_ARGS__).c_str()); RC != 0)                                        \
@@ -50,20 +53,6 @@ struct WMsgQueue;
 static bool RemoveHtbClass(std::shared_ptr<WRemoveHtbClassMsg> const& RemoveHtbClass);
 
 static void ProcessMessage(WMsgQueue& Queue, WIPLinkMsg const& Msg, WSignalHandler& Handler, std::string const& IfbDev);
-
-struct HTBMapEntry
-{
-	uint16_t                            UseCount{};
-	std::shared_ptr<WRemoveHtbClassMsg> PendingRemoveMsg{};
-
-	~HTBMapEntry()
-	{
-		if (PendingRemoveMsg != nullptr)
-		{
-			RemoveHtbClass(PendingRemoveMsg);
-		}
-	}
-};
 
 // A tiny bounded-ish queue to avoid unbounded RAM usage if the sender outruns `tc`.
 // If it grows too large, we log warnings so it's visible in the logs.
@@ -128,19 +117,33 @@ static int SafeSystem(std::string const& Command)
 static std::string SanitizeInterfaceName(std::string const& IfName)
 {
 	std::string Result = IfName;
-	Result.erase(
-		std::remove_if(Result.begin(), Result.end(), [](char c) { return !std::isalnum(c) && c != '_' && c != '-'; }),
-		Result.end());
+	std::erase_if(Result, [](char c) { return !std::isalnum(c) && c != '_' && c != '-'; });
 	return Result;
 }
 
 static bool SetupHtbClass(std::shared_ptr<WSetupHtbClassMsg> const& SetupHtbClass)
 {
 	auto const IfName = SanitizeInterfaceName(SetupHtbClass->InterfaceName);
+	if (SetupHtbClass->bIsRoot)
+	{
+		spdlog::info("Setting up root HTB class on interface {}: classid=1:{}, mark=0x{:x}, rate={} B/s", IfName,
+			SetupHtbClass->MinorId, SetupHtbClass->Mark, SetupHtbClass->RateLimit);
+		SYSFMT("tc class replace dev {} parent 1:1 classid 1:10 htb rate {}bit ceil {}bit", IfName,
+			static_cast<uint64_t>(SetupHtbClass->RateLimit * 8), static_cast<uint64_t>(SetupHtbClass->RateLimit * 8));
+		// Use fq_codel as the leaf qdisc instead of the implicit pfifo (whose limit is derived from the
+		// device's tx_queue_len). This matters a lot on the ifb device, whose tx_queue_len defaults to a
+		// tiny 32 packets: without a proper AQM/buffer, low rate limits cause bursty tail-drops that make
+		// TCP collapse its window, so achieved throughput ends up far below the configured rate.
+		SYSFMT("tc qdisc replace dev {} parent 1:10 fq_codel", IfName);
+		return true;
+	}
+
 	spdlog::debug("Setting up HTB class on interface {}: classid=1:{}, mark=0x{:x}, rate={} B/s", IfName,
 		SetupHtbClass->MinorId, SetupHtbClass->Mark, SetupHtbClass->RateLimit);
 	SYSFMT("tc class replace dev {} parent 1:1 classid 1:{} htb rate {}bit ceil {}bit", IfName, SetupHtbClass->MinorId,
 		static_cast<uint64_t>(SetupHtbClass->RateLimit * 8), static_cast<uint64_t>(SetupHtbClass->RateLimit * 8));
+	// See comment above: give every leaf class its own AQM qdisc rather than relying on the implicit pfifo.
+	SYSFMT("tc qdisc replace dev {} parent 1:{} fq_codel", IfName, SetupHtbClass->MinorId);
 
 	spdlog::info("Setup filter with mark {}", SetupHtbClass->Mark);
 	SYSFMT("tc filter replace dev {} parent 1: protocol ip pref 1 handle 0x{:x} fw classid 1:{}", IfName,
@@ -154,6 +157,14 @@ static bool SetupHtbClass(std::shared_ptr<WSetupHtbClassMsg> const& SetupHtbClas
 static bool RemoveHtbClass(std::shared_ptr<WRemoveHtbClassMsg> const& RemoveHtbClass)
 {
 	auto const& IfName = SanitizeInterfaceName(RemoveHtbClass->InterfaceName);
+
+	if (RemoveHtbClass->bIsRoot)
+	{
+		spdlog::info("Resetting root HTB class on interface {}: classid=1:{}, mark=0x{:x}", IfName,
+			RemoveHtbClass->MinorId, RemoveHtbClass->Mark);
+		SYSFMT("tc class replace dev {} parent 1:1 classid 1:10 htb rate 1Gbit ceil 1Gbit", IfName);
+		return true;
+	}
 	spdlog::debug("Removing HTB class on interface {}: classid=1:{}, mark=0x{:x}", IfName, RemoveHtbClass->MinorId,
 		RemoveHtbClass->Mark);
 
@@ -171,6 +182,12 @@ static bool Init(std::string const& IfbDev, std::string const& IngressInterface,
 	// Create the ifb0 interface
 	SafeSystem(fmt::format("ip link delete {}", IfbDev));
 	SafeSystem(fmt::format("ip link add {0} type ifb", IfbDev));
+	// The ifb driver defaults tx_queue_len to a tiny 32 packets. That length backs the implicit pfifo
+	// queue of any HTB leaf class that doesn't have its own qdisc, so ingress shaping ends up with almost
+	// no buffer: bursty download traffic instantly tail-drops once it exceeds the configured rate, which
+	// makes TCP collapse its window and achieve throughput far below the configured limit. Raise it here;
+	// fq_codel (attached to the leaf classes below/in SetupHtbClass) also acts as the actual AQM.
+	SYSFMT("ip link set {0} txqueuelen 1000", IfbDev);
 	SYSFMT("ip link set {0} up", IfbDev);
 
 	// Ingress HTB setup (on IFB device)
@@ -181,6 +198,7 @@ static bool Init(std::string const& IfbDev, std::string const& IngressInterface,
 	SYSFMT("tc class replace dev {} parent 1:1 classid 1:10 "
 		   "htb rate 1Gbit ceil 1Gbit",
 		IfbDev);
+	SYSFMT("tc qdisc replace dev {} parent 1:10 fq_codel", IfbDev);
 	// Default filter
 	SYSFMT("tc filter replace dev {} parent 1: prio 100 protocol all u32 match u32 0 0 flowid 1:10", IfbDev);
 
@@ -198,6 +216,7 @@ static bool Init(std::string const& IfbDev, std::string const& IngressInterface,
 	SYSFMT("tc class replace dev {} parent 1: classid 1:1 htb rate 1Gbit ceil 1Gbit", MainInterface);
 	// leaf class for egress
 	SYSFMT("tc class replace dev {} parent 1:1 classid 1:10 htb rate 1Gbit ceil 1Gbit", MainInterface);
+	SYSFMT("tc qdisc replace dev {} parent 1:10 fq_codel", MainInterface);
 
 	return true;
 }

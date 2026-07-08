@@ -26,6 +26,12 @@ int cgskb_ingress(struct __sk_buff* Skb)
 	__u64 Cookie = bpf_get_socket_cookie(Skb);
 
 	struct WTrafficItemRulesBase* Rules = GetSocketRules(Cookie);
+	struct WTrafficItemRulesBase* SystemRules = GetSocketRules(0);
+
+	if (SystemRules && SystemRules->DownloadSwitch == SS_Block)
+	{
+		return SK_DROP;
+	}
 	if (Rules && Rules->DownloadSwitch == SS_Block)
 	{
 		return SK_DROP;
@@ -73,6 +79,12 @@ int cgskb_egress(struct __sk_buff* Skb)
 	__u64 Cookie = bpf_get_socket_cookie(Skb);
 
 	struct WTrafficItemRulesBase* Rules = GetSocketRules(Cookie);
+	struct WTrafficItemRulesBase* SystemRules = GetSocketRules(0);
+
+	if (SystemRules && SystemRules->UploadSwitch == SS_Block)
+	{
+		return SK_DROP;
+	}
 	if (Rules && Rules->UploadSwitch == SS_Block)
 	{
 		return SK_DROP;

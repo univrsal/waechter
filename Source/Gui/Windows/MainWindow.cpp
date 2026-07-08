@@ -105,6 +105,11 @@ WMainWindow& WMainWindow::Get()
 	return *WSdlWindow::GetInstance().GetMainWindow();
 }
 
+std::shared_ptr<WTrafficTree> const& WMainWindow::GetTrafficTree()
+{
+	return WSdlWindow::GetInstance().GetMainWindow()->GetDetailsWindow().GetTrafficTree();
+}
+
 void WMainWindow::Draw()
 {
 	ImGuiIO& Io = ImGui::GetIO();

@@ -69,7 +69,7 @@ void WClient::OnDataReceived(WBuffer& Buf)
 			WMainWindow::Get().HandleHistoryResponse(Buf);
 			break;
 		case MT_IPLookupResponse:
-			WMainWindow::Get().GetDailyDetailsWindow().HandleLookupResult(Buf);
+			WMainWindow::Get().GetDetailsWindow().HandleLookupResult(Buf);
 			break;
 		case MT_RuleUpdate:
 			WClientRuleManager::GetInstance().HandleRuleUpdate(Buf);
