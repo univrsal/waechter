@@ -94,7 +94,14 @@ void WIP2Asn::LookupAddress(WQueuedRequest const& Request)
 	{
 		Cache[Request.AddressToResolve] = std::nullopt;
 		Request.Promise.Finish(std::nullopt);
-		spdlog::warn("IP2ASN lookup failed for address: {}", Request.AddressToResolve.ToString());
+		if (Request.AddressToResolve.Family == EIPFamily::IPv4)
+		{
+			spdlog::warn("IP2ASN lookup failed for address: {}", Request.AddressToResolve.ToString());
+		}
+		else
+		{
+			spdlog::debug("IP2ASN lookup failed for address: {}", Request.AddressToResolve.ToString());
+		}
 		return;
 	}
 	Result->Address = Request.AddressToResolve;
