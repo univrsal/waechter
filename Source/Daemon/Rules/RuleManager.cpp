@@ -500,6 +500,17 @@ void WRuleManager::HandleRuleChange(WBuffer const& Buf, WDaemonClient const* Sen
 		return;
 	}
 
+	if (Item->GetType() == TI_System)
+	{
+		// We also store the system rule with cookie 0 in ebpf.
+		// That way we can immediately determine if all traffic should be blocked
+		auto const EbpfData = WDaemon::GetInstance().GetEbpfObj().GetData();
+		if (!EbpfData->SocketRules->Update(0, Update.Rules.AsBase()))
+		{
+			spdlog::error("Failed to update eBPF rules for system rule");
+		}
+	}
+
 	if (Update.Rules.DownloadLimit == 0)
 	{
 		if (auto const SocketItem = std::dynamic_pointer_cast<WSocketItem>(Item))
