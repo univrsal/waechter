@@ -33,6 +33,7 @@ enum EMessageType : int8_t
 	MT_HistoryResponse,
 	MT_IPLookupRequest,
 	MT_IPLookupResponse,
+	MT_DaemonConfig,
 
 	MT_Count
 };

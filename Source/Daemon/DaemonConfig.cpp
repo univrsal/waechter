@@ -32,10 +32,12 @@ WDaemonConfig::WDaemonConfig()
 	{
 		ConfigPath = "";
 		spdlog::info("no configuration file found, using defaults");
+		bFirstTimeSetupRun = true; // don't want this to show the setup guide every time a user connects
 	}
 	BumpMemlockRlimit();
 	if (!Write())
 	{
+		bFirstTimeSetupRun = true;
 		spdlog::warn("Failed to write configuration file {}", ConfigPath);
 	}
 }

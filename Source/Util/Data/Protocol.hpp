@@ -21,3 +21,19 @@ struct WProtocolHandshake
 		archive(ProtocolVersion, CommitHash, SystemBootTime);
 	}
 };
+
+struct WDaemonConfigMessage
+{
+	std::vector<std::string> NetworkInterfaces;
+	bool                     bFirstTimeSetupRan{ true };
+	std::string              SocketPath{};
+	std::string              DaemonUser{};
+	std::string              DaemonGroup{};
+	int                      SocketMode{};
+
+	template <class Archive>
+	void serialize(Archive& archive)
+	{
+		archive(NetworkInterfaces, bFirstTimeSetupRan, SocketPath, DaemonUser, DaemonGroup, SocketMode);
+	}
+};

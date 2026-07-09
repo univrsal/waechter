@@ -25,6 +25,7 @@ struct WDaemonConfig final : TSingleton<WDaemonConfig>
 	std::string WebSocketAuthToken{};
 	std::vector<std::string> IgnoredConnectionHistoryApps{};
 	std::vector<uint16_t>    IgnoredConnectionHistoryPorts{};
+	bool                     bFirstTimeSetupRun{};
 
 	mode_t      DaemonSocketMode{ 0660 };
 

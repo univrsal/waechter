@@ -29,6 +29,7 @@
 #include "Filesystem.hpp"
 #include "MemoryUsage.hpp"
 #include "Messages.hpp"
+#include "NetworkInterface.hpp"
 #include "Time.hpp"
 #include "Data/AppIconAtlasBuilder.hpp"
 #include "Data/ConnectionHistory.hpp"
@@ -48,12 +49,22 @@ static WSec GetSystemBootTime()
 static void SendInitialDataToClient(std::shared_ptr<WDaemonClient> const& Client)
 {
 	auto& SystemMap = WSystemMap::GetInstance();
+	auto const&        Cfg = WDaemonConfig::GetInstance();
+	WDaemonConfigMessage InitialConfig{};
+	InitialConfig.bFirstTimeSetupRan = Cfg.bFirstTimeSetupRun;
+	InitialConfig.SocketMode = Cfg.DaemonSocketMode;
+	InitialConfig.DaemonGroup = Cfg.DaemonGroup;
+	InitialConfig.DaemonUser = Cfg.DaemonUser;
+	InitialConfig.SocketPath = Cfg.DaemonSocketPath;
+	InitialConfig.NetworkInterfaces = WNetworkInterface::List();
+
 	Client->SendMessage(
 		MT_Handshake, WProtocolHandshake{ WAECHTER_PROTOCOL_VERSION, GetSystemBootTime(), GIT_COMMIT_HASH });
 	{
 		std::lock_guard Lock(SystemMap.DataMutex);
 		Client->SendMessage(MT_TrafficTree, *SystemMap.GetSystemItem());
 		Client->SendMessage(MT_ConnectionHistory, WConnectionHistory::GetInstance().Serialize());
+		Client->SendMessage(MT_DaemonConfig, InitialConfig);
 	}
 
 	Client->SendMessage(MT_MemoryStats, WMemoryUsage::GetMemoryStats());
@@ -61,7 +72,7 @@ static void SendInitialDataToClient(std::shared_ptr<WDaemonClient> const& Client
 	WRuleManager::GetInstance().SendCurrentRulesToClient(Client);
 
 	// Send app icon atlas
-	auto              ActiveApps = SystemMap.GetActiveApplicationPaths();
+	auto const        ActiveApps = SystemMap.GetActiveApplicationPaths();
 	WAppIconAtlasData Data{};
 	if (WAppIconAtlasBuilder::GetInstance().GetAtlasData(Data, ActiveApps))
 	{
