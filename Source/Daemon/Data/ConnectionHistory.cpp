@@ -19,12 +19,18 @@
 
 bool WConnectionHistoryEntry::Update()
 {
-	if (!Set || !App)
+	auto const SetPin = Set.lock();
+	if (!SetPin || !App)
 	{
+		if (State == EState::Pending_Close)
+		{
+			State = EState::Closed;
+			return true;
+		}
 		return false;
 	}
 
-	if (Set->Connections.empty())
+	if (SetPin->Connections.empty())
 	{
 		if (State == EState::Pending_Close)
 		{
@@ -41,10 +47,10 @@ bool WConnectionHistoryEntry::Update()
 	// Sum up data from all connections in the set,
 	// including past connections that have disconnected and
 	// are now accounted for in BaseDataIn/Out
-	DataIn = Set->BaseDataIn;
-	DataOut = Set->BaseDataOut;
+	DataIn = SetPin->BaseDataIn;
+	DataOut = SetPin->BaseDataOut;
 
-	for (auto const& Connection : Set->Connections)
+	for (auto const& Connection : SetPin->Connections)
 	{
 		DataIn += Connection->TotalDownloadBytes;
 		DataOut += Connection->TotalUploadBytes;
@@ -58,9 +64,9 @@ bool WConnectionHistoryEntry::Update()
 	return bChanged;
 }
 
-WConnectionHistoryEntry::WConnectionHistoryEntry(
-	std::shared_ptr<WAppCounter> App_, std::shared_ptr<WConnectionSet> Set_, WEndpoint const& RemoteEndpoint_)
-	: App(std::move(App_)), Set(std::move(Set_)), RemoteEndpoint(RemoteEndpoint_)
+WConnectionHistoryEntry::WConnectionHistoryEntry(std::shared_ptr<WAppCounter> const& App_,
+	std::shared_ptr<WConnectionSet> const& Set_, WEndpoint const& RemoteEndpoint_)
+	: App(App_), Set(Set_), RemoteEndpoint(RemoteEndpoint_)
 {
 	// Generate a unique ID for this connection history entry,
 	// no relation to any traffic items
@@ -95,8 +101,8 @@ void WConnectionHistory::OnSocketConnected(WSocketCounter const* SocketCounter)
 	{
 		// insert the new connection set
 		auto const NewSet = std::make_shared<WConnectionSet>();
-		NewSet->Connections.insert(SocketCounter->TrafficItem);
 		ActiveConnections[Key] = NewSet;
+		NewSet->Connections.insert(SocketCounter->TrafficItem);
 		NewSet->ParentEntry = Push(App, NewSet, Endpoint);
 		return;
 	}
@@ -246,19 +252,22 @@ std::shared_ptr<WConnectionHistoryEntry> WConnectionHistory::Push(std::shared_pt
 
 void WConnectionHistory::HandleEmptySet(std::shared_ptr<WConnectionSet> const& EmptySet)
 {
-	if (auto const Parent = EmptySet->ParentEntry.lock())
+	if (EmptySet->ParentEntry)
 	{
-		if (Parent->State >= WConnectionHistoryEntry::EState::Pending_Close)
+		if (EmptySet->ParentEntry->State >= WConnectionHistoryEntry::EState::Pending_Close)
 		{
 			spdlog::warn("Handle empty set called on an already closed set");
 			return;
 		}
-		Parent->State = WConnectionHistoryEntry::EState::Pending_Close;
+		EmptySet->ParentEntry->State = WConnectionHistoryEntry::EState::Pending_Close;
 		// technically we should set this when the socket actually closes, but this is close enough
-		Parent->EndTime = WTime::GetEpochSeconds();
-		WriteToDatabase(Parent);
-		spdlog::debug("ConnectionHistory: Connection to {} ended at {} ({} in, {} out)",
-			Parent->RemoteEndpoint.ToString(), Parent->EndTime, EmptySet->BaseDataIn, EmptySet->BaseDataOut);
+		EmptySet->ParentEntry->EndTime = WTime::GetEpochSeconds();
+		WriteToDatabase(EmptySet->ParentEntry);
+		spdlog::debug(
+			"ConnectionHistory: Connection to {} ended at {} ({} in, {} out), Set: {} refs left, entry: {} refs left",
+			EmptySet->ParentEntry->RemoteEndpoint.ToString(), EmptySet->ParentEntry->EndTime, EmptySet->BaseDataIn,
+			EmptySet->BaseDataOut, EmptySet.use_count(), EmptySet->ParentEntry.use_count());
+		EmptySet->ParentEntry = nullptr;
 	}
 	else
 	{
@@ -273,6 +282,14 @@ void WConnectionHistory::WriteToDatabase(std::shared_ptr<WConnectionHistoryEntry
 		constexpr Db::Schema::Host                   Host;
 		constexpr Db::Schema::ConnectionHistoryEntry CHE;
 		constexpr Db::Schema::Asn                    Asn;
+
+		auto const Set = Entry->Set.lock();
+		if (!Set)
+		{
+			assert(false && "ConnectionHistory: Attempted to write to database with a null connection set");
+			spdlog::error("ConnectionHistory: Attempted to write to database with a null connection set");
+			return;
+		}
 
 		auto AppResult = DbConn(sqlpp::select(TrafficItem.ID)
 				.from(TrafficItem)
@@ -336,7 +353,7 @@ void WConnectionHistory::WriteToDatabase(std::shared_ptr<WConnectionHistoryEntry
 		}
 		DbConn(sqlpp::insert_into(CHE).set(CHE.ItemID = AppID, CHE.RemoteHostID = HostID,
 			CHE.Port = Entry->RemoteEndpoint.Port, CHE.StartTime = Entry->StartTime, CHE.EndTime = Entry->EndTime,
-			CHE.DataIn = Entry->Set->BaseDataIn, CHE.DataOut = Entry->Set->BaseDataOut));
+			CHE.DataIn = Set->BaseDataIn, CHE.DataOut = Set->BaseDataOut));
 	});
 }
 
@@ -388,8 +405,8 @@ WConnectionHistoryUpdate WConnectionHistory::Update()
 			spdlog::debug("New connection: app='{}', remote='{}', start={}, id={}",
 				Entry->App->TrafficItem->ApplicationName, Entry->RemoteEndpoint.ToString(), Entry->StartTime,
 				Entry->ConnectionId);
-			assert(Entry->App && Entry->Set);
-			if (!Entry->App || !Entry->Set)
+			assert(Entry->App);
+			if (!Entry->App)
 			{
 				continue;
 			}
@@ -414,8 +431,8 @@ WConnectionHistoryUpdate WConnectionHistory::Serialize()
 	std::scoped_lock         Lock(Mutex);
 	for (auto const& Entry : History)
 	{
-		assert(Entry->App && Entry->Set);
-		if (!Entry->App || !Entry->Set)
+		assert(Entry->App);
+		if (!Entry->App)
 		{
 			continue;
 		}
@@ -443,14 +460,17 @@ WMemoryStat WConnectionHistory::GetMemoryUsage()
 	HistoryEntry.Name = "History";
 	for (auto const& E : History)
 	{
-		assert(E->App && E->Set);
-		if (!E->App || !E->Set)
+		assert(E->App);
+		if (!E->App)
 		{
 			continue;
 		}
 		HistoryEntry.Usage += sizeof(WConnectionHistoryEntry);
 		HistoryEntry.Usage += sizeof(WConnectionSet);
-		HistoryEntry.Usage += sizeof(std::shared_ptr<ITrafficItem>) * E->Set->Connections.size();
+		if (auto const Set = E->Set.lock())
+		{
+			HistoryEntry.Usage += sizeof(std::shared_ptr<ITrafficItem>) * Set->Connections.size();
+		}
 	}
 
 	WMemoryStatEntry ActiveConnectionsEntry{};
