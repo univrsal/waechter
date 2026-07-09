@@ -6,7 +6,7 @@
 #pragma once
 #include <ctime>
 #include <cassert>
-#include <string_view>
+#include <type_traits>
 
 #include "spdlog/fmt/chrono.h"
 
@@ -99,6 +99,29 @@ public:
 			}
 			return DefaultValue;
 		}
+	}
+
+	template <typename T>
+	static std::string JoinStrings(std::vector<T> const& Vector, char const Delimiter)
+	{
+		std::string Result;
+		for (size_t i = 0; i < Vector.size(); ++i)
+		{
+			if constexpr (std::is_same_v<T, std::string>)
+			{
+				Result += Vector[i];
+			}
+			else
+			{
+				static_assert(std::is_arithmetic_v<T>, "JoinStrings only supports arithmetic types and std::string");
+				Result += std::to_string(Vector[i]);
+			}
+			if (i < Vector.size() - 1)
+			{
+				Result += Delimiter + std::string(" ");
+			}
+		}
+		return Result;
 	}
 };
 

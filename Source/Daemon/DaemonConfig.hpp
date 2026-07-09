@@ -25,7 +25,11 @@ struct WDaemonConfig final : TSingleton<WDaemonConfig>
 	std::string WebSocketAuthToken{};
 	std::vector<std::string> IgnoredConnectionHistoryApps{};
 	std::vector<uint16_t>    IgnoredConnectionHistoryPorts{};
+
 	mode_t      DaemonSocketMode{ 0660 };
+
+	std::string ConfigPath{};
+
 	WDaemonConfig();
 
 	void LogConfig();
@@ -46,8 +50,11 @@ struct WDaemonConfig final : TSingleton<WDaemonConfig>
 			IgnoredConnectionHistoryPorts, [&](auto const& IgnoredPort) { return Port == IgnoredPort; });
 	}
 
-private:
 	void Load(std::string const& Path);
+
+private:
+	bool Write();
+
 	void SetDefaults();
 
 	static void BumpMemlockRlimit();

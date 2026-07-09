@@ -94,7 +94,7 @@ if __name__ == "__main__":
         ("../../Thirdparty/sdl2/LICENSE.txt", "Sdl2License"),
         ("../../Thirdparty/imgui/LICENSE.txt", "ImguiLicense"),
         ("../../Thirdparty/implot/LICENSE.txt", "ImPlotLicense"),
-        ("../../Thirdparty/inih/LICENSE.txt", "InihLicense"),
+        ("../../Thirdparty/mini/LICENSE.txt", "MiniLicense"),
         ("../../Thirdparty/json11/LICENSE.txt", "Json11License"),
         ("../../Thirdparty/sigslot/LICENSE.txt", "SigSlotLicense"),
         ("../../Thirdparty/spdlog/LICENSE.txt", "SpdlogLicense"),
