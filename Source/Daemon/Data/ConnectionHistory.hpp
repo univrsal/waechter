@@ -31,20 +31,21 @@ struct WConnectionSet
 {
 	std::unordered_set<std::shared_ptr<ITrafficItem>> Connections;
 
-	// When a socket/tuple disconnects it gets removed from the set
-	// however this also means it won't contribute to the data counts anymore
+	// When a socket/tuple disconnects, it gets removed from the set.
+	// However, this also means it won't contribute to the data counts anymore
 	// so we store the total data in/out of all disconnected items here
 	// to keep the totals correct
 	WBytes BaseDataIn{ 0 };
 	WBytes BaseDataOut{ 0 };
-	std::weak_ptr<WConnectionHistoryEntry> ParentEntry{};
+
+	std::shared_ptr<WConnectionHistoryEntry> ParentEntry{};
 	WConnectionSet() = default;
 };
 
 struct WConnectionHistoryEntry
 {
-	std::shared_ptr<WAppCounter>    App{};
-	std::shared_ptr<WConnectionSet> Set{};
+	std::shared_ptr<WAppCounter>  App{};
+	std::weak_ptr<WConnectionSet> Set{};
 	WTrafficItemId                  ConnectionId{};
 
 	WEndpoint RemoteEndpoint{};
@@ -62,16 +63,16 @@ struct WConnectionHistoryEntry
 
 	bool Update(); // return true if anything changed
 
-	WConnectionHistoryEntry(
-		std::shared_ptr<WAppCounter> App_, std::shared_ptr<WConnectionSet> Set_, WEndpoint const& RemoteEndpoint_);
+	WConnectionHistoryEntry(std::shared_ptr<WAppCounter> const& App_, std::shared_ptr<WConnectionSet> const& Set_,
+		WEndpoint const& RemoteEndpoint_);
 };
 
 struct WConnectionKeyHash
 {
 	size_t operator()(std::pair<std::string, WEndpoint> const& Key) const noexcept
 	{
-		size_t H1 = std::hash<std::string>{}(Key.first);
-		size_t H2 = WEndpointHash{}(Key.second);
+		size_t const H1 = std::hash<std::string>{}(Key.first);
+		size_t const H2 = WEndpointHash{}(Key.second);
 		return H1 ^ (H2 + 0x9e3779b97f4a7c15ULL + (H1 << 6) + (H1 >> 2));
 	}
 };
@@ -79,10 +80,11 @@ struct WConnectionKeyHash
 class WConnectionHistory : public TSingleton<WConnectionHistory>, public IMemoryTrackable
 {
 	std::mutex Mutex;
+	uint32_t   NewItemCounter{ 0 };
 
-	uint32_t                            NewItemCounter{ 0 };
-	std::deque<std::shared_ptr<WConnectionHistoryEntry>>
-		History; // ephemeral history, entries are also written to database
+	// Ephemeral history, entries are also written to database, once
+	// all connections to an endpoint have closed
+	std::deque<std::shared_ptr<WConnectionHistoryEntry>> History;
 
 	std::unordered_map<std::pair<std::string, WEndpoint>, std::shared_ptr<WConnectionSet>, WConnectionKeyHash>
 		ActiveConnections;
