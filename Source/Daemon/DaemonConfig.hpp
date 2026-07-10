@@ -12,6 +12,7 @@
 
 #include <algorithm>
 
+class WBuffer;
 struct WDaemonConfig final : TSingleton<WDaemonConfig>
 {
 	std::string NetworkInterfaceName{};
@@ -51,6 +52,8 @@ struct WDaemonConfig final : TSingleton<WDaemonConfig>
 	}
 
 	void Load(std::string const& Path);
+
+	void HandleConfigMessage(WBuffer const& Buf);
 
 private:
 	bool Write();

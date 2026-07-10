@@ -11,11 +11,17 @@
 
 #include "mini.hpp"
 #include "spdlog/spdlog.h"
+// ReSharper disable CppUnusedIncludeDirective
+#include "cereal/types/string.hpp"
+#include "cereal/types/vector.hpp"
+// ReSharper restore CppUnusedIncludeDirective
 
 #include "ErrnoUtil.hpp"
 #include "Filesystem.hpp"
+#include "Messages.hpp"
 #include "NetworkInterface.hpp"
 #include "Random.hpp"
+#include "Data/Protocol.hpp"
 
 WDaemonConfig::WDaemonConfig()
 {
@@ -71,7 +77,7 @@ void WDaemonConfig::Load(std::string const& Path)
 		}
 	};
 	auto SafeGetInt = [&](std::string const& Section, std::string const& Name, int& OutVal) {
-		std::string StrVal;
+		std::string StrVal{};
 		SafeGet(Section, Name, StrVal);
 		if (!StrVal.empty())
 		{
@@ -83,6 +89,11 @@ void WDaemonConfig::Load(std::string const& Path)
 			{
 			}
 		}
+	};
+	auto SafeGetBool = [&](std::string const& Section, std::string const& Name, bool& OutVal) {
+		std::string StrVal{};
+		SafeGet(Section, Name, StrVal);
+		OutVal = StrVal == "true";
 	};
 
 	SafeGet("network", "interface", NetworkInterfaceName);
@@ -145,6 +156,25 @@ void WDaemonConfig::Load(std::string const& Path)
 	ConfigPath = Path;
 }
 
+void WDaemonConfig::HandleConfigMessage(WBuffer const& Buf)
+{
+	WDaemonConfigMessage Msg{};
+	if (!DeserializeMessage(Buf, Msg))
+	{
+		spdlog::error("Failed to deserialize daemon config message");
+		return;
+	}
+
+	NetworkInterfaceName = Msg.MainInterface;
+	IngressNetworkInterfaceName = Msg.VpnInterface;
+	DaemonSocketPath = Msg.SocketPath;
+	DaemonUser = Msg.DaemonUser;
+	DaemonGroup = Msg.DaemonGroup;
+	DaemonSocketMode = static_cast<mode_t>(Msg.SocketMode);
+	bFirstTimeSetupRun = true;
+	Write();
+}
+
 bool WDaemonConfig::Write()
 {
 	mINI::INIFile const File(ConfigPath);
@@ -165,6 +195,7 @@ bool WDaemonConfig::Write()
 		{ "socket_permissions", std::to_string(DaemonSocketMode) },
 		{ "ignored_connection_history_app_names", WStringFormat::JoinStrings(IgnoredConnectionHistoryApps, ';') },
 		{ "ignored_connection_history_remote_ports", WStringFormat::JoinStrings(IgnoredConnectionHistoryPorts, ';') },
+		{ "first_time_setup_run", bFirstTimeSetupRun ? "true" : "false" },
 	});
 
 	return File.write(Ini, true);
