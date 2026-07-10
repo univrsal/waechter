@@ -64,6 +64,19 @@ public:
 		return Result;
 	}
 
+	static std::string ReplaceAll(
+		std::string const& Haystack, std::string const& Needle, std::string const& Replacement = "")
+	{
+		std::string Result = Haystack;
+		size_t      Pos = 0;
+		while ((Pos = Result.find(Needle, Pos)) != std::string::npos)
+		{
+			Result.replace(Pos, Needle.length(), Replacement);
+			Pos += Replacement.length(); // Move past the replaced part
+		}
+		return Result;
+	}
+
 	static bool StartsWith(std::string const& Str, std::string const& Prefix)
 	{
 		return Str.size() >= Prefix.size() && Str.compare(0, Prefix.size(), Prefix) == 0;
