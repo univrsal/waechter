@@ -5,6 +5,7 @@
 
 #include "DaemonClient.hpp"
 
+#include "DaemonConfig.hpp"
 #include "spdlog/spdlog.h"
 
 #include "Messages.hpp"
@@ -56,6 +57,9 @@ void WDaemonClient::OnDataReceived(WBuffer& RecvBuf)
 			break;
 		case MT_UpdateIP2AsnDb:
 			WIP2Asn::GetInstance().UpdateDatabase();
+			break;
+		case MT_DaemonConfig:
+			WDaemonConfig::GetInstance().HandleConfigMessage(RecvBuf);
 			break;
 		default:
 			break;

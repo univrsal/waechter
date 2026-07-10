@@ -70,6 +70,18 @@
   "traffic_tree": {
     "title": "Traffic Tree"
   },
+  "setup": {
+    "title": "First time setup",
+    "static.text": "This seems to be the first time a client has connected to this daemon. For the daemon to work correctly a few settings have to be changed. Please configure the settings below and click 'Save' to continue. For more information on each setting check the documentation.",
+    "static.restart_note": "Changes require a daemon restart to take effect.",
+    "main_interface": "Primary network interface",
+    "vpn_interface": "VPN interface (optional)",
+    "daemon_user": "Daemon user",
+    "daemon_group": "Daemon group",
+    "socket_path": "Socket path",
+    "socket_mode": "Socket mode",
+    "save": "Save"
+  },
   "about": {
     "title": "About",
     "license": "License",
@@ -116,6 +128,8 @@
   },
   "settings": {
     "title": "Settings",
+    "client": "Client",
+    "daemon": "Daemon",
     "socket": {
       "header": "Socket settings",
       "history": "History",

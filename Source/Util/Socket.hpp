@@ -45,6 +45,7 @@ class WClientSocket : public WSocket
 	std::atomic<bool> bListenThreadRunning{ false };
 
 	void ListenThreadFunction();
+	bool TryPopBufferedFrame(WBuffer& OutputBuffer);
 
 public:
 	sigslot::signal<WBuffer&> OnData;

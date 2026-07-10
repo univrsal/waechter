@@ -74,6 +74,24 @@ void WClient::OnDataReceived(WBuffer& Buf)
 		case MT_RuleUpdate:
 			WClientRuleManager::GetInstance().HandleRuleUpdate(Buf);
 			break;
+		case MT_DaemonConfig:
+		{
+			WDaemonConfigMessage Msg;
+			ReadMessage(Buf, Msg);
+			WMainWindow::Get().GetSetupWindow().HandleDaemonConfig(Msg);
+		}
+		break;
+		case MT_DaemonLog:
+		{
+			WDaemonLogMessage Msg{};
+			if (!ReadMessage(Buf, Msg))
+			{
+				spdlog::error("Failed to deserialize daemon log message");
+				break;
+			}
+			spdlog::log(Msg.Level, "[daemon] {}", Msg.Message);
+		}
+		break;
 		default:
 			spdlog::warn("Received unknown message type from server: {}", static_cast<int>(Type));
 			break;

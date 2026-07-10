@@ -9,13 +9,19 @@
 #include <pwd.h>
 #include <fcntl.h>
 
-#include "INIReader.h"
+#include "mini.hpp"
 #include "spdlog/spdlog.h"
+// ReSharper disable CppUnusedIncludeDirective
+#include "cereal/types/string.hpp"
+#include "cereal/types/vector.hpp"
+// ReSharper restore CppUnusedIncludeDirective
 
 #include "ErrnoUtil.hpp"
 #include "Filesystem.hpp"
+#include "Messages.hpp"
 #include "NetworkInterface.hpp"
 #include "Random.hpp"
+#include "Data/Protocol.hpp"
 
 WDaemonConfig::WDaemonConfig()
 {
@@ -30,9 +36,16 @@ WDaemonConfig::WDaemonConfig()
 	}
 	else
 	{
+		ConfigPath = "";
 		spdlog::info("no configuration file found, using defaults");
+		bFirstTimeSetupRun = true; // don't want this to show the setup guide every time a user connects
 	}
 	BumpMemlockRlimit();
+	if (!Write())
+	{
+		bFirstTimeSetupRun = true;
+		spdlog::warn("Failed to write configuration file {}", ConfigPath);
+	}
 }
 
 void WDaemonConfig::LogConfig()
@@ -48,20 +61,40 @@ void WDaemonConfig::LogConfig()
 
 void WDaemonConfig::Load(std::string const& Path)
 {
-	INIReader Reader(Path);
+	mINI::INIFile const File(Path);
+	mINI::INIStructure  Ini;
 
-	auto SafeGet = [&](std::string const& Section, std::string const& Name, std::string& OutVal) {
-		if (Reader.HasValue(Section, Name))
-		{
-			OutVal = Reader.Get(Section, Name, OutVal);
-		}
-	};
-
-	if (Reader.ParseError() < 0)
+	if (!File.read(Ini))
 	{
-		spdlog::error("can't load '{}': {}", Path, Reader.ParseErrorMessage());
+		spdlog::error("Failed to read configuration file {}", Path);
 		return;
 	}
+
+	auto SafeGet = [&](std::string const& Section, std::string const& Name, std::string& OutVal) {
+		if (Ini.has(Section) && Ini[Section].has(Name))
+		{
+			OutVal = Ini[Section][Name];
+		}
+	};
+	auto SafeGetInt = [&](std::string const& Section, std::string const& Name, int& OutVal) {
+		std::string StrVal{};
+		SafeGet(Section, Name, StrVal);
+		if (!StrVal.empty())
+		{
+			try
+			{
+				OutVal = std::stoi(StrVal);
+			}
+			catch (std::exception const& e)
+			{
+			}
+		}
+	};
+	auto SafeGetBool = [&](std::string const& Section, std::string const& Name, bool& OutVal) {
+		std::string StrVal{};
+		SafeGet(Section, Name, StrVal);
+		OutVal = StrVal == "true";
+	};
 
 	SafeGet("network", "interface", NetworkInterfaceName);
 	SafeGet("network", "ingress_interface", IngressNetworkInterfaceName);
@@ -70,7 +103,7 @@ void WDaemonConfig::Load(std::string const& Path)
 	if (NetworkInterfaceName == "auto")
 	{
 		// Auto-select the first non-loopback interface
-		auto Ifaces = WNetworkInterface::List();
+		auto const Ifaces = WNetworkInterface::List();
 		for (auto const& Iface : Ifaces)
 		{
 			if (Iface != "lo")
@@ -91,8 +124,11 @@ void WDaemonConfig::Load(std::string const& Path)
 	SafeGet("daemon", "socket_path", DaemonSocketPath);
 	SafeGet("daemon", "ip_proc_socket_path", IpLinkProcSocketPath);
 	SafeGet("daemon", "websocket_auth_token", WebSocketAuthToken);
-	DaemonSocketMode = static_cast<mode_t>(Reader.GetInteger("daemon", "socket_permissions", DaemonSocketMode));
-	SafeGet("daemon", "ebpf_program_object_path", EbpfProgramObjectPath);
+	SafeGetBool("daemon", "first_time_setup_run", bFirstTimeSetupRun);
+
+	int SocketMode{ static_cast<int>(DaemonSocketMode) };
+	SafeGetInt("daemon", "socket_permissions", SocketMode);
+	DaemonSocketMode = static_cast<mode_t>(SocketMode);
 
 	if (WebSocketAuthToken.empty() || WebSocketAuthToken == "change_me")
 	{
@@ -117,11 +153,60 @@ void WDaemonConfig::Load(std::string const& Path)
 			spdlog::error("Invalid port '{}' in ignored_connection_history_remote_ports: {}", PortStr, e.what());
 		}
 	}
+	ConfigPath = Path;
+}
+
+void WDaemonConfig::HandleConfigMessage(WBuffer const& Buf)
+{
+	WDaemonConfigMessage Msg{};
+	if (!DeserializeMessage(Buf, Msg))
+	{
+		spdlog::error("Failed to deserialize daemon config message");
+		return;
+	}
+
+	NetworkInterfaceName = Msg.MainInterface;
+	IngressNetworkInterfaceName = Msg.VpnInterface;
+	DaemonSocketPath = Msg.SocketPath;
+	DaemonUser = Msg.DaemonUser;
+	DaemonGroup = Msg.DaemonGroup;
+	DaemonSocketMode = static_cast<mode_t>(Msg.SocketMode);
+	bFirstTimeSetupRun = true;
+	if (Write())
+	{
+		spdlog::info("Received config update from client");
+	}
+}
+
+bool WDaemonConfig::Write()
+{
+	mINI::INIFile const File(ConfigPath);
+	mINI::INIStructure  Ini;
+
+	Ini["network"].set({
+		{ "interface", NetworkInterfaceName },
+		{ "ingress_interface", IngressNetworkInterfaceName },
+		{ "cgroup_path", CGroupPath },
+	});
+
+	Ini["daemon"].set({
+		{ "user", DaemonUser },
+		{ "group", DaemonGroup },
+		{ "socket_path", DaemonSocketPath },
+		{ "ip_proc_socket_path", IpLinkProcSocketPath },
+		{ "websocket_auth_token", WebSocketAuthToken },
+		{ "socket_permissions", std::to_string(DaemonSocketMode) },
+		{ "ignored_connection_history_app_names", WStringFormat::JoinStrings(IgnoredConnectionHistoryApps, ';') },
+		{ "ignored_connection_history_remote_ports", WStringFormat::JoinStrings(IgnoredConnectionHistoryPorts, ';') },
+		{ "first_time_setup_run", bFirstTimeSetupRun ? "true" : "false" },
+	});
+
+	return File.write(Ini, true);
 }
 
 void WDaemonConfig::SetDefaults()
 {
-	auto Ifaces = WNetworkInterface::List();
+	auto const Ifaces = WNetworkInterface::List();
 	if (Ifaces.size() > 1)
 	{
 		NetworkInterfaceName = Ifaces[1];

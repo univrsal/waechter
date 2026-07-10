@@ -8,9 +8,11 @@
 #include <memory>
 #include <algorithm>
 #include <functional>
+#include <string_view>
 
 #include "DaemonClient.hpp"
 #include "Communication/IServerSocket.hpp"
+#include "spdlog/spdlog.h"
 
 struct WConnectionHistoryUpdate;
 
@@ -23,10 +25,13 @@ class WDaemonSocket
 	std::atomic<bool>                           bHasClients{};
 	std::vector<std::shared_ptr<WDaemonClient>> Clients;
 
+	void        AttachLogSink();
+	static void DetachLogSink();
 	void OnNewConnection(std::shared_ptr<WDaemonClient> const& NewClient);
 
 public:
 	explicit WDaemonSocket(std::string const& Path);
+	~WDaemonSocket();
 
 	bool StartListenThread()
 	{
@@ -37,8 +42,6 @@ public:
 
 	void Stop() const { Socket->Stop(); }
 
-	~WDaemonSocket() { Stop(); }
-
 	std::vector<std::shared_ptr<WDaemonClient>>& GetClients() { return Clients; }
 
 	[[nodiscard]] IServerSocket* GetSocketImpl() const { return Socket.get(); }
@@ -48,8 +51,7 @@ public:
 	void RemoveInactiveClients()
 	{
 		ClientsMutex.lock();
-		Clients.erase(std::remove_if(Clients.begin(), Clients.end(), [](auto& Client) { return !Client->IsRunning(); }),
-			Clients.end());
+		std::erase_if(Clients, [](auto& Client) { return !Client->IsRunning(); });
 		bHasClients = !Clients.empty();
 		ClientsMutex.unlock();
 	}
@@ -63,8 +65,11 @@ public:
 	void BroadcastMessage(EMessageType Type, T const& Message, WDaemonClient const* Except = nullptr)
 	{
 		std::string const& Msg = WDaemonClient::MakeMessage(Type, Message);
-		std::lock_guard    Lock(ClientsMutex);
-		for (auto const& Client : Clients)
+		ClientsMutex.lock();
+		auto const ClientsCopy = Clients;
+		ClientsMutex.unlock();
+
+		for (auto const& Client : ClientsCopy)
 		{
 			if (Client.get() == Except)
 			{
@@ -73,8 +78,8 @@ public:
 			if (Client->SendFramedData(Msg) < 0)
 			{
 				spdlog::error("Failed to send message to client: {}", WErrnoUtil::StrError());
+				Client->GetSocket()->Close();
 			}
-			Client->GetSocket()->Close();
 		}
 	}
 };

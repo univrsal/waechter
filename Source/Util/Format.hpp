@@ -6,7 +6,7 @@
 #pragma once
 #include <ctime>
 #include <cassert>
-#include <string_view>
+#include <type_traits>
 
 #include "spdlog/fmt/chrono.h"
 
@@ -64,6 +64,19 @@ public:
 		return Result;
 	}
 
+	static std::string ReplaceAll(
+		std::string const& Haystack, std::string const& Needle, std::string const& Replacement = "")
+	{
+		std::string Result = Haystack;
+		size_t      Pos = 0;
+		while ((Pos = Result.find(Needle, Pos)) != std::string::npos)
+		{
+			Result.replace(Pos, Needle.length(), Replacement);
+			Pos += Replacement.length(); // Move past the replaced part
+		}
+		return Result;
+	}
+
 	static bool StartsWith(std::string const& Str, std::string const& Prefix)
 	{
 		return Str.size() >= Prefix.size() && Str.compare(0, Prefix.size(), Prefix) == 0;
@@ -99,6 +112,29 @@ public:
 			}
 			return DefaultValue;
 		}
+	}
+
+	template <typename T>
+	static std::string JoinStrings(std::vector<T> const& Vector, char const Delimiter)
+	{
+		std::string Result;
+		for (size_t i = 0; i < Vector.size(); ++i)
+		{
+			if constexpr (std::is_same_v<T, std::string>)
+			{
+				Result += Vector[i];
+			}
+			else
+			{
+				static_assert(std::is_arithmetic_v<T>, "JoinStrings only supports arithmetic types and std::string");
+				Result += std::to_string(Vector[i]);
+			}
+			if (i < Vector.size() - 1)
+			{
+				Result += Delimiter + std::string(" ");
+			}
+		}
+		return Result;
 	}
 };
 

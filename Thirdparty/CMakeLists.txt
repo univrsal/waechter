@@ -4,7 +4,7 @@ add_subdirectory(sigslot)
 add_subdirectory(tracy)
 add_subdirectory(stb)
 add_subdirectory(json11)
-add_subdirectory(inih)
+add_subdirectory(mini)
 
 if (WAECHTER_BUILD_DAEMON)
     add_subdirectory(sqlpp11)
@@ -33,7 +33,7 @@ target_include_directories(deps_includes SYSTEM INTERFACE
         ${CMAKE_SOURCE_DIR}/Thirdparty/implot
         ${CMAKE_SOURCE_DIR}/Thirdparty/json11
         ${CMAKE_SOURCE_DIR}/Thirdparty/cereal
-        ${CMAKE_SOURCE_DIR}/Thirdparty/inih
+        ${CMAKE_SOURCE_DIR}/Thirdparty/mini
         ${CMAKE_SOURCE_DIR}/Thirdparty/stb
         ${CMAKE_SOURCE_DIR}/Thirdparty/spdlog/include
         ${CMAKE_SOURCE_DIR}/Thirdparty/cereal/include

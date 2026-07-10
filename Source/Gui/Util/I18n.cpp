@@ -11,36 +11,42 @@
 #include "Json.hpp"
 #include "Settings.hpp"
 
+#include <ranges>
+
 #define LOAD_LANG(id)                                                                    \
 	else if (Code == #id)                                                                \
 	{                                                                                    \
 		JsonData = std::string(reinterpret_cast<char const*>(G##id##Data), G##id##Size); \
 	}
 
-static void AddObject(
-	WTranslation& Translation, std::string const& BreadCrumb, WJson const& Obj, bool const bForImGui = false)
+static void AddObject(WTranslation& Translation, std::string const& BreadCrumb, WJson const& Obj)
 {
 	for (auto const& [Key, Value] : Obj.object_items())
 	{
 		if (Value.is_object())
 		{
-			AddObject(Translation, BreadCrumb + Key + ".", Value.object_items(), bForImGui);
+			AddObject(Translation, BreadCrumb + Key + ".", Value.object_items());
 		}
 		else
 		{
 			std::string TranslatedValue = Value.string_value();
-			if (bForImGui)
+			std::string FinalKey = BreadCrumb + Key;
+			if (FinalKey.find("static.") == std::string::npos)
 			{
 				if (Key == "title")
 				{
-					TranslatedValue += "###" + (BreadCrumb + Key);
+					TranslatedValue += "###" + FinalKey;
 				}
 				else
 				{
-					TranslatedValue += "##" + (BreadCrumb + Key);
+					TranslatedValue += "##" + FinalKey;
 				}
 			}
-			Translation[BreadCrumb + Key] = TranslatedValue;
+			else
+			{
+				FinalKey = WStringFormat::ReplaceAll(FinalKey, "static.", "");
+			}
+			Translation[FinalKey] = TranslatedValue;
 		}
 	}
 }
@@ -72,14 +78,7 @@ WTranslation WI18n::LoadTranslationFile(std::string const& Code)
 
 	for (auto const& [Key, Value] : JsonObj.object_items())
 	{
-		if (Key == "static")
-		{
-			AddObject(Translation, "", Value.object_items(), false);
-		}
-		else
-		{
-			AddObject(Translation, Key + ".", Value.object_items(), true);
-		}
+		AddObject(Translation, Key + ".", Value.object_items());
 	}
 	return Translation;
 }

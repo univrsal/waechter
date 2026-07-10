@@ -12,6 +12,7 @@
 
 #include <algorithm>
 
+class WBuffer;
 struct WDaemonConfig final : TSingleton<WDaemonConfig>
 {
 	std::string NetworkInterfaceName{};
@@ -21,11 +22,15 @@ struct WDaemonConfig final : TSingleton<WDaemonConfig>
 	std::string DaemonGroup{ "nogroup" };
 	std::string DaemonSocketPath{ "/var/run/waechterd.sock" };
 	std::string IpLinkProcSocketPath{ "/var/run/waechter-iplink.sock" };
-	std::string EbpfProgramObjectPath{ "./waechter-ebpf.o" };
 	std::string WebSocketAuthToken{};
 	std::vector<std::string> IgnoredConnectionHistoryApps{};
 	std::vector<uint16_t>    IgnoredConnectionHistoryPorts{};
+	bool                     bFirstTimeSetupRun{};
+
 	mode_t      DaemonSocketMode{ 0660 };
+
+	std::string ConfigPath{};
+
 	WDaemonConfig();
 
 	void LogConfig();
@@ -46,8 +51,13 @@ struct WDaemonConfig final : TSingleton<WDaemonConfig>
 			IgnoredConnectionHistoryPorts, [&](auto const& IgnoredPort) { return Port == IgnoredPort; });
 	}
 
-private:
 	void Load(std::string const& Path);
+
+	void HandleConfigMessage(WBuffer const& Buf);
+
+private:
+	bool Write();
+
 	void SetDefaults();
 
 	static void BumpMemlockRlimit();

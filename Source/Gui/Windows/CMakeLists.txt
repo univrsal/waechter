@@ -24,4 +24,6 @@ target_sources(waechter
         MemoryUsageWindow.hpp
         StatWindow.cpp
         StatWindow.hpp
+        SetupWindow.cpp
+        SetupWindow.hpp
 )
