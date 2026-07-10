@@ -14,11 +14,12 @@ class WSetupWindow
 	char                 DaemonSocketPath[1024]{};
 	char                 DaemonUser[256]{};
 	char                 DaemonGroup[256]{};
-	char                 DaemonMode[4]{};
+	char                 DaemonMode[8]{};
 
 public:
 	void Show() { bVisible = true; }
-	bool IsVisible() const { return bVisible; }
+	[[nodiscard]] bool IsVisible() const { return bVisible; }
+	void               DrawDaemonSettings();
 	void Draw();
 
 	void HandleDaemonConfig(WDaemonConfigMessage const& Cfg);

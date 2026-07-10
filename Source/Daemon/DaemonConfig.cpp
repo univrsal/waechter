@@ -172,7 +172,10 @@ void WDaemonConfig::HandleConfigMessage(WBuffer const& Buf)
 	DaemonGroup = Msg.DaemonGroup;
 	DaemonSocketMode = static_cast<mode_t>(Msg.SocketMode);
 	bFirstTimeSetupRun = true;
-	Write();
+	if (Write())
+	{
+		spdlog::info("Received config update from client");
+	}
 }
 
 bool WDaemonConfig::Write()

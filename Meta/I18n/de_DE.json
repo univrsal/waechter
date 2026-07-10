@@ -73,6 +73,7 @@
   "setup": {
     "title": "Ersteinrichtung",
     "static.text": "Dies scheint das erste Mal zu sein, dass ein Client eine Verbindung zu diesem Daemon hergestellt hat. Damit der Daemon korrekt funktioniert, müssen einige Einstellungen angepasst werden. Bitte konfigurieren Sie die untenstehenden Einstellungen und klicken Sie auf 'Speichern', um fortzufahren. Für weitere Informationen zu jeder Einstellung lesen Sie die Dokumentation.",
+    "static.restart_note": "Änderungen erfordern einen Neustart des Daemons, um wirksam zu werden.",
     "main_interface": "Primäre Netzwerkschnittstelle",
     "vpn_interface": "VPN-Schnittstelle (optional)",
     "daemon_user": "Daemon-Benutzer",
@@ -127,6 +128,8 @@
   },
   "settings": {
     "title": "Einstellungen",
+    "client": "Client",
+    "daemon": "Daemon",
     "socket": {
       "header": "Socket-Einstellungen",
       "history": "Verlauf",

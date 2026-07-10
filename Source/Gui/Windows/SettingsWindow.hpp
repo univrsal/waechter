@@ -8,6 +8,8 @@
 class WSettingsWindow
 {
 	bool bVisible{};
+	static void DrawClientSettings();
+	void        DrawDaemonSettings();
 
 public:
 	void Draw();
