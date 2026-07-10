@@ -28,7 +28,7 @@ WAboutDialog::WAboutDialog()
 	ThirdPartyLibraries.emplace_back(
 		"Dear ImGui", "https://github.com/ocornut/imgui", MakeString(GImguiLicenseData, GImguiLicenseSize));
 	ThirdPartyLibraries.emplace_back(
-		"inih", "https://github.com/benhoyt/inih", MakeString(GInihLicenseData, GInihLicenseSize));
+		"mINI", "https://github.com/metayeti/mINI", MakeString(GMiniLicenseData, GMiniLicenseSize));
 	ThirdPartyLibraries.emplace_back(
 		"json11", "https://github.com/dropbox/json11", MakeString(GJson11LicenseData, GJson11LicenseSize));
 	ThirdPartyLibraries.emplace_back(
