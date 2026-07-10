@@ -94,6 +94,8 @@
 #include <cctype>
 #include <filesystem>
 
+#include <spdlog/spdlog.h>
+
 namespace mINI
 {
 	namespace INIStringUtil
@@ -697,6 +699,7 @@ namespace mINI
 			}
 			if (!readSuccess)
 			{
+				spdlog::error("Failed to read INI file {}", filename.string());
 				return false;
 			}
 			T_LineData output = getLazyOutput(lineData, data, originalData);
@@ -726,6 +729,7 @@ namespace mINI
 				}
 				return true;
 			}
+			spdlog::error("Failed to open INI file {} for writing, error: {}", filename.string(), std::strerror(errno));
 			return false;
 		}
 	};
