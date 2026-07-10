@@ -52,10 +52,12 @@ static void SendInitialDataToClient(std::shared_ptr<WDaemonClient> const& Client
 	auto const&        Cfg = WDaemonConfig::GetInstance();
 	WDaemonConfigMessage InitialConfig{};
 	InitialConfig.bFirstTimeSetupRan = Cfg.bFirstTimeSetupRun;
-	InitialConfig.SocketMode = Cfg.DaemonSocketMode;
+	InitialConfig.SocketMode = static_cast<int>(Cfg.DaemonSocketMode);
 	InitialConfig.DaemonGroup = Cfg.DaemonGroup;
 	InitialConfig.DaemonUser = Cfg.DaemonUser;
 	InitialConfig.SocketPath = Cfg.DaemonSocketPath;
+	InitialConfig.MainInterface = Cfg.NetworkInterfaceName;
+	InitialConfig.VpnInterface = Cfg.IngressNetworkInterfaceName;
 	InitialConfig.NetworkInterfaces = WNetworkInterface::List();
 
 	Client->SendMessage(
