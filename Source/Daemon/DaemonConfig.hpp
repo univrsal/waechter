@@ -21,7 +21,6 @@ struct WDaemonConfig final : TSingleton<WDaemonConfig>
 	std::string DaemonGroup{ "nogroup" };
 	std::string DaemonSocketPath{ "/var/run/waechterd.sock" };
 	std::string IpLinkProcSocketPath{ "/var/run/waechter-iplink.sock" };
-	std::string EbpfProgramObjectPath{ "./waechter-ebpf.o" };
 	std::string WebSocketAuthToken{};
 	std::vector<std::string> IgnoredConnectionHistoryApps{};
 	std::vector<uint16_t>    IgnoredConnectionHistoryPorts{};

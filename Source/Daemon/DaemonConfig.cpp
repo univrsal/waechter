@@ -113,7 +113,7 @@ void WDaemonConfig::Load(std::string const& Path)
 	SafeGet("daemon", "socket_path", DaemonSocketPath);
 	SafeGet("daemon", "ip_proc_socket_path", IpLinkProcSocketPath);
 	SafeGet("daemon", "websocket_auth_token", WebSocketAuthToken);
-	SafeGet("daemon", "ebpf_program_object_path", EbpfProgramObjectPath);
+	SafeGetBool("daemon", "first_time_setup_run", bFirstTimeSetupRun);
 
 	int SocketMode{ static_cast<int>(DaemonSocketMode) };
 	SafeGetInt("daemon", "socket_permissions", SocketMode);
@@ -162,7 +162,6 @@ bool WDaemonConfig::Write()
 		{ "socket_path", DaemonSocketPath },
 		{ "ip_proc_socket_path", IpLinkProcSocketPath },
 		{ "websocket_auth_token", WebSocketAuthToken },
-		{ "ebpf_program_object_path", EbpfProgramObjectPath },
 		{ "socket_permissions", std::to_string(DaemonSocketMode) },
 		{ "ignored_connection_history_app_names", WStringFormat::JoinStrings(IgnoredConnectionHistoryApps, ';') },
 		{ "ignored_connection_history_remote_ports", WStringFormat::JoinStrings(IgnoredConnectionHistoryPorts, ';') },
