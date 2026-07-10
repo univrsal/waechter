@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <sys/sysinfo.h>
 
+#include "spdlog/sinks/base_sink.h"
 #include "spdlog/spdlog.h"
 #include "tracy/Tracy.hpp"
 // ReSharper disable CppUnusedIncludeDirective
@@ -36,6 +37,44 @@
 #include "Data/Protocol.hpp"
 #include "Data/SystemMap.hpp"
 #include "Rules/RuleManager.hpp"
+
+namespace
+{
+	class WDaemonLogSink final : public spdlog::sinks::base_sink<std::mutex>
+	{
+		WDaemonSocket* Owner{};
+
+	public:
+		explicit WDaemonLogSink(WDaemonSocket* InOwner) : Owner(InOwner) {}
+
+	protected:
+		void sink_it_(spdlog::details::log_msg const& Message) override
+		{
+			if (!Owner || Message.level < spdlog::level::info)
+			{
+				return;
+			}
+
+			thread_local bool bInCallback = false;
+			if (bInCallback)
+			{
+				return;
+			}
+
+			bInCallback = true;
+
+			WDaemonLogMessage LogMessage{};
+			LogMessage.Level = Message.level;
+			LogMessage.Message = std::string_view(Message.payload.data(), Message.payload.size());
+			Owner->BroadcastMessage(MT_DaemonLog, LogMessage);
+			bInCallback = false;
+		}
+
+		void flush_() override {}
+	};
+
+	std::shared_ptr<WDaemonLogSink> GDaemonLogSink{};
+} // namespace
 
 static WSec GetSystemBootTime()
 {
@@ -115,6 +154,14 @@ WDaemonSocket::WDaemonSocket(std::string const& Path)
 		Socket = std::make_unique<WDaemonWebSocket>();
 	}
 #endif
+
+	AttachLogSink();
+}
+
+WDaemonSocket::~WDaemonSocket()
+{
+	DetachLogSink();
+	Stop();
 }
 
 void WDaemonSocket::BroadcastMemoryUsageUpdate()
@@ -205,4 +252,27 @@ void WDaemonSocket::BroadcastAtlasUpdate()
 		}
 	}
 	WAppIconAtlasBuilder::GetInstance().ClearDirty();
+}
+
+void WDaemonSocket::AttachLogSink()
+{
+	if (GDaemonLogSink)
+	{
+		return;
+	}
+
+	GDaemonLogSink = std::make_shared<WDaemonLogSink>(this);
+	spdlog::default_logger()->sinks().push_back(GDaemonLogSink);
+}
+
+void WDaemonSocket::DetachLogSink()
+{
+	if (!GDaemonLogSink)
+	{
+		return;
+	}
+
+	auto& Sinks = spdlog::default_logger()->sinks();
+	std::erase(Sinks, GDaemonLogSink);
+	GDaemonLogSink.reset();
 }

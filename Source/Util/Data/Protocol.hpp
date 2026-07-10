@@ -12,6 +12,10 @@
 
 #include "Types.hpp"
 
+namespace spdlog::level
+{
+	enum level_enum : int;
+}
 struct WProtocolHandshake
 {
 	uint8_t     ProtocolVersion{ WAECHTER_PROTOCOL_VERSION };
@@ -41,5 +45,17 @@ struct WDaemonConfigMessage
 	{
 		archive(NetworkInterfaces, bFirstTimeSetupRan, SocketPath, DaemonUser, DaemonGroup, MainInterface, VpnInterface,
 			SocketMode);
+	}
+};
+
+struct WDaemonLogMessage
+{
+	spdlog::level::level_enum Level{};
+	std::string               Message{};
+
+	template <class Archive>
+	void serialize(Archive& archive)
+	{
+		archive(Level, Message);
 	}
 };
