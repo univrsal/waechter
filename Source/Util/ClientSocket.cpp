@@ -14,12 +14,11 @@ void WClientSocket::ListenThreadFunction()
 	WBuffer RecvBuf;
 	while (bListenThreadRunning && IsConnected())
 	{
-		if (!ReceiveFramed(RecvBuf))
+		while (bListenThreadRunning && IsConnected() && ReceiveFramed(RecvBuf))
 		{
-			continue;
+			OnData(RecvBuf);
+			RecvBuf.Reset();
 		}
-		OnData(RecvBuf);
-		RecvBuf.Reset();
 	}
 	bListenThreadRunning = false;
 }
@@ -154,17 +153,30 @@ ssize_t WClientSocket::ReceiveRaw(void* Buffer, size_t Capacity)
 
 bool WClientSocket::ReceiveFramed(WBuffer& OutputBuffer)
 {
-
 	if (!IsConnected())
 	{
 		return false;
 	}
+
+	if (TryPopBufferedFrame(OutputBuffer))
+	{
+		return true;
+	}
+
 	static char   IoBuf[4096];
 	ssize_t const BytesRead = ReceiveRaw(IoBuf, sizeof(IoBuf));
+	if (BytesRead <= 0)
+	{
+		return false;
+	}
 
 	// Accumulate data (handle fragmented messages)
-	IncomingBuffer.insert(IncomingBuffer.end(), IoBuf, IoBuf + std::max<ssize_t>(0, BytesRead));
+	IncomingBuffer.insert(IncomingBuffer.end(), IoBuf, IoBuf + BytesRead);
+	return TryPopBufferedFrame(OutputBuffer);
+}
 
+bool WClientSocket::TryPopBufferedFrame(WBuffer& OutputBuffer)
+{
 	// Try to extract complete frames
 	while (IncomingBuffer.size() >= sizeof(uint32_t))
 	{
@@ -178,6 +190,7 @@ bool WClientSocket::ReceiveFramed(WBuffer& OutputBuffer)
 		}
 
 		// Extract frame data (skip length prefix)
+		OutputBuffer.Reset();
 		OutputBuffer.Write(std::span<char const>(IncomingBuffer.data() + sizeof(uint32_t), FrameLength));
 
 		// Remove processed data from buffer
