@@ -8,6 +8,9 @@
 #define WAECHTER_PROTOCOL_VERSION 1
 #include <cstdint>
 #include <string>
+#include <vector>
+
+#include "Types.hpp"
 
 struct WProtocolHandshake
 {
@@ -29,11 +32,14 @@ struct WDaemonConfigMessage
 	std::string              SocketPath{};
 	std::string              DaemonUser{};
 	std::string              DaemonGroup{};
+	std::string              MainInterface{};
+	std::string              VpnInterface{};
 	int                      SocketMode{};
 
 	template <class Archive>
 	void serialize(Archive& archive)
 	{
-		archive(NetworkInterfaces, bFirstTimeSetupRan, SocketPath, DaemonUser, DaemonGroup, SocketMode);
+		archive(NetworkInterfaces, bFirstTimeSetupRan, SocketPath, DaemonUser, DaemonGroup, MainInterface, VpnInterface,
+			SocketMode);
 	}
 };

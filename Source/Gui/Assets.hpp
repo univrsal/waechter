@@ -23,8 +23,8 @@ extern unsigned int const GImguiLicenseSize;
 extern unsigned char const GImPlotLicenseData[];
 extern unsigned int const GImPlotLicenseSize;
 
-extern unsigned char const GInihLicenseData[];
-extern unsigned int const GInihLicenseSize;
+extern unsigned char const GMiniLicenseData[];
+extern unsigned int const GMiniLicenseSize;
 
 extern unsigned char const GJson11LicenseData[];
 extern unsigned int const GJson11LicenseSize;

@@ -74,6 +74,13 @@ void WClient::OnDataReceived(WBuffer& Buf)
 		case MT_RuleUpdate:
 			WClientRuleManager::GetInstance().HandleRuleUpdate(Buf);
 			break;
+		case MT_DaemonConfig:
+		{
+			WDaemonConfigMessage Msg;
+			ReadMessage(Buf, Msg);
+			WMainWindow::Get().GetSetupWindow().HandleDaemonConfig(Msg);
+		}
+		break;
 		default:
 			spdlog::warn("Received unknown message type from server: {}", static_cast<int>(Type));
 			break;

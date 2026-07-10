@@ -118,7 +118,7 @@ void WMainWindow::Draw()
 	ImGui::SetNextWindowPos(ImVec2(0, 0));
 	ImGui::SetNextWindowSize(DisplaySize);
 
-	if (ImGui::BeginMainMenuBar())
+	if (!SetupWindow.IsVisible() && ImGui::BeginMainMenuBar())
 	{
 		if (ImGui::BeginMenu(TR("menu.file")))
 		{
@@ -188,21 +188,29 @@ void WMainWindow::Draw()
 		Init(Main);
 	}
 
-	LogWindow.Draw();
-	NetworkGraphWindow.Draw();
-	DetailsWindow.Draw();
-	AboutDialog.Draw();
-	ConnectionHistoryWindow.Draw();
-	SettingsWindow.Draw();
-	MemoryUsageWindow.Draw();
-
-	for (auto const& StatWindow : StatWindows)
+	if (SetupWindow.IsVisible())
 	{
-		StatWindow->Draw();
+		SetupWindow.Draw();
 	}
-	std::erase_if(StatWindows, [](auto const& StatWindow) { return !StatWindow->IsOpen(); });
+	else
+	{
+		LogWindow.Draw();
+		NetworkGraphWindow.Draw();
+		DetailsWindow.Draw();
+		AboutDialog.Draw();
+		ConnectionHistoryWindow.Draw();
+		SettingsWindow.Draw();
+		MemoryUsageWindow.Draw();
 
-	WClient::GetInstance().GetTrafficTree()->Draw(Main);
+		for (auto const& StatWindow : StatWindows)
+		{
+			StatWindow->Draw();
+		}
+		std::erase_if(StatWindows, [](auto const& StatWindow) { return !StatWindow->IsOpen(); });
+
+		WClient::GetInstance().GetTrafficTree()->Draw(Main);
+	}
+
 	// draw last for the watermark
 	RegisterDialog.Draw();
 }

@@ -70,6 +70,17 @@
   "traffic_tree": {
     "title": "Traffic-Baum"
   },
+  "setup": {
+    "title": "Ersteinrichtung",
+    "static.text": "Dies scheint das erste Mal zu sein, dass ein Client eine Verbindung zu diesem Daemon hergestellt hat. Damit der Daemon korrekt funktioniert, müssen einige Einstellungen angepasst werden. Bitte konfigurieren Sie die untenstehenden Einstellungen und klicken Sie auf 'Speichern', um fortzufahren. Für weitere Informationen zu jeder Einstellung lesen Sie die Dokumentation.",
+    "main_interface": "Primäre Netzwerkschnittstelle",
+    "vpn_interface": "VPN-Schnittstelle (optional)",
+    "daemon_user": "Daemon-Benutzer",
+    "daemon_group": "Daemon-Gruppe",
+    "socket_path": "Socket-Pfad",
+    "socket_mode": "Socket-Modus",
+    "save": "Speichern"
+  },
   "about": {
     "title": "Über",
     "license": "Lizenz",

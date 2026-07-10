@@ -5,6 +5,7 @@
 
 #pragma once
 #include "MemoryUsageWindow.hpp"
+#include "SetupWindow.hpp"
 #include "Windows/AboutDialog.hpp"
 #include "Windows/LogWindow.hpp"
 #include "Windows/NetworkGraphWindow.hpp"
@@ -26,6 +27,7 @@ class WMainWindow
 	WSettingsWindow          SettingsWindow{};
 	WMemoryUsageWindow       MemoryUsageWindow{};
 	WConnectionHistoryWindow ConnectionHistoryWindow{};
+	WSetupWindow             SetupWindow{};
 
 	std::vector<std::unique_ptr<WStatWindow>> StatWindows{};
 
@@ -40,6 +42,7 @@ public:
 
 	WNetworkGraphWindow&      GetNetworkGraphWindow() { return NetworkGraphWindow; }
 	WDetailsWindow&           GetDetailsWindow() { return DetailsWindow; }
+	WSetupWindow&             GetSetupWindow() { return SetupWindow; }
 	WConnectionHistoryWindow& GetConnectionHistoryWindow() { return ConnectionHistoryWindow; }
 	WMemoryUsageWindow&       GetMemoryUsageWindow() { return MemoryUsageWindow; }
 
