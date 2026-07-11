@@ -34,14 +34,14 @@
 
 // This isn't exactly efficient, we should probably have something
 // similar to ITrafficItem->Parent->RemoveChild or similar.
-void WTrafficTree::RemoveTrafficItem(WTrafficItemId const TrafficItemId)
+bool WTrafficTree::RemoveTrafficItem(WTrafficItemId const TrafficItemId)
 {
 	MarkedForRemovalItems.erase(TrafficItemId);
 	WClientRuleManager::GetInstance().RemoveRules(TrafficItemId);
 
 	if (Root->RemoveChild(TrafficItemId))
 	{
-		return;
+		return true;
 	}
 
 	for (auto const& App : Root->Applications | std::views::values)
@@ -54,17 +54,25 @@ void WTrafficTree::RemoveTrafficItem(WTrafficItemId const TrafficItemId)
 
 		if (App->RemoveChild(TrafficItemId))
 		{
-			return;
+			return true;
 		}
 
 		for (auto const& Proc : App->Processes | std::views::values)
 		{
 			if (Proc->RemoveChild(TrafficItemId))
 			{
-				return;
+				return true;
+			}
+			for (auto const& Socket : Proc->Sockets | std::views::values)
+			{
+				if (Socket->RemoveChild(TrafficItemId))
+				{
+					return true;
+				}
 			}
 		}
 	}
+	return false;
 }
 
 inline bool DrawIcon(bool& bNodeOpen, std::string const& Name, std::shared_ptr<ITrafficItem> const& Item,
@@ -383,6 +391,10 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 				}
 			}
 		}
+		else
+		{
+			spdlog::warn("Marked for removal item {} not found in traffic tree", MarkedId);
+		}
 	}
 
 	for (auto const& Addition : Updates.AddedSockets)
@@ -491,15 +503,17 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 
 	for (auto const& RemovedId : Updates.RemovedItems)
 	{
+		bool bRemovedAnything = false;
 		if (TrafficItems.contains(RemovedId))
 		{
 			TrafficItems.erase(RemovedId);
+			bRemovedAnything = true;
 		}
-		else
+		bRemovedAnything |= RemoveTrafficItem(RemovedId);
+		if (!bRemovedAnything)
 		{
-			spdlog::warn("Attempted to remove non-existent item {} from traffic tree", RemovedId);
+			spdlog::warn("Failed to remove item {} from traffic tree", RemovedId);
 		}
-		RemoveTrafficItem(RemovedId);
 	}
 	bRequireTreeSorting = true;
 }
