@@ -127,17 +127,11 @@ WTrafficTreeUpdates const& WMapUpdate::GetUpdates()
 
 	for (auto const& TupleCounter : AddedTuples)
 	{
-		if (TupleCounter.second->ParentSocket->GetState() == CS_PendingRemoval)
-		{
-			// No point in sending additions for tuples whose parent socket is being removed
-			continue;
-		}
-
 		WTrafficTreeTupleAddition Addition{};
-
 		Addition.ItemId = TupleCounter.second->TrafficItem->ItemId;
 		Addition.SocketItemId = TupleCounter.second->ParentSocket->TrafficItem->ItemId;
 		Addition.Endpoint = TupleCounter.first;
+		Updates.AddedTuples.emplace_back(Addition);
 	}
 
 	Clear();
