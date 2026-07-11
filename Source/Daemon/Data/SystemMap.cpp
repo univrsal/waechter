@@ -687,6 +687,12 @@ std::shared_ptr<WSocketCounter> WSystemMap::MapSocketFromTrafficEvent(WSocketEve
 
 void WSystemMap::PushTrafficForSocket(WSocketEvent const& Event, std::shared_ptr<WSocketCounter> const& Socket) const
 {
+	if (Socket->IsMarkedForRemoval())
+	{
+		spdlog::warn("Received traffic for socket {} after it was closed.", Socket->TrafficItem->ToString());
+		return;
+	}
+
 	auto const Bytes = Event.Data.TrafficEventData.Bytes;
 	if (Event.Data.TrafficEventData.Direction == PD_Incoming)
 	{
@@ -722,6 +728,21 @@ void WSystemMap::PushTrafficForSocket(WSocketEvent const& Event, std::shared_ptr
 	}
 
 	Socket->TrafficItem->ConnectionState = ESocketConnectionState::Connected;
+}
+
+void WSystemMap::MarkSocketForRemoval(std::shared_ptr<WSocketCounter> const& Socket)
+{
+	if (Socket->IsMarkedForRemoval())
+	{
+		return;
+	}
+
+	Socket->MarkForRemoval();
+	Socket->TrafficItem->ConnectionState = ESocketConnectionState::Closed;
+	MapUpdate.MarkItemForRemoval(Socket->TrafficItem->ItemId);
+	Socket->ParentProcess->PushIncomingTraffic(0); // Force state update
+	Socket->ParentProcess->ParentApp->PushOutgoingTraffic(0);
+	TrafficCounter.PushIncomingTraffic(0);
 }
 
 std::shared_ptr<WSocketCounter> WSystemMap::FindOrMapSocket(
@@ -1268,7 +1289,7 @@ void WSystemMap::Cleanup()
 			spdlog::debug("Removing unknown socket with id {}, tuple: {}, app: {}", SocketIt->first,
 				Socket->TrafficItem->SocketTuple.ToString(),
 				Socket->ParentProcess->ParentApp->TrafficItem->ApplicationName);
-			Socket->MarkForRemoval();
+			MarkSocketForRemoval(Socket);
 		}
 		else
 		{

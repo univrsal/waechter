@@ -55,6 +55,7 @@ class WSystemMap : public TSingleton<WSystemMap>, public IMemoryTrackable
 	std::shared_ptr<WProcessCounter> FindOrMapProcess(WProcessId PID, std::shared_ptr<WAppCounter> const& ParentApp);
 	std::shared_ptr<WAppCounter>     FindOrMapApplication(
 			std::string const& ExePath, std::string const& CommandLine, std::string const& AppName);
+	void MarkSocketForRemoval(std::shared_ptr<WSocketCounter> const& Socket);
 
 	void Cleanup();
 
@@ -99,6 +100,7 @@ public:
 
 	void MarkSocketForRemoval(WSocketEvent const& Event)
 	{
+		std::scoped_lock Lock(DataMutex);
 		if (auto const It = Sockets.find(Event.Cookie); It != Sockets.end())
 		{
 			if (Event.Data.SocketCloseEventData.LocalPort > 0)
@@ -110,22 +112,12 @@ public:
 				{
 					if (Sock->TrafficItem->SocketTuple.LocalEndpoint.Port == Event.Data.SocketCloseEventData.LocalPort)
 					{
-						Sock->MarkForRemoval();
-						Sock->TrafficItem->ConnectionState = ESocketConnectionState::Closed;
-						MapUpdate.MarkItemForRemoval(Sock->TrafficItem->ItemId);
-						Sock->ParentProcess->PushIncomingTraffic(0); // Force state update
-						Sock->ParentProcess->ParentApp->PushOutgoingTraffic(0);
-						TrafficCounter.PushIncomingTraffic(0);
+						MarkSocketForRemoval(Sock);
 						break;
 					}
 				}
 			}
-			It->second->MarkForRemoval();
-			It->second->TrafficItem->ConnectionState = ESocketConnectionState::Closed;
-			MapUpdate.MarkItemForRemoval(It->second->TrafficItem->ItemId);
-			It->second->ParentProcess->PushIncomingTraffic(0); // Force state update
-			It->second->ParentProcess->ParentApp->PushOutgoingTraffic(0);
-			TrafficCounter.PushIncomingTraffic(0);
+			MarkSocketForRemoval(It->second);
 		}
 	}
 

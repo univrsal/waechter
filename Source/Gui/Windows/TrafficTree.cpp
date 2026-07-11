@@ -385,15 +385,6 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 		}
 	}
 
-	for (auto const& RemovedId : Updates.RemovedItems)
-	{
-		if (TrafficItems.contains(RemovedId))
-		{
-			TrafficItems.erase(RemovedId);
-		}
-		RemoveTrafficItem(RemovedId);
-	}
-
 	for (auto const& Addition : Updates.AddedSockets)
 	{
 		if (TrafficItems.contains(Addition.ItemId))
@@ -493,10 +484,22 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 
 			if (Update.ItemId == 0)
 			{
-				WSdlWindow::GetInstance().GetMainWindow()->GetNetworkGraphWindow().AddData(
-					It->second->UploadSpeed, It->second->DownloadSpeed);
+				WMainWindow::Get().GetNetworkGraphWindow().AddData(It->second->UploadSpeed, It->second->DownloadSpeed);
 			}
 		}
+	}
+
+	for (auto const& RemovedId : Updates.RemovedItems)
+	{
+		if (TrafficItems.contains(RemovedId))
+		{
+			TrafficItems.erase(RemovedId);
+		}
+		else
+		{
+			spdlog::warn("Attempted to remove non-existent item {} from traffic tree", RemovedId);
+		}
+		RemoveTrafficItem(RemovedId);
 	}
 	bRequireTreeSorting = true;
 }
