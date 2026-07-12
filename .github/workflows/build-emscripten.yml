@@ -35,7 +35,7 @@ jobs:
       - name: Setup Emscripten
         uses: mymindstorm/setup-emsdk@v14
         with:
-          version: 'latest'
+          version: '6.0.1'
 
       - name: Configure CMake
         run: .github/scripts/emscripten/configure.sh
