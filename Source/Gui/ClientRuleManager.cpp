@@ -20,7 +20,7 @@ void WClientRuleManager::HandleRuleUpdate(WBuffer const& Buf)
 }
 
 void WClientRuleManager::SendRuleStateUpdate(
-	WTrafficItemId TrafficItemId, WTrafficItemId ParentApp, WTrafficItemRules const& ChangedRule)
+	WTrafficItemId const TrafficItemId, WTrafficItemId const ParentApp, WTrafficItemRules const& ChangedRule)
 {
 	if (!WClient::GetInstance().IsConnected())
 	{
