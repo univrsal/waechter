@@ -357,6 +357,8 @@ struct WEndpoint
 	{
 		archive(Address, Port);
 	}
+
+	[[nodiscard]] bool IsZero() const { return Address.IsZero() && Port == 0; }
 };
 
 inline bool operator==(WEndpoint const& lhs, WEndpoint const& rhs)
