@@ -372,30 +372,6 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 		return;
 	}
 
-	for (auto const& MarkedId : Updates.MarkedForRemovalItems)
-	{
-		MarkedForRemovalItems.insert(MarkedId);
-
-		auto It = TrafficItems.find(MarkedId);
-		if (It != TrafficItems.end())
-		{
-			auto& Item = It->second;
-			Item->DownloadSpeed = 0;
-			Item->UploadSpeed = 0;
-
-			if (Item->GetType() == TI_Socket)
-			{
-				if (auto const SocketItem = std::dynamic_pointer_cast<WSocketItem>(Item))
-				{
-					SocketItem->ConnectionState = ESocketConnectionState::Closed;
-				}
-			}
-		}
-		else
-		{
-			spdlog::warn("Marked for removal item {} not found in traffic tree", MarkedId);
-		}
-	}
 
 	for (auto const& Addition : Updates.AddedSockets)
 	{
@@ -498,6 +474,31 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 			{
 				WMainWindow::Get().GetNetworkGraphWindow().AddData(It->second->UploadSpeed, It->second->DownloadSpeed);
 			}
+		}
+	}
+
+	for (auto const& MarkedId : Updates.MarkedForRemovalItems)
+	{
+		MarkedForRemovalItems.insert(MarkedId);
+
+		auto It = TrafficItems.find(MarkedId);
+		if (It != TrafficItems.end())
+		{
+			auto& Item = It->second;
+			Item->DownloadSpeed = 0;
+			Item->UploadSpeed = 0;
+
+			if (Item->GetType() == TI_Socket)
+			{
+				if (auto const SocketItem = std::dynamic_pointer_cast<WSocketItem>(Item))
+				{
+					SocketItem->ConnectionState = ESocketConnectionState::Closed;
+				}
+			}
+		}
+		else
+		{
+			spdlog::warn("Marked for removal item {} not found in traffic tree", MarkedId);
 		}
 	}
 
