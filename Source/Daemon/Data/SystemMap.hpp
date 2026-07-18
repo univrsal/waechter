@@ -103,6 +103,10 @@ public:
 		std::scoped_lock Lock(DataMutex);
 		if (auto const It = Sockets.find(Event.Cookie); It != Sockets.end())
 		{
+			MarkSocketForRemoval(It->second);
+		}
+		else
+		{
 			if (Event.Data.SocketCloseEventData.LocalPort > 0)
 			{
 				// todo: iterating over all sockets is a bit dumb since this really
@@ -117,7 +121,6 @@ public:
 					}
 				}
 			}
-			MarkSocketForRemoval(It->second);
 		}
 	}
 
