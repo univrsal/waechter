@@ -105,12 +105,6 @@ WTrafficTreeUpdates const& WMapUpdate::GetUpdates()
 
 	for (auto const& Socket : AddedSockets)
 	{
-		if (Socket->GetState() == CS_PendingRemoval)
-		{
-			// No point in sending additions for sockets that are being removed
-			continue;
-		}
-
 		WTrafficTreeSocketAddition Addition{};
 
 		auto const PPTI = Socket->ParentProcess->TrafficItem;
