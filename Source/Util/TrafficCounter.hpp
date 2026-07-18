@@ -59,8 +59,11 @@ public:
 			spdlog::warn(
 				"Pushing outgoing traffic for a counter marked for removal (ItemId: {})", TrafficItem->ToString());
 		}
+		else
+		{
+			State = CS_Active;
+		}
 #endif
-		State = CS_Active;
 		InactiveCounter = 0;
 	}
 
@@ -73,8 +76,11 @@ public:
 			spdlog::warn("Pushing incoming traffic for a counter marked for removal (ID: {}, Item: {}, Type: {})",
 				TrafficItem->ItemId, TrafficItem->ToString(), static_cast<int>(TrafficItem->GetType()));
 		}
+		else
+		{
+			State = CS_Active;
+		}
 #endif
-		State = CS_Active;
 		InactiveCounter = 0;
 	}
 
