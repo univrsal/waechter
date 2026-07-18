@@ -354,6 +354,7 @@ std::shared_ptr<WTupleCounter> WSystemMap::GetOrCreateUDPTupleCounter(
 	auto TupleCounter = std::make_shared<WTupleCounter>(NewItem, SockCounter);
 	SockCounter->UDPPerConnectionCounters[Endpoint] = TupleCounter;
 	WNetworkEvents::GetInstance().OnUDPTupleCreated(TupleCounter);
+	// don't add to map updates here, we do that later
 	return TupleCounter;
 }
 
@@ -689,7 +690,7 @@ void WSystemMap::PushTrafficForSocket(WSocketEvent const& Event, std::shared_ptr
 {
 	if (Socket->IsMarkedForRemoval())
 	{
-		spdlog::warn("Received traffic for socket {} after it was closed.", Socket->TrafficItem->ToString());
+		spdlog::warn("Received traffic for socket {} marked for removal.", Socket->TrafficItem->ToString());
 		return;
 	}
 
@@ -825,6 +826,7 @@ void WSystemMap::MergeSyntheticSocket(std::shared_ptr<WSocketCounter> const& Soc
 std::shared_ptr<WProcessCounter> WSystemMap::FindOrMapProcess(
 	WProcessId const PID, std::shared_ptr<WAppCounter> const& ParentApp)
 {
+	assert(PID > 0);
 	ZoneScopedN("WSystemMap::FindOrMapProcess");
 	if (auto const It = Processes.find(PID); It != Processes.end())
 	{
@@ -888,7 +890,7 @@ std::shared_ptr<WAppCounter> WSystemMap::FindOrMapApplication(
 		for (auto It = Applications.begin(); It != Applications.end(); ++It)
 		{
 			auto const ExistingKey = It->first;
-			auto const ExistingApp = It->second;
+			auto        ExistingApp = It->second;
 			auto const& ExistingPath = ExistingApp->TrafficItem->ApplicationPath;
 			if (ExistingKey == Key)
 			{
@@ -1051,7 +1053,7 @@ void WSystemMap::PushIncomingTraffic(WSocketEvent const& Event)
 void WSystemMap::PushOutgoingTraffic(WSocketEvent const& Event)
 {
 	auto const       Bytes = Event.Data.TrafficEventData.Bytes;
-	auto             SocketCookie = Event.Cookie;
+	auto const       SocketCookie = Event.Cookie;
 	std::unique_lock Lock(DataMutex);
 	TrafficCounter.PushOutgoingTraffic(Bytes);
 
