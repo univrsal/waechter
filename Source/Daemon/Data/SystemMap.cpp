@@ -212,8 +212,7 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 
 	if (bHaveLocalEndpoint && bHaveRemoteEndpoint && bIsTcp)
 	{
-		// both endpoints are already known
-		// so in the case of TCP there's nothing to do
+		// both endpoints are already known, so in the case of TCP there's nothing to do
 		// udp has to always be parsed because it can send/receive from/to multiple endpoints
 		return;
 	}
@@ -247,7 +246,7 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 			Item->SocketTuple.LocalEndpoint = LocalEndpoint;
 		}
 
-		// Don't assign a remote endpoint to UDP sockets, the only time we do that
+		// Don't assign a remote endpoint to UDP sockets; the only time we do that
 		// is if they explicitly connect() to an address
 		if (!bHaveRemoteEndpoint && Item->SocketTuple.Protocol != EProtocol::UDP)
 		{
@@ -342,7 +341,15 @@ std::shared_ptr<WTupleCounter> WSystemMap::GetOrCreateUDPTupleCounter(
 	if (auto const It = SockCounter->UDPPerConnectionCounters.find(Endpoint);
 		It != SockCounter->UDPPerConnectionCounters.end())
 	{
-		return It->second;
+		// UDP tuples get marked for removal after not receiving traffic for one minute.
+		// Once that happens, any new traffic being sent to that endpoint needs to create
+		// a new tuple. Otherwise, clients end up with items that are marked for removal (marked as red)
+		// but are never removed because the counter received traffic again and resetting the
+		// marked for removal state.
+		if (!It->second->IsMarkedForRemoval())
+		{
+			return It->second;
+		}
 	}
 
 	auto NewItem = std::make_shared<WTupleItem>();
