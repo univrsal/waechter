@@ -394,6 +394,8 @@ struct WSocketTuple
 		return LocalEndpoint == Other.LocalEndpoint && RemoteEndpoint == Other.RemoteEndpoint
 			&& Protocol == Other.Protocol;
 	}
+
+	[[nodiscard]] bool IsZero() const { return LocalEndpoint.IsZero() && RemoteEndpoint.IsZero(); }
 };
 
 struct ByteArray16Hash
