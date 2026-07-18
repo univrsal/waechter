@@ -13,7 +13,7 @@
 
 bool WMapUpdate::TrackUpdates()
 {
-	// When there are no clients there is no point in tracking updates
+	// When there are no clients, there is no point in tracking updates
 	// as the first client that connects gets the entire tree sent anyway
 	if (auto const Sock = WDaemon::GetInstance().GetDaemonSocket(); Sock && Sock->HasClients())
 	{
@@ -25,11 +25,16 @@ bool WMapUpdate::TrackUpdates()
 void WMapUpdate::AddStateChange(WTrafficItemId const Id, ESocketConnectionState const NewState,
 	uint8_t const SocketType, std::shared_ptr<WSocketTuple> const& SocketTuple)
 {
+	std::scoped_lock Lock(Mutex);
+	if (!ClientItems.contains(Id))
+	{
+		spdlog::warn("Attempted to add state change for item '{}', but it is not tracked by the client", Id);
+		return;
+	}
 	if (!TrackUpdates())
 	{
 		return;
 	}
-	std::scoped_lock              Lock(Mutex);
 	WTrafficTreeSocketStateChange StateChange;
 	StateChange.ItemId = Id;
 	StateChange.NewState = NewState;
