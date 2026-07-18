@@ -212,8 +212,7 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 
 	if (bHaveLocalEndpoint && bHaveRemoteEndpoint && bIsTcp)
 	{
-		// both endpoints are already known
-		// so in the case of TCP there's nothing to do
+		// both endpoints are already known, so in the case of TCP there's nothing to do
 		// udp has to always be parsed because it can send/receive from/to multiple endpoints
 		return;
 	}
@@ -247,7 +246,7 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 			Item->SocketTuple.LocalEndpoint = LocalEndpoint;
 		}
 
-		// Don't assign a remote endpoint to UDP sockets, the only time we do that
+		// Don't assign a remote endpoint to UDP sockets; the only time we do that
 		// is if they explicitly connect() to an address
 		if (!bHaveRemoteEndpoint && Item->SocketTuple.Protocol != EProtocol::UDP)
 		{
@@ -342,7 +341,15 @@ std::shared_ptr<WTupleCounter> WSystemMap::GetOrCreateUDPTupleCounter(
 	if (auto const It = SockCounter->UDPPerConnectionCounters.find(Endpoint);
 		It != SockCounter->UDPPerConnectionCounters.end())
 	{
-		return It->second;
+		// UDP tuples get marked for removal after not receiving traffic for one minute.
+		// Once that happens, any new traffic being sent to that endpoint needs to create
+		// a new tuple. Otherwise, clients end up with items that are marked for removal (marked as red)
+		// but are never removed because the counter received traffic again and resetting the
+		// marked for removal state.
+		if (!It->second->IsMarkedForRemoval())
+		{
+			return It->second;
+		}
 	}
 
 	auto NewItem = std::make_shared<WTupleItem>();
@@ -354,6 +361,7 @@ std::shared_ptr<WTupleCounter> WSystemMap::GetOrCreateUDPTupleCounter(
 	auto TupleCounter = std::make_shared<WTupleCounter>(NewItem, SockCounter);
 	SockCounter->UDPPerConnectionCounters[Endpoint] = TupleCounter;
 	WNetworkEvents::GetInstance().OnUDPTupleCreated(TupleCounter);
+	// don't add to map updates here, we do that later
 	return TupleCounter;
 }
 
@@ -687,6 +695,11 @@ std::shared_ptr<WSocketCounter> WSystemMap::MapSocketFromTrafficEvent(WSocketEve
 
 void WSystemMap::PushTrafficForSocket(WSocketEvent const& Event, std::shared_ptr<WSocketCounter> const& Socket) const
 {
+	if (Socket->IsMarkedForRemoval())
+	{
+		spdlog::debug("Received traffic for socket {} marked for removal.", Socket->TrafficItem->ToString());
+	}
+
 	auto const Bytes = Event.Data.TrafficEventData.Bytes;
 	if (Event.Data.TrafficEventData.Direction == PD_Incoming)
 	{
@@ -722,6 +735,21 @@ void WSystemMap::PushTrafficForSocket(WSocketEvent const& Event, std::shared_ptr
 	}
 
 	Socket->TrafficItem->ConnectionState = ESocketConnectionState::Connected;
+}
+
+void WSystemMap::MarkSocketForRemoval(std::shared_ptr<WSocketCounter> const& Socket)
+{
+	if (Socket->IsMarkedForRemoval())
+	{
+		return;
+	}
+
+	Socket->MarkForRemoval();
+	Socket->TrafficItem->ConnectionState = ESocketConnectionState::Closed;
+	MapUpdate.MarkItemForRemoval(Socket->TrafficItem->ItemId);
+	Socket->ParentProcess->PushIncomingTraffic(0); // Force state update
+	Socket->ParentProcess->ParentApp->PushOutgoingTraffic(0);
+	TrafficCounter.PushIncomingTraffic(0);
 }
 
 std::shared_ptr<WSocketCounter> WSystemMap::FindOrMapSocket(
@@ -804,6 +832,7 @@ void WSystemMap::MergeSyntheticSocket(std::shared_ptr<WSocketCounter> const& Soc
 std::shared_ptr<WProcessCounter> WSystemMap::FindOrMapProcess(
 	WProcessId const PID, std::shared_ptr<WAppCounter> const& ParentApp)
 {
+	assert(PID > 0);
 	ZoneScopedN("WSystemMap::FindOrMapProcess");
 	if (auto const It = Processes.find(PID); It != Processes.end())
 	{
@@ -867,7 +896,7 @@ std::shared_ptr<WAppCounter> WSystemMap::FindOrMapApplication(
 		for (auto It = Applications.begin(); It != Applications.end(); ++It)
 		{
 			auto const ExistingKey = It->first;
-			auto const ExistingApp = It->second;
+			auto        ExistingApp = It->second;
 			auto const& ExistingPath = ExistingApp->TrafficItem->ApplicationPath;
 			if (ExistingKey == Key)
 			{
@@ -1030,7 +1059,7 @@ void WSystemMap::PushIncomingTraffic(WSocketEvent const& Event)
 void WSystemMap::PushOutgoingTraffic(WSocketEvent const& Event)
 {
 	auto const       Bytes = Event.Data.TrafficEventData.Bytes;
-	auto             SocketCookie = Event.Cookie;
+	auto const       SocketCookie = Event.Cookie;
 	std::unique_lock Lock(DataMutex);
 	TrafficCounter.PushOutgoingTraffic(Bytes);
 
@@ -1268,7 +1297,7 @@ void WSystemMap::Cleanup()
 			spdlog::debug("Removing unknown socket with id {}, tuple: {}, app: {}", SocketIt->first,
 				Socket->TrafficItem->SocketTuple.ToString(),
 				Socket->ParentProcess->ParentApp->TrafficItem->ApplicationName);
-			Socket->MarkForRemoval();
+			MarkSocketForRemoval(Socket);
 		}
 		else
 		{

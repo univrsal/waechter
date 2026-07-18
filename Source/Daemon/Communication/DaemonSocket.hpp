@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <functional>
 #include <string_view>
+#include <shared_mutex>
 
 #include "DaemonClient.hpp"
 #include "Communication/IServerSocket.hpp"
@@ -21,7 +22,7 @@ class WDaemonSocket
 	std::unique_ptr<IServerSocket> Socket;
 	std::string       Hostname{};
 
-	std::mutex                                  ClientsMutex{};
+	std::shared_mutex                           ClientsMutex{};
 	std::atomic<bool>                           bHasClients{};
 	std::vector<std::shared_ptr<WDaemonClient>> Clients;
 
@@ -65,9 +66,9 @@ public:
 	void BroadcastMessage(EMessageType Type, T const& Message, WDaemonClient const* Except = nullptr)
 	{
 		std::string const& Msg = WDaemonClient::MakeMessage(Type, Message);
-		ClientsMutex.lock();
+		ClientsMutex.lock_shared();
 		auto const ClientsCopy = Clients;
-		ClientsMutex.unlock();
+		ClientsMutex.unlock_shared();
 
 		for (auto const& Client : ClientsCopy)
 		{

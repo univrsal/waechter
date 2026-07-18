@@ -67,6 +67,19 @@ struct WSocketItem : ITrafficItem
 
 	[[nodiscard]] ETrafficItemType GetType() const override { return TI_Socket; }
 
+	bool RemoveChild(WTrafficItemId Id) override
+	{
+		for (auto It = UDPPerConnectionTraffic.begin(); It != UDPPerConnectionTraffic.end(); ++It)
+		{
+			if ((*It)->ItemId == Id)
+			{
+				UDPPerConnectionTraffic.erase(It);
+				return true;
+			}
+		}
+		return false;
+	}
+
 	bool operator==(WSocketItem const& Other) const
 	{
 		return SocketTuple == Other.SocketTuple && SocketType == Other.SocketType

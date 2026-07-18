@@ -34,14 +34,14 @@
 
 // This isn't exactly efficient, we should probably have something
 // similar to ITrafficItem->Parent->RemoveChild or similar.
-void WTrafficTree::RemoveTrafficItem(WTrafficItemId const TrafficItemId)
+bool WTrafficTree::RemoveTrafficItem(WTrafficItemId const TrafficItemId)
 {
 	MarkedForRemovalItems.erase(TrafficItemId);
 	WClientRuleManager::GetInstance().RemoveRules(TrafficItemId);
 
 	if (Root->RemoveChild(TrafficItemId))
 	{
-		return;
+		return true;
 	}
 
 	for (auto const& App : Root->Applications | std::views::values)
@@ -54,17 +54,25 @@ void WTrafficTree::RemoveTrafficItem(WTrafficItemId const TrafficItemId)
 
 		if (App->RemoveChild(TrafficItemId))
 		{
-			return;
+			return true;
 		}
 
 		for (auto const& Proc : App->Processes | std::views::values)
 		{
 			if (Proc->RemoveChild(TrafficItemId))
 			{
-				return;
+				return true;
+			}
+			for (auto const& Socket : Proc->Sockets | std::views::values)
+			{
+				if (Socket->RemoveChild(TrafficItemId))
+				{
+					return true;
+				}
 			}
 		}
 	}
+	return false;
 }
 
 inline bool DrawIcon(bool& bNodeOpen, std::string const& Name, std::shared_ptr<ITrafficItem> const& Item,
@@ -364,35 +372,6 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 		return;
 	}
 
-	for (auto const& MarkedId : Updates.MarkedForRemovalItems)
-	{
-		MarkedForRemovalItems.insert(MarkedId);
-
-		auto It = TrafficItems.find(MarkedId);
-		if (It != TrafficItems.end())
-		{
-			auto& Item = It->second;
-			Item->DownloadSpeed = 0;
-			Item->UploadSpeed = 0;
-
-			if (Item->GetType() == TI_Socket)
-			{
-				if (auto const SocketItem = std::dynamic_pointer_cast<WSocketItem>(Item))
-				{
-					SocketItem->ConnectionState = ESocketConnectionState::Closed;
-				}
-			}
-		}
-	}
-
-	for (auto const& RemovedId : Updates.RemovedItems)
-	{
-		if (TrafficItems.contains(RemovedId))
-		{
-			TrafficItems.erase(RemovedId);
-		}
-		RemoveTrafficItem(RemovedId);
-	}
 
 	for (auto const& Addition : Updates.AddedSockets)
 	{
@@ -493,9 +472,48 @@ void WTrafficTree::UpdateFromBuffer(WBuffer const& Buffer)
 
 			if (Update.ItemId == 0)
 			{
-				WSdlWindow::GetInstance().GetMainWindow()->GetNetworkGraphWindow().AddData(
-					It->second->UploadSpeed, It->second->DownloadSpeed);
+				WMainWindow::Get().GetNetworkGraphWindow().AddData(It->second->UploadSpeed, It->second->DownloadSpeed);
 			}
+		}
+	}
+
+	for (auto const& MarkedId : Updates.MarkedForRemovalItems)
+	{
+		MarkedForRemovalItems.insert(MarkedId);
+
+		auto It = TrafficItems.find(MarkedId);
+		if (It != TrafficItems.end())
+		{
+			auto& Item = It->second;
+			Item->DownloadSpeed = 0;
+			Item->UploadSpeed = 0;
+
+			if (Item->GetType() == TI_Socket)
+			{
+				if (auto const SocketItem = std::dynamic_pointer_cast<WSocketItem>(Item))
+				{
+					SocketItem->ConnectionState = ESocketConnectionState::Closed;
+				}
+			}
+		}
+		else
+		{
+			spdlog::warn("Marked for removal item {} not found in traffic tree", MarkedId);
+		}
+	}
+
+	for (auto const& RemovedId : Updates.RemovedItems)
+	{
+		bool bRemovedAnything = false;
+		if (TrafficItems.contains(RemovedId))
+		{
+			TrafficItems.erase(RemovedId);
+			bRemovedAnything = true;
+		}
+		bRemovedAnything |= RemoveTrafficItem(RemovedId);
+		if (!bRemovedAnything)
+		{
+			spdlog::warn("Failed to remove item {} from traffic tree", RemovedId);
 		}
 	}
 	bRequireTreeSorting = true;
