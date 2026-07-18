@@ -86,6 +86,9 @@ public:
 	void AddTupleAddition(WEndpoint const& Endpoint, std::shared_ptr<WTupleCounter> const& Tuple)
 	{
 		std::scoped_lock Lock(Mutex);
+		ClientItems.insert(Tuple->ParentSocket->ParentProcess->TrafficItem->ItemId);
+		ClientItems.insert(Tuple->ParentSocket->ParentProcess->ParentApp->TrafficItem->ItemId);
+		ClientItems.insert(Tuple->ParentSocket->TrafficItem->ItemId);
 		ClientItems.insert(Tuple->TrafficItem->ItemId);
 		if (!TrackUpdates())
 		{
