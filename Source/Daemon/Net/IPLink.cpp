@@ -104,6 +104,11 @@ void WIPLink::OnDataReceived(WBuffer const& Buf)
 	{
 		auto const& Endpoint = std::get<0>(Lookup);
 		auto const& Pid = std::get<1>(Lookup);
+		if (Pid < 0)
+		{
+			spdlog::warn("IPLink lookup for endpoint {} returned invalid PID {}", Endpoint.ToString(), Pid);
+			continue;
+		}
 		WSystemMap::GetInstance().ReparentOrphanedSocket(Endpoint, Pid);
 
 		// Also update port_to_pid in the eBPF map so future accepts on this port
