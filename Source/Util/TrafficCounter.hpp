@@ -4,6 +4,8 @@
  */
 
 #pragma once
+#include "spdlog/spdlog.h"
+
 #include "Types.hpp"
 #include "Time.hpp"
 
@@ -51,6 +53,13 @@ public:
 	void PushOutgoingTraffic(WBytes Bytes)
 	{
 		RecentUpload += Bytes;
+#if WDEBUG
+		if (State == CS_PendingRemoval)
+		{
+			spdlog::warn(
+				"Pushing outgoing traffic for a counter marked for removal (ItemId: {})", TrafficItem->ToString());
+		}
+#endif
 		State = CS_Active;
 		InactiveCounter = 0;
 	}
@@ -58,6 +67,13 @@ public:
 	void PushIncomingTraffic(WBytes Bytes)
 	{
 		RecentDownload += Bytes;
+#if WDEBUG
+		if (State == CS_PendingRemoval)
+		{
+			spdlog::warn("Pushing incoming traffic for a counter marked for removal (ID: {}, Item: {}, Type: {})",
+				TrafficItem->ItemId, TrafficItem->ToString(), static_cast<int>(TrafficItem->GetType()));
+		}
+#endif
 		State = CS_Active;
 		InactiveCounter = 0;
 	}
