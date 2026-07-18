@@ -7,6 +7,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
+#include <csignal>
 
 #include "Singleton.hpp"
 
@@ -20,4 +21,13 @@ public:
 	std::atomic<bool>       bStop{ false };
 	std::condition_variable SignalCondition;
 	std::mutex              SignalMutex;
+
+	static void Breakpoint()
+	{
+#if _WIN32
+		__debugbreak();
+#else
+		raise(SIGTRAP);
+#endif
+	}
 };
