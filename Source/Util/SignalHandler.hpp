@@ -24,10 +24,12 @@ public:
 
 	static void Breakpoint()
 	{
-#if _WIN32
+#if WDEBUG
+	#if _WIN32
 		__debugbreak();
 #else
 		raise(SIGTRAP);
+#endif
 #endif
 	}
 };
