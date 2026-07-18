@@ -52,6 +52,12 @@ class WMapUpdate : public IMemoryTrackable
 public:
 	WMapUpdate() = default;
 
+	void ClearMap()
+	{
+		std::scoped_lock Lock(Mutex);
+		Clear();
+	}
+
 	void MarkItemForRemoval(WTrafficItemId ItemId)
 	{
 		std::scoped_lock Lock(Mutex);

@@ -124,6 +124,12 @@ static void SendInitialDataToClient(std::shared_ptr<WDaemonClient> const& Client
 
 void WDaemonSocket::OnNewConnection(std::shared_ptr<WDaemonClient> const& NewClient)
 {
+	if (!bHasClients)
+	{
+		// Make sure we don't send any stale updates that might be
+		// left over from the last time a client was connected
+		WSystemMap::GetInstance().GetMapUpdate().ClearMap();
+	}
 	SendInitialDataToClient(NewClient);
 	ClientsMutex.lock();
 	Clients.push_back(NewClient);
