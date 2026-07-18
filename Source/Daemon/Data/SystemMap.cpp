@@ -697,8 +697,7 @@ void WSystemMap::PushTrafficForSocket(WSocketEvent const& Event, std::shared_ptr
 {
 	if (Socket->IsMarkedForRemoval())
 	{
-		spdlog::warn("Received traffic for socket {} marked for removal.", Socket->TrafficItem->ToString());
-		return;
+		spdlog::debug("Received traffic for socket {} marked for removal.", Socket->TrafficItem->ToString());
 	}
 
 	auto const Bytes = Event.Data.TrafficEventData.Bytes;
