@@ -334,6 +334,18 @@ void WSystemMap::DoPacketParsing(WSocketEvent const& Event, std::shared_ptr<WSoc
 	}
 }
 
+std::unordered_map<WEndpoint, std::shared_ptr<WTupleCounter>>::iterator WSystemMap::RemoveUDPTuple(
+	std::shared_ptr<WSocketCounter> const&                                  SockCounter,
+	std::unordered_map<WEndpoint, std::shared_ptr<WTupleCounter>>::iterator TupleIt)
+{
+	auto const& TupleCounter = TupleIt->second;
+	WNetworkEvents::GetInstance().OnUDPTupleRemoved(TupleCounter);
+	TrafficItems.erase(TupleCounter->TrafficItem->ItemId);
+	MapUpdate.AddItemRemoval(TupleCounter->TrafficItem->ItemId);
+	SockCounter->TrafficItem->EraseTuple(TupleIt->first);
+	return SockCounter->UDPPerConnectionCounters.erase(TupleIt);
+}
+
 std::shared_ptr<WTupleCounter> WSystemMap::GetOrCreateUDPTupleCounter(
 	std::shared_ptr<WSocketCounter> const& SockCounter, WEndpoint const& Endpoint)
 {
@@ -350,6 +362,13 @@ std::shared_ptr<WTupleCounter> WSystemMap::GetOrCreateUDPTupleCounter(
 		{
 			return It->second;
 		}
+		// Fully unwind the stale marked-for-removal tuple before allocating its
+		// replacement; otherwise the old WTupleItem is pinned indefinitely by
+		// TrafficItems, UDPPerConnectionTraffic, and WConnectionHistory::ActiveConnections
+		// because DueForRemoval() will never fire on the counter we're about to overwrite.
+		spdlog::debug("Cleaning up stale UDP tuple on replacement for {} (item {})", Endpoint.ToString(),
+			It->second->TrafficItem->ItemId);
+		RemoveUDPTuple(SockCounter, It);
 	}
 
 	auto NewItem = std::make_shared<WTupleItem>();
@@ -481,7 +500,8 @@ void WSystemMap::ReparentOrphanedSocket(WEndpoint const& Endpoint, WProcessId Ne
 			return;
 		}
 
-		auto const App = It->second->ParentProcess->ParentApp;
+		auto const& OrphanSocket = It->second.Socket;
+		auto const  App = OrphanSocket->ParentProcess->ParentApp;
 
 		// Re-register the application if it was cleaned up while the socket was orphaned
 		auto const& AppKey = App->TrafficItem->ApplicationPath;
@@ -495,20 +515,21 @@ void WSystemMap::ReparentOrphanedSocket(WEndpoint const& Endpoint, WProcessId Ne
 
 		auto const bExistingProcess = Processes.contains(NewParentProcess);
 		auto const NewProcess = FindOrMapProcess(NewParentProcess, App);
-		It->second->ParentProcess = NewProcess;
-		NewProcess->TrafficItem->Sockets[It->second->TrafficItem->ItemId] = It->second->TrafficItem;
-		Sockets[It->second->TrafficItem->Cookie] = It->second;
-		spdlog::debug("Reparented {} (type {}) to {}", It->second->TrafficItem->SocketTuple.ToString(),
-			It->second->TrafficItem->SocketType, App->TrafficItem->ApplicationName);
+		OrphanSocket->ParentProcess = NewProcess;
+		NewProcess->TrafficItem->Sockets[OrphanSocket->TrafficItem->ItemId] = OrphanSocket->TrafficItem;
+		Sockets[OrphanSocket->TrafficItem->Cookie] = OrphanSocket;
+		spdlog::debug("Reparented {} (type {}) to {}", OrphanSocket->TrafficItem->SocketTuple.ToString(),
+			OrphanSocket->TrafficItem->SocketType, App->TrafficItem->ApplicationName);
 
+		auto const ReparentedSocket = OrphanSocket;
 		OrphanedSockets.erase(It);
 		if (!bExistingProcess)
 		{
 			spdlog::info("New process {} created as parent for orphaned socket {}, id: {}", NewParentProcess,
-				It->second->TrafficItem->SocketTuple.ToString(), It->second->TrafficItem->ItemId);
+				ReparentedSocket->TrafficItem->SocketTuple.ToString(), ReparentedSocket->TrafficItem->ItemId);
 		}
 		// Re-add it to the new process
-		MapUpdate.AddSocketAddition(It->second);
+		MapUpdate.AddSocketAddition(ReparentedSocket);
 	}
 }
 
@@ -529,7 +550,7 @@ void WSystemMap::ReparentAcceptedSocket(std::shared_ptr<WSocketCounter> const& S
 	// fork() reparenting already uses.
 	spdlog::debug("ReparentAcceptedSocket: queuing IPLink lookup for accepted socket on {}", LocalEndpoint.ToString());
 
-	OrphanedSockets[LocalEndpoint] = Socket;
+	OrphanedSockets[LocalEndpoint] = { Socket, WTime::GetEpochMs() };
 
 	WLookupEndpointsMsg LookupMsg{};
 	LookupMsg.Endpoints.emplace_back(LocalEndpoint);
@@ -746,6 +767,11 @@ void WSystemMap::MarkSocketForRemoval(std::shared_ptr<WSocketCounter> const& Soc
 
 	Socket->MarkForRemoval();
 	Socket->TrafficItem->ConnectionState = ESocketConnectionState::Closed;
+	if (Socket->TrafficItem->SocketTuple.IsZero())
+	{
+		spdlog::debug("Marking {} socket {} for removal, but it has no known endpoints", Socket->TrafficItem->ItemId,
+			Socket->TrafficItem->ToString());
+	}
 	MapUpdate.MarkItemForRemoval(Socket->TrafficItem->ItemId);
 	Socket->ParentProcess->PushIncomingTraffic(0); // Force state update
 	Socket->ParentProcess->ParentApp->PushOutgoingTraffic(0);
@@ -1158,6 +1184,30 @@ void WSystemMap::Cleanup()
 	auto OldProcessCount = Processes.size();
 	auto OldTrafficItemCount = TrafficItems.size();
 
+	// Sweep orphaned sockets whose IPLink reparent lookup never came back.
+	// Two producers populate OrphanedSockets:
+	//  - Process-exit forked-socket path: socket is already erased from Sockets/TrafficItems/ClientItems,
+	//    OrphanedSockets is the only strong ref keeping WProcessCounter/WAppCounter alive. Just drop it.
+	//  - ReparentAcceptedSocket: socket is still live in Sockets and its regular cleanup path applies.
+	//    We just abandon the reparent lookup and leave the socket where it is.
+	constexpr WMsec kOrphanTimeoutMs = 30 * 1000;
+	auto const      NowMs = WTime::GetEpochMs();
+	for (auto OrphanIt = OrphanedSockets.begin(); OrphanIt != OrphanedSockets.end();)
+	{
+		if (NowMs - OrphanIt->second.InsertedAt > kOrphanTimeoutMs)
+		{
+			auto const& OrphanSocket = OrphanIt->second.Socket;
+			spdlog::info("Sweeping orphaned socket after {}s: {}", (NowMs - OrphanIt->second.InsertedAt) / 1000,
+				OrphanSocket->TrafficItem->SocketTuple.ToString());
+			OrphanIt = OrphanedSockets.erase(OrphanIt);
+			bRemovedAny = true;
+		}
+		else
+		{
+			++OrphanIt;
+		}
+	}
+
 	for (auto ProcessIt = Processes.begin(); ProcessIt != Processes.end();)
 	{
 		auto const PID = ProcessIt->first;
@@ -1201,7 +1251,8 @@ void WSystemMap::Cleanup()
 							Socket->SocketTuple.ToString());
 						// This process exited, but the socket was not closed via the close event sent from ebppf
 						// that indicates that a forked child process owns the socket now
-						OrphanedSockets[Socket->SocketTuple.LocalEndpoint] = SocketCounter->second;
+						OrphanedSockets[Socket->SocketTuple.LocalEndpoint] = { SocketCounter->second,
+							WTime::GetEpochMs() };
 						LookupMsg.Endpoints.emplace_back(Socket->SocketTuple.LocalEndpoint);
 					}
 					for (auto const& Tuple : SocketCounter->second->UDPPerConnectionCounters | std::views::values)
@@ -1288,6 +1339,14 @@ void WSystemMap::Cleanup()
 			}
 			Socket->UDPPerConnectionCounters.clear();
 			Socket->TrafficItem->UDPPerConnectionTraffic.clear();
+			std::string ParentApp = "n/a";
+			if (Socket->ParentProcess && Socket->ParentProcess->ParentApp)
+			{
+				ParentApp = Socket->ParentProcess->ParentApp->TrafficItem->ApplicationName;
+			}
+			assert(Socket->TrafficItem);
+			spdlog::debug("{} Removed socket ({}) from {} app.", Socket->TrafficItem->ItemId,
+				Socket->TrafficItem->SocketTuple.ToString(), ParentApp);
 			SocketIt = Sockets.erase(SocketIt);
 		}
 		// Remove sockets in an unknown state
@@ -1307,15 +1366,10 @@ void WSystemMap::Cleanup()
 				auto const& TupleCounter = TupleIt->second;
 				if (TupleCounter->DueForRemoval())
 				{
-					spdlog::debug("Removed tuple {} -> {}", Socket->TrafficItem->SocketTuple.LocalEndpoint.ToString(),
-						TupleIt->first.ToString());
+					spdlog::info("{} Removed tuple {} -> {}", TupleCounter->TrafficItem->ItemId,
+						Socket->TrafficItem->SocketTuple.LocalEndpoint.ToString(), TupleIt->first.ToString());
 					bRemovedAny = true;
-					WNetworkEvents::GetInstance().OnUDPTupleRemoved(TupleCounter);
-					TrafficItems.erase(TupleCounter->TrafficItem->ItemId);
-					MapUpdate.AddItemRemoval(TupleCounter->TrafficItem->ItemId);
-					Socket->TrafficItem->EraseTuple(TupleIt->first);
-
-					TupleIt = Socket->UDPPerConnectionCounters.erase(TupleIt);
+					TupleIt = RemoveUDPTuple(Socket, TupleIt);
 				}
 				else
 				{
@@ -1332,8 +1386,8 @@ void WSystemMap::Cleanup()
 		if (AppIt->second->TrafficItem->Processes.empty())
 		{
 			bRemovedAny = true;
-			spdlog::debug("Removing application '{}' ({}).", AppIt->second->TrafficItem->ApplicationName, AppIt->first);
-			MapUpdate.AddItemRemoval(AppIt->second->TrafficItem->ItemId);
+			spdlog::debug("{} Removing application '{}' ({}).", AppIt->second->TrafficItem->ItemId,
+				AppIt->second->TrafficItem->ApplicationName, AppIt->first);
 			TrafficItems.erase(AppIt->second->TrafficItem->ItemId);
 			SystemItem->Applications.erase(AppIt->first);
 			AppIt = Applications.erase(AppIt);

@@ -122,6 +122,12 @@ WTrafficTreeUpdates const& WMapUpdate::GetUpdates()
 		Addition.SocketType = Socket->TrafficItem->SocketType;
 		Addition.SocketCookie = Socket->TrafficItem->Cookie;
 		Updates.AddedSockets.emplace_back(Addition);
+
+		if (Socket->TrafficItem->SocketTuple.IsZero())
+		{
+			spdlog::debug("Added socket {} with zero tuple to updates (App: {}, Process: {})",
+				Socket->TrafficItem->ItemId, PATI->ApplicationName, PPTI->ProcessId);
+		}
 	}
 
 	for (auto const& TupleCounter : AddedTuples)

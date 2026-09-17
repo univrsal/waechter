@@ -44,11 +44,17 @@ class WSystemMap : public TSingleton<WSystemMap>, public IMemoryTrackable
 
 	std::vector<std::unique_ptr<WFilterCounter>> FilterCounters{};
 
+	struct WOrphanedSocket
+	{
+		std::shared_ptr<WSocketCounter> Socket;
+		WMsec                           InsertedAt;
+	};
+
 	std::unordered_map<std::string, std::shared_ptr<WAppCounter>>      Applications{};
 	std::unordered_map<WProcessId, std::shared_ptr<WProcessCounter>>   Processes{};
 	std::unordered_map<WSocketCookie, std::shared_ptr<WSocketCounter>> Sockets{};
 	std::unordered_map<WTrafficItemId, std::shared_ptr<ITrafficItem>>  TrafficItems{};
-	std::unordered_map<WEndpoint, std::shared_ptr<WSocketCounter>>     OrphanedSockets{};
+	std::unordered_map<WEndpoint, WOrphanedSocket>                     OrphanedSockets{};
 
 	std::shared_ptr<WSocketCounter> FindOrMapSocket(
 		WSocketCookie SocketCookie, std::shared_ptr<WProcessCounter> const& ParentProcess);
@@ -67,6 +73,14 @@ class WSystemMap : public TSingleton<WSystemMap>, public IMemoryTrackable
 
 	std::shared_ptr<WTupleCounter> GetOrCreateUDPTupleCounter(
 		std::shared_ptr<WSocketCounter> const& SockCounter, WEndpoint const& Endpoint);
+
+	// Fully unwinds a UDP tuple across TrafficItems, MapUpdate, the parent
+	// SocketItem's tuple vector, and the socket's counter map, firing the
+	// OnUDPTupleRemoved signal so downstream consumers (WConnectionHistory)
+	// stay consistent. Returns the iterator advanced past the erased entry.
+	std::unordered_map<WEndpoint, std::shared_ptr<WTupleCounter>>::iterator RemoveUDPTuple(
+		std::shared_ptr<WSocketCounter> const&                                          SockCounter,
+		std::unordered_map<WEndpoint, std::shared_ptr<WTupleCounter>>::iterator TupleIt);
 
 	void RegisterDefaultFilters();
 
