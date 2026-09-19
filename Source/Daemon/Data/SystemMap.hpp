@@ -37,6 +37,7 @@ class WSystemMap : public TSingleton<WSystemMap>, public IMemoryTrackable
 	WSocketStateParser SocketStateParser{};
 	WMapUpdate         MapUpdate{};
 	WSec               LastCleanupMessageTime{};
+	WSec               LastMemoryDiagnosticTime{};
 
 	std::atomic<WTrafficItemId>  NextItemId{ 1 }; // 0 is the root item
 	std::shared_ptr<WSystemItem> SystemItem = std::make_shared<WSystemItem>();

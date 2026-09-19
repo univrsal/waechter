@@ -167,6 +167,7 @@ void WSocketStateParser::ParseData() const
 	KnownUsedPorts.clear();
 	KnownUsedEndpoints.clear();
 	KnownListeningSockets.clear();
+	KnownTcpConnections.clear();
 	ParseTcpFile("/proc/net/tcp", InodePidMap);
 	ParseTcpFile("/proc/net/tcp6", InodePidMap);
 	ParseUdpFile("/proc/net/udp", InodePidMap);
@@ -238,6 +239,21 @@ void WSocketStateParser::ParseTcpFile(
 				Info.PID = Pid;
 				Info.LocalEndpoint = LocalEndpoint;
 				KnownListeningSockets.emplace_back(Info);
+			}
+			else
+			{
+				// Connected TCP entry — remember the full (local, remote) tuple so we
+				// can distinguish live accepted sockets from stale ones whose only
+				// signal would otherwise be the listen port still being in use.
+				WIPAddress RemoteAddr;
+				uint16_t   RemotePort = 0;
+				if (ParseAddressPort(RemAddr, RemoteAddr, RemotePort, bIsIPv6))
+				{
+					WEndpoint RemoteEndpoint;
+					RemoteEndpoint.Address = RemoteAddr;
+					RemoteEndpoint.Port = RemotePort;
+					KnownTcpConnections.emplace(LocalEndpoint, RemoteEndpoint);
+				}
 			}
 		}
 	}

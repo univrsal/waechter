@@ -1312,6 +1312,23 @@ void WSystemMap::Cleanup()
 			return true;
 		}
 
+		// For a TCP socket that has both endpoints set, verify the full (local, remote)
+		// tuple still exists in /proc/net/tcp[6]. The port-only check above cannot catch
+		// server-accepted sockets whose local port stays occupied by the server's listen
+		// socket, so a missed close event for such an accepted connection would otherwise
+		// pin the entry forever.
+		if (Socket->TrafficItem->SocketTuple.Protocol == EProtocol::TCP
+			&& !Socket->TrafficItem->SocketTuple.LocalEndpoint.Address.IsZero()
+			&& !Socket->TrafficItem->SocketTuple.RemoteEndpoint.Address.IsZero()
+			&& Socket->TrafficItem->SocketTuple.RemoteEndpoint.Port != 0
+			&& !SocketStateParser.IsUsedTcpTuple(
+				Socket->TrafficItem->SocketTuple.LocalEndpoint, Socket->TrafficItem->SocketTuple.RemoteEndpoint))
+		{
+			spdlog::debug("Removing TCP socket {} because tuple {} is not in /proc/net/tcp",
+				Socket->TrafficItem->ItemId, Socket->TrafficItem->SocketTuple.ToString());
+			return true;
+		}
+
 		return false;
 	};
 
@@ -1413,5 +1430,37 @@ void WSystemMap::Cleanup()
 		spdlog::debug("Cleanup removed {} sockets({} -> {}), {} processes ({} -> {}), and {} traffic items ({} -> {}).",
 			DiffSocketCount, OldSocketCount, Sockets.size(), DiffProcessCount, OldProcessCount, Processes.size(),
 			DiffTrafficItemCount, OldTrafficItemCount, TrafficItems.size());
+	}
+
+	// Emit a periodic info-level snapshot so long-running memory growth is visible without
+	// enabling debug logging. Kept at 5-minute cadence to stay well below one log line per
+	// cleanup pass and to make growth over hours obvious in the log.
+	constexpr WSec kDiagnosticInterval = 300;
+	if (WTime::GetEpochSeconds() - LastMemoryDiagnosticTime >= kDiagnosticInterval)
+	{
+		LastMemoryDiagnosticTime = WTime::GetEpochSeconds();
+
+		std::vector<std::pair<std::shared_ptr<WProcessCounter>, size_t>> ProcessSocketCounts;
+		ProcessSocketCounts.reserve(Processes.size());
+		for (auto const& Process : Processes | std::views::values)
+		{
+			ProcessSocketCounts.emplace_back(Process, Process->TrafficItem->Sockets.size());
+		}
+		std::ranges::sort(ProcessSocketCounts,
+			[](auto const& A, auto const& B) { return A.second > B.second; });
+
+		spdlog::info("[mem-diag] Sockets={} TrafficItems={} Processes={} Applications={} Orphaned={}",
+			Sockets.size(), TrafficItems.size(), Processes.size(), Applications.size(), OrphanedSockets.size());
+
+		size_t const TopN = std::min<size_t>(5, ProcessSocketCounts.size());
+		for (size_t i = 0; i < TopN; ++i)
+		{
+			auto const& [Process, Count] = ProcessSocketCounts[i];
+			auto const& App = Process->ParentApp;
+			spdlog::info("[mem-diag] top process pid={} app='{}' sockets={}",
+				Process->TrafficItem->ProcessId,
+				App ? App->TrafficItem->ApplicationName : std::string{ "?" },
+				Count);
+		}
 	}
 }
