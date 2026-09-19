@@ -58,12 +58,12 @@ struct WTupleCounter : TTrafficCounter<WTupleItem>
 	void Refresh() override
 	{
 		TTrafficCounter::Refresh();
-		// If a UDP socket has not sent/received data on a connection for five seconds,
+		// If a UDP socket has not sent/received data on a connection for sixty seconds,
 		// we'll treat it as dead. In the worst case it'll be re-added once traffic
 		// is detected for it again
-		if (State != CS_PendingRemoval && InactiveCounter >= 5)
+		if (State != CS_PendingRemoval && InactiveCounter >= 60)
 		{
-			spdlog::debug("Marking udp counter for removal");
+			spdlog::debug("Marking stale udp counter {} for removal", TrafficItem->ItemId);
 			MarkForRemoval();
 		}
 	}
