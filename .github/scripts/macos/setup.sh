@@ -6,13 +6,21 @@ echo "Setting up macOS environment..."
 
 sudo xcode-select --switch /Applications/Xcode_26.1.app/Contents/Developer
 
-local -a unwanted_formulas=()
+local brew_prefix=$(brew --prefix)
+# The runner image ships the deprecated openssl@1.1, whose bin/openssl symlink
+# makes linking openssl@3 (a dependency of libwebsockets) fail
+local -a unwanted_formulas=(openssl@1.1)
 local -a remove_formulas=()
 for formula (${unwanted_formulas}) {
-  if [[ -d ${HOMEBREW_PREFIX}/Cellar/${formula} ]] remove_formulas+=(${formula})
+  if [[ -d ${brew_prefix}/Cellar/${formula} ]] remove_formulas+=(${formula})
 }
 
 if (( #remove_formulas )) brew uninstall --ignore-dependencies ${remove_formulas}
+
+# Brew may no longer know about the keg (disabled formula), so also drop any symlinks left behind
+for link (${brew_prefix}/bin/*(N@)) {
+  if [[ $(readlink ${link}) == *openssl@1.1* ]] rm -f ${link}
+}
 
 print "cpuName=${TARGET_ARCH}" >> $GITHUB_OUTPUT
 
@@ -34,7 +42,6 @@ if [[ "${TARGET_ARCH}" == "x86_64" ]]; then
   arch -x86_64 /usr/local/bin/brew install cmake libwebsockets sdl2
 else
   echo "Installing native dependencies..."
-  brew unlink openssl@1.1 || true
   brew install cmake libwebsockets sdl2
 fi
 

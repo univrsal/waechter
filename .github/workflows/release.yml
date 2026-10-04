@@ -241,7 +241,10 @@ jobs:
       - name: Install dependencies via Homebrew
         run: |
           brew update
-          brew unlink openssl@1.1 || true
+          # The runner image ships the deprecated openssl@1.1, whose bin/openssl symlink
+          # makes linking openssl@3 (a dependency of libwebsockets) fail
+          brew uninstall --ignore-dependencies openssl@1.1 || true
+          find "$(brew --prefix)/bin" -type l -lname '*openssl@1.1*' -delete
           brew install cmake ninja pkg-config curl zlib libwebsockets ccache
 
       - name: Setup ccache
