@@ -51,6 +51,12 @@ public:
 		return KnownUsedPorts.contains(Port);
 	}
 
+	bool IsUsedTcpTuple(WEndpoint const& Local, WEndpoint const& Remote) const
+	{
+		std::scoped_lock Lock(Mutex);
+		return KnownTcpConnections.contains(std::make_pair(Local, Remote));
+	}
+
 	// Look up the PID that owns a given endpoint, returns -1 if not found
 	WProcessId GetEndpointPID(WEndpoint const& Endpoint) const
 	{
@@ -99,6 +105,19 @@ private:
 
 	// Map all known used endpoints (address + port) to their owning PID
 	mutable std::unordered_map<WEndpoint, WProcessId> KnownUsedEndpoints;
+
+	// Set of all connected TCP tuples (local, remote) from /proc/net/tcp[6].
+	// Excludes LISTEN sockets since those have no remote endpoint.
+	struct WTcpTupleHash
+	{
+		size_t operator()(std::pair<WEndpoint, WEndpoint> const& P) const noexcept
+		{
+			size_t const H1 = WEndpointHash{}(P.first);
+			size_t const H2 = WEndpointHash{}(P.second);
+			return H1 ^ (H2 + 0x9e3779b97f4a7c15ULL + (H1 << 6) + (H1 >> 2));
+		}
+	};
+	mutable std::unordered_set<std::pair<WEndpoint, WEndpoint>, WTcpTupleHash> KnownTcpConnections;
 
 	// Store known listening ports for heuristics
 	mutable std::unordered_map<uint16_t, WProcessId> KnownListeningPorts;

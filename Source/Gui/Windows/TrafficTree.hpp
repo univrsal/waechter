@@ -52,7 +52,7 @@ class WTrafficTree
 	char SearchBuffer[256] = "";
 	bool bRequireTreeSorting{};
 
-	void RemoveTrafficItem(WTrafficItemId TrafficItemId);
+	bool RemoveTrafficItem(WTrafficItemId TrafficItemId);
 
 	bool RenderItem(WRenderItemArgs const& Args);
 
@@ -108,4 +108,6 @@ public:
 		SelectedItem = {};
 		Root = std::make_shared<WSystemItem>();
 	}
+
+	void DumpTree();
 };

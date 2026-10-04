@@ -89,7 +89,9 @@ void WClient::OnDataReceived(WBuffer& Buf)
 				spdlog::error("Failed to deserialize daemon log message");
 				break;
 			}
+#if !WDEBUG
 			spdlog::log(Msg.Level, "[daemon] {}", Msg.Message);
+#endif
 		}
 		break;
 		default:

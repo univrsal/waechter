@@ -7,8 +7,10 @@
 #include <vector>
 #include <memory>
 #include <mutex>
+#include <unordered_set>
 
 #include "MemoryStats.hpp"
+#include "SignalHandler.hpp"
 #include "Data/TrafficTreeUpdate.hpp"
 #include "Data/Counters.hpp"
 
@@ -19,6 +21,12 @@ class WMapUpdate : public IMemoryTrackable
 	std::vector<WTrafficTreeSocketStateChange>                        SocketStateChanges{};
 	std::vector<std::shared_ptr<WSocketCounter>>                      AddedSockets{};
 	std::vector<std::pair<WEndpoint, std::shared_ptr<WTupleCounter>>> AddedTuples{};
+
+	// Sometimes we create items that are part of the system map but were never sent
+	// to the clients (i.e., an uninitialized socket).
+	// So to prevent the daemon from sending updates for items that clients don't know
+	// about, we keep a set of all items the clients have here.
+	std::unordered_set<WTrafficItemId> ClientItems{};
 
 	std::mutex Mutex;
 
@@ -44,13 +52,25 @@ class WMapUpdate : public IMemoryTrackable
 public:
 	WMapUpdate() = default;
 
+	void ClearMap()
+	{
+		std::scoped_lock Lock(Mutex);
+		Clear();
+	}
+
 	void MarkItemForRemoval(WTrafficItemId ItemId)
 	{
+		std::scoped_lock Lock(Mutex);
+		if (!ClientItems.contains(ItemId))
+		{
+			spdlog::warn("Attempted to mark item '{}' for removal, but it is not tracked by the client", ItemId);
+			WSignalHandler::Breakpoint();
+			return;
+		}
 		if (!TrackUpdates())
 		{
 			return;
 		}
-		std::scoped_lock Lock(Mutex);
 		MarkedForRemovalItems.emplace_back(ItemId);
 	}
 
@@ -65,16 +85,24 @@ public:
 
 	void AddTupleAddition(WEndpoint const& Endpoint, std::shared_ptr<WTupleCounter> const& Tuple)
 	{
+		std::scoped_lock Lock(Mutex);
+		ClientItems.insert(Tuple->ParentSocket->ParentProcess->TrafficItem->ItemId);
+		ClientItems.insert(Tuple->ParentSocket->ParentProcess->ParentApp->TrafficItem->ItemId);
+		ClientItems.insert(Tuple->ParentSocket->TrafficItem->ItemId);
+		ClientItems.insert(Tuple->TrafficItem->ItemId);
 		if (!TrackUpdates())
 		{
 			return;
 		}
-		std::scoped_lock Lock(Mutex);
 		AddedTuples.emplace_back(Endpoint, Tuple);
 	}
 
 	void AddSocketAddition(std::shared_ptr<WSocketCounter> const& Socket)
 	{
+		std::scoped_lock Lock(Mutex);
+		ClientItems.insert(Socket->ParentProcess->TrafficItem->ItemId);
+		ClientItems.insert(Socket->ParentProcess->ParentApp->TrafficItem->ItemId);
+		ClientItems.insert(Socket->TrafficItem->ItemId);
 		if (!TrackUpdates())
 		{
 			return;
@@ -84,11 +112,18 @@ public:
 
 	void AddItemRemoval(WTrafficItemId ItemId)
 	{
+		std::scoped_lock Lock(Mutex);
+		if (!ClientItems.contains(ItemId))
+		{
+			spdlog::warn("Attempted to remove item '{}' for removal, but it is not tracked by the client", ItemId);
+			WSignalHandler::Breakpoint();
+			return;
+		}
+		ClientItems.erase(ItemId);
 		if (!TrackUpdates())
 		{
 			return;
 		}
-		std::scoped_lock Lock(Mutex);
 		RemovedItems.emplace_back(ItemId);
 	}
 
