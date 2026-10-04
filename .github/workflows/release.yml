@@ -241,6 +241,7 @@ jobs:
       - name: Install dependencies via Homebrew
         run: |
           brew update
+          brew unlink openssl@1.1 || true
           brew install cmake ninja pkg-config curl zlib libwebsockets ccache
 
       - name: Setup ccache
@@ -404,4 +405,3 @@ jobs:
           # Update the release notes
           gh release edit "${{ steps.tag.outputs.TAG_NAME }}" \
             --notes-file release_notes.md
-
