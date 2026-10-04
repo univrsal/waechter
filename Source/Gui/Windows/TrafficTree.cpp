@@ -835,3 +835,25 @@ std::shared_ptr<WApplicationItem> WTrafficTree::FindClientItem()
 	}
 	return {};
 }
+
+void WTrafficTree::DumpTree()
+{
+	spdlog::info("Dumping traffic tree:");
+	spdlog::info("System");
+	spdlog::info("|");
+	for (auto const& Item : Root->Applications)
+	{
+		spdlog::info("+- Application: {} (ID: {})", Item.second->ApplicationName, Item.second->ItemId);
+		for (auto const& Proc : Item.second->Processes)
+		{
+			spdlog::info("|  +- Process: {} (ID: {})", Proc.second->ProcessId, Proc.second->ItemId);
+			spdlog::info("|  |  +- {} Sockets", Proc.second->Sockets.size());
+			std::size_t NumTuples = 0;
+			for (auto const& Socket : Proc.second->Sockets | std::views::values)
+			{
+				NumTuples += Socket->UDPPerConnectionTraffic.size();
+			}
+			spdlog::info("|  |  +- {} Tuples", NumTuples);
+		}
+	}
+}

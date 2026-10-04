@@ -108,4 +108,6 @@ public:
 		SelectedItem = {};
 		Root = std::make_shared<WSystemItem>();
 	}
+
+	void DumpTree();
 };

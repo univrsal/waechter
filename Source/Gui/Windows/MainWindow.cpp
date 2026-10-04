@@ -162,6 +162,10 @@ void WMainWindow::Draw()
 			{
 				MemoryUsageWindow.Show();
 			}
+			if (ImGui::MenuItem(TR("menu.dump_tree"), nullptr, false))
+			{
+				GetTrafficTree()->DumpTree();
+			}
 			ImGui::EndMenu();
 		}
 
