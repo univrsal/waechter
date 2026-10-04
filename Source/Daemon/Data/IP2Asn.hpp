@@ -14,10 +14,11 @@
 #include <queue>
 
 #include "Singleton.hpp"
+#include "MemoryStats.hpp"
 #include "Promise.hpp"
 #include "IP2Asn/IP2AsnDB.hpp"
 
-class WIP2Asn : public TSingleton<WIP2Asn>
+class WIP2Asn : public TSingleton<WIP2Asn>, public IMemoryTrackable
 {
 	bool bHaveDatabaseDownloaded{ false };
 	std::atomic<bool> bUpdateInProgress{ false };
@@ -28,8 +29,14 @@ class WIP2Asn : public TSingleton<WIP2Asn>
 	std::unique_ptr<WIP2AsnDB> Database{};
 
 	static bool ExtractDatabase(std::filesystem::path const& GzPath, std::filesystem::path const& OutPath);
-	std::mutex  CacheMutex;
+	// Every unique remote address ends up in here (including failed lookups),
+	// so on a public facing machine this has to be capped
+	static constexpr size_t MaxCacheEntries = 16384;
+	std::mutex              CacheMutex;
 	std::unordered_map<WIPAddress, std::optional<WIP2AsnLookupResult>> Cache{};
+
+	// Caller must hold CacheMutex
+	void AddToCache(WIPAddress const& Address, std::optional<WIP2AsnLookupResult> const& Result);
 
 	struct WQueuedRequest
 	{
@@ -65,4 +72,6 @@ public:
 	TPromise<std::optional<WIP2AsnLookupResult> const&> Lookup(WIPAddress const& IpAddress);
 
 	std::optional<WIP2AsnLookupResult> LookupSync(WIPAddress const& IpAddress);
+
+	WMemoryStat GetMemoryUsage() override;
 };

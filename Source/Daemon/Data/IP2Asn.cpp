@@ -6,6 +6,7 @@
 #include "IP2Asn.hpp"
 
 #include <cstdio>
+#include <ranges>
 #include <zlib.h>
 
 #include "spdlog/spdlog.h"
@@ -67,6 +68,20 @@ bool WIP2Asn::ExtractDatabase(std::filesystem::path const& GzPath, std::filesyst
 	return true;
 }
 
+void WIP2Asn::AddToCache(WIPAddress const& Address, std::optional<WIP2AsnLookupResult> const& Result)
+{
+	if (Cache.size() >= MaxCacheEntries)
+	{
+		auto const OldSize = Cache.size();
+		while (Cache.size() > MaxCacheEntries / 2)
+		{
+			Cache.erase(Cache.begin());
+		}
+		spdlog::info("IP2ASN cache exceeded {} entries, dropped {} entries", MaxCacheEntries, OldSize - Cache.size());
+	}
+	Cache[Address] = Result;
+}
+
 void WIP2Asn::LookupAddress(WQueuedRequest const& Request)
 {
 	if (!Database || bUpdateInProgress)
@@ -92,7 +107,7 @@ void WIP2Asn::LookupAddress(WQueuedRequest const& Request)
 	auto             Result = Database->Lookup(Request.AddressToResolve);
 	if (!Result)
 	{
-		Cache[Request.AddressToResolve] = std::nullopt;
+		AddToCache(Request.AddressToResolve, std::nullopt);
 		Request.Promise.Finish(std::nullopt);
 		if (Request.AddressToResolve.Family == EIPFamily::IPv4)
 		{
@@ -109,7 +124,7 @@ void WIP2Asn::LookupAddress(WQueuedRequest const& Request)
 	auto CountryLowerCase = Result->Country;
 	std::ranges::transform(CountryLowerCase, CountryLowerCase.begin(), [](unsigned char c) { return std::tolower(c); });
 	Result->Country = CountryLowerCase;
-	Cache[Request.AddressToResolve] = Result;
+	AddToCache(Request.AddressToResolve, Result);
 	Request.Promise.Finish(Result);
 }
 
@@ -279,7 +294,7 @@ std::optional<WIP2AsnLookupResult> WIP2Asn::LookupSync(WIPAddress const& IpAddre
 	auto             Result = Database->Lookup(IpAddress);
 	if (!Result)
 	{
-		Cache[IpAddress] = std::nullopt;
+		AddToCache(IpAddress, std::nullopt);
 		spdlog::warn("IP2ASN lookup failed for address: {}", IpAddress.ToString());
 		return std::nullopt;
 	}
@@ -288,6 +303,37 @@ std::optional<WIP2AsnLookupResult> WIP2Asn::LookupSync(WIPAddress const& IpAddre
 	auto CountryLowerCase = Result->Country;
 	std::ranges::transform(CountryLowerCase, CountryLowerCase.begin(), [](unsigned char c) { return std::tolower(c); });
 	Result->Country = CountryLowerCase;
-	Cache[IpAddress] = Result;
+	AddToCache(IpAddress, Result);
 	return Result;
+}
+
+WMemoryStat WIP2Asn::GetMemoryUsage()
+{
+	WMemoryStat Stats{};
+	Stats.Name = "WIP2Asn";
+
+	WMemoryStatEntry CacheEntry{ .Name = "Cache", .Usage = 0 };
+	{
+		std::scoped_lock Lock(CacheMutex);
+		CacheEntry.Usage = Cache.bucket_count() * sizeof(void*);
+		for (auto const& Result : Cache | std::views::values)
+		{
+			// Key, value and the node's next pointer + cached hash
+			CacheEntry.Usage += sizeof(WIPAddress) + sizeof(std::optional<WIP2AsnLookupResult>) + 2 * sizeof(void*);
+			if (Result)
+			{
+				CacheEntry.Usage += Result->Country.capacity() + Result->Organization.capacity();
+			}
+		}
+	}
+	Stats.ChildEntries.emplace_back(CacheEntry);
+
+	// The database gets swapped out while an update is running, just report nothing in that case
+	WMemoryStatEntry DatabaseEntry{ .Name = "Database index (mmap)", .Usage = 0 };
+	if (std::unique_lock Lock(DownloadMutex, std::try_to_lock); Lock.owns_lock() && Database)
+	{
+		DatabaseEntry.Usage = Database->MemoryUsage();
+	}
+	Stats.ChildEntries.emplace_back(DatabaseEntry);
+	return Stats;
 }
