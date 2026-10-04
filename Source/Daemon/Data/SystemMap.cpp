@@ -515,9 +515,16 @@ void WSystemMap::ReparentOrphanedSocket(WEndpoint const& Endpoint, WProcessId Ne
 
 		auto const bExistingProcess = Processes.contains(NewParentProcess);
 		auto const NewProcess = FindOrMapProcess(NewParentProcess, App);
+		auto const Cookie = OrphanSocket->TrafficItem->Cookie;
+		// For accepted sockets the old parent is still alive and still lists this socket,
+		// so it has to be detached from there, otherwise both processes keep a reference to it
+		if (auto const& OldProcess = OrphanSocket->ParentProcess; OldProcess && OldProcess != NewProcess)
+		{
+			OldProcess->TrafficItem->Sockets.erase(Cookie);
+		}
 		OrphanSocket->ParentProcess = NewProcess;
-		NewProcess->TrafficItem->Sockets[OrphanSocket->TrafficItem->ItemId] = OrphanSocket->TrafficItem;
-		Sockets[OrphanSocket->TrafficItem->Cookie] = OrphanSocket;
+		NewProcess->TrafficItem->Sockets[Cookie] = OrphanSocket->TrafficItem;
+		Sockets[Cookie] = OrphanSocket;
 		spdlog::debug("Reparented {} (type {}) to {}", OrphanSocket->TrafficItem->SocketTuple.ToString(),
 			OrphanSocket->TrafficItem->SocketType, App->TrafficItem->ApplicationName);
 
@@ -845,12 +852,15 @@ void WSystemMap::MergeSyntheticSocket(std::shared_ptr<WSocketCounter> const& Soc
 		{
 			Socket->TrafficItem->SocketTuple.Protocol = CorrectProto;
 		}
-		// Remove the now-redundant synthetic entry
+		// Remove the now-redundant synthetic entry. Copy the cookie and item id first, ExistingCookie and
+		// ExistingSocket refer to the map node that is destroyed by Sockets.erase()
+		auto const SyntheticCookie = ExistingCookie;
+		auto const SyntheticItemId = ExistingSocket->TrafficItem->ItemId;
 		WNetworkEvents::GetInstance().OnSocketRemoved(ExistingSocket);
-		ParentProcess->TrafficItem->Sockets.erase(ExistingCookie);
-		TrafficItems.erase(ExistingSocket->TrafficItem->ItemId);
-		Sockets.erase(ExistingCookie);
-		MapUpdate.MarkItemForRemoval(ExistingSocket->TrafficItem->ItemId);
+		ParentProcess->TrafficItem->Sockets.erase(SyntheticCookie);
+		TrafficItems.erase(SyntheticItemId);
+		Sockets.erase(SyntheticCookie);
+		MapUpdate.MarkItemForRemoval(SyntheticItemId);
 		break;
 	}
 }
