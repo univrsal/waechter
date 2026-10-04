@@ -268,13 +268,10 @@ struct WIPAddress
 
 	void FromIPv6Array(unsigned int const* IPv6Addr_NetworkByteOrder)
 	{
-		for (unsigned long i = 0; i < 4; i++)
-		{
-			Bytes[i * 4 + 0] = static_cast<uint8_t>(IPv6Addr_NetworkByteOrder[i] >> 24 & 0xFF);
-			Bytes[i * 4 + 1] = static_cast<uint8_t>(IPv6Addr_NetworkByteOrder[i] >> 16 & 0xFF);
-			Bytes[i * 4 + 2] = static_cast<uint8_t>(IPv6Addr_NetworkByteOrder[i] >> 8 & 0xFF);
-			Bytes[i * 4 + 3] = static_cast<uint8_t>(IPv6Addr_NetworkByteOrder[i] & 0xFF);
-		}
+		// The words are raw in6_addr.u6_addr32 values, so the bytes in memory are
+		// already in network order. Extracting them via shifts would byte swap every word
+		// on little endian machines.
+		std::memcpy(Bytes.data(), IPv6Addr_NetworkByteOrder, Bytes.size());
 		Family = EIPFamily::IPv6;
 	}
 
