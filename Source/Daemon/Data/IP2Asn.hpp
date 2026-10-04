@@ -4,8 +4,6 @@
  */
 
 #pragma once
-#include "IPAddress.hpp"
-
 #include <memory>
 #include <atomic>
 #include <mutex>
@@ -14,6 +12,7 @@
 #include <queue>
 
 #include "Singleton.hpp"
+#include "IPAddress.hpp"
 #include "MemoryStats.hpp"
 #include "Promise.hpp"
 #include "IP2Asn/IP2AsnDB.hpp"

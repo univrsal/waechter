@@ -14,8 +14,7 @@
 #include "Random.hpp"
 #include "Util/I18n.hpp"
 #include "Windows/SdlWindow.hpp"
-#include "../../Daemon/Data/IP2Asn.hpp"
-#include "../../Daemon/Data/LibCurl.hpp"
+#include "IP2Asn/IP2AsnDB.hpp"
 #include "Util/ProtocolDB.hpp"
 #include "Util/Settings.hpp"
 
@@ -145,12 +144,8 @@ void WMainWindow::Draw()
 
 		if (ImGui::BeginMenu(TR("menu.tools")))
 		{
-			bool bEnabled = !WIP2Asn::GetInstance().IsUpdateInProgress();
-
-			if (ImGui::MenuItem(TR("menu.update_ip2asn"), nullptr, false, bEnabled))
+			if (ImGui::MenuItem(TR("menu.update_ip2asn"), nullptr, false, true))
 			{
-				// todo: send request to server
-				// WIP2Asn::GetInstance().UpdateDatabase();
 				WIP2AsnUpdateRequest const Request{};
 				WClient::GetInstance().SendMessage(MT_UpdateIP2AsnDb, Request);
 			}
