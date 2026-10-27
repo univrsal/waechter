@@ -6,6 +6,7 @@
 #include "ConnectionHistory.hpp"
 
 #include <ranges>
+#include <unordered_map>
 
 #include "spdlog/spdlog.h"
 #include "sqlpp11/sqlpp11.h"
@@ -18,6 +19,56 @@
 
 #include "Db/DbManager.hpp"
 #include "Db/Schema.hpp"
+
+namespace
+{
+// Connections to the same app/host/port that start within this many seconds of the previous
+// one ending are merged into a single history row
+constexpr WSec kCoalesceWindow = 60;
+
+constexpr WSec kSecondsPerDay = 86400;
+
+struct WCoalesceKey
+{
+	int64_t  AppID{};
+	int64_t  HostID{};
+	uint16_t Port{};
+
+	bool operator==(WCoalesceKey const&) const = default;
+};
+
+struct WCoalesceKeyHash
+{
+	size_t operator()(WCoalesceKey const& Key) const noexcept
+	{
+		size_t Hash = std::hash<int64_t>{}(Key.AppID);
+		Hash ^= std::hash<int64_t>{}(Key.HostID) + 0x9e3779b97f4a7c15ULL + (Hash << 6) + (Hash >> 2);
+		Hash ^= std::hash<uint16_t>{}(Key.Port) + 0x9e3779b97f4a7c15ULL + (Hash << 6) + (Hash >> 2);
+		return Hash;
+	}
+};
+
+struct WCoalesceTarget
+{
+	int64_t RowID{};
+	WSec    EndTime{};
+};
+
+constexpr size_t kMaxCoalesceEntries = 4096;
+
+// Only accessed from within WDbManager::Run, which serializes access.
+// Row IDs stay valid because the database is only rotated on startup
+std::unordered_map<WCoalesceKey, WCoalesceTarget, WCoalesceKeyHash> RecentRows;
+
+void PruneRecentRows(WSec const Now)
+{
+	if (RecentRows.size() < kMaxCoalesceEntries)
+	{
+		return;
+	}
+	std::erase_if(RecentRows, [Now](auto const& Pair) { return Pair.second.EndTime + kCoalesceWindow < Now; });
+}
+} // namespace
 
 bool WConnectionHistoryEntry::Update()
 {
@@ -309,9 +360,33 @@ void WConnectionHistory::WriteToDatabase(std::shared_ptr<WConnectionHistoryEntry
 		{
 			HostID = HostResult.front().ID.value();
 		}
-		DbConn(sqlpp::insert_into(CHE).set(CHE.ItemID = AppID, CHE.RemoteHostID = HostID,
-			CHE.Port = Entry->RemoteEndpoint.Port, CHE.StartTime = Entry->StartTime, CHE.EndTime = Entry->EndTime,
-			CHE.DataIn = Set->BaseDataIn, CHE.DataOut = Set->BaseDataOut));
+		if (Set->BaseDataIn == 0 && Set->BaseDataOut == 0)
+		{
+			// Connections that never transferred anything (port scans, probes, health checks)
+			// are only counted per day instead of getting a history row each
+			DbConn.execute(fmt::format("INSERT INTO ConnectionHistoryDaily (Day, ItemID, RemoteHostID, Count) "
+									   "VALUES ({}, {}, {}, 1) "
+									   "ON CONFLICT(Day, ItemID, RemoteHostID) DO UPDATE SET Count = Count + 1",
+				Entry->StartTime / kSecondsPerDay * kSecondsPerDay, AppID, HostID));
+			return;
+		}
+
+		WCoalesceKey const Key{ AppID, HostID, Entry->RemoteEndpoint.Port };
+		if (auto const It = RecentRows.find(Key);
+			It != RecentRows.end() && Entry->StartTime <= It->second.EndTime + kCoalesceWindow)
+		{
+			DbConn.execute(fmt::format("UPDATE ConnectionHistoryEntry SET EndTime = max(EndTime, {}), "
+									   "DataIn = DataIn + {}, DataOut = DataOut + {} WHERE ID = {}",
+				Entry->EndTime, Set->BaseDataIn, Set->BaseDataOut, It->second.RowID));
+			It->second.EndTime = std::max(It->second.EndTime, Entry->EndTime);
+			return;
+		}
+
+		auto const RowID = static_cast<int64_t>(DbConn(sqlpp::insert_into(CHE).set(CHE.ItemID = AppID,
+			CHE.RemoteHostID = HostID, CHE.Port = Entry->RemoteEndpoint.Port, CHE.StartTime = Entry->StartTime,
+			CHE.EndTime = Entry->EndTime, CHE.DataIn = Set->BaseDataIn, CHE.DataOut = Set->BaseDataOut)));
+		PruneRecentRows(Entry->EndTime);
+		RecentRows[Key] = { RowID, Entry->EndTime };
 	});
 }
 
