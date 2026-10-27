@@ -13,7 +13,7 @@
 
 bool WMapUpdate::TrackUpdates()
 {
-	// When there are no clients there is no point in tracking updates
+	// When there are no clients, there is no point in tracking updates
 	// as the first client that connects gets the entire tree sent anyway
 	if (auto const Sock = WDaemon::GetInstance().GetDaemonSocket(); Sock && Sock->HasClients())
 	{
@@ -25,11 +25,16 @@ bool WMapUpdate::TrackUpdates()
 void WMapUpdate::AddStateChange(WTrafficItemId const Id, ESocketConnectionState const NewState,
 	uint8_t const SocketType, std::shared_ptr<WSocketTuple> const& SocketTuple)
 {
+	std::scoped_lock Lock(Mutex);
+	if (!ClientItems.contains(Id))
+	{
+		spdlog::warn("Attempted to add state change for item '{}', but it is not tracked by the client", Id);
+		return;
+	}
 	if (!TrackUpdates())
 	{
 		return;
 	}
-	std::scoped_lock              Lock(Mutex);
 	WTrafficTreeSocketStateChange StateChange;
 	StateChange.ItemId = Id;
 	StateChange.NewState = NewState;
@@ -100,12 +105,6 @@ WTrafficTreeUpdates const& WMapUpdate::GetUpdates()
 
 	for (auto const& Socket : AddedSockets)
 	{
-		if (Socket->GetState() == CS_PendingRemoval)
-		{
-			// No point in sending additions for sockets that are being removed
-			continue;
-		}
-
 		WTrafficTreeSocketAddition Addition{};
 
 		auto const PPTI = Socket->ParentProcess->TrafficItem;
@@ -123,21 +122,21 @@ WTrafficTreeUpdates const& WMapUpdate::GetUpdates()
 		Addition.SocketType = Socket->TrafficItem->SocketType;
 		Addition.SocketCookie = Socket->TrafficItem->Cookie;
 		Updates.AddedSockets.emplace_back(Addition);
+
+		if (Socket->TrafficItem->SocketTuple.IsZero())
+		{
+			spdlog::debug("Added socket {} with zero tuple to updates (App: {}, Process: {})",
+				Socket->TrafficItem->ItemId, PATI->ApplicationName, PPTI->ProcessId);
+		}
 	}
 
 	for (auto const& TupleCounter : AddedTuples)
 	{
-		if (TupleCounter.second->ParentSocket->GetState() == CS_PendingRemoval)
-		{
-			// No point in sending additions for tuples whose parent socket is being removed
-			continue;
-		}
-
 		WTrafficTreeTupleAddition Addition{};
-
 		Addition.ItemId = TupleCounter.second->TrafficItem->ItemId;
 		Addition.SocketItemId = TupleCounter.second->ParentSocket->TrafficItem->ItemId;
 		Addition.Endpoint = TupleCounter.first;
+		Updates.AddedTuples.emplace_back(Addition);
 	}
 
 	Clear();

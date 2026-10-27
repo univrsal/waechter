@@ -8,6 +8,7 @@
 #include "Daemon.hpp"
 #include "Data/AppIconAtlasBuilder.hpp"
 #include "Data/ConnectionHistory.hpp"
+#include "Data/IP2Asn.hpp"
 #include "Data/SystemMap.hpp"
 #include "Db/StatsManager.hpp"
 #include "Net/IPLink.hpp"
@@ -31,6 +32,7 @@ WMemoryStats WMemoryUsage::GetMemoryStats()
 	auto const IconResolverStats = WAppIconAtlasBuilder::GetInstance().GetResolver().GetMemoryUsage();
 	auto const DaemonStats = WDaemon::GetInstance().GetMemoryUsage();
 	auto const StatsManagerStats = WStatsManager::GetInstance().GetMemoryUsage();
+	auto const IP2AsnStats = WIP2Asn::GetInstance().GetMemoryUsage();
 
 	WMemoryStats Stats{};
 	Stats.Stats.push_back(RuleManagerStats);
@@ -42,5 +44,6 @@ WMemoryStats WMemoryUsage::GetMemoryStats()
 	Stats.Stats.push_back(IconResolverStats);
 	Stats.Stats.push_back(DaemonStats);
 	Stats.Stats.push_back(StatsManagerStats);
+	Stats.Stats.push_back(IP2AsnStats);
 	return Stats;
 }

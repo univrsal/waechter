@@ -86,8 +86,19 @@ class WConnectionHistory : public TSingleton<WConnectionHistory>, public IMemory
 	// all connections to an endpoint have closed
 	std::deque<std::shared_ptr<WConnectionHistoryEntry>> History;
 
-	std::unordered_map<std::pair<std::string, WEndpoint>, std::shared_ptr<WConnectionSet>, WConnectionKeyHash>
-		ActiveConnections;
+	using WConnectionKey = std::pair<std::string, WEndpoint>;
+
+	std::unordered_map<WConnectionKey, std::shared_ptr<WConnectionSet>, WConnectionKeyHash> ActiveConnections;
+
+	// The key each socket/tuple was registered under. Removal has to use this instead of recomputing
+	// the key from the item's current state: the remote endpoint or owning app can change after
+	// registration, which would otherwise leave the old set (and the items it holds) in ActiveConnections forever
+	std::unordered_map<WTrafficItemId, WConnectionKey> RegisteredItems;
+
+	// Caller must hold Mutex
+	void AddToConnectionSet(WConnectionKey const& Key, std::shared_ptr<ITrafficItem> const& Item,
+		std::shared_ptr<WAppCounter> const& App, WEndpoint const& RemoteEndpoint);
+	void RemoveFromConnectionSet(std::shared_ptr<ITrafficItem> const& Item);
 
 	void OnSocketConnected(WSocketCounter const* SocketCounter);
 	void OnSocketRemoved(std::shared_ptr<WSocketCounter> const& SocketCounter);

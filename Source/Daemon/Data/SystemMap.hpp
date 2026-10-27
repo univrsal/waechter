@@ -37,6 +37,7 @@ class WSystemMap : public TSingleton<WSystemMap>, public IMemoryTrackable
 	WSocketStateParser SocketStateParser{};
 	WMapUpdate         MapUpdate{};
 	WSec               LastCleanupMessageTime{};
+	WSec               LastMemoryDiagnosticTime{};
 
 	std::atomic<WTrafficItemId>  NextItemId{ 1 }; // 0 is the root item
 	std::shared_ptr<WSystemItem> SystemItem = std::make_shared<WSystemItem>();
@@ -44,17 +45,24 @@ class WSystemMap : public TSingleton<WSystemMap>, public IMemoryTrackable
 
 	std::vector<std::unique_ptr<WFilterCounter>> FilterCounters{};
 
+	struct WOrphanedSocket
+	{
+		std::shared_ptr<WSocketCounter> Socket;
+		WMsec                           InsertedAt;
+	};
+
 	std::unordered_map<std::string, std::shared_ptr<WAppCounter>>      Applications{};
 	std::unordered_map<WProcessId, std::shared_ptr<WProcessCounter>>   Processes{};
 	std::unordered_map<WSocketCookie, std::shared_ptr<WSocketCounter>> Sockets{};
 	std::unordered_map<WTrafficItemId, std::shared_ptr<ITrafficItem>>  TrafficItems{};
-	std::unordered_map<WEndpoint, std::shared_ptr<WSocketCounter>>     OrphanedSockets{};
+	std::unordered_map<WEndpoint, WOrphanedSocket>                     OrphanedSockets{};
 
 	std::shared_ptr<WSocketCounter> FindOrMapSocket(
 		WSocketCookie SocketCookie, std::shared_ptr<WProcessCounter> const& ParentProcess);
 	std::shared_ptr<WProcessCounter> FindOrMapProcess(WProcessId PID, std::shared_ptr<WAppCounter> const& ParentApp);
 	std::shared_ptr<WAppCounter>     FindOrMapApplication(
 			std::string const& ExePath, std::string const& CommandLine, std::string const& AppName);
+	void MarkSocketForRemoval(std::shared_ptr<WSocketCounter> const& Socket);
 
 	void Cleanup();
 
@@ -66,6 +74,14 @@ class WSystemMap : public TSingleton<WSystemMap>, public IMemoryTrackable
 
 	std::shared_ptr<WTupleCounter> GetOrCreateUDPTupleCounter(
 		std::shared_ptr<WSocketCounter> const& SockCounter, WEndpoint const& Endpoint);
+
+	// Fully unwinds a UDP tuple across TrafficItems, MapUpdate, the parent
+	// SocketItem's tuple vector, and the socket's counter map, firing the
+	// OnUDPTupleRemoved signal so downstream consumers (WConnectionHistory)
+	// stay consistent. Returns the iterator advanced past the erased entry.
+	std::unordered_map<WEndpoint, std::shared_ptr<WTupleCounter>>::iterator RemoveUDPTuple(
+		std::shared_ptr<WSocketCounter> const&                                          SockCounter,
+		std::unordered_map<WEndpoint, std::shared_ptr<WTupleCounter>>::iterator TupleIt);
 
 	void RegisterDefaultFilters();
 
@@ -99,7 +115,12 @@ public:
 
 	void MarkSocketForRemoval(WSocketEvent const& Event)
 	{
+		std::scoped_lock Lock(DataMutex);
 		if (auto const It = Sockets.find(Event.Cookie); It != Sockets.end())
+		{
+			MarkSocketForRemoval(It->second);
+		}
+		else
 		{
 			if (Event.Data.SocketCloseEventData.LocalPort > 0)
 			{
@@ -110,22 +131,11 @@ public:
 				{
 					if (Sock->TrafficItem->SocketTuple.LocalEndpoint.Port == Event.Data.SocketCloseEventData.LocalPort)
 					{
-						Sock->MarkForRemoval();
-						Sock->TrafficItem->ConnectionState = ESocketConnectionState::Closed;
-						MapUpdate.MarkItemForRemoval(Sock->TrafficItem->ItemId);
-						Sock->ParentProcess->PushIncomingTraffic(0); // Force state update
-						Sock->ParentProcess->ParentApp->PushOutgoingTraffic(0);
-						TrafficCounter.PushIncomingTraffic(0);
+						MarkSocketForRemoval(Sock);
 						break;
 					}
 				}
 			}
-			It->second->MarkForRemoval();
-			It->second->TrafficItem->ConnectionState = ESocketConnectionState::Closed;
-			MapUpdate.MarkItemForRemoval(It->second->TrafficItem->ItemId);
-			It->second->ParentProcess->PushIncomingTraffic(0); // Force state update
-			It->second->ParentProcess->ParentApp->PushOutgoingTraffic(0);
-			TrafficCounter.PushIncomingTraffic(0);
 		}
 	}
 

@@ -65,7 +65,8 @@
     "help": "Help",
     "update_ip2asn": "Update IP2ASN database",
     "show_uninitialized_sockets": "Show uninitialized sockets",
-    "show_offline_processes": "Show offline processes"
+    "show_offline_processes": "Show offline processes",
+    "dump_tree": "Dump traffic tree"
   },
   "traffic_tree": {
     "title": "Traffic Tree"

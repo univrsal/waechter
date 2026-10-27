@@ -115,7 +115,7 @@ void WSetupWindow::Draw()
 			ImGui::EndCombo();
 		}
 
-
+		DrawDaemonSettings();
 	}
 	ImGui::End();
 }

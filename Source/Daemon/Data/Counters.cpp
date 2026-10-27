@@ -11,6 +11,11 @@
 
 void WSocketCounter::ProcessSocketEvent(WSocketEvent const& Event) const
 {
+	if (IsMarkedForRemoval())
+	{
+		return;
+	}
+
 	auto const OldItemState = *TrafficItem.get();
 	if (Event.EventType == NE_SocketConnect_4 && TrafficItem->ConnectionState != ESocketConnectionState::Connecting)
 	{

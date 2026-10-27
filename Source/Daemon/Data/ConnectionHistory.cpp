@@ -5,6 +5,8 @@
 
 #include "ConnectionHistory.hpp"
 
+#include <ranges>
+
 #include "spdlog/spdlog.h"
 #include "sqlpp11/sqlpp11.h"
 
@@ -73,6 +75,63 @@ WConnectionHistoryEntry::WConnectionHistoryEntry(std::shared_ptr<WAppCounter> co
 	ConnectionId = WSystemMap::GetInstance().GetNextItemId();
 }
 
+void WConnectionHistory::AddToConnectionSet(WConnectionKey const& Key, std::shared_ptr<ITrafficItem> const& Item,
+	std::shared_ptr<WAppCounter> const& App, WEndpoint const& RemoteEndpoint)
+{
+	if (auto const It = RegisteredItems.find(Item->ItemId); It != RegisteredItems.end())
+	{
+		if (It->second == Key)
+		{
+			// already tracked
+			return;
+		}
+		// The item was registered under a different key before (e.g. bind event before
+		// the connection was established), move it over to the new set
+		spdlog::debug("ConnectionHistory: Item {} moved from {} to {}", Item->ItemId, It->second.second.ToString(),
+			Key.second.ToString());
+		RemoveFromConnectionSet(Item);
+	}
+
+	auto& Set = ActiveConnections[Key];
+	if (!Set)
+	{
+		// insert the new connection set
+		Set = std::make_shared<WConnectionSet>();
+		Set->ParentEntry = Push(App, Set, RemoteEndpoint);
+	}
+	Set->Connections.insert(Item);
+	RegisteredItems[Item->ItemId] = Key;
+}
+
+void WConnectionHistory::RemoveFromConnectionSet(std::shared_ptr<ITrafficItem> const& Item)
+{
+	auto const It = RegisteredItems.find(Item->ItemId);
+	if (It == RegisteredItems.end())
+	{
+		// not tracked
+		return;
+	}
+	auto const Key = std::move(It->second);
+	RegisteredItems.erase(It);
+
+	auto const SetIt = ActiveConnections.find(Key);
+	if (SetIt == ActiveConnections.end())
+	{
+		return;
+	}
+	auto const ConnectionSet = SetIt->second;
+	ConnectionSet->BaseDataIn += Item->TotalDownloadBytes;
+	ConnectionSet->BaseDataOut += Item->TotalUploadBytes;
+	ConnectionSet->Connections.erase(Item);
+
+	// The history entry will still maintain a reference until it's popped from the deque
+	if (ConnectionSet->Connections.empty())
+	{
+		ActiveConnections.erase(SetIt);
+		HandleEmptySet(ConnectionSet);
+	}
+}
+
 void WConnectionHistory::OnSocketConnected(WSocketCounter const* SocketCounter)
 {
 	if (SocketCounter->TrafficItem->SocketTuple.Protocol != EProtocol::TCP)
@@ -82,82 +141,21 @@ void WConnectionHistory::OnSocketConnected(WSocketCounter const* SocketCounter)
 	}
 
 	auto const App = SocketCounter->ParentProcess->ParentApp;
-	auto       AppName = App->TrafficItem->ApplicationPath;
-	auto       Endpoint = SocketCounter->TrafficItem->SocketTuple.RemoteEndpoint;
+	auto const Endpoint = SocketCounter->TrafficItem->SocketTuple.RemoteEndpoint;
 
 	std::scoped_lock Lock(Mutex);
-
-	auto const Key = std::make_pair(AppName, Endpoint);
-
-	auto const bHaveConnection = ActiveConnections.contains(Key);
-
-	if (bHaveConnection && ActiveConnections[Key]->Connections.contains(SocketCounter->TrafficItem))
-	{
-		// already tracked
-		return;
-	}
-
-	if (!bHaveConnection)
-	{
-		// insert the new connection set
-		auto const NewSet = std::make_shared<WConnectionSet>();
-		ActiveConnections[Key] = NewSet;
-		NewSet->Connections.insert(SocketCounter->TrafficItem);
-		NewSet->ParentEntry = Push(App, NewSet, Endpoint);
-		return;
-	}
-	// add the new tuple to the existing connection set
-	ActiveConnections[Key]->Connections.insert(SocketCounter->TrafficItem);
+	AddToConnectionSet(std::make_pair(App->TrafficItem->ApplicationPath, Endpoint), SocketCounter->TrafficItem, App,
+		Endpoint);
 }
 
 void WConnectionHistory::OnSocketRemoved(std::shared_ptr<WSocketCounter> const& SocketCounter)
 {
 	std::scoped_lock Lock(Mutex);
-	auto const       App = SocketCounter->ParentProcess->ParentApp;
-	if (!App)
+	RemoveFromConnectionSet(SocketCounter->TrafficItem);
+
+	for (auto const& UDPCounter : SocketCounter->UDPPerConnectionCounters | std::views::values)
 	{
-		spdlog::error("No app for socket {}", SocketCounter->TrafficItem->ItemId);
-		return;
-	}
-	auto             AppName = App->TrafficItem->ApplicationPath;
-	auto             Endpoint = SocketCounter->TrafficItem->SocketTuple.RemoteEndpoint;
-	auto const       Key = std::make_pair(AppName, Endpoint);
-
-	if (ActiveConnections.contains(Key))
-	{
-		auto const ConnectionSet = ActiveConnections[Key];
-		// not tracked
-		ConnectionSet->BaseDataIn += SocketCounter->TrafficItem->TotalDownloadBytes;
-		ConnectionSet->BaseDataOut += SocketCounter->TrafficItem->TotalUploadBytes;
-		ConnectionSet->Connections.erase(SocketCounter->TrafficItem);
-
-		// The history entry will still maintain a reference until it's popped from the deque
-		if (ConnectionSet->Connections.empty())
-		{
-			ActiveConnections.erase(Key);
-			HandleEmptySet(ConnectionSet);
-		}
-	}
-
-	for (auto const& [TupleEndpoint, UDPCounter] : SocketCounter->UDPPerConnectionCounters)
-	{
-		// the tuples can have different remote endpoints,
-		// so we have to look them up individually
-		auto const TupleKey = std::make_pair(AppName, TupleEndpoint);
-		if (!ActiveConnections.contains(TupleKey))
-		{
-			continue;
-		}
-		auto const ConnectionSet = ActiveConnections[TupleKey];
-		ConnectionSet->BaseDataIn += UDPCounter->TrafficItem->TotalDownloadBytes;
-		ConnectionSet->BaseDataOut += UDPCounter->TrafficItem->TotalUploadBytes;
-		ConnectionSet->Connections.erase(UDPCounter->TrafficItem);
-
-		if (ConnectionSet->Connections.empty())
-		{
-			ActiveConnections.erase(TupleKey);
-			HandleEmptySet(ConnectionSet);
-		}
+		RemoveFromConnectionSet(UDPCounter->TrafficItem);
 	}
 }
 
@@ -169,57 +167,17 @@ void WConnectionHistory::OnUDPTupleCreated(std::shared_ptr<WTupleCounter> const&
 		spdlog::info("No app for tuple {}", TupleCounter->TrafficItem->ItemId);
 		return;
 	}
-	auto             AppName = App->TrafficItem->ApplicationPath;
+	auto const& Endpoint = TupleCounter->TrafficItem->Endpoint;
+
 	std::scoped_lock Lock(Mutex);
-
-	auto const Key = std::make_pair(AppName, TupleCounter->TrafficItem->Endpoint);
-	auto const bHaveConnection = ActiveConnections.contains(Key);
-
-	if (bHaveConnection && ActiveConnections[Key]->Connections.contains(TupleCounter->TrafficItem))
-	{
-		// already tracked
-		return;
-	}
-
-	if (!bHaveConnection)
-	{
-		// insert the new connection set
-		auto const NewSet = std::make_shared<WConnectionSet>();
-		NewSet->Connections.insert(TupleCounter->TrafficItem);
-		ActiveConnections[Key] = NewSet;
-		NewSet->ParentEntry = Push(App, NewSet, TupleCounter->TrafficItem->Endpoint);
-		return;
-	}
-	// add a new tuple to the existing connection set
-	ActiveConnections[Key]->Connections.insert(TupleCounter->TrafficItem);
+	AddToConnectionSet(
+		std::make_pair(App->TrafficItem->ApplicationPath, Endpoint), TupleCounter->TrafficItem, App, Endpoint);
 }
 
 void WConnectionHistory::OnUDPTupleRemoved(std::shared_ptr<WTupleCounter> const& TupleCounter)
 {
-	auto const App = TupleCounter->ParentSocket->ParentProcess->ParentApp;
-	if (!App)
-	{
-		return;
-	}
-	auto             AppName = App->TrafficItem->ApplicationPath;
 	std::scoped_lock Lock(Mutex);
-
-	auto const Key = std::make_pair(AppName, TupleCounter->TrafficItem->Endpoint);
-	if (!ActiveConnections.contains(Key))
-	{
-		return;
-	}
-
-	auto const ConnectionSet = ActiveConnections[Key];
-	ConnectionSet->BaseDataIn += TupleCounter->TrafficItem->TotalDownloadBytes;
-	ConnectionSet->BaseDataOut += TupleCounter->TrafficItem->TotalUploadBytes;
-	ConnectionSet->Connections.erase(TupleCounter->TrafficItem);
-
-	if (ConnectionSet->Connections.empty())
-	{
-		ActiveConnections.erase(Key);
-		HandleEmptySet(ConnectionSet);
-	}
+	RemoveFromConnectionSet(TupleCounter->TrafficItem);
 }
 
 std::shared_ptr<WConnectionHistoryEntry> WConnectionHistory::Push(std::shared_ptr<WAppCounter> const& App,
@@ -475,12 +433,25 @@ WMemoryStat WConnectionHistory::GetMemoryUsage()
 
 	WMemoryStatEntry ActiveConnectionsEntry{};
 	ActiveConnectionsEntry.Name = "Active connections";
-	ActiveConnectionsEntry.Usage = sizeof(decltype(ActiveConnections))
-		+ ActiveConnections.size()
-			* (sizeof(std::pair<std::string, WEndpoint>) + sizeof(std::shared_ptr<WConnectionSet>));
+	ActiveConnectionsEntry.Usage = sizeof(decltype(ActiveConnections));
+	for (auto const& [Key, Set] : ActiveConnections)
+	{
+		ActiveConnectionsEntry.Usage += sizeof(WConnectionKey) + Key.first.capacity()
+			+ sizeof(std::shared_ptr<WConnectionSet>) + sizeof(WConnectionSet)
+			+ Set->Connections.size() * (sizeof(std::shared_ptr<ITrafficItem>) + sizeof(void*));
+	}
+
+	WMemoryStatEntry RegisteredItemsEntry{};
+	RegisteredItemsEntry.Name = "Registered items";
+	RegisteredItemsEntry.Usage = sizeof(decltype(RegisteredItems));
+	for (auto const& Key : RegisteredItems | std::views::values)
+	{
+		RegisteredItemsEntry.Usage += sizeof(WTrafficItemId) + sizeof(WConnectionKey) + Key.first.capacity();
+	}
 
 	Stats.ChildEntries.emplace_back(HistoryEntry);
 	Stats.ChildEntries.emplace_back(ActiveConnectionsEntry);
+	Stats.ChildEntries.emplace_back(RegisteredItemsEntry);
 
 	return Stats;
 }

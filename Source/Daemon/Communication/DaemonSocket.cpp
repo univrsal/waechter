@@ -124,6 +124,12 @@ static void SendInitialDataToClient(std::shared_ptr<WDaemonClient> const& Client
 
 void WDaemonSocket::OnNewConnection(std::shared_ptr<WDaemonClient> const& NewClient)
 {
+	if (!bHasClients)
+	{
+		// Make sure we don't send any stale updates that might be
+		// left over from the last time a client was connected
+		WSystemMap::GetInstance().GetMapUpdate().ClearMap();
+	}
 	SendInitialDataToClient(NewClient);
 	ClientsMutex.lock();
 	Clients.push_back(NewClient);
@@ -174,7 +180,7 @@ void WDaemonSocket::BroadcastMemoryUsageUpdate()
 		Archive(Stats);
 	}
 
-	std::lock_guard    Lock(ClientsMutex);
+	std::shared_lock   Lock(ClientsMutex);
 	std::string const& Str = Os.str();
 
 	for (auto const& Client : Clients)
@@ -194,7 +200,7 @@ void WDaemonSocket::BroadcastTrafficUpdate()
 		return;
 	}
 	auto&           SystemMap = WSystemMap::GetInstance();
-	std::lock_guard Lock(ClientsMutex);
+	std::shared_lock Lock(ClientsMutex);
 
 	std::stringstream Os{};
 	{
@@ -220,7 +226,7 @@ void WDaemonSocket::BroadcastTrafficUpdate()
 
 void WDaemonSocket::BroadcastConnectionHistoryUpdate(WConnectionHistoryUpdate const& Update)
 {
-	std::lock_guard Lock(ClientsMutex);
+	std::shared_lock Lock(ClientsMutex);
 	for (auto const& Client : Clients)
 	{
 		if (Client->SendMessage(MT_ConnectionHistoryUpdate, Update) < 0)
@@ -234,12 +240,12 @@ void WDaemonSocket::BroadcastConnectionHistoryUpdate(WConnectionHistoryUpdate co
 void WDaemonSocket::BroadcastAtlasUpdate()
 {
 	auto&             SystemMap = WSystemMap::GetInstance();
-	std::lock_guard   Lock(ClientsMutex);
-	auto              ActiveApps = SystemMap.GetActiveApplicationPaths();
+	std::shared_lock  Lock(ClientsMutex);
+	auto const        ActiveApps = SystemMap.GetActiveApplicationPaths();
 	WAppIconAtlasData Data{};
 	if (WAppIconAtlasBuilder::GetInstance().GetAtlasData(Data, ActiveApps))
 	{
-		auto Msg = WDaemonClient::MakeMessage(MT_AppIconAtlasData, Data);
+		auto const Msg = WDaemonClient::MakeMessage(MT_AppIconAtlasData, Data);
 		spdlog::debug("App icon atlas is dirty, broadcasting atlas update with {} KiB to clients", Msg.length() / 1024);
 		ZoneScopedN("BroadcastAtlasUpdate.SendMessage");
 		for (auto const& Client : Clients)
