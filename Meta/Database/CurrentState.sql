@@ -19,6 +19,17 @@ CREATE TABLE IF NOT EXISTS "ConnectionHistoryEntry" (
 	FOREIGN KEY("ItemID") REFERENCES "TrafficItem"("ID"),
 	FOREIGN KEY("RemoteHostID") REFERENCES "Host"("ID")
 );
+CREATE TABLE IF NOT EXISTS "ConnectionHistoryDaily" (
+	"ID"	INTEGER,
+	"Day"	INTEGER NOT NULL,
+	"ItemID"	INTEGER NOT NULL,
+	"RemoteHostID"	INTEGER NOT NULL,
+	"Count"	INTEGER NOT NULL DEFAULT 0,
+	PRIMARY KEY("ID"),
+	UNIQUE("Day", "ItemID", "RemoteHostID"),
+	FOREIGN KEY("ItemID") REFERENCES "TrafficItem"("ID"),
+	FOREIGN KEY("RemoteHostID") REFERENCES "Host"("ID")
+);
 CREATE TABLE IF NOT EXISTS "Host" (
 	"ID"	INTEGER,
 	"Family"	INTEGER NOT NULL CHECK("Family" IN (4, 6)),

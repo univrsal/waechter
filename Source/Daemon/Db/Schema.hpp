@@ -252,6 +252,110 @@ namespace Schema
       };
     };
   };
+  namespace ConnectionHistoryDaily_
+  {
+    struct ID
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "ID";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T ID;
+            T& operator()() { return ID; }
+            const T& operator()() const { return ID; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::can_be_null>;
+    };
+    struct Day
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "Day";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T Day;
+            T& operator()() { return Day; }
+            const T& operator()() const { return Day; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::require_insert>;
+    };
+    struct ItemID
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "ItemID";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T ItemID;
+            T& operator()() { return ItemID; }
+            const T& operator()() const { return ItemID; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::require_insert>;
+    };
+    struct RemoteHostID
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "RemoteHostID";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T RemoteHostID;
+            T& operator()() { return RemoteHostID; }
+            const T& operator()() const { return RemoteHostID; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::integer, sqlpp::tag::require_insert>;
+    };
+    struct Count
+    {
+      struct _alias_t
+      {
+        static constexpr const char _literal[] =  "Count";
+        using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+        template<typename T>
+        struct _member_t
+          {
+            T Count;
+            T& operator()() { return Count; }
+            const T& operator()() const { return Count; }
+          };
+      };
+      using _traits = sqlpp::make_traits<sqlpp::integer>;
+    };
+  } // namespace ConnectionHistoryDaily_
+
+  struct ConnectionHistoryDaily: sqlpp::table_t<ConnectionHistoryDaily,
+               ConnectionHistoryDaily_::ID,
+               ConnectionHistoryDaily_::Day,
+               ConnectionHistoryDaily_::ItemID,
+               ConnectionHistoryDaily_::RemoteHostID,
+               ConnectionHistoryDaily_::Count>
+  {
+    struct _alias_t
+    {
+      static constexpr const char _literal[] =  "ConnectionHistoryDaily";
+      using _name_t = sqlpp::make_char_sequence<sizeof(_literal), _literal>;
+      template<typename T>
+      struct _member_t
+      {
+        T ConnectionHistoryDaily;
+        T& operator()() { return ConnectionHistoryDaily; }
+        const T& operator()() const { return ConnectionHistoryDaily; }
+      };
+    };
+  };
   namespace Host_
   {
     struct ID
